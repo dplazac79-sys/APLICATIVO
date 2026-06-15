@@ -1,0 +1,88 @@
+export type RolTipo =
+  | 'super_admin'
+  | 'director_proyecto'
+  | 'consultor'
+  | 'sponsor_cliente'
+  | 'usuario_cliente'
+
+export type EstadoProcesamiento = 'pendiente' | 'procesando' | 'listo' | 'error'
+
+export type EstadoProyecto = 'activo' | 'pausado' | 'cerrado'
+
+export interface Cliente {
+  id: string
+  razon_social: string
+  rut: string | null
+  industria: string | null
+  tamano: string | null
+  facturacion: number | null
+  dotacion: number | null
+  objetivos_estrategicos: string | null
+  riesgos_declarados: string | null
+  madurez_digital: string | null
+  inteligencia_industria: Record<string, unknown>
+  activo: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface Proyecto {
+  id: string
+  cliente_id: string
+  nombre: string
+  alcance: string | null
+  estado_general: EstadoProyecto
+  fase_actual: number
+  created_at: string
+  updated_at: string
+}
+
+export interface Usuario {
+  id: string
+  nombre: string
+  email: string
+  rol: RolTipo
+  activo: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface UsuarioProyecto {
+  usuario_id: string
+  proyecto_id: string
+  rol_override: RolTipo | null
+}
+
+export interface Documento {
+  id: string
+  proyecto_id: string
+  nombre_archivo: string
+  tipo: string | null
+  url_storage: string
+  estado_procesamiento: EstadoProcesamiento
+  clasificacion: Record<string, unknown>
+  resumen_ejecutivo: string | null
+  subido_por: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface AuditLog {
+  id: number
+  usuario_id: string | null
+  accion: string
+  entidad: string
+  entidad_id: string | null
+  detalle: Record<string, unknown>
+  ip: string | null
+  created_at: string
+}
+
+// Tipos extendidos con joins frecuentes
+export interface ClienteConProyectos extends Cliente {
+  proyectos: Proyecto[]
+}
+
+export interface ProyectoConCliente extends Proyecto {
+  cliente: Pick<Cliente, 'id' | 'razon_social' | 'industria'>
+}
