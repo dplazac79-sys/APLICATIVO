@@ -79,8 +79,6 @@ export default function DocumentUploader({ proyectos }: Props) {
     setError('')
     setDone(0)
 
-    const { data: { user } } = await supabase.auth.getUser()
-
     for (const file of files) {
       const path = `${pid}/${Date.now()}-${file.name}`
 
@@ -93,17 +91,20 @@ export default function DocumentUploader({ proyectos }: Props) {
         continue
       }
 
-      const { error: dbError } = await supabase.from('documento').insert({
-        proyecto_id: pid,
-        nombre_archivo: file.name,
-        tipo: detectTipo(file),
-        url_storage: path,
-        estado_procesamiento: 'pendiente',
-        subido_por: user?.id ?? null,
+      const res = await fetch('/api/documentos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          proyecto_id: pid,
+          nombre_archivo: file.name,
+          tipo: detectTipo(file),
+          url_storage: path,
+        }),
       })
 
-      if (dbError) {
-        setError(`Error al registrar: ${dbError.message}`)
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        setError(`Error al registrar: ${data.error ?? 'desconocido'}`)
         continue
       }
 

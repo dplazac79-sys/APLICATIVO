@@ -2,13 +2,16 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { clasificarDocumento, resumirDocumento } from '@/lib/ai/claude'
 import { generarEmbedding } from '@/lib/ai/embeddings'
+import { registrarAudit } from '@/lib/audit'
 
 export async function POST(req: NextRequest) {
-  try {
-    const { documento_id } = await req.json()
-    if (!documento_id) return NextResponse.json({ error: 'documento_id requerido' }, { status: 400 })
+  let documento_id: string | undefined
+  const admin = createAdminClient()
 
-    const admin = createAdminClient()
+  try {
+    const body = await req.json()
+    documento_id = body.documento_id
+    if (!documento_id) return NextResponse.json({ error: 'documento_id requerido' }, { status: 400 })
 
     const { data: doc, error } = await admin
       .from('documento')
@@ -77,9 +80,26 @@ export async function POST(req: NextRequest) {
       resultado: { clasificacion, resumen },
     }).eq('documento_id', documento_id).eq('tipo', 'clasificar_documento')
 
+    await registrarAudit({
+      accion: 'UPDATE',
+      entidad: 'documento',
+      entidad_id: documento_id,
+      detalle: { accion_detalle: 'procesado_con_ia', bloque: clasificacion.bloque },
+    })
+
     return NextResponse.json({ ok: true, clasificacion, resumen })
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Error desconocido'
+    console.error('[procesar] Error:', err)
+
+    if (documento_id) {
+      await admin.from('documento').update({ estado_procesamiento: 'error' }).eq('id', documento_id)
+      await admin.from('jobs').update({
+        estado: 'error',
+        error_mensaje: msg,
+      }).eq('documento_id', documento_id).eq('tipo', 'clasificar_documento')
+    }
+
     return NextResponse.json({ error: msg }, { status: 500 })
   }
 }

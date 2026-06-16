@@ -17,6 +17,9 @@ describeOrSkip('RLS — aislamiento de datos por proyecto y rol', () => {
   let proyectoBId: string
   let usuarioClienteAId: string
   let superAdminId: string
+  let directorAId: string
+  let consultorAId: string
+  let sponsorAId: string
 
   beforeAll(async () => {
     const { data: clienteA } = await admin.from('cliente').insert({ razon_social: `Cliente A ${sufijo}` }).select().single()
@@ -55,6 +58,48 @@ describeOrSkip('RLS — aislamiento de datos por proyecto y rol', () => {
       email: userSuper!.user!.email!,
       rol: 'super_admin',
     })
+
+    const { data: userDirector } = await admin.auth.admin.createUser({
+      email: `director-${sufijo}@test.processos.local`,
+      password: passwordPrueba,
+      email_confirm: true,
+    })
+    directorAId = userDirector!.user!.id
+    await admin.from('usuario').insert({
+      id: directorAId,
+      nombre: 'Director Proyecto A (test)',
+      email: userDirector!.user!.email!,
+      rol: 'director_proyecto',
+    })
+    await admin.from('usuario_proyecto').insert({ usuario_id: directorAId, proyecto_id: proyectoAId })
+
+    const { data: userConsultor } = await admin.auth.admin.createUser({
+      email: `consultor-${sufijo}@test.processos.local`,
+      password: passwordPrueba,
+      email_confirm: true,
+    })
+    consultorAId = userConsultor!.user!.id
+    await admin.from('usuario').insert({
+      id: consultorAId,
+      nombre: 'Consultor A (test)',
+      email: userConsultor!.user!.email!,
+      rol: 'consultor',
+    })
+    await admin.from('usuario_proyecto').insert({ usuario_id: consultorAId, proyecto_id: proyectoAId })
+
+    const { data: userSponsor } = await admin.auth.admin.createUser({
+      email: `sponsor-${sufijo}@test.processos.local`,
+      password: passwordPrueba,
+      email_confirm: true,
+    })
+    sponsorAId = userSponsor!.user!.id
+    await admin.from('usuario').insert({
+      id: sponsorAId,
+      nombre: 'Sponsor Cliente A (test)',
+      email: userSponsor!.user!.email!,
+      rol: 'sponsor_cliente',
+    })
+    await admin.from('usuario_proyecto').insert({ usuario_id: sponsorAId, proyecto_id: proyectoAId })
   })
 
   afterAll(async () => {
@@ -66,9 +111,11 @@ describeOrSkip('RLS — aislamiento de datos por proyecto y rol', () => {
       }
     }
 
-    await limpiar(() => admin.from('audit_log').delete().in('usuario_id', [usuarioClienteAId, superAdminId]))
-    if (usuarioClienteAId) await limpiar(() => admin.auth.admin.deleteUser(usuarioClienteAId))
-    if (superAdminId) await limpiar(() => admin.auth.admin.deleteUser(superAdminId))
+    const todosUsuarios = [usuarioClienteAId, superAdminId, directorAId, consultorAId, sponsorAId]
+    await limpiar(() => admin.from('audit_log').delete().in('usuario_id', todosUsuarios))
+    for (const id of todosUsuarios) {
+      if (id) await limpiar(() => admin.auth.admin.deleteUser(id))
+    }
     await limpiar(() => admin.from('proyecto').delete().in('id', [proyectoAId, proyectoBId]))
     await limpiar(() => admin.from('cliente').delete().in('id', [clienteAId, clienteBId]))
   })
@@ -132,6 +179,51 @@ describeOrSkip('RLS — aislamiento de datos por proyecto y rol', () => {
 
     expect(usuarios.has(usuarioClienteAId)).toBe(true)
     expect(usuarios.has(superAdminId)).toBe(true)
+  })
+
+  it('un director_proyecto asignado solo ve su proyecto, no proyectos ajenos', async () => {
+    const client = await clienteComo(`director-${sufijo}@test.processos.local`)
+    const { data } = await client.from('proyecto').select('id').in('id', [proyectoAId, proyectoBId])
+    const idsVisibles = (data ?? []).map(p => p.id)
+
+    expect(idsVisibles).toContain(proyectoAId)
+    expect(idsVisibles).not.toContain(proyectoBId)
+  })
+
+  it('un consultor asignado puede insertar documentos en su proyecto', async () => {
+    const client = await clienteComo(`consultor-${sufijo}@test.processos.local`)
+    const { data, error } = await client.from('documento').insert({
+      proyecto_id: proyectoAId,
+      nombre_archivo: 'test-consultor.txt',
+      url_storage: `${proyectoAId}/test-consultor.txt`,
+    }).select().single()
+
+    expect(error).toBeNull()
+    expect(data?.proyecto_id).toBe(proyectoAId)
+
+    if (data?.id) await admin.from('documento').delete().eq('id', data.id)
+  })
+
+  it('un sponsor_cliente puede ver documentos de su proyecto pero no puede insertar', async () => {
+    const client = await clienteComo(`sponsor-${sufijo}@test.processos.local`)
+
+    const { data: docInsertado } = await admin.from('documento').insert({
+      proyecto_id: proyectoAId,
+      nombre_archivo: 'visible-para-sponsor.txt',
+      url_storage: `${proyectoAId}/visible-para-sponsor.txt`,
+    }).select().single()
+
+    const { data: visibles } = await client.from('documento').select('id').eq('proyecto_id', proyectoAId)
+    expect((visibles ?? []).some(d => d.id === docInsertado!.id)).toBe(true)
+
+    const { error: errorInsert } = await client.from('documento').insert({
+      proyecto_id: proyectoAId,
+      nombre_archivo: 'intento-sponsor.txt',
+      url_storage: `${proyectoAId}/intento-sponsor.txt`,
+    })
+    expect(errorInsert).not.toBeNull()
+
+    if (docInsertado?.id) await admin.from('documento').delete().eq('id', docInsertado.id)
   })
 })
 

@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -33,7 +32,6 @@ const MADUREZ = ['inicial', 'en desarrollo', 'avanzado']
 
 export default function ClienteForm({ cliente }: Props) {
   const router = useRouter()
-  const supabase = createClient()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -79,8 +77,13 @@ export default function ClienteForm({ cliente }: Props) {
       const data = await res.json()
       if (!res.ok) { setError(data.error ?? 'Error al guardar'); setLoading(false); return }
     } else {
-      const { error } = await supabase.from('cliente').insert(payload)
-      if (error) { setError(error.message); setLoading(false); return }
+      const res = await fetch('/api/clientes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+      const data = await res.json()
+      if (!res.ok) { setError(data.error ?? 'Error al guardar'); setLoading(false); return }
     }
 
     setLoading(false)

@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Building2, FolderOpen, Pencil } from 'lucide-react'
 import Link from 'next/link'
 import NuevoProyectoForm from '@/components/proyectos/NuevoProyectoForm'
+import IntelIndustriaEditor from '@/components/clientes/IntelIndustriaEditor'
 import type { Proyecto } from '@/types/database'
 
 export const dynamic = 'force-dynamic'
@@ -84,6 +85,8 @@ export default async function ClienteDetallePage({ params }: { params: { id: str
           )}
         </CardContent>
       </Card>
+
+      <IntelIndustriaEditor clienteId={params.id} inicial={cliente.inteligencia_industria as Record<string, unknown> | null} />
 
       {/* Proyectos */}
       <div className="space-y-3">

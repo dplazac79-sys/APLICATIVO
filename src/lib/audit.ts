@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 
 type AuditAccion = 'CREATE' | 'UPDATE' | 'DELETE' | 'APPROVE' | 'LOGIN' | 'LOGOUT'
 
@@ -7,14 +8,23 @@ interface AuditParams {
   entidad: string
   entidad_id?: string
   detalle?: Record<string, unknown>
+  /** Requerido cuando se llama fuera del ciclo de vida de la request (ej. jobs en segundo plano),
+   * donde cookies() de next/headers ya no está disponible de forma confiable. */
+  usuarioId?: string
 }
 
 export async function registrarAudit(params: AuditParams) {
-  const supabase = createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  let usuarioId = params.usuarioId ?? null
 
-  await supabase.from('audit_log').insert({
-    usuario_id: user?.id ?? null,
+  if (!usuarioId) {
+    const supabase = createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    usuarioId = user?.id ?? null
+  }
+
+  const admin = createAdminClient()
+  await admin.from('audit_log').insert({
+    usuario_id: usuarioId,
     accion: params.accion,
     entidad: params.entidad,
     entidad_id: params.entidad_id ?? null,

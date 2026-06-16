@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -17,7 +16,6 @@ interface Props {
 
 export default function NuevoProyectoForm({ clienteId }: Props) {
   const router = useRouter()
-  const supabase = createClient()
   const [abierto, setAbierto] = useState(false)
   const [cargando, setCargando] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -29,14 +27,17 @@ export default function NuevoProyectoForm({ clienteId }: Props) {
     setCargando(true)
     setError(null)
     try {
-      const { error: err } = await supabase.from('proyecto').insert({
-        cliente_id: clienteId,
-        nombre: titleCase(form.nombre),
-        alcance: form.alcance.trim() ? oracionCase(form.alcance) : null,
-        estado_general: 'activo',
-        fase_actual: 1,
+      const res = await fetch('/api/proyectos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          cliente_id: clienteId,
+          nombre: titleCase(form.nombre),
+          alcance: form.alcance.trim() ? oracionCase(form.alcance) : null,
+        }),
       })
-      if (err) throw err
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? 'Error al crear proyecto')
       setForm({ nombre: '', alcance: '' })
       setAbierto(false)
       router.refresh()
