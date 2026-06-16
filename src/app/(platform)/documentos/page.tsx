@@ -4,6 +4,7 @@ import { FileText, FileImage, FileSpreadsheet, File, ExternalLink } from 'lucide
 import Link from 'next/link'
 import DocumentUploader from '@/components/documentos/DocumentUploader'
 import DocumentoAcciones from '@/components/documentos/DocumentoAcciones'
+import BuscadorSemantico from '@/components/documentos/BuscadorSemantico'
 import type { Documento } from '@/types/database'
 
 const ESTADO_CONFIG = {
@@ -63,6 +64,8 @@ export default async function DocumentosPage() {
       </div>
 
       <DocumentUploader proyectos={proyectos} />
+
+      <BuscadorSemantico />
 
       <div className="space-y-3">
         <h2 className="text-sm font-medium text-slate-400 uppercase tracking-wider">

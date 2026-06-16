@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { clasificarDocumento, resumirDocumento } from '@/lib/ai/claude'
+import { generarEmbedding } from '@/lib/ai/embeddings'
 
 export async function POST(req: NextRequest) {
   try {
@@ -52,10 +53,14 @@ export async function POST(req: NextRequest) {
 
     if (!texto.trim()) throw new Error('No se pudo extraer texto del documento')
 
-    // Clasificar y resumir en paralelo
-    const [clasificacion, resumen] = await Promise.all([
+    // Clasificar, resumir y generar embedding en paralelo
+    const [clasificacion, resumen, embedding] = await Promise.all([
       clasificarDocumento(texto),
       resumirDocumento(texto),
+      generarEmbedding(texto, 'document').catch(err => {
+        console.error('[procesar] No se pudo generar embedding:', err)
+        return null
+      }),
     ])
 
     // Guardar resultados completos
@@ -63,6 +68,7 @@ export async function POST(req: NextRequest) {
       clasificacion,
       resumen_ejecutivo: resumen.resumen_ejecutivo ?? null,
       analisis_ia: resumen,
+      embedding_ref: embedding,
       estado_procesamiento: 'listo',
     }).eq('id', documento_id)
 
