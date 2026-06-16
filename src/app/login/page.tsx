@@ -29,7 +29,16 @@ export default function LoginPage() {
       return
     }
 
-    router.push('/dashboard')
+    const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel()
+
+    if (aal?.nextLevel === 'aal2' && aal.currentLevel !== aal.nextLevel) {
+      router.push('/mfa/challenge')
+    } else if (aal?.nextLevel === 'aal1') {
+      // Usuario sin factor MFA configurado: lo exigimos antes de continuar
+      router.push('/mfa/enroll')
+    } else {
+      router.push('/dashboard')
+    }
     router.refresh()
   }
 
