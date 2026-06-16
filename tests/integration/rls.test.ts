@@ -1,0 +1,136 @@
+import { describe, it, expect, beforeAll, afterAll } from 'vitest'
+import { createClient as createSupabaseClient } from '@supabase/supabase-js'
+import { createAdminClient } from '@/lib/supabase/admin'
+
+const hasCredenciales = !!process.env.NEXT_PUBLIC_SUPABASE_URL && !!process.env.SUPABASE_SERVICE_ROLE_KEY
+
+const describeOrSkip = hasCredenciales ? describe : describe.skip
+
+describeOrSkip('RLS — aislamiento de datos por proyecto y rol', () => {
+  const admin = createAdminClient()
+  const sufijo = `test-${Date.now()}`
+  const passwordPrueba = 'TestPassword123!'
+
+  let clienteAId: string
+  let clienteBId: string
+  let proyectoAId: string
+  let proyectoBId: string
+  let usuarioClienteAId: string
+  let superAdminId: string
+
+  beforeAll(async () => {
+    const { data: clienteA } = await admin.from('cliente').insert({ razon_social: `Cliente A ${sufijo}` }).select().single()
+    const { data: clienteB } = await admin.from('cliente').insert({ razon_social: `Cliente B ${sufijo}` }).select().single()
+    clienteAId = clienteA!.id
+    clienteBId = clienteB!.id
+
+    const { data: proyectoA } = await admin.from('proyecto').insert({ cliente_id: clienteAId, nombre: `Proyecto A ${sufijo}` }).select().single()
+    const { data: proyectoB } = await admin.from('proyecto').insert({ cliente_id: clienteBId, nombre: `Proyecto B ${sufijo}` }).select().single()
+    proyectoAId = proyectoA!.id
+    proyectoBId = proyectoB!.id
+
+    const { data: userA } = await admin.auth.admin.createUser({
+      email: `usuario-a-${sufijo}@test.processos.local`,
+      password: passwordPrueba,
+      email_confirm: true,
+    })
+    usuarioClienteAId = userA!.user!.id
+    await admin.from('usuario').insert({
+      id: usuarioClienteAId,
+      nombre: 'Usuario Cliente A (test)',
+      email: userA!.user!.email!,
+      rol: 'usuario_cliente',
+    })
+    await admin.from('usuario_proyecto').insert({ usuario_id: usuarioClienteAId, proyecto_id: proyectoAId })
+
+    const { data: userSuper } = await admin.auth.admin.createUser({
+      email: `super-${sufijo}@test.processos.local`,
+      password: passwordPrueba,
+      email_confirm: true,
+    })
+    superAdminId = userSuper!.user!.id
+    await admin.from('usuario').insert({
+      id: superAdminId,
+      nombre: 'Super Admin (test)',
+      email: userSuper!.user!.email!,
+      rol: 'super_admin',
+    })
+  })
+
+  afterAll(async () => {
+    await admin.from('audit_log').delete().in('usuario_id', [usuarioClienteAId, superAdminId])
+    await admin.auth.admin.deleteUser(usuarioClienteAId)
+    await admin.auth.admin.deleteUser(superAdminId)
+    await admin.from('proyecto').delete().in('id', [proyectoAId, proyectoBId])
+    await admin.from('cliente').delete().in('id', [clienteAId, clienteBId])
+  })
+
+  async function clienteComo(email: string) {
+    const client = createSupabaseClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      { auth: { autoRefreshToken: false, persistSession: false } }
+    )
+    const { error } = await client.auth.signInWithPassword({ email, password: passwordPrueba })
+    if (error) throw error
+    return client
+  }
+
+  it('un usuario_cliente solo ve los proyectos a los que está asignado', async () => {
+    const client = await clienteComo(`usuario-a-${sufijo}@test.processos.local`)
+    const { data } = await client.from('proyecto').select('id').in('id', [proyectoAId, proyectoBId])
+    const idsVisibles = (data ?? []).map(p => p.id)
+
+    expect(idsVisibles).toContain(proyectoAId)
+    expect(idsVisibles).not.toContain(proyectoBId)
+  })
+
+  it('un usuario_cliente no puede ver el cliente dueño de un proyecto ajeno', async () => {
+    const client = await clienteComo(`usuario-a-${sufijo}@test.processos.local`)
+    const { data } = await client.from('cliente').select('id').in('id', [clienteAId, clienteBId])
+    const idsVisibles = (data ?? []).map(c => c.id)
+
+    expect(idsVisibles).toContain(clienteAId)
+    expect(idsVisibles).not.toContain(clienteBId)
+  })
+
+  it('super_admin ve todos los proyectos sin restricción', async () => {
+    const client = await clienteComo(`super-${sufijo}@test.processos.local`)
+    const { data } = await client.from('proyecto').select('id').in('id', [proyectoAId, proyectoBId])
+    const idsVisibles = (data ?? []).map(p => p.id)
+
+    expect(idsVisibles).toContain(proyectoAId)
+    expect(idsVisibles).toContain(proyectoBId)
+  })
+
+  it('un usuario solo ve sus propias entradas de audit_log, no las de otros', async () => {
+    await admin.from('audit_log').insert([
+      { usuario_id: usuarioClienteAId, accion: 'CREATE', entidad: 'test', detalle: {} },
+      { usuario_id: superAdminId, accion: 'CREATE', entidad: 'test', detalle: {} },
+    ])
+
+    const client = await clienteComo(`usuario-a-${sufijo}@test.processos.local`)
+    const { data } = await client.from('audit_log').select('usuario_id')
+    const usuarios = new Set((data ?? []).map(r => r.usuario_id))
+
+    expect(usuarios.has(usuarioClienteAId)).toBe(true)
+    expect(usuarios.has(superAdminId)).toBe(false)
+  })
+
+  it('super_admin puede ver entradas de audit_log de cualquier usuario', async () => {
+    const client = await clienteComo(`super-${sufijo}@test.processos.local`)
+    const { data } = await client.from('audit_log').select('usuario_id').in('usuario_id', [usuarioClienteAId, superAdminId])
+    const usuarios = new Set((data ?? []).map(r => r.usuario_id))
+
+    expect(usuarios.has(usuarioClienteAId)).toBe(true)
+    expect(usuarios.has(superAdminId)).toBe(true)
+  })
+})
+
+if (!hasCredenciales) {
+  describe('RLS — omitido', () => {
+    it('se omite porque no hay credenciales de Supabase en el entorno', () => {
+      expect(true).toBe(true)
+    })
+  })
+}

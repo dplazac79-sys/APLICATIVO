@@ -9,7 +9,7 @@ function loadPrompt(name: string): string {
   return fs.readFileSync(filePath, 'utf-8')
 }
 
-function extractJson(text: string): unknown {
+export function extractJson(text: string): unknown {
   // Remover bloques markdown ```json ... ``` o ``` ... ```
   let raw = text.trim()
   const mdMatch = raw.match(/```(?:json)?\s*([\s\S]*?)```/)
