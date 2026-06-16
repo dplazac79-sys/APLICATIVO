@@ -35,7 +35,12 @@ export async function clasificarDocumento(texto: string) {
     bloque: string
     confianza: number
     bloques_secundarios: string[]
+    industria_detectada: string
+    tipo_documento: string
+    audiencia_objetivo: string
+    proposito_real: string
     palabras_clave: string[]
+    senales_madurez: string
     razonamiento: string
   }
 }
@@ -44,17 +49,31 @@ export async function resumirDocumento(texto: string) {
   const system = loadPrompt('resumen-documento')
   const msg = await client.messages.create({
     model: 'claude-sonnet-4-6',
-    max_tokens: 4096,
+    max_tokens: 8000,
     system,
     messages: [{ role: 'user', content: `Resume este documento:\n\n${texto.slice(0, 12000)}` }],
   })
+  if (msg.stop_reason === 'max_tokens') {
+    throw new Error('La respuesta de la IA se cortó antes de completarse al resumir el documento.')
+  }
   return extractJson((msg.content[0] as { text: string }).text) as {
     resumen_ejecutivo: string
+    diagnostico_operacional: string
+    hallazgos_criticos: string[]
     procesos_identificados: string[]
-    roles_identificados: string[]
-    datos_relevantes: string[]
-    brechas_detectadas: string[]
-    nivel_madurez_estimado: string
+    roles_y_responsabilidades: {
+      roles_identificados: string[]
+      brechas_de_rol: string[]
+    }
+    riesgos_criticos: Array<{ riesgo: string; impacto: string; evidencia: string }>
+    oportunidades_valor: Array<{ oportunidad: string; impacto_estimado: string; complejidad_implementacion: string }>
+    brechas_documentacion: string[]
+    nivel_madurez_amo: number
+    nivel_madurez_nombre: string
+    nivel_madurez_evidencia: string
+    quick_wins: string[]
+    recomendacion_ejecutiva: string
+    proximos_pasos_sugeridos: string[]
   }
 }
 

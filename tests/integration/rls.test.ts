@@ -58,11 +58,19 @@ describeOrSkip('RLS — aislamiento de datos por proyecto y rol', () => {
   })
 
   afterAll(async () => {
-    await admin.from('audit_log').delete().in('usuario_id', [usuarioClienteAId, superAdminId])
-    await admin.auth.admin.deleteUser(usuarioClienteAId)
-    await admin.auth.admin.deleteUser(superAdminId)
-    await admin.from('proyecto').delete().in('id', [proyectoAId, proyectoBId])
-    await admin.from('cliente').delete().in('id', [clienteAId, clienteBId])
+    const limpiar = async (fn: () => PromiseLike<unknown>) => {
+      try {
+        await fn()
+      } catch (err) {
+        console.warn('[rls.test cleanup] paso de limpieza falló (no bloqueante):', err)
+      }
+    }
+
+    await limpiar(() => admin.from('audit_log').delete().in('usuario_id', [usuarioClienteAId, superAdminId]))
+    if (usuarioClienteAId) await limpiar(() => admin.auth.admin.deleteUser(usuarioClienteAId))
+    if (superAdminId) await limpiar(() => admin.auth.admin.deleteUser(superAdminId))
+    await limpiar(() => admin.from('proyecto').delete().in('id', [proyectoAId, proyectoBId]))
+    await limpiar(() => admin.from('cliente').delete().in('id', [clienteAId, clienteBId]))
   })
 
   async function clienteComo(email: string) {

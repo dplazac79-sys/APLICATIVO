@@ -1,0 +1,56 @@
+EMPRESA: Clínica San Rafael
+INDUSTRIA: Salud — clínica privada de mediana complejidad, 120 camas
+TAMAÑO: Mediana, 850 empleados (incluye personal médico, enfermería y administrativo)
+
+CONTEXTO OPERACIONAL
+
+Clínica San Rafael atiende urgencias, hospitalización, pabellones quirúrgicos y
+consultas ambulatorias. La institución ha crecido un 40% en volumen de pacientes
+en los últimos tres años sin actualizar proporcionalmente sus procesos
+administrativos y de soporte clínico.
+
+GESTIÓN DE PABELLONES Y AGENDA QUIRÚRGICA
+
+La programación de cirugías se coordina mediante una planilla compartida entre
+cirujanos, anestesistas y enfermería de pabellón, actualizada manualmente. No
+existe un sistema que cruce automáticamente la disponibilidad de insumos
+críticos (prótesis, material de osteosíntesis, fármacos especiales) con la
+agenda quirúrgica, lo que ha generado al menos 12 reprogramaciones de última
+hora en el último semestre por falta de stock.
+
+GESTIÓN DE COMPRAS Y ABASTECIMIENTO CLÍNICO
+
+El área de abastecimiento opera en modo reactivo: las compras urgentes
+representan aproximadamente el 30% del gasto mensual en insumos médicos,
+con sobreprecios estimados de 20-35% respecto a compras planificadas. No
+existe clasificación de criticidad clínica de los insumos (vital, importante,
+deseable) que permita priorizar la gestión de stock de seguridad.
+
+GESTIÓN DE PACIENTES Y LISTAS DE ESPERA
+
+La lista de espera de especialidades médicas se gestiona en una planilla
+Excel mantenida por cada secretaría de especialidad de forma independiente,
+sin visibilidad centralizada para la Dirección Médica. No hay un proceso
+formal de priorización clínica de la lista de espera basado en criterios
+de urgencia documentados.
+
+CALIDAD Y SEGURIDAD DEL PACIENTE
+
+Existe un comité de calidad que se reúne mensualmente, pero el registro de
+eventos adversos depende de reportes voluntarios del personal, sin un canal
+digital de notificación. La tasa de reporte estimada por la propia Dirección
+de Calidad es baja en comparación con benchmarks de acreditación.
+
+RECURSOS HUMANOS
+
+La dotación de enfermería se planifica con una semana de anticipación según
+demanda histórica, sin modelo predictivo de ocupación. El ausentismo no
+planificado genera recurrentemente turnos cubiertos con personal de
+reemplazo externo, con sobrecosto relevante no cuantificado formalmente.
+
+TECNOLOGÍA
+
+La clínica cuenta con un sistema de ficha clínica electrónica, pero los
+módulos de abastecimiento, quirófano y facturación no están integrados entre
+sí, requiriendo doble digitación de información en al menos tres procesos
+identificados por el equipo de TI.

@@ -1,0 +1,55 @@
+EMPRESA: Banco Cordillera
+INDUSTRIA: Banca — banco regional enfocado en PYMEs y banca personas
+TAMAÑO: Grande, 2.400 empleados, 65 sucursales
+
+CONTEXTO OPERACIONAL
+
+Banco Cordillera es un banco regional con foco en financiamiento a PYMEs y
+banca de personas en segmentos medios. En los últimos dos años ha enfrentado
+presión competitiva de neobancos y fintechs que ofrecen procesos de
+originación de crédito significativamente más rápidos.
+
+ORIGINACIÓN Y EVALUACIÓN DE CRÉDITO
+
+El proceso de evaluación crediticia para PYMEs combina un modelo de scoring
+automatizado con una revisión manual obligatoria de un analista para todos
+los montos sobre cierto umbral, lo que extiende el tiempo de aprobación a un
+promedio de 8 días hábiles, frente a 24-48 horas de competidores fintech. La
+documentación se sigue recibiendo en formato físico o PDF escaneado en
+aproximadamente la mitad de las sucursales, requiriendo digitación manual
+posterior por el equipo de operaciones.
+
+GESTIÓN DE RIESGO Y CUMPLIMIENTO
+
+El área de riesgo cuenta con modelos de scoring actualizados, pero el
+proceso de monitoreo de cartera vencida depende de reportes mensuales
+generados por el equipo de TI mediante consultas SQL ad-hoc, sin un
+dashboard de alertas tempranas en tiempo real para gestores de cuenta.
+El equipo de cumplimiento normativo reporta manualmente a la
+Superintendencia siguiendo un calendario fijo, con un proceso de
+recopilación de información que involucra a cinco áreas distintas.
+
+EXPERIENCIA DE CLIENTE Y CANALES
+
+La app móvil y la banca en línea operan sobre núcleos tecnológicos distintos
+al sistema core bancario usado en sucursales, lo que genera inconsistencias
+ocasionales en saldos mostrados entre canales, según reportes del área de
+servicio al cliente. No existe una vista 360° del cliente que integre
+productos de banca personas y banca PYME cuando una misma persona natural
+tiene ambos vínculos con el banco.
+
+GESTIÓN DE SUCURSALES Y ATENCIÓN
+
+La asignación de personal en sucursales se basa en dotación histórica fija
+por sucursal, sin un modelo de afluencia de clientes que permita ajustar
+turnos a la demanda real por horario. Los tiempos de espera en sucursales
+de alta demanda superan los 25 minutos en horarios punta según mediciones
+internas del último trimestre.
+
+TECNOLOGÍA Y DATOS
+
+El banco mantiene un núcleo bancario (core) de más de 15 años de antigüedad,
+con integraciones mediante interfaces intermedias construidas a medida para
+conectar con canales digitales. No existe una arquitectura de datos
+centralizada (data lake o data warehouse corporativo); cada área de negocio
+mantiene sus propios reportes y bases de datos locales.

@@ -1,0 +1,51 @@
+EMPRESA: Moda Sur S.A.
+INDUSTRIA: Retail — vestuario y calzado, cadena de 24 tiendas físicas + e-commerce
+TAMAÑO: Mediana, 180 empleados, facturación anual ~USD 12M
+
+CONTEXTO OPERACIONAL
+
+Moda Sur opera 24 tiendas en 6 regiones del país, más una plataforma de e-commerce
+lanzada hace 18 meses. La compañía no cuenta con un sistema ERP unificado: el
+inventario de tiendas físicas se gestiona en un software local desconectado del
+sistema de e-commerce, lo que genera descalces de stock recurrentes — productos
+que se muestran disponibles online pero están agotados en bodega, y viceversa.
+
+GESTIÓN DE INVENTARIO Y REPOSICIÓN
+
+El proceso de reposición a tiendas es manual: cada jefe de tienda envía un correo
+semanal al área de Operaciones con su pedido estimado, basado en intuición y
+ventas de la semana anterior, sin un modelo de pronóstico de demanda. No existe
+clasificación ABC de productos ni parámetros de stock de seguridad. El equipo de
+Compras centraliza estos pedidos y negocia con proveedores de manera reactiva,
+lo que ha llevado a roturas de stock en productos de alta rotación durante
+temporadas altas (Navidad, Día de la Madre) en los últimos dos años.
+
+GESTIÓN COMERCIAL Y EXPERIENCIA DE CLIENTE
+
+No existe un programa de fidelización formal ni una vista unificada del cliente
+(CRM). Cada tienda registra ventas en su propio sistema POS sin compartir datos
+de comportamiento de compra entre canales. El equipo de marketing realiza
+campañas de descuento basadas en calendario, no en segmentación de clientes.
+
+DEVOLUCIONES Y POSTVENTA
+
+El proceso de devoluciones en tienda física toma en promedio 15 minutos por
+transacción debido a la falta de integración entre el POS y el sistema de
+inventario; las devoluciones de e-commerce requieren hasta 10 días hábiles
+para procesarse y no hay visibilidad para el cliente sobre el estado de su
+solicitud.
+
+RECURSOS HUMANOS Y ROLES
+
+El Gerente de Operaciones supervisa tanto la cadena de suministro como las
+relaciones con proveedores, lo que genera sobrecarga de responsabilidades.
+No existe un rol dedicado a planificación de demanda ni a analítica de datos
+comerciales. La rotación de personal en tiendas es alta (35% anual), sin un
+proceso estandarizado de onboarding.
+
+TECNOLOGÍA
+
+Los sistemas de punto de venta (POS), inventario y e-commerce no están
+integrados entre sí. No hay un data warehouse ni reportería centralizada;
+los reportes ejecutivos se construyen manualmente en Excel cada fin de mes,
+con un retraso de hasta 10 días respecto al cierre del período.
