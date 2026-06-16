@@ -85,7 +85,6 @@ export default async function DocumentosPage() {
           const bloque = clasificacion?.bloque as string | undefined
           const industria = clasificacion?.industria_detectada as string | undefined
           const tipoDoc = clasificacion?.tipo_documento as string | undefined
-          const brechas = clasificacion ? null : null
           // resumen puede tener campos extendidos
           const resumenData = doc.resumen_ejecutivo ? (() => {
             try { return JSON.parse(doc.resumen_ejecutivo ?? '{}') } catch { return null }

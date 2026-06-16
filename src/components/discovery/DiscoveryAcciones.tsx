@@ -108,7 +108,7 @@ export default function DiscoveryAcciones({ proyectos }: Props) {
   return (
     <div className="space-y-2">
       <div className="flex items-center gap-2">
-        <Select onValueChange={(v) => v && handleProyectoChange(v)}>
+        <Select onValueChange={(v: string | null) => v && handleProyectoChange(v)}>
           <SelectTrigger className="w-48 bg-slate-800 border-slate-700 text-slate-200 h-9 text-sm">
             <span className="truncate">{proyectoNombre || 'Seleccionar proyecto'}</span>
           </SelectTrigger>

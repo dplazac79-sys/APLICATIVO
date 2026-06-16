@@ -40,10 +40,12 @@ export async function POST(req: NextRequest) {
       const result = await mammoth.extractRawText({ buffer })
       texto = result.value
     } else if (nombre.endsWith('.pdf')) {
-      const pdfParse = (await import('pdf-parse')).default
+      const { PDFParse } = await import('pdf-parse')
       const buffer = Buffer.from(await fileData.arrayBuffer())
-      const result = await pdfParse(buffer)
+      const parser = new PDFParse({ data: buffer })
+      const result = await parser.getText()
       texto = result.text
+      await parser.destroy()
     } else {
       texto = await fileData.text()
     }

@@ -138,9 +138,9 @@ export default async function DiscoveryPage() {
                     {String(resumen.resumen_ejecutivo_discovery ?? '')}
                   </p>
                   <div className="flex flex-wrap gap-4 text-xs text-slate-400 pt-2 border-t border-slate-800">
-                    {resumen.industria_detectada && <span>Industria: <span className="text-slate-200">{String(resumen.industria_detectada)}</span></span>}
-                    {resumen.nivel_madurez_operacional && <span>Madurez: <span className="text-slate-200">{String(resumen.nivel_madurez_operacional)}</span></span>}
-                    {resumen.cobertura_documentacion && <span>Cobertura documental: <span className="text-slate-200">{String(resumen.cobertura_documentacion)}</span></span>}
+                    {resumen.industria_detectada ? <span>Industria: <span className="text-slate-200">{String(resumen.industria_detectada)}</span></span> : null}
+                    {resumen.nivel_madurez_operacional ? <span>Madurez: <span className="text-slate-200">{String(resumen.nivel_madurez_operacional)}</span></span> : null}
+                    {resumen.cobertura_documentacion ? <span>Cobertura documental: <span className="text-slate-200">{String(resumen.cobertura_documentacion)}</span></span> : null}
                   </div>
                 </div>
 
@@ -251,11 +251,11 @@ export default async function DiscoveryPage() {
                         {macro.nombre}
                       </CardTitle>
                       <div className="flex items-center gap-2">
-                        {metaMacro?.criticidad && (
+                        {metaMacro?.criticidad ? (
                           <span className={`text-xs px-2 py-0.5 rounded-full border ${CRITICIDAD_CONFIG[metaMacro.criticidad as string] ?? CRITICIDAD_CONFIG.media}`}>
                             {String(metaMacro.criticidad)}
                           </span>
-                        )}
+                        ) : null}
                         <span className={`text-xs px-2 py-0.5 rounded-full border ${origenCfg.class}`}>
                           {origenCfg.label}
                         </span>
@@ -265,9 +265,9 @@ export default async function DiscoveryPage() {
                     {macro.descripcion && (
                       <p className="text-slate-400 text-sm">{macro.descripcion}</p>
                     )}
-                    {metaMacro?.estado_actual && (
+                    {metaMacro?.estado_actual ? (
                       <p className="text-slate-500 text-xs italic">Estado actual: {String(metaMacro.estado_actual)}</p>
-                    )}
+                    ) : null}
                   </CardHeader>
 
                   {hijos.length > 0 && (
@@ -286,11 +286,11 @@ export default async function DiscoveryPage() {
                                 )}
                               </div>
                               <div className="flex items-center gap-2 shrink-0">
-                                {meta?.criticidad && (
+                                {meta?.criticidad ? (
                                   <span className={`text-xs px-2 py-0.5 rounded-full border ${CRITICIDAD_CONFIG[meta.criticidad as string] ?? CRITICIDAD_CONFIG.media}`}>
                                     {String(meta.criticidad)}
                                   </span>
-                                )}
+                                ) : null}
                                 <span className={`text-xs px-2 py-0.5 rounded-full border ${pOrigenCfg.class}`}>
                                   {pOrigenCfg.label}
                                 </span>
@@ -298,15 +298,15 @@ export default async function DiscoveryPage() {
                               </div>
                             </div>
 
-                            {p.origen === 'propuesta_ia' && meta?.justificacion_ia && (
+                            {p.origen === 'propuesta_ia' && meta?.justificacion_ia ? (
                               <div className="bg-purple-950/30 border border-purple-800/40 rounded-md px-3 py-2">
                                 <p className="text-purple-300 text-xs font-medium mb-0.5">Por qué la IA propone este proceso</p>
                                 <p className="text-slate-300 text-xs leading-relaxed">{String(meta.justificacion_ia)}</p>
                               </div>
-                            )}
-                            {p.origen === 'detectado' && meta?.evidencia_documento && (
+                            ) : null}
+                            {p.origen === 'detectado' && meta?.evidencia_documento ? (
                               <p className="text-slate-500 text-xs italic">Evidencia: {String(meta.evidencia_documento)}</p>
-                            )}
+                            ) : null}
 
                             {p.roles_involucrados && p.roles_involucrados.length > 0 && (
                               <div className="flex gap-1 flex-wrap">
@@ -362,12 +362,12 @@ export default async function DiscoveryPage() {
                               </div>
                             )}
 
-                            {meta?.benchmark_industria && (
+                            {meta?.benchmark_industria ? (
                               <p className="text-slate-500 text-xs flex items-start gap-1.5">
                                 <Award className="w-3 h-3 shrink-0 mt-0.5 text-slate-600" />
                                 {String(meta.benchmark_industria)}
                               </p>
-                            )}
+                            ) : null}
                           </div>
                         )
                       })}

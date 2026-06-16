@@ -12,8 +12,6 @@ export default async function DashboardPage() {
     .eq('id', user!.id)
     .single()
 
-  const isSuperAdmin = usuario?.rol === 'super_admin'
-
   const [
     { count: clientesCount },
     { count: proyectosCount },

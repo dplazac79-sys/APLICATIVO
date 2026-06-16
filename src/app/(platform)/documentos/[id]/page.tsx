@@ -101,27 +101,27 @@ export default async function DocumentoAnalisisPage({ params }: { params: { id: 
             </div>
           </div>
           <div className="flex flex-col items-end gap-2 shrink-0">
-            {clasificacion?.bloque && (
+            {clasificacion?.bloque ? (
               <span className="text-xs px-2.5 py-1 rounded-full bg-indigo-950 text-indigo-300 border border-indigo-800">
                 {String(clasificacion.bloque)}
               </span>
-            )}
-            {clasificacion?.industria_detectada && (
+            ) : null}
+            {clasificacion?.industria_detectada ? (
               <span className="text-xs text-slate-500">{String(clasificacion.industria_detectada)}</span>
-            )}
+            ) : null}
           </div>
         </div>
 
-        {clasificacion?.tipo_documento && (
+        {clasificacion?.tipo_documento ? (
           <p className="text-slate-500 text-sm mt-4 italic">{String(clasificacion.tipo_documento)}</p>
-        )}
+        ) : null}
       </div>
 
       {!hasAnalisis && (
         <div className="bg-amber-950/20 border border-amber-800/40 rounded-xl p-8 text-center">
           <Brain className="w-10 h-10 text-amber-600 mx-auto mb-3" />
           <p className="text-amber-400 font-medium">Este documento aún no ha sido analizado por IA</p>
-          <p className="text-slate-500 text-sm mt-1">Regresa al Centro Documental y usa el botón "Analizar con IA"</p>
+          <p className="text-slate-500 text-sm mt-1">Regresa al Centro Documental y usa el botón &ldquo;Analizar con IA&rdquo;</p>
         </div>
       )}
 
@@ -389,12 +389,12 @@ export default async function DocumentoAnalisisPage({ params }: { params: { id: 
             <div className="bg-slate-900/50 border border-slate-800/50 rounded-xl p-5 space-y-3">
               <p className="text-slate-600 text-xs font-semibold uppercase tracking-widest">Clasificación Metodológica</p>
               <div className="flex flex-wrap gap-4 text-xs">
-                {clasificacion.bloque && (
+                {clasificacion.bloque ? (
                   <div>
                     <span className="text-slate-600">Bloque principal: </span>
                     <span className="text-slate-300">{String(clasificacion.bloque)}</span>
                   </div>
-                )}
+                ) : null}
                 {(clasificacion.bloques_secundarios as string[])?.length > 0 && (
                   <div>
                     <span className="text-slate-600">Bloques secundarios: </span>
@@ -403,12 +403,12 @@ export default async function DocumentoAnalisisPage({ params }: { params: { id: 
                     </span>
                   </div>
                 )}
-                {clasificacion.confianza && (
+                {clasificacion.confianza ? (
                   <div>
                     <span className="text-slate-600">Confianza: </span>
                     <span className="text-slate-300">{Math.round((clasificacion.confianza as number) * 100)}%</span>
                   </div>
-                )}
+                ) : null}
               </div>
               {(clasificacion.palabras_clave as string[])?.length > 0 && (
                 <div className="flex flex-wrap gap-1.5">

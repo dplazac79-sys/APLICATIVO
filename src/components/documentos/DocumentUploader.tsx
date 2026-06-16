@@ -10,7 +10,6 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
 } from '@/components/ui/select'
 import { Upload, X, CheckCircle2, Loader2 } from 'lucide-react'
 
@@ -119,7 +118,7 @@ export default function DocumentUploader({ proyectos }: Props) {
   return (
     <Card className="bg-slate-900 border-slate-800">
       <CardContent className="p-5 space-y-4">
-        <Select value={proyectoId} onValueChange={handleProyectoChange}>
+        <Select value={proyectoId} onValueChange={(v: string | null) => v && handleProyectoChange(v)}>
           <SelectTrigger className="bg-slate-800 border-slate-700 text-white">
             <span className={proyectoId ? 'text-white' : 'text-slate-500'}>
               {proyectoId ? proyectoNombre : 'Seleccionar proyecto...'}

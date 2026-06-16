@@ -17,7 +17,7 @@ export default async function PlatformLayout({
   if (!user) redirect('/login')
 
   const admin = createAdminClient()
-  let { data: usuario, error: err1 } = await admin
+  let { data: usuario } = await admin
     .from('usuario')
     .select('*')
     .eq('id', user.id)

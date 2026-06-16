@@ -6,7 +6,6 @@ import { cn } from '@/lib/utils'
 import type { RolTipo } from '@/types/database'
 import {
   Building2,
-  FolderOpen,
   FileText,
   Network,
   Layers,

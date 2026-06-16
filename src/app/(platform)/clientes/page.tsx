@@ -2,7 +2,6 @@ import Link from 'next/link'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
 import { Building2, Plus, ChevronRight } from 'lucide-react'
 
 const MADUREZ_COLOR: Record<string, string> = {
