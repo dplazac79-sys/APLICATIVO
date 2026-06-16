@@ -16,6 +16,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import type { Cliente } from '@/types/database'
+import { titleCase, oracionCase } from '@/lib/normalizar'
 
 interface Props {
   cliente?: Cliente
@@ -58,26 +59,36 @@ export default function ClienteForm({ cliente }: Props) {
     setError('')
 
     const payload = {
-      razon_social: form.razon_social,
+      razon_social: titleCase(form.razon_social),
       rut: form.rut || null,
       industria: form.industria || null,
       tamano: form.tamano || null,
       facturacion: form.facturacion ? parseFloat(form.facturacion) : null,
       dotacion: form.dotacion ? parseInt(form.dotacion) : null,
       madurez_digital: form.madurez_digital || null,
-      objetivos_estrategicos: form.objetivos_estrategicos || null,
-      riesgos_declarados: form.riesgos_declarados || null,
+      objetivos_estrategicos: form.objetivos_estrategicos ? oracionCase(form.objetivos_estrategicos) : null,
+      riesgos_declarados: form.riesgos_declarados ? oracionCase(form.riesgos_declarados) : null,
     }
 
     if (cliente) {
-      const { error } = await supabase.from('cliente').update(payload).eq('id', cliente.id)
-      if (error) { setError(error.message); setLoading(false); return }
+      const res = await fetch(`/api/clientes/${cliente.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+      const data = await res.json()
+      if (!res.ok) { setError(data.error ?? 'Error al guardar'); setLoading(false); return }
     } else {
       const { error } = await supabase.from('cliente').insert(payload)
       if (error) { setError(error.message); setLoading(false); return }
     }
 
-    router.push('/clientes')
+    setLoading(false)
+    if (cliente) {
+      router.push(`/clientes/${cliente.id}`)
+    } else {
+      router.push('/clientes')
+    }
     router.refresh()
   }
 

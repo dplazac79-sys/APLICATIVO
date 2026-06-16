@@ -50,7 +50,6 @@ const navItems: NavItem[] = [
     href: '/discovery',
     icon: BrainCircuit,
     roles: ['super_admin', 'director_proyecto', 'consultor'],
-    badge: 'Fase 2',
   },
   {
     label: 'Process Architect',
@@ -113,11 +112,11 @@ export default function AppSidebar({ rol }: Props) {
       <div className="px-6 py-5 border-b border-slate-800">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center">
-            <span className="text-white text-sm font-bold">A</span>
+            <span className="text-white text-xs font-bold tracking-tight">AC</span>
           </div>
           <div>
-            <p className="text-white font-semibold text-sm">APIP</p>
-            <p className="text-slate-500 text-xs">AICOUNTS</p>
+            <p className="text-white font-semibold text-sm">ProcessOS</p>
+            <p className="text-slate-500 text-xs">BY AICOUNTS CONSULTORES</p>
           </div>
         </div>
       </div>
@@ -183,7 +182,7 @@ export default function AppSidebar({ rol }: Props) {
       <div className="px-4 py-3 border-t border-slate-800">
         <div className="bg-indigo-950/50 rounded-lg px-3 py-2">
           <p className="text-xs text-indigo-400 font-medium">Fase activa</p>
-          <p className="text-sm text-white font-semibold">Fase 1 — Fundación</p>
+          <p className="text-sm text-white font-semibold">Fase 2 — Discovery AI</p>
         </div>
       </div>
     </aside>

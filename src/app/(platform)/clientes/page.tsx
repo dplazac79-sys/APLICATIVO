@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -11,8 +11,10 @@ const MADUREZ_COLOR: Record<string, string> = {
   avanzado: 'bg-emerald-950 text-emerald-400 border-emerald-800',
 }
 
+export const dynamic = 'force-dynamic'
+
 export default async function ClientesPage() {
-  const supabase = createClient()
+  const supabase = createAdminClient()
   const { data: clientes } = await supabase
     .from('cliente')
     .select('*, proyecto(id, nombre, estado_general)')

@@ -12,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Upload, X, CheckCircle2 } from 'lucide-react'
+import { Upload, X, CheckCircle2, Loader2 } from 'lucide-react'
 
 interface Proyecto {
   id: string
@@ -37,12 +37,21 @@ export default function DocumentUploader({ proyectos }: Props) {
   const router = useRouter()
   const supabase = createClient()
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const proyectoIdRef = useRef('')
 
   const [proyectoId, setProyectoId] = useState('')
+  const [proyectoNombre, setProyectoNombre] = useState('')
   const [files, setFiles] = useState<File[]>([])
   const [uploading, setUploading] = useState(false)
-  const [uploaded, setUploaded] = useState(0)
+  const [done, setDone] = useState(0)
   const [error, setError] = useState('')
+
+  function handleProyectoChange(v: string) {
+    setProyectoId(v)
+    proyectoIdRef.current = v
+    const p = proyectos.find(p => p.id === v)
+    setProyectoNombre(p?.nombre ?? v)
+  }
 
   function handleDrop(e: React.DragEvent) {
     e.preventDefault()
@@ -52,7 +61,9 @@ export default function DocumentUploader({ proyectos }: Props) {
 
   function handleFileInput(e: React.ChangeEvent<HTMLInputElement>) {
     const selected = Array.from(e.target.files ?? [])
+    if (selected.length === 0) return
     setFiles(prev => [...prev, ...selected])
+    e.target.value = ''
   }
 
   function removeFile(index: number) {
@@ -60,39 +71,44 @@ export default function DocumentUploader({ proyectos }: Props) {
   }
 
   async function handleUpload() {
-    if (!proyectoId || files.length === 0) return
+    const pid = proyectoIdRef.current || proyectoId
+    if (!pid || files.length === 0) {
+      setError(!pid ? 'Selecciona un proyecto primero' : 'Selecciona al menos un archivo')
+      return
+    }
     setUploading(true)
     setError('')
-    setUploaded(0)
+    setDone(0)
 
     const { data: { user } } = await supabase.auth.getUser()
 
     for (const file of files) {
-      const path = `${proyectoId}/${Date.now()}-${file.name}`
+      const path = `${pid}/${Date.now()}-${file.name}`
 
       const { error: storageError } = await supabase.storage
         .from('documentos')
         .upload(path, file)
 
       if (storageError) {
-        setError(`Error subiendo ${file.name}: ${storageError.message}`)
+        setError(`Error: ${storageError.message}`)
         continue
       }
 
-      const { data: { publicUrl } } = supabase.storage
-        .from('documentos')
-        .getPublicUrl(path)
-
-      await supabase.from('documento').insert({
-        proyecto_id: proyectoId,
+      const { error: dbError } = await supabase.from('documento').insert({
+        proyecto_id: pid,
         nombre_archivo: file.name,
         tipo: detectTipo(file),
-        url_storage: publicUrl,
+        url_storage: path,
         estado_procesamiento: 'pendiente',
         subido_por: user?.id ?? null,
       })
 
-      setUploaded(prev => prev + 1)
+      if (dbError) {
+        setError(`Error al registrar: ${dbError.message}`)
+        continue
+      }
+
+      setDone(prev => prev + 1)
     }
 
     setFiles([])
@@ -103,27 +119,22 @@ export default function DocumentUploader({ proyectos }: Props) {
   return (
     <Card className="bg-slate-900 border-slate-800">
       <CardContent className="p-5 space-y-4">
-        <div className="flex items-center gap-3">
-          <div className="flex-1">
-            <Select value={proyectoId} onValueChange={(v) => v && setProyectoId(v)}>
-              <SelectTrigger className="bg-slate-800 border-slate-700 text-white">
-                <SelectValue placeholder="Seleccionar proyecto..." />
-              </SelectTrigger>
-              <SelectContent className="bg-slate-800 border-slate-700">
-                {proyectos.map(p => (
-                  <SelectItem key={p.id} value={p.id} className="text-slate-200 focus:bg-slate-700">
-                    {p.nombre}
-                    {p.cliente && (
-                      <span className="text-slate-500 ml-1">— {p.cliente.razon_social}</span>
-                    )}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
+        <Select value={proyectoId} onValueChange={handleProyectoChange}>
+          <SelectTrigger className="bg-slate-800 border-slate-700 text-white">
+            <span className={proyectoId ? 'text-white' : 'text-slate-500'}>
+              {proyectoId ? proyectoNombre : 'Seleccionar proyecto...'}
+            </span>
+          </SelectTrigger>
+          <SelectContent className="bg-slate-800 border-slate-700">
+            {proyectos.map(p => (
+              <SelectItem key={p.id} value={p.id} className="text-slate-200 focus:bg-slate-700">
+                {p.nombre}
+                {p.cliente && <span className="text-slate-500 ml-1">— {p.cliente.razon_social}</span>}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
 
-        {/* Drop zone */}
         <div
           onDrop={handleDrop}
           onDragOver={e => e.preventDefault()}
@@ -145,15 +156,12 @@ export default function DocumentUploader({ proyectos }: Props) {
           />
         </div>
 
-        {/* Lista de archivos seleccionados */}
         {files.length > 0 && (
           <div className="space-y-2">
             {files.map((file, i) => (
               <div key={i} className="flex items-center gap-2 bg-slate-800 rounded-lg px-3 py-2">
                 <span className="text-sm text-slate-300 flex-1 truncate">{file.name}</span>
-                <span className="text-xs text-slate-600">
-                  {(file.size / 1024 / 1024).toFixed(1)} MB
-                </span>
+                <span className="text-xs text-slate-500">{(file.size / 1024 / 1024).toFixed(1)} MB</span>
                 <button onClick={() => removeFile(i)} className="text-slate-600 hover:text-red-400">
                   <X className="w-4 h-4" />
                 </button>
@@ -162,24 +170,24 @@ export default function DocumentUploader({ proyectos }: Props) {
           </div>
         )}
 
-        {uploaded > 0 && !uploading && (
+        {done > 0 && !uploading && (
           <div className="flex items-center gap-2 text-emerald-400 text-sm">
             <CheckCircle2 className="w-4 h-4" />
-            {uploaded} archivo{uploaded !== 1 ? 's' : ''} cargado{uploaded !== 1 ? 's' : ''} correctamente
+            {done} archivo{done !== 1 ? 's' : ''} cargado{done !== 1 ? 's' : ''} correctamente
           </div>
         )}
 
-        {error && (
-          <p className="text-red-400 text-sm">{error}</p>
-        )}
+        {error && <p className="text-red-400 text-sm">{error}</p>}
 
         <Button
           onClick={handleUpload}
-          disabled={!proyectoId || files.length === 0 || uploading}
-          className="bg-indigo-600 hover:bg-indigo-700 text-white gap-2"
+          disabled={uploading}
+          className="bg-indigo-600 hover:bg-indigo-700 text-white gap-2 w-full"
         >
-          <Upload className="w-4 h-4" />
-          {uploading ? `Subiendo ${uploaded}/${files.length}...` : `Cargar ${files.length > 0 ? files.length : ''} archivo${files.length !== 1 ? 's' : ''}`}
+          {uploading
+            ? <><Loader2 className="w-4 h-4 animate-spin" />Subiendo...</>
+            : <><Upload className="w-4 h-4" />Cargar {files.length > 0 ? `${files.length} archivo${files.length !== 1 ? 's' : ''}` : 'archivos'}</>
+          }
         </Button>
       </CardContent>
     </Card>

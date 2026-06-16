@@ -33,6 +33,7 @@ export interface Proyecto {
   alcance: string | null
   estado_general: EstadoProyecto
   fase_actual: number
+  discovery_resumen: Record<string, unknown> | null
   created_at: string
   updated_at: string
 }
@@ -63,6 +64,42 @@ export interface Documento {
   clasificacion: Record<string, unknown>
   resumen_ejecutivo: string | null
   subido_por: string | null
+  created_at: string
+  updated_at: string
+}
+
+export type OrigenProceso = 'detectado' | 'propuesta_ia' | 'manual'
+export type EstadoOferta = 'propuesto' | 'aceptado' | 'rechazado'
+
+export interface Proceso {
+  id: string
+  proyecto_id: string
+  padre_id: string | null
+  documento_origen_id: string | null
+  nombre: string
+  descripcion: string | null
+  nivel: number
+  tipo: 'macroproceso' | 'proceso' | 'subproceso' | 'actividad' | 'tarea'
+  origen: OrigenProceso
+  estado_oferta: EstadoOferta
+  roles_involucrados: string[] | null
+  riesgos_detectados: string[] | null
+  metadata_ia: Record<string, unknown> | null
+  orden: number
+  created_at: string
+  updated_at: string
+}
+
+export interface Job {
+  id: string
+  tipo: 'clasificar_documento' | 'resumir_documento' | 'discovery_procesos'
+  estado: 'pendiente' | 'procesando' | 'listo' | 'error'
+  payload: Record<string, unknown>
+  resultado: Record<string, unknown> | null
+  error_mensaje: string | null
+  intentos: number
+  documento_id: string | null
+  proyecto_id: string | null
   created_at: string
   updated_at: string
 }

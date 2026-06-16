@@ -7,7 +7,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
@@ -36,7 +35,7 @@ export default function AppHeader({ usuario }: Props) {
   }
 
   const initials = usuario?.nombre
-    .split(' ')
+    ?.split(' ')
     .map(n => n[0])
     .slice(0, 2)
     .join('')
@@ -48,18 +47,18 @@ export default function AppHeader({ usuario }: Props) {
       <div className="flex items-center gap-3">
         <DropdownMenu>
           <DropdownMenuTrigger className="flex items-center gap-2 py-1.5 px-2 rounded-md hover:bg-slate-800 outline-none">
-              <Avatar className="w-7 h-7">
-                <AvatarFallback className="bg-indigo-600 text-white text-xs font-medium">
-                  {initials}
-                </AvatarFallback>
-              </Avatar>
-              <div className="text-left">
-                <p className="text-sm text-slate-200 font-medium leading-tight">{usuario?.nombre ?? 'Usuario'}</p>
-                <p className="text-xs text-slate-500 leading-tight">{ROL_LABELS[usuario?.rol ?? ''] ?? ''}</p>
-              </div>
+            <Avatar className="w-7 h-7">
+              <AvatarFallback className="bg-indigo-600 text-white text-xs font-medium">
+                {initials}
+              </AvatarFallback>
+            </Avatar>
+            <div className="text-left">
+              <p className="text-sm text-slate-200 font-medium leading-tight">{usuario?.nombre ?? 'Usuario'}</p>
+              <p className="text-xs text-slate-500 leading-tight">{ROL_LABELS[usuario?.rol ?? ''] ?? ''}</p>
+            </div>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="bg-slate-800 border-slate-700 text-slate-200">
-            <DropdownMenuLabel className="text-slate-400">{usuario?.email}</DropdownMenuLabel>
+          <DropdownMenuContent align="end" className="bg-slate-800 border-slate-700 text-slate-200 min-w-48">
+            <div className="px-2 py-1.5 text-xs text-slate-500">{usuario?.email}</div>
             <DropdownMenuSeparator className="bg-slate-700" />
             <DropdownMenuItem
               onClick={handleSignOut}
