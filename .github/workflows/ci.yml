@@ -37,13 +37,6 @@ jobs:
           node-version: '20'
           cache: 'npm'
       - run: npm ci
-      - name: Diagnóstico de secrets (no expone valores)
-        run: |
-          echo "NEXT_PUBLIC_SUPABASE_URL length: ${#NEXT_PUBLIC_SUPABASE_URL}"
-          echo "NEXT_PUBLIC_SUPABASE_ANON_KEY length: ${#NEXT_PUBLIC_SUPABASE_ANON_KEY}"
-          echo "SUPABASE_SERVICE_ROLE_KEY length: ${#SUPABASE_SERVICE_ROLE_KEY}"
-          echo "ANTHROPIC_API_KEY length: ${#ANTHROPIC_API_KEY}"
-          echo "VOYAGE_API_KEY length: ${#VOYAGE_API_KEY}"
       - run: npm run test
 
   build:
