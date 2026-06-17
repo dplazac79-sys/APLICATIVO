@@ -115,6 +115,37 @@ export interface AuditLog {
   created_at: string
 }
 
+// ── Fase 3: Artefactos ──────────────────────────────────────────────────────
+
+export type TipoArtefacto =
+  | 'sipoc'
+  | 'as_is'
+  | 'bpmn'
+  | 'historias_usuario'
+  | 'flujograma'
+  | 'raci'
+  | 'riesgo_control'
+  | 'kpi_sla'
+  | 'diagnostico'
+  | 'to_be'
+  | 'dashboard_brechas'
+  | 'cierre_ejecutivo'
+
+export type EstadoValidacion = 'pendiente' | 'validado' | 'publicado'
+
+export interface Artefacto {
+  id: string
+  proceso_id: string
+  proyecto_id: string
+  tipo: TipoArtefacto
+  contenido: Record<string, unknown>
+  estado_validacion: EstadoValidacion
+  version: number
+  generado_por_ia: boolean
+  created_at: string
+  updated_at: string
+}
+
 // Tipos extendidos con joins frecuentes
 export interface ClienteConProyectos extends Cliente {
   proyectos: Proyecto[]

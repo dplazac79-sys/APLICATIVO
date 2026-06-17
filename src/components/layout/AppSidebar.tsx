@@ -181,7 +181,7 @@ export default function AppSidebar({ rol }: Props) {
       <div className="px-4 py-3 border-t border-slate-800">
         <div className="bg-indigo-950/50 rounded-lg px-3 py-2">
           <p className="text-xs text-indigo-400 font-medium">Fase activa</p>
-          <p className="text-sm text-white font-semibold">Fase 2 — Discovery AI</p>
+          <p className="text-sm text-white font-semibold">Fase 3 — Artefactos</p>
         </div>
       </div>
     </aside>
