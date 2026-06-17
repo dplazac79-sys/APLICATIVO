@@ -1,29 +1,29 @@
-const VOYAGE_API_URL = 'https://api.voyageai.com/v1/embeddings'
-const VOYAGE_MODEL = 'voyage-3'
-export const EMBEDDING_DIMENSIONS = 1024
+export const EMBEDDING_DIMENSIONS = 384
 
-export async function generarEmbedding(texto: string, inputType: 'document' | 'query' = 'document'): Promise<number[]> {
-  const apiKey = process.env.VOYAGE_API_KEY
-  if (!apiKey) throw new Error('VOYAGE_API_KEY no configurada')
+// Singleton: se inicializa una vez y se reutiliza entre requests del mismo proceso
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let extractorPromise: Promise<any> | null = null
 
-  const res = await fetch(VOYAGE_API_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      input: [texto.slice(0, 16000)],
-      model: VOYAGE_MODEL,
-      input_type: inputType,
-    }),
-  })
-
-  if (!res.ok) {
-    const detalle = await res.text()
-    throw new Error(`Voyage AI error ${res.status}: ${detalle}`)
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function getExtractor(): Promise<any> {
+  if (!extractorPromise) {
+    // Importación dinámica necesaria: @xenova/transformers es ESM puro y
+    // usa onnxruntime-node (binario nativo), no puede ser bundleado por webpack.
+    const { pipeline, env } = await import('@xenova/transformers')
+    env.useBrowserCache = false
+    env.allowLocalModels = false
+    extractorPromise = pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2', { quantized: true })
   }
+  return extractorPromise
+}
 
-  const data = await res.json()
-  return data.data[0].embedding as number[]
+export async function generarEmbedding(
+  texto: string,
+  // inputType era parámetro de Voyage AI (document vs query); con modelo local no hay distinción
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  _inputType?: 'document' | 'query'
+): Promise<number[]> {
+  const extractor = await getExtractor()
+  const output = await extractor(texto.slice(0, 8192), { pooling: 'mean', normalize: true })
+  return Array.from(output.data as Float32Array)
 }

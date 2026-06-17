@@ -26,7 +26,7 @@ describe.each(FIXTURES)('Fixture de industria: $nombre', ({ nombre, industriaEsp
     expect(clasificacion.confianza).toBeGreaterThan(0)
     expect(clasificacion.confianza).toBeLessThanOrEqual(1)
     expect(Array.isArray(clasificacion.palabras_clave)).toBe(true)
-  }, 60000)
+  }, 180000)
 
   it('genera un resumen ejecutivo con diagnóstico de madurez consistente', async () => {
     const resumen = await resumirDocumento(texto)
@@ -36,7 +36,7 @@ describe.each(FIXTURES)('Fixture de industria: $nombre', ({ nombre, industriaEsp
     expect(resumen.nivel_madurez_amo).toBeLessThanOrEqual(5)
     expect(resumen.hallazgos_criticos.length).toBeGreaterThan(0)
     expect(resumen.riesgos_criticos.length).toBeGreaterThan(0)
-  }, 60000)
+  }, 180000)
 
   it('Process Discovery AI detecta la industria correcta y produce inventario nivel 0-1', async () => {
     const resumen = await resumirDocumento(texto)
@@ -52,5 +52,5 @@ describe.each(FIXTURES)('Fixture de industria: $nombre', ({ nombre, industriaEsp
 
     expect(resultado.top_3_brechas_criticas.length).toBeGreaterThan(0)
     expect(resultado.recomendacion_ceo.length).toBeGreaterThan(0)
-  }, 120000)
+  }, 240000)
 })

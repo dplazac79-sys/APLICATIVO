@@ -8,7 +8,6 @@ const hasCredenciales = !!process.env.NEXT_PUBLIC_SUPABASE_URL && !!process.env.
 
 beforeAll(() => {
   if (!hasCredenciales) throw new Error('Credenciales de Supabase requeridas para este test')
-  if (!process.env.VOYAGE_API_KEY) throw new Error('VOYAGE_API_KEY requerida para este test')
 })
 
 const FIXTURES = [
