@@ -1,0 +1,18 @@
+name: Escalación automática
+
+on:
+  schedule:
+    - cron: '0 * * * *'  # cada hora
+  workflow_dispatch:       # ejecución manual desde GitHub UI
+
+jobs:
+  evaluar:
+    name: Evaluar umbrales de escalación
+    runs-on: ubuntu-latest
+    steps:
+      - name: Llamar endpoint de escalación
+        run: |
+          curl -s -X POST \
+            -H "x-escalacion-secret: ${{ secrets.ESCALACION_SECRET }}" \
+            "${{ secrets.APP_URL }}/api/escalacion" \
+            -w "\nHTTP %{http_code}\n"

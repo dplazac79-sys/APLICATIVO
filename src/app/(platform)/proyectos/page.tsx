@@ -1,104 +1,133 @@
-import { createClient } from '@/lib/supabase/server'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Briefcase, Clock, FolderOpen } from 'lucide-react'
+import { createAdminClient } from '@/lib/supabase/admin'
+import { Card, CardContent } from '@/components/ui/card'
+import { Briefcase, ChevronRight, AlertTriangle, CheckCircle, Clock } from 'lucide-react'
+import Link from 'next/link'
+import type { WorkflowEstadoTipo } from '@/types/database'
 
-const FASE_LABELS: Record<number, string> = {
-  1: 'Fundación',
-  2: 'Discovery AI',
-  3: 'Artefactos',
-  4: 'Gestión Proyecto',
-  5: 'Simulación Impacto',
-  6: 'Automation Studio',
+export const dynamic = 'force-dynamic'
+
+const ESTADO_COLOR: Record<WorkflowEstadoTipo, string> = {
+  'Scheduled':        'bg-slate-800 text-slate-400 border-slate-700',
+  'Assigned':         'bg-blue-950 text-blue-400 border-blue-800',
+  'In Progress':      'bg-indigo-950 text-indigo-400 border-indigo-800',
+  'Pending Approval': 'bg-amber-950 text-amber-400 border-amber-800',
+  'Approved':         'bg-emerald-950 text-emerald-400 border-emerald-800',
+  'Implemented':      'bg-teal-950 text-teal-400 border-teal-800',
+  'Closed':           'bg-slate-900 text-slate-500 border-slate-800',
 }
 
-const ESTADO_CONFIG = {
-  activo: { label: 'Activo', class: 'bg-emerald-950 text-emerald-400 border-emerald-800' },
-  pausado: { label: 'Pausado', class: 'bg-amber-950 text-amber-400 border-amber-800' },
-  cerrado: { label: 'Cerrado', class: 'bg-slate-800 text-slate-500 border-slate-700' },
-} as const
+// evitar warning de variable no usada — se usa como referencia de tipos
+void ESTADO_COLOR
 
 export default async function ProyectosPage() {
-  const supabase = createClient()
+  const admin = createAdminClient()
 
-  const { data: proyectos } = await supabase
+  const { data: proyectos } = await admin
     .from('proyecto')
     .select('*, cliente(razon_social, industria)')
     .order('created_at', { ascending: false })
 
+  const { data: workflows } = await admin
+    .from('workflow_estado')
+    .select('proyecto_id, estado, nivel_escalacion')
+
+  const { data: riesgos } = await admin
+    .from('riesgo')
+    .select('proyecto_id, nivel_riesgo, estado')
+    .eq('estado', 'activo')
+
+  const wfPorProyecto = (workflows ?? []).reduce((acc, w) => {
+    if (!acc[w.proyecto_id]) acc[w.proyecto_id] = []
+    acc[w.proyecto_id].push(w)
+    return acc
+  }, {} as Record<string, Array<{ estado: string; nivel_escalacion: string | null }>>)
+
+  const riesgosPorProyecto = (riesgos ?? []).reduce((acc, r) => {
+    acc[r.proyecto_id] = (acc[r.proyecto_id] ?? 0) + 1
+    return acc
+  }, {} as Record<string, number>)
+
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-white">Project Control Center</h1>
-        <p className="text-slate-400 text-sm mt-1">M8 — Panel de control de proyectos</p>
+        <h1 className="text-2xl font-bold text-white flex items-center gap-2">
+          <Briefcase className="w-6 h-6 text-indigo-400" />
+          Project Control Center
+        </h1>
+        <p className="text-slate-400 text-sm mt-1">M8 — Vista ejecutiva de todos los proyectos</p>
       </div>
 
-      {proyectos?.length === 0 && (
-        <Card className="bg-slate-900 border-slate-800">
-          <CardContent className="py-16 text-center">
-            <Briefcase className="w-12 h-12 text-slate-700 mx-auto mb-4" />
-            <p className="text-slate-400">No hay proyectos activos.</p>
-            <p className="text-slate-600 text-sm mt-1">
-              Los proyectos se crean desde la ficha de cada cliente.
-            </p>
-          </CardContent>
-        </Card>
-      )}
+      <div className="space-y-3">
+        {(proyectos ?? []).map(proyecto => {
+          const cliente = proyecto.cliente as Record<string, unknown>
+          const wfs = wfPorProyecto[proyecto.id] ?? []
+          const total = wfs.length
+          const cerrados = wfs.filter(w => w.estado === 'Closed').length
+          const enAprobacion = wfs.filter(w => w.estado === 'Pending Approval').length
+          const escalados = wfs.filter(w => w.nivel_escalacion).length
+          const avance = total > 0 ? Math.round((cerrados / total) * 100) : 0
+          const riesgosActivos = riesgosPorProyecto[proyecto.id] ?? 0
 
-      <div className="grid gap-4 md:grid-cols-2">
-        {proyectos?.map(proyecto => {
-          const estadoConf = ESTADO_CONFIG[proyecto.estado_general as keyof typeof ESTADO_CONFIG]
-            ?? ESTADO_CONFIG.activo
           return (
-            <Card key={proyecto.id} className="bg-slate-900 border-slate-800">
-              <CardContent className="p-5">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-lg bg-indigo-950 flex items-center justify-center shrink-0">
-                      <FolderOpen className="w-4 h-4 text-indigo-400" />
-                    </div>
-                    <div>
-                      <h3 className="text-white font-medium text-sm">{proyecto.nombre}</h3>
-                      <p className="text-slate-500 text-xs mt-0.5">
-                        {proyecto.cliente?.razon_social}
-                        {proyecto.cliente?.industria && ` · ${proyecto.cliente.industria}`}
+            <Link key={proyecto.id} href={`/proyectos/${proyecto.id}`} className="block">
+              <Card className="bg-slate-900 border-slate-800 hover:border-slate-700 transition-colors">
+                <CardContent className="p-5">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <h2 className="text-white font-semibold text-base truncate">{proyecto.nombre}</h2>
+                        <span className={`text-xs px-1.5 py-0.5 rounded border ${proyecto.estado_general === 'activo' ? 'bg-emerald-950 text-emerald-400 border-emerald-800' : 'bg-slate-800 text-slate-500 border-slate-700'}`}>
+                          {proyecto.estado_general}
+                        </span>
+                      </div>
+                      <p className="text-slate-500 text-sm mt-0.5">
+                        {String(cliente?.razon_social ?? '')}
+                        {cliente?.industria ? ` · ${String(cliente.industria)}` : ''}
                       </p>
+                      <div className="mt-3 space-y-1">
+                        <div className="flex justify-between text-xs text-slate-500">
+                          <span>Avance workflow</span>
+                          <span>{avance}% ({cerrados}/{total} procesos cerrados)</span>
+                        </div>
+                        <div className="w-full bg-slate-800 rounded-full h-1.5">
+                          <div className="bg-indigo-500 h-1.5 rounded-full" style={{ width: `${avance}%` }} />
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 shrink-0">
+                      {escalados > 0 && (
+                        <span className="flex items-center gap-1 text-xs text-red-400">
+                          <AlertTriangle className="w-3.5 h-3.5" />{escalados} escalado{escalados > 1 ? 's' : ''}
+                        </span>
+                      )}
+                      {enAprobacion > 0 && (
+                        <span className="flex items-center gap-1 text-xs text-amber-400">
+                          <Clock className="w-3.5 h-3.5" />{enAprobacion} en aprobación
+                        </span>
+                      )}
+                      {riesgosActivos > 0 && (
+                        <span className="flex items-center gap-1 text-xs text-orange-400">
+                          <AlertTriangle className="w-3.5 h-3.5" />{riesgosActivos} riesgo{riesgosActivos > 1 ? 's' : ''}
+                        </span>
+                      )}
+                      {avance === 100 && total > 0 && <CheckCircle className="w-4 h-4 text-emerald-400" />}
+                      <ChevronRight className="w-4 h-4 text-slate-600" />
                     </div>
                   </div>
-                  <span className={`text-xs px-2 py-0.5 rounded-full border shrink-0 ${estadoConf.class}`}>
-                    {estadoConf.label}
-                  </span>
-                </div>
-
-                <div className="mt-4 pt-4 border-t border-slate-800 flex items-center justify-between">
-                  <div className="flex items-center gap-1.5 text-slate-400">
-                    <Clock className="w-3.5 h-3.5" />
-                    <span className="text-xs">
-                      Fase {proyecto.fase_actual} — {FASE_LABELS[proyecto.fase_actual] ?? ''}
-                    </span>
-                  </div>
-                  <p className="text-xs text-slate-600">
-                    {new Date(proyecto.created_at).toLocaleDateString('es-CL')}
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            </Link>
           )
         })}
+        {!(proyectos ?? []).length && (
+          <Card className="bg-slate-900 border-slate-800">
+            <CardContent className="py-16 text-center">
+              <Briefcase className="w-12 h-12 text-slate-700 mx-auto mb-3" />
+              <p className="text-slate-300 font-medium">No hay proyectos creados</p>
+            </CardContent>
+          </Card>
+        )}
       </div>
-
-      {/* Shell M8 — módulos disponibles en fases futuras */}
-      <Card className="bg-slate-900 border-slate-800 border-dashed">
-        <CardHeader>
-          <CardTitle className="text-slate-500 text-sm">M8 — Módulos disponibles en Fase 4</CardTitle>
-        </CardHeader>
-        <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          {['Gantt interactivo', 'Reuniones y acuerdos', 'Entregables', 'KPIs de proyecto'].map(m => (
-            <div key={m} className="bg-slate-800/50 rounded-lg p-3 text-center">
-              <p className="text-xs text-slate-600">{m}</p>
-            </div>
-          ))}
-        </CardContent>
-      </Card>
     </div>
   )
 }

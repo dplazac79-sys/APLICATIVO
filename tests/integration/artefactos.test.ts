@@ -37,10 +37,10 @@ describe('Artefactos — trazabilidad y RBAC (DoD Fase 3)', () => {
 
   afterAll(async () => {
     if (!hasCredenciales) return
-    await admin.from('artefacto').delete().eq('proceso_id', procesoId).catch(() => {})
-    await admin.from('proceso').delete().eq('id', procesoId).catch(() => {})
-    await admin.from('proyecto').delete().eq('id', proyectoId).catch(() => {})
-    await admin.from('cliente').delete().eq('id', clienteId).catch(() => {})
+    await admin.from('artefacto').delete().eq('proceso_id', procesoId)
+    await admin.from('proceso').delete().eq('id', procesoId)
+    await admin.from('proyecto').delete().eq('id', proyectoId)
+    await admin.from('cliente').delete().eq('id', clienteId)
   })
 
   it('se puede insertar un artefacto SIPOC y queda asociado al proceso', async () => {

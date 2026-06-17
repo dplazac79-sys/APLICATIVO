@@ -146,6 +146,104 @@ export interface Artefacto {
   updated_at: string
 }
 
+// ── Fase 4: Gestión de Proyecto ──────────────────────────────────────────────
+
+export type WorkflowEstadoTipo =
+  | 'Scheduled'
+  | 'Assigned'
+  | 'In Progress'
+  | 'Pending Approval'
+  | 'Approved'
+  | 'Implemented'
+  | 'Closed'
+
+export type NivelEscalacion = 'N1' | 'N2' | 'N3' | 'N4' | null
+
+export interface WorkflowEstado {
+  id: string
+  proceso_id: string
+  proyecto_id: string
+  estado: WorkflowEstadoTipo
+  nivel_escalacion: NivelEscalacion
+  responsable_id: string | null
+  fecha_cambio: string
+  umbral_horas_n1: number
+  umbral_horas_n2: number
+  umbral_horas_n3: number
+  umbral_horas_n4: number
+  created_at: string
+  updated_at: string
+}
+
+export interface Notificacion {
+  id: string
+  usuario_id: string
+  proyecto_id: string | null
+  proceso_id: string | null
+  tipo: 'transicion' | 'escalacion' | 'aprobacion' | 'alarma'
+  titulo: string
+  cuerpo: string
+  leida: boolean
+  created_at: string
+}
+
+export interface Reunion {
+  id: string
+  proyecto_id: string
+  fecha: string
+  titulo: string
+  participantes: string[]
+  acuerdos: string | null
+  compromisos: Array<{ descripcion: string; responsable: string; fecha_limite: string; completado: boolean }>
+  created_by: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface Riesgo {
+  id: string
+  proyecto_id: string
+  proceso_id: string | null
+  descripcion: string
+  categoria: string
+  probabilidad: 'alta' | 'media' | 'baja'
+  impacto: 'alto' | 'medio' | 'bajo'
+  nivel_riesgo: 'critico' | 'alto' | 'medio' | 'bajo'
+  control: string | null
+  responsable: string | null
+  estado: 'activo' | 'mitigado' | 'aceptado'
+  created_at: string
+  updated_at: string
+}
+
+export interface KPI {
+  id: string
+  proyecto_id: string
+  proceso_id: string | null
+  nombre: string
+  descripcion: string | null
+  formula: string | null
+  linea_base: string | null
+  meta: string | null
+  valor_actual: string | null
+  frecuencia: string
+  dueno: string | null
+  historico: Array<{ fecha: string; valor: string }>
+  created_at: string
+  updated_at: string
+}
+
+// Transiciones válidas de workflow (espejo de la función SQL)
+export const TRANSICIONES_VALIDAS: Record<WorkflowEstadoTipo, WorkflowEstadoTipo[]> = {
+  'Scheduled':       ['Assigned'],
+  'Assigned':        ['In Progress', 'Scheduled'],
+  'In Progress':     ['Pending Approval', 'Assigned'],
+  'Pending Approval':['Approved', 'In Progress'],
+  'Approved':        ['Implemented'],
+  'Implemented':     ['Closed'],
+  'Closed':          ['Scheduled'],
+}
+
 // Tipos extendidos con joins frecuentes
 export interface ClienteConProyectos extends Cliente {
   proyectos: Proyecto[]
