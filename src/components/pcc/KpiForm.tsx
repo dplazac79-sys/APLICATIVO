@@ -13,7 +13,6 @@ export default function KpiForm({ proyectoId }: Props) {
   const [cargando, setCargando] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [nombre, setNombre] = useState('')
-  const [unidad, setUnidad] = useState('')
   const [lineaBase, setLineaBase] = useState('')
   const [meta, setMeta] = useState('')
   const [frecuencia, setFrecuencia] = useState<'diaria' | 'semanal' | 'mensual' | 'trimestral'>('mensual')
@@ -29,16 +28,14 @@ export default function KpiForm({ proyectoId }: Props) {
         body: JSON.stringify({
           proyecto_id: proyectoId,
           nombre: nombre.trim(),
-          unidad: unidad.trim() || null,
-          linea_base: lineaBase ? Number(lineaBase) : null,
-          meta: meta ? Number(meta) : null,
-          frecuencia_medicion: frecuencia,
+          linea_base: lineaBase.trim() || null,
+          meta: meta.trim() || null,
+          frecuencia,
         }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)
       setNombre('')
-      setUnidad('')
       setLineaBase('')
       setMeta('')
       setOpen(false)
@@ -73,23 +70,15 @@ export default function KpiForm({ proyectoId }: Props) {
                   placeholder="Ej. Tiempo de ciclo de proceso de compras" />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-slate-400 text-xs mb-1 block">Unidad</label>
-                  <input value={unidad} onChange={e => setUnidad(e.target.value)}
-                    className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-600"
-                    placeholder="días, %, $, etc." />
-                </div>
-                <div>
-                  <label className="text-slate-400 text-xs mb-1 block">Frecuencia</label>
-                  <select value={frecuencia} onChange={e => setFrecuencia(e.target.value as typeof frecuencia)}
-                    className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-600">
-                    <option value="diaria">Diaria</option>
-                    <option value="semanal">Semanal</option>
-                    <option value="mensual">Mensual</option>
-                    <option value="trimestral">Trimestral</option>
-                  </select>
-                </div>
+              <div>
+                <label className="text-slate-400 text-xs mb-1 block">Frecuencia de medición</label>
+                <select value={frecuencia} onChange={e => setFrecuencia(e.target.value as typeof frecuencia)}
+                  className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-600">
+                  <option value="diaria">Diaria</option>
+                  <option value="semanal">Semanal</option>
+                  <option value="mensual">Mensual</option>
+                  <option value="trimestral">Trimestral</option>
+                </select>
               </div>
 
               <div className="grid grid-cols-2 gap-3">

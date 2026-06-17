@@ -33,17 +33,17 @@ Identifica las brechas más significativas. Clasifica cada iniciativa de cierre 
     {
       "fase": "Corto plazo (0-3 meses)",
       "acciones": ["<acción concreta>"],
-      "plazo": "Q1 2025"
+      "plazo": "Q3 2026"
     },
     {
       "fase": "Mediano plazo (3-6 meses)",
       "acciones": ["<acción concreta>"],
-      "plazo": "Q2-Q3 2025"
+      "plazo": "Q4 2026 - Q1 2027"
     },
     {
       "fase": "Largo plazo (6-12 meses)",
       "acciones": ["<acción concreta>"],
-      "plazo": "Q4 2025"
+      "plazo": "Q2-Q3 2027"
     }
   ]
 }

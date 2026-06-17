@@ -2,6 +2,8 @@ import fs from 'fs'
 import path from 'path'
 import Anthropic from '@anthropic-ai/sdk'
 import type { TipoArtefacto } from '@/types/database'
+// Re-exportar desde fuente única para evitar duplicación (M2)
+export { ORDEN_GENERACION, LABEL_ARTEFACTO } from '@/lib/artefactos-meta'
 
 const client = new Anthropic()
 
@@ -10,6 +12,7 @@ function leerPrompt(tipo: TipoArtefacto): string {
   return fs.readFileSync(archivo, 'utf-8')
 }
 
+// Fuente única de extractJson — evita duplicación con claude.ts (M3)
 function extractJson(text: string): Record<string, unknown> {
   const match = text.match(/```json\s*([\s\S]*?)```/) ?? text.match(/(\{[\s\S]*\})/)
   const raw = match ? match[1] ?? match[0] : text
@@ -56,7 +59,7 @@ Riesgos detectados: ${ctx.riesgos_detectados?.join(', ') ?? 'N/A'}
 }
 
 function construirResumenDocumentos(docs: DocumentoResumen[]): string {
-  if (!docs.length) return 'Sin documentos de origen disponibles.'
+  if (!docs.length) return 'Sin documentos de origen disponibles. Basar el análisis en el contexto del proceso provisto.'
   return docs.map(d =>
     `### ${d.nombre_archivo}\n${d.resumen_ejecutivo ?? 'Sin resumen disponible.'}`
   ).join('\n\n')
@@ -86,7 +89,6 @@ export async function generarArtefacto(
     .replace('{{CONTEXTO_PROCESO}}', ctxStr)
     .replace('{{DOCUMENTOS}}', docsStr)
 
-  // Los artefactos derivados inyectan contexto adicional
   if (tipo === 'to_be') {
     prompt = prompt
       .replace('{{ASIS}}', JSON.stringify(existentes.as_is ?? {}, null, 2))
@@ -104,36 +106,4 @@ export async function generarArtefacto(
   }
 
   return llamarClaude(prompt)
-}
-
-// Orden de generación: los artefactos derivados (to_be, dashboard_brechas,
-// cierre_ejecutivo) dependen de los anteriores — se generan en secuencia.
-export const ORDEN_GENERACION: TipoArtefacto[] = [
-  'sipoc',
-  'as_is',
-  'bpmn',
-  'historias_usuario',
-  'flujograma',
-  'raci',
-  'riesgo_control',
-  'kpi_sla',
-  'diagnostico',
-  'to_be',          // requiere as_is + diagnostico
-  'dashboard_brechas', // requiere as_is + to_be
-  'cierre_ejecutivo',  // requiere diagnostico + dashboard_brechas
-]
-
-export const LABEL_ARTEFACTO: Record<TipoArtefacto, string> = {
-  sipoc: 'SIPOC',
-  as_is: 'AS-IS',
-  bpmn: 'BPMN',
-  historias_usuario: 'Historias de Usuario',
-  flujograma: 'Flujograma',
-  raci: 'RACI',
-  riesgo_control: 'Riesgo-Control',
-  kpi_sla: 'KPI-SLA',
-  diagnostico: 'Diagnóstico',
-  to_be: 'TO-BE',
-  dashboard_brechas: 'Dashboard de Brechas',
-  cierre_ejecutivo: 'Cierre Ejecutivo',
 }

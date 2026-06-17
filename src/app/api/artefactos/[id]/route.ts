@@ -28,26 +28,20 @@ export async function PATCH(
 
     const { data: actual } = await admin
       .from('artefacto')
-      .select('version, tipo, proceso_id')
+      .select('version, tipo, proceso_id, estado_validacion')
       .eq('id', params.id)
       .single()
 
     if (!actual) return NextResponse.json({ error: 'Artefacto no encontrado' }, { status: 404 })
 
-    // Validar transiciones de estado
+    // Validar transiciones de estado usando el fetch ya hecho (evita doble query — M4)
     if (estado_validacion) {
       const transicionesValidas: Record<string, EstadoValidacion[]> = {
         pendiente: ['validado'],
         validado: ['publicado', 'pendiente'],
         publicado: ['validado'],
       }
-      const { data: artefactoActual } = await admin
-        .from('artefacto')
-        .select('estado_validacion')
-        .eq('id', params.id)
-        .single()
-
-      const estadoActual = artefactoActual?.estado_validacion as EstadoValidacion
+      const estadoActual = actual.estado_validacion as EstadoValidacion
       if (!transicionesValidas[estadoActual]?.includes(estado_validacion)) {
         return NextResponse.json({
           error: `Transición inválida: ${estadoActual} → ${estado_validacion}`
@@ -98,8 +92,11 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const admin = createAdminClient()
-    const { data, error } = await admin
+    const supabase = createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+
+    const { data, error } = await supabase
       .from('artefacto')
       .select('*')
       .eq('id', params.id)

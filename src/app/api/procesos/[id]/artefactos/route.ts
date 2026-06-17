@@ -16,8 +16,11 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const admin = createAdminClient()
-    const { data, error } = await admin
+    const supabase = createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+
+    const { data, error } = await supabase
       .from('artefacto')
       .select('*')
       .eq('proceso_id', params.id)
@@ -47,16 +50,25 @@ export async function POST(
   const body = await req.json().catch(() => ({}))
   const tipoSolicitado: TipoArtefacto | undefined = body.tipo
 
+  // Cargar proyecto_id para el job
+  const { data: proceso } = await admin.from('proceso').select('proyecto_id').eq('id', params.id).single()
+
   // Crear job para tracking
   const { data: job } = await admin.from('jobs').insert({
-    tipo: 'clasificar_documento', // reusing job type for now
+    tipo: 'discovery_procesos',  // tipo más cercano disponible en el enum
     estado: 'procesando',
-    proyecto_id: null,
+    proyecto_id: proceso?.proyecto_id ?? null,
     payload: { proceso_id: params.id, tipo: tipoSolicitado ?? 'todos' },
   }).select().single()
 
-  // Responder inmediatamente y procesar en background
-  procesarArtefactosEnBackground(params.id, user.id, tipoSolicitado, job?.id)
+  // Usar waitUntil si está disponible (Edge runtime) para sobrevivir al fin de la respuesta
+  const bgPromise = procesarArtefactosEnBackground(params.id, user.id, tipoSolicitado, job?.id)
+  // waitUntil mantiene viva la función serverless hasta que el job termina
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  if (typeof (globalThis as any).waitUntil === 'function') {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ;(globalThis as any).waitUntil(bgPromise)
+  }
 
   return NextResponse.json({ ok: true, job_id: job?.id })
 }

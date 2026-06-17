@@ -8,6 +8,11 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
+  const { data: usuario } = await supabase.from('usuario').select('rol').eq('id', user.id).single()
+  if (!usuario || !['super_admin', 'director_proyecto', 'consultor'].includes(usuario.rol)) {
+    return NextResponse.json({ error: 'Sin permisos para editar reuniones' }, { status: 403 })
+  }
+
   const admin = createAdminClient()
   const body = await req.json()
   const { data, error } = await admin.from('reunion').update(body).eq('id', params.id).select().single()
@@ -20,6 +25,11 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+
+  const { data: usuario } = await supabase.from('usuario').select('rol').eq('id', user.id).single()
+  if (!usuario || !['super_admin', 'director_proyecto', 'consultor'].includes(usuario.rol)) {
+    return NextResponse.json({ error: 'Sin permisos para eliminar reuniones' }, { status: 403 })
+  }
 
   const admin = createAdminClient()
   const { error } = await admin.from('reunion').delete().eq('id', params.id)

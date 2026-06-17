@@ -9,15 +9,17 @@ export async function GET(
   _req: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const admin = createAdminClient()
-  const { data, error } = await admin
+  const supabase = createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+
+  const { data } = await supabase
     .from('workflow_estado')
     .select('*, responsable:responsable_id(nombre, email)')
     .eq('proceso_id', params.id)
     .single()
 
-  if (error) return NextResponse.json({ workflow: null })
-  return NextResponse.json({ workflow: data })
+  return NextResponse.json({ workflow: data ?? null })
 }
 
 // POST: crear workflow inicial para un proceso
