@@ -4,10 +4,10 @@ import path from 'path'
 export default defineConfig({
   test: {
     environment: 'node',
-    include: ['tests/unit/**/*.test.ts', 'tests/integration/**/*.test.ts'],
+    include: ['tests/unit/**/*.test.ts', 'tests/integration/**/*.test.ts', 'tests/e2e/**/*.test.ts'],
     exclude: ['tests/ai-fixtures/**'],
     setupFiles: ['./tests/setup.ts'],
-    testTimeout: 30000,
+    testTimeout: 60000,
   },
   resolve: {
     alias: {

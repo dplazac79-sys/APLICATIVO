@@ -53,6 +53,7 @@ export default async function DocumentosPage() {
     .from('documento')
     .select('*, proyecto(nombre)')
     .order('created_at', { ascending: false })
+    .limit(100)
 
   type DocConProyecto = Documento & { proyecto: { nombre: string } | null }
 
@@ -60,7 +61,7 @@ export default async function DocumentosPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-white">Centro Documental</h1>
-        <p className="text-slate-400 text-sm mt-1">M2 — Ingesta y análisis IA de documentos</p>
+        <p className="text-slate-400 text-sm mt-1">Ingesta, búsqueda y análisis IA de documentos</p>
       </div>
 
       <DocumentUploader proyectos={proyectos} />

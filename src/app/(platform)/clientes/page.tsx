@@ -19,13 +19,14 @@ export default async function ClientesPage() {
     .select('*, proyecto(id, nombre, estado_general)')
     .eq('activo', true)
     .order('razon_social')
+    .limit(100)
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-white">Clientes e Industrias</h1>
-          <p className="text-slate-400 text-sm mt-1">M1 — Vista 360° por cliente</p>
+          <p className="text-slate-400 text-sm mt-1">Vista 360° por cliente e industria</p>
         </div>
         <Link href="/clientes/nuevo">
           <Button className="bg-indigo-600 hover:bg-indigo-700 text-white gap-2">

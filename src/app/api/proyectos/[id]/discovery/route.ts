@@ -41,6 +41,8 @@ Objetivos estratégicos: ${cliente?.objetivos_estrategicos ?? 'N/A'}
       .eq('proyecto_id', proyecto_id)
       .in('origen', ['detectado', 'propuesta_ia'])
 
+    // Insertar macroprocesos uno a uno (necesitamos el id para los hijos),
+    // pero los procesos hijos de cada macro se insertan en bulk (1 query por macro)
     for (const macro of resultado.macroprocesos) {
       const docOrigen = documentos.find(d => d.nombre_archivo === macro.documento_referencia)
       const { data: macroRow } = await admin.from('proceso').insert({
@@ -58,12 +60,12 @@ Objetivos estratégicos: ${cliente?.objetivos_estrategicos ?? 'N/A'}
         },
       }).select().single()
 
-      if (!macroRow) continue
+      if (!macroRow || !macro.procesos.length) continue
 
-      for (let i = 0; i < macro.procesos.length; i++) {
-        const p = macro.procesos[i]
+      // Bulk insert: todos los hijos del macro en una sola query
+      const hijos = macro.procesos.map((p, i) => {
         const docP = documentos.find(d => d.nombre_archivo === p.documento_referencia)
-        await admin.from('proceso').insert({
+        return {
           proyecto_id,
           padre_id: macroRow.id,
           nombre: p.nombre,
@@ -85,8 +87,9 @@ Objetivos estratégicos: ${cliente?.objetivos_estrategicos ?? 'N/A'}
             benchmark_industria: p.benchmark_industria,
           },
           orden: i,
-        })
-      }
+        }
+      })
+      await admin.from('proceso').insert(hijos)
     }
 
     await admin.from('proyecto').update({
