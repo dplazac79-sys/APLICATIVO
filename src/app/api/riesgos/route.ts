@@ -2,22 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { registrarAudit } from '@/lib/audit'
-
-type Probabilidad = 'alta' | 'media' | 'baja'
-type Impacto = 'alto' | 'medio' | 'bajo'
-type NivelRiesgo = 'critico' | 'alto' | 'medio' | 'bajo'
-
-function calcularNivelRiesgo(probabilidad: Probabilidad, impacto: Impacto): NivelRiesgo {
-  if (probabilidad === 'alta' && impacto === 'alto') return 'critico'
-  if (probabilidad === 'alta' && impacto === 'medio') return 'alto'
-  if (probabilidad === 'alta' && impacto === 'bajo') return 'medio'
-  if (probabilidad === 'media' && impacto === 'alto') return 'alto'
-  if (probabilidad === 'media' && impacto === 'medio') return 'medio'
-  if (probabilidad === 'media' && impacto === 'bajo') return 'bajo'
-  if (probabilidad === 'baja' && impacto === 'alto') return 'medio'
-  if (probabilidad === 'baja' && impacto === 'medio') return 'bajo'
-  return 'bajo' // baja × bajo
-}
+import { calcularNivelRiesgo, type Probabilidad, type Impacto } from '@/lib/riesgos'
 
 export async function GET(req: NextRequest) {
   const supabase = createClient()

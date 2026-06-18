@@ -8,10 +8,12 @@ import {
 import Link from 'next/link'
 import type { Proceso, Riesgo, KPI, Reunion, WorkflowEstadoTipo } from '@/types/database'
 import WorkflowBoard from '@/components/pcc/WorkflowBoard'
-import GanttSimple from '@/components/pcc/GanttSimple'
+import GanttChart from '@/components/pcc/GanttChart'
 import ReunionForm from '@/components/pcc/ReunionForm'
 import RiesgoForm from '@/components/pcc/RiesgoForm'
 import KpiForm from '@/components/pcc/KpiForm'
+import ArbolProcesos from '@/components/procesos/ArbolProcesos'
+import type { NodoProceso } from '@/components/procesos/ArbolProcesos'
 
 export const dynamic = 'force-dynamic'
 
@@ -119,6 +121,21 @@ export default async function ProyectoDetallePage({ params }: Props) {
         {/* Columna izquierda: Workflow + Gantt */}
         <div className="col-span-2 space-y-6">
 
+          {/* Árbol de procesos (arquitectura 0-4) */}
+          <Card className="bg-slate-900 border-slate-800">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm text-slate-400 flex items-center gap-2">
+                <BarChart3 className="w-4 h-4" /> Arquitectura de procesos
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ArbolProcesos
+                procesos={procesos as NodoProceso[]}
+                titulo={undefined}
+              />
+            </CardContent>
+          </Card>
+
           {/* Workflow Board */}
           <Card className="bg-slate-900 border-slate-800">
             <CardHeader className="pb-3">
@@ -147,14 +164,16 @@ export default async function ProyectoDetallePage({ params }: Props) {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <GanttSimple
+              <GanttChart
                 procesos={procesos.map(p => ({
                   id: p.id,
                   nombre: p.nombre,
                   estado: wfPorProceso[p.id]?.estado ?? null,
                   fecha_cambio: wfPorProceso[p.id]?.fecha_cambio ?? null,
+                  padre_id: p.padre_id,
                 }))}
                 proyectoCreado={proyecto.created_at}
+                showDependencies
               />
             </CardContent>
           </Card>

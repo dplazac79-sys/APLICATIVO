@@ -15,6 +15,7 @@ import {
   BrainCircuit,
   Zap,
   LayoutDashboard,
+  UserCircle,
 } from 'lucide-react'
 
 interface NavItem {
@@ -23,9 +24,16 @@ interface NavItem {
   icon: React.ElementType
   roles: RolTipo[]
   badge?: string
+  disabled?: boolean
 }
 
 const navItems: NavItem[] = [
+  {
+    label: 'Mi Portal',
+    href: '/portal',
+    icon: UserCircle,
+    roles: ['sponsor_cliente', 'usuario_cliente'],
+  },
   {
     label: 'Dashboard',
     href: '/dashboard',
@@ -52,10 +60,9 @@ const navItems: NavItem[] = [
   },
   {
     label: 'Process Architect',
-    href: '/arquitectura',
+    href: '/artefactos',
     icon: Network,
     roles: ['super_admin', 'director_proyecto', 'consultor'],
-    badge: 'Fase 3',
   },
   {
     label: 'Artefactos',
@@ -65,28 +72,34 @@ const navItems: NavItem[] = [
     badge: 'Fase 3',
   },
   {
-    label: 'Horizonte de Impacto',
-    href: '/impacto',
-    icon: BarChart3,
-    roles: ['super_admin', 'director_proyecto', 'sponsor_cliente'],
-    badge: 'Fase 5',
-  },
-  {
     label: 'Project Control Center',
     href: '/proyectos',
     icon: Briefcase,
     roles: ['super_admin', 'director_proyecto', 'consultor', 'sponsor_cliente', 'usuario_cliente'],
   },
   {
+    label: 'Horizonte de Impacto',
+    href: '/impacto',
+    icon: BarChart3,
+    roles: ['super_admin', 'director_proyecto', 'consultor', 'sponsor_cliente'],
+    badge: 'Fase 5',
+  },
+  {
     label: 'Automation Studio',
     href: '/automation',
     icon: Zap,
-    roles: ['super_admin', 'director_proyecto'],
+    roles: ['super_admin', 'director_proyecto', 'consultor'],
     badge: 'Fase 6',
   },
 ]
 
 const adminItems: NavItem[] = [
+  {
+    label: 'Analytics Ejecutivo',
+    href: '/analytics',
+    icon: BarChart3,
+    roles: ['super_admin'],
+  },
   {
     label: 'Administración',
     href: '/admin',
@@ -124,10 +137,26 @@ export default function AppSidebar({ rol }: Props) {
       <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
         {visibleItems.map(item => {
           const Icon = item.icon
-          const active = pathname.startsWith(item.href)
+          const active = !item.disabled && pathname.startsWith(item.href) && item.href !== '#'
+          if (item.disabled) {
+            return (
+              <div
+                key={item.label}
+                className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm opacity-40 cursor-not-allowed"
+              >
+                <Icon className="w-4 h-4 shrink-0 text-slate-600" />
+                <span className="flex-1 text-slate-600">{item.label}</span>
+                {item.badge && (
+                  <span className="text-xs text-slate-700 bg-slate-800/50 px-1.5 py-0.5 rounded">
+                    {item.badge}
+                  </span>
+                )}
+              </div>
+            )
+          }
           return (
             <Link
-              key={item.href}
+              key={item.label}
               href={item.href}
               className={cn(
                 'flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors',
@@ -177,12 +206,9 @@ export default function AppSidebar({ rol }: Props) {
         )}
       </nav>
 
-      {/* Fase actual */}
+      {/* Brand footer */}
       <div className="px-4 py-3 border-t border-slate-800">
-        <div className="bg-indigo-950/50 rounded-lg px-3 py-2">
-          <p className="text-xs text-indigo-400 font-medium">Fase activa</p>
-          <p className="text-sm text-white font-semibold">Fase 3 — Artefactos</p>
-        </div>
+        <p className="text-xs text-slate-600 text-center">AICOUNTS Consultores © 2026</p>
       </div>
     </aside>
   )

@@ -2,21 +2,20 @@ import fs from 'fs'
 import path from 'path'
 import Anthropic from '@anthropic-ai/sdk'
 import type { TipoArtefacto } from '@/types/database'
+import { extractJson } from '@/lib/ai/claude'
 // Re-exportar desde fuente única para evitar duplicación (M2)
 export { ORDEN_GENERACION, LABEL_ARTEFACTO } from '@/lib/artefactos-meta'
 
 const client = new Anthropic()
 
-function leerPrompt(tipo: TipoArtefacto): string {
-  const archivo = path.join(process.cwd(), 'src/lib/prompts/artefactos', `${tipo}.md`)
-  return fs.readFileSync(archivo, 'utf-8')
-}
+const promptCache = new Map<string, string>()
 
-// Fuente única de extractJson — evita duplicación con claude.ts (M3)
-function extractJson(text: string): Record<string, unknown> {
-  const match = text.match(/```json\s*([\s\S]*?)```/) ?? text.match(/(\{[\s\S]*\})/)
-  const raw = match ? match[1] ?? match[0] : text
-  return JSON.parse(raw.trim())
+function leerPrompt(tipo: TipoArtefacto): string {
+  if (promptCache.has(tipo)) return promptCache.get(tipo)!
+  const archivo = path.join(process.cwd(), 'src/lib/prompts/artefactos', `${tipo}.md`)
+  const content = fs.readFileSync(archivo, 'utf-8')
+  promptCache.set(tipo, content)
+  return content
 }
 
 export interface ContextoProceso {
@@ -72,7 +71,7 @@ async function llamarClaude(promptFinal: string): Promise<Record<string, unknown
     messages: [{ role: 'user', content: promptFinal }],
   })
   const texto = msg.content[0].type === 'text' ? msg.content[0].text : ''
-  return extractJson(texto)
+  return extractJson(texto) as Record<string, unknown>
 }
 
 export async function generarArtefacto(

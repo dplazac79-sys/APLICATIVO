@@ -1,10 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { clasificarDocumento, resumirDocumento } from '@/lib/ai/claude'
 import { generarEmbedding } from '@/lib/ai/embeddings'
 import { registrarAudit } from '@/lib/audit'
 
 export async function POST(req: NextRequest) {
+  // Auth check — ruta interna pero debe estar autenticada
+  const supabase = createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+
   let documento_id: string | undefined
   const admin = createAdminClient()
 
@@ -44,12 +50,11 @@ export async function POST(req: NextRequest) {
       const result = await mammoth.extractRawText({ buffer })
       texto = result.value
     } else if (nombre.endsWith('.pdf')) {
-      const { PDFParse } = await import('pdf-parse')
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const pdfParse = ((await import('pdf-parse')) as any).default ?? (await import('pdf-parse'))
       const buffer = Buffer.from(await fileData.arrayBuffer())
-      const parser = new PDFParse({ data: buffer })
-      const result = await parser.getText()
+      const result = await pdfParse(buffer)
       texto = result.text
-      await parser.destroy()
     } else {
       texto = await fileData.text()
     }

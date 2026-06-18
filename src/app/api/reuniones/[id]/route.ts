@@ -15,7 +15,12 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
   const admin = createAdminClient()
   const body = await req.json()
-  const { data, error } = await admin.from('reunion').update(body).eq('id', params.id).select().single()
+  const payload: Record<string, unknown> = {}
+  if (body.titulo !== undefined) payload.titulo = body.titulo
+  if (body.fecha !== undefined) payload.fecha = body.fecha
+  if (body.participantes !== undefined) payload.participantes = body.participantes
+  if (body.acuerdos !== undefined) payload.acuerdos = body.acuerdos
+  const { data, error } = await admin.from('reunion').update(payload).eq('id', params.id).select().single()
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   await registrarAudit({ accion: 'UPDATE', entidad: 'reunion', entidad_id: params.id, detalle: body })
   return NextResponse.json({ ok: true, reunion: data })

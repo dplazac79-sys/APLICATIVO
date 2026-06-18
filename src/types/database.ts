@@ -244,7 +244,49 @@ export const TRANSICIONES_VALIDAS: Record<WorkflowEstadoTipo, WorkflowEstadoTipo
   'Closed':          ['Scheduled'],
 }
 
-// Tipos extendidos con joins frecuentes
+// ── Fase 5: Simulación de Impacto ────────────────────────────────────────
+
+export type TipoSimulacion = 'operacional' | 'financiera' | 'organizacional'
+export type EscenarioSimulacion = 'conservador' | 'base' | 'optimista' | 'custom'
+export type TipoEntregable = 'artefacto' | 'simulacion' | 'reporte'
+export type EstadoEntregable = 'borrador' | 'aprobado' | 'exportado'
+
+export interface Simulacion {
+  id: string
+  proyecto_id: string
+  nombre: string
+  tipo: TipoSimulacion
+  escenario: EscenarioSimulacion
+  proceso_id: string | null
+  artefacto_asis_id: string | null
+  artefacto_tobe_id: string | null
+  parametros: Record<string, unknown>
+  resultados: Record<string, unknown> | null
+  resultados_todos: Record<EscenarioSimulacion, Record<string, unknown>> | null
+  entregable_id: string | null
+  creado_por: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface Entregable {
+  id: string
+  proyecto_id: string
+  artefacto_id: string | null
+  simulacion_id: string | null
+  tipo: TipoEntregable
+  nombre: string
+  version: number
+  estado: EstadoEntregable
+  url_export: string | null
+  contenido: Record<string, unknown> | null
+  creado_por: string | null
+  created_at: string
+  updated_at: string
+}
+
+// ── Tipos extendidos con joins frecuentes ────────────────────────────────
+
 export interface ClienteConProyectos extends Cliente {
   proyectos: Proyecto[]
 }

@@ -54,7 +54,7 @@ export default async function ProyectosPage() {
           <Briefcase className="w-6 h-6 text-indigo-400" />
           Project Control Center
         </h1>
-        <p className="text-slate-400 text-sm mt-1">M8 — Vista ejecutiva de todos los proyectos</p>
+        <p className="text-slate-400 text-sm mt-1">Gestión de portafolio y control de proyectos</p>
       </div>
 
       <div className="space-y-3">

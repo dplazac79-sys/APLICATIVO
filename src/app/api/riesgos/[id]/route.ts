@@ -2,22 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { registrarAudit } from '@/lib/audit'
-
-type Probabilidad = 'alta' | 'media' | 'baja'
-type Impacto = 'alto' | 'medio' | 'bajo'
-type NivelRiesgo = 'critico' | 'alto' | 'medio' | 'bajo'
-
-function calcularNivelRiesgo(probabilidad: Probabilidad, impacto: Impacto): NivelRiesgo {
-  if (probabilidad === 'alta' && impacto === 'alto') return 'critico'
-  if (probabilidad === 'alta' && impacto === 'medio') return 'alto'
-  if (probabilidad === 'alta' && impacto === 'bajo') return 'medio'
-  if (probabilidad === 'media' && impacto === 'alto') return 'alto'
-  if (probabilidad === 'media' && impacto === 'medio') return 'medio'
-  if (probabilidad === 'media' && impacto === 'bajo') return 'bajo'
-  if (probabilidad === 'baja' && impacto === 'alto') return 'medio'
-  if (probabilidad === 'baja' && impacto === 'medio') return 'bajo'
-  return 'bajo'
-}
+import { calcularNivelRiesgo } from '@/lib/riesgos'
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   const supabase = createClient()
@@ -32,12 +17,18 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   const admin = createAdminClient()
   const body = await req.json()
 
+  // Whitelist de campos editables
+  const updates: Record<string, unknown> = {}
+  if (body.descripcion !== undefined) updates.descripcion = body.descripcion
+  if (body.control !== undefined) updates.control = body.control
+  if (body.probabilidad !== undefined) updates.probabilidad = body.probabilidad
+  if (body.impacto !== undefined) updates.impacto = body.impacto
+
   // Recalcular nivel_riesgo si cambian probabilidad o impacto
-  const updates = { ...body }
   if (body.probabilidad || body.impacto) {
     const { data: actual } = await admin.from('riesgo').select('probabilidad, impacto').eq('id', params.id).single()
-    const prob = (body.probabilidad ?? actual?.probabilidad ?? 'media') as Probabilidad
-    const imp = (body.impacto ?? actual?.impacto ?? 'medio') as Impacto
+    const prob = (body.probabilidad ?? actual?.probabilidad ?? 'media') as import('@/lib/riesgos').Probabilidad
+    const imp = (body.impacto ?? actual?.impacto ?? 'medio') as import('@/lib/riesgos').Impacto
     updates.nivel_riesgo = calcularNivelRiesgo(prob, imp)
   }
 

@@ -18,7 +18,6 @@ export default async function PlatformLayout({
 
   const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel()
   if (aal?.nextLevel === 'aal2' && aal.currentLevel !== aal.nextLevel) redirect('/mfa/challenge')
-  if (aal?.nextLevel === 'aal1') redirect('/mfa/enroll')
 
   const admin = createAdminClient()
   let { data: usuario } = await admin
@@ -34,7 +33,7 @@ export default async function PlatformLayout({
         id: user.id,
         email: user.email ?? '',
         nombre: user.user_metadata?.full_name ?? user.email?.split('@')[0] ?? 'Usuario',
-        rol: 'super_admin',
+        rol: 'usuario_cliente',
       })
       .select()
       .single()

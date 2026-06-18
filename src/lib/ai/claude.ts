@@ -4,19 +4,22 @@ import path from 'path'
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
+const promptCache = new Map<string, string>()
+
 function loadPrompt(name: string): string {
+  if (promptCache.has(name)) return promptCache.get(name)!
   const filePath = path.join(process.cwd(), 'src/lib/prompts', `${name}.md`)
-  return fs.readFileSync(filePath, 'utf-8')
+  const content = fs.readFileSync(filePath, 'utf-8')
+  promptCache.set(name, content)
+  return content
 }
 
 export function extractJson(text: string): unknown {
-  // Remover bloques markdown ```json ... ``` o ``` ... ```
   let raw = text.trim()
   const mdMatch = raw.match(/```(?:json)?\s*([\s\S]*?)```/)
   if (mdMatch) {
     raw = mdMatch[1].trim()
   } else {
-    // Extraer el primer objeto JSON válido
     const jsonMatch = raw.match(/\{[\s\S]*\}/)
     if (jsonMatch) raw = jsonMatch[0]
   }

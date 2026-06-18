@@ -26,8 +26,20 @@ Define entre 4 y 8 indicadores. Incluye tanto KPIs de resultado (lagging) como d
       "dueno": "<rol responsable del KPI>",
       "fuente_dato": "<sistema o proceso que genera el dato>"
     }
-  ]
+  ],
+  "financiero": {
+    "costo_hora_fte_clp": 0,
+    "costo_mensual_proceso_clp": 0,
+    "inversion_estimada_clp": 0
+  }
 }
 ```
+
+Sobre el objeto `financiero` (úsalo para alimentar el motor de ROI/payback):
+- `costo_hora_fte_clp`: costo por hora de un FTE involucrado en el proceso. **Estimado del consultor** a partir de los roles y remuneraciones descritos en los documentos. Si no hay información suficiente, usa la mejor estimación de mercado para el rol predominante.
+- `costo_mensual_proceso_clp`: costo operacional mensual total del proceso (FTEs + sistemas). **Estimado del consultor** según el volumen y dotación descrita en los documentos.
+- `inversion_estimada_clp`: inversión estimada para implementar el TO-BE / automatización. **Estimado del consultor** basado en el alcance de las mejoras propuestas.
+
+Todos los valores deben ir en pesos chilenos (CLP) como números enteros sin separadores de miles. Si careces de antecedentes para estimar alguno, devuelve ese campo en `0` (el sistema lo tratará como "sin dato" y pedirá el valor real al usuario).
 
 Responde ÚNICAMENTE con el JSON, sin texto adicional.

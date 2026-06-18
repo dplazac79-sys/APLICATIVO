@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { registrarAudit } from '@/lib/audit'
+import { enviarEmail, templateCambioEstado } from '@/lib/email'
 import { TRANSICIONES_VALIDAS, type WorkflowEstadoTipo } from '@/types/database'
 
 // GET: obtener workflow del proceso
@@ -98,16 +99,39 @@ export async function PATCH(
     detalle: { estado_anterior: estadoActual, estado_nuevo: nuevo_estado, proceso_id: params.id },
   })
 
-  // Notificar al responsable si hay Pending Approval
-  if (nuevo_estado === 'Pending Approval' && actual.responsable_id) {
+  // Notificar al responsable (in-app + email)
+  if (actual.responsable_id) {
+    const esPendingApproval = nuevo_estado === 'Pending Approval'
     await admin.from('notificacion').insert({
       usuario_id: actual.responsable_id,
       proyecto_id: actual.proyecto_id,
       proceso_id: params.id,
-      tipo: 'aprobacion',
-      titulo: 'Proceso pendiente de aprobación',
-      cuerpo: `El proceso requiere tu aprobación. Cambio realizado por ${usuario.nombre ?? 'un consultor'}.`,
+      tipo: esPendingApproval ? 'aprobacion' : 'cambio_estado',
+      titulo: esPendingApproval
+        ? 'Proceso pendiente de aprobación'
+        : `Proceso pasó a "${nuevo_estado}"`,
+      cuerpo: `Cambio: ${estadoActual} → ${nuevo_estado}. Realizado por ${usuario.nombre ?? 'un consultor'}.`,
     })
+
+    const { data: responsable } = await admin
+      .from('usuario').select('email').eq('id', actual.responsable_id).single()
+
+    if (responsable?.email) {
+      // Obtener nombre del proyecto para el email
+      const { data: proyecto } = await admin
+        .from('proyecto').select('nombre').eq('id', actual.proyecto_id).single()
+
+      void enviarEmail({
+        to: responsable.email,
+        subject: `[APIP] ${esPendingApproval ? 'Aprobación requerida' : 'Cambio de estado'} — ${proyecto?.nombre ?? 'Proyecto'}`,
+        html: templateCambioEstado({
+          proyecto: proyecto?.nombre ?? 'Proyecto',
+          estado_anterior: estadoActual,
+          estado_nuevo: nuevo_estado,
+          usuario: usuario.nombre ?? 'un consultor',
+        }),
+      })
+    }
   }
 
   return NextResponse.json({ ok: true, workflow: data })

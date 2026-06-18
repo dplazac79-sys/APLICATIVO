@@ -117,7 +117,7 @@ export default async function ArtefactosPage() {
           <Layers className="w-6 h-6 text-purple-400" />
           Process Architect
         </h1>
-        <p className="text-slate-400 text-sm mt-1">M4-M5 — Arquitectura de procesos y artefactos metodológicos</p>
+        <p className="text-slate-400 text-sm mt-1">Arquitectura de procesos y artefactos metodológicos generados por IA</p>
       </div>
 
       {/* Stats */}

@@ -82,18 +82,18 @@ export default async function DashboardPage() {
         <CardHeader>
           <CardTitle className="text-white flex items-center gap-2">
             <Activity className="w-5 h-5 text-indigo-400" />
-            Estado de construcción — Roadmap APIP
+            Roadmap de implementación ProcessOS
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
             {[
-              { fase: 1, nombre: 'Fundación', estado: 'en_curso', modulos: 'M1, M2, RBAC, M8 shell' },
-              { fase: 2, nombre: 'IA de Descubrimiento', estado: 'pendiente', modulos: 'M2 completo, M3' },
-              { fase: 3, nombre: 'Artefactos Inteligentes', estado: 'pendiente', modulos: 'M4, M5' },
-              { fase: 4, nombre: 'Gestión de Proyecto', estado: 'pendiente', modulos: 'M7, M8' },
-              { fase: 5, nombre: 'Simulación de Impacto', estado: 'pendiente', modulos: 'M6' },
-              { fase: 6, nombre: 'Automation Studio', estado: 'pendiente', modulos: 'M9, M10, Analytics' },
+              { fase: 1, nombre: 'Fundación & Clientes', estado: 'completado', modulos: 'Clientes, RBAC, MFA, Auditoría' },
+              { fase: 2, nombre: 'IA de Descubrimiento', estado: 'completado', modulos: 'Centro Documental, RAG, Process Discovery AI' },
+              { fase: 3, nombre: 'Artefactos Inteligentes', estado: 'completado', modulos: 'Process Architect, 12 Artefactos IA' },
+              { fase: 4, nombre: 'Gestión de Proyecto', estado: 'completado', modulos: 'PCC, Workflow, KPIs, Riesgos, Reuniones' },
+              { fase: 5, nombre: 'Simulación de Impacto', estado: 'completado', modulos: 'Horizonte de Impacto, Simulaciones, Export PDF' },
+              { fase: 6, nombre: 'Automation Studio', estado: 'completado', modulos: 'Recomendaciones IA, Roadmap, Knowledge Graph' },
             ].map(f => (
               <div key={f.fase} className="flex items-center gap-4">
                 <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
@@ -107,16 +107,21 @@ export default async function DashboardPage() {
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
-                    <span className={`text-sm font-medium ${f.estado === 'en_curso' ? 'text-white' : 'text-slate-400'}`}>
+                    <span className={`text-sm font-medium ${f.estado !== 'pendiente' ? 'text-white' : 'text-slate-500'}`}>
                       Fase {f.fase} — {f.nombre}
                     </span>
+                    {f.estado === 'completado' && (
+                      <span className="text-xs bg-emerald-600/20 text-emerald-400 px-2 py-0.5 rounded-full">
+                        Completado
+                      </span>
+                    )}
                     {f.estado === 'en_curso' && (
                       <span className="text-xs bg-indigo-600/20 text-indigo-400 px-2 py-0.5 rounded-full">
                         En curso
                       </span>
                     )}
                   </div>
-                  <p className="text-xs text-slate-600">{f.modulos}</p>
+                  <p className={`text-xs ${f.estado !== 'pendiente' ? 'text-slate-400' : 'text-slate-600'}`}>{f.modulos}</p>
                 </div>
               </div>
             ))}

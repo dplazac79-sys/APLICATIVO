@@ -1,13 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { registrarAudit } from '@/lib/audit'
+import { enviarEmail, templateEscalacion } from '@/lib/email'
 import type { NivelEscalacion } from '@/types/database'
+import { timingSafeEqual } from 'crypto'
 
 // POST: evaluar y ejecutar escalaciones pendientes
 // Llamado por GitHub Actions cron cada hora. Protegido con secret.
 export async function POST(req: NextRequest) {
-  const secret = req.headers.get('x-escalacion-secret')
-  if (secret !== process.env.ESCALACION_SECRET) {
+  const secret = req.headers.get('x-escalacion-secret') ?? ''
+  const expected = process.env.ESCALACION_SECRET ?? ''
+  const secretsMatch = secret.length === expected.length &&
+    timingSafeEqual(Buffer.from(secret), Buffer.from(expected))
+  if (!secretsMatch) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   }
 
@@ -45,16 +50,31 @@ export async function POST(req: NextRequest) {
     const proceso = wf.proceso as Record<string, unknown>
     const proyecto = wf.proyecto as Record<string, unknown>
 
-    // Notificar al responsable
+    // Notificar al responsable (in-app + email)
     if (wf.responsable_id) {
+      const descripcion = `El proceso lleva ${Math.round(horasEnEstado)}h en estado "${wf.estado}" sin avanzar. Proyecto: ${String(proyecto?.nombre ?? '')}`
       await admin.from('notificacion').insert({
         usuario_id: wf.responsable_id,
         proyecto_id: wf.proyecto_id,
         proceso_id: wf.proceso_id,
         tipo: 'escalacion',
         titulo: `Escalación ${nuevoNivel} — ${String(proceso?.nombre ?? 'Proceso')}`,
-        cuerpo: `El proceso lleva ${Math.round(horasEnEstado)}h en estado "${wf.estado}" sin avanzar. Proyecto: ${String(proyecto?.nombre ?? '')}`,
+        cuerpo: descripcion,
       })
+      // Email al responsable
+      const { data: responsable } = await admin
+        .from('usuario').select('email').eq('id', wf.responsable_id).single()
+      if (responsable?.email != null) {
+        void enviarEmail({
+          to: responsable.email as string,
+          subject: `[APIP] Escalación ${nuevoNivel} — ${String(proyecto?.nombre ?? 'Proyecto')}`,
+          html: templateEscalacion({
+            proyecto: String(proyecto?.nombre ?? 'Proyecto'),
+            nivel: String(nuevoNivel),
+            descripcion,
+          }),
+        })
+      }
     }
 
     await registrarAudit({

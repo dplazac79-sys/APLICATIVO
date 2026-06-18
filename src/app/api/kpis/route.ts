@@ -32,7 +32,14 @@ export async function POST(req: NextRequest) {
   }
 
   const admin = createAdminClient()
-  const { data, error } = await admin.from('kpi').insert(body).select().single()
+  const payload = {
+    proyecto_id: body.proyecto_id,
+    nombre: body.nombre,
+    frecuencia: body.frecuencia ?? 'mensual',
+    linea_base: body.linea_base ?? null,
+    meta: body.meta ?? null,
+  }
+  const { data, error } = await admin.from('kpi').insert(payload).select().single()
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   await registrarAudit({ accion: 'CREATE', entidad: 'kpi', entidad_id: data.id, detalle: { nombre: body.nombre } })
   return NextResponse.json({ ok: true, kpi: data })

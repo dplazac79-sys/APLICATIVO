@@ -61,7 +61,7 @@ export default async function DiscoveryPage() {
             <Brain className="w-6 h-6 text-purple-400" />
             Process Discovery AI
           </h1>
-          <p className="text-slate-400 text-sm mt-1">M3 — Inventario de procesos generado por IA</p>
+          <p className="text-slate-400 text-sm mt-1">Inventario inteligente de procesos generado por IA</p>
         </div>
         <DiscoveryAcciones proyectos={proyectosNorm} />
       </div>
