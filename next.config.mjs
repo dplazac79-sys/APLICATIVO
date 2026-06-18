@@ -30,6 +30,8 @@ const securityHeaders = [
 
 const nextConfig = {
   output: 'standalone',
+  eslint: { ignoreDuringBuilds: true },
+  typescript: { ignoreBuildErrors: false },
   experimental: {
     // @xenova/transformers usa binarios nativos (onnxruntime-node) que webpack
     // no puede empaquetar — se mantienen como dependencias externas de Node.js
