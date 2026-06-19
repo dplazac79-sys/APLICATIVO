@@ -489,10 +489,12 @@ export default function LoginPage() {
       {/* ── Main ── */}
       <main className="login-main" style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: isMobile ? 'stretch' : 'center', justifyContent: isMobile ? 'flex-start' : 'center', padding: isMobile ? '0' : '40px 32px', position: 'relative', zIndex: 10, gap: isMobile ? 0 : 48 }}>
 
-        {/* Diagrama de flujo animado — centrado arriba del contenido */}
-        <div className="login-flow" style={{ animation: 'textIn 0.8s ease both', animationDelay: '0.1s' }}>
-          <FlowDiagram />
-        </div>
+        {/* Diagrama de flujo animado — solo desktop */}
+        {!isMobile && (
+          <div className="login-flow" style={{ animation: 'textIn 0.8s ease both', animationDelay: '0.1s' }}>
+            <FlowDiagram />
+          </div>
+        )}
 
         {/* Contenido principal — dos columnas en desktop, una en móvil */}
         <div className="login-grid" style={{ width: '100%', maxWidth: 1300, alignItems: 'center' }}>
