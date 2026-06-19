@@ -6,8 +6,9 @@ import {
   Upload, FileText, Loader2, CheckCircle2, XCircle,
   ChevronRight, ChevronLeft, AlertTriangle, TrendingUp,
   Users, Monitor, BarChart3, Edit3, Shield, Zap, ArrowRight,
-  Clock, Star
+  Clock, Star, Sparkles, Rocket
 } from 'lucide-react'
+import Link from 'next/link'
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 interface ProcesoResumen {
@@ -196,6 +197,7 @@ function JourneyProceso({ procesoId, onCerrar }: { procesoId: string; onCerrar: 
   const [paso, setPaso] = useState<JourneyStep>('vista')
   const [editado, setEditado] = useState<ProcesoCompleto['contenido_editado']>({})
   const [guardando, setGuardando] = useState(false)
+  const [reAnalizando, setReAnalizando] = useState(false)
   const [aprobando, setAprobando] = useState(false)
   const [comentario, setComentario] = useState('')
 
@@ -227,6 +229,29 @@ function JourneyProceso({ procesoId, onCerrar }: { procesoId: string; onCerrar: 
       setGuardando(false)
     }
   }, [procesoId, editado])
+
+  const reAnalizar = useCallback(async () => {
+    if (!proceso) return
+    const desc = editado.descripcion ?? proceso.descripcion
+    const sin = editado.sin_proceso_riesgos ?? proceso.sin_proceso_riesgos
+    const con = editado.con_proceso_beneficios ?? proceso.con_proceso_beneficios
+    setReAnalizando(true)
+    try {
+      const res = await fetch(`/api/portal/proceso/${procesoId}/reanalizar`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ descripcion: desc, sin_proceso_riesgos: sin, con_proceso_beneficios: con }),
+      })
+      const d = await res.json()
+      if (!res.ok) throw new Error(d.error)
+      setProceso(prev => prev ? { ...prev, valor_negocio: d.valor_negocio, kpis: d.kpis, riesgos: d.riesgos } : prev)
+      toast.success('IA re-analizó el proceso con tus cambios')
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Error al re-analizar')
+    } finally {
+      setReAnalizando(false)
+    }
+  }, [procesoId, proceso, editado])
 
   const aprobar = useCallback(async (accion: 'aprobar' | 'rechazar') => {
     setAprobando(true)
@@ -430,6 +455,19 @@ function JourneyProceso({ procesoId, onCerrar }: { procesoId: string; onCerrar: 
                 />
               </div>
 
+              <div className="bg-slate-900 border border-purple-900/40 rounded-xl p-4">
+                <p className="text-sm text-purple-300 mb-3 flex items-center gap-2">
+                  <Sparkles className="w-4 h-4" /> Cuando termines de editar, la IA puede re-analizar el proceso con tus cambios y actualizar los KPIs y riesgos.
+                </p>
+                <button
+                  onClick={reAnalizar}
+                  disabled={reAnalizando}
+                  className="flex items-center gap-2 bg-purple-700 hover:bg-purple-600 disabled:opacity-50 text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition-colors"
+                >
+                  {reAnalizando ? <><Loader2 className="w-4 h-4 animate-spin" /> Re-analizando...</> : <><Sparkles className="w-4 h-4" /> Re-analizar con IA</>}
+                </button>
+              </div>
+
               <div className="flex gap-3">
                 <button
                   onClick={guardarEdicion}
@@ -522,25 +560,66 @@ function JourneyProceso({ procesoId, onCerrar }: { procesoId: string; onCerrar: 
           {paso === 'aprobacion' && (
             <div className="space-y-6">
               {proceso.estado_aprobacion === 'aprobado' ? (
-                <div className="bg-emerald-950/30 border border-emerald-800 rounded-xl p-6 text-center">
-                  <CheckCircle2 className="w-12 h-12 text-emerald-400 mx-auto mb-3" />
-                  <h2 className="text-xl font-bold text-emerald-300">Proceso aprobado</h2>
-                  {proceso.aprobado_at && (
-                    <p className="text-slate-400 text-sm mt-2">Aprobado el {fecha(proceso.aprobado_at)}</p>
-                  )}
-                  {proceso.comentario_aprobacion && (
-                    <p className="text-slate-300 text-sm mt-3 bg-slate-900 rounded-lg p-3">{proceso.comentario_aprobacion}</p>
-                  )}
-                  <p className="text-slate-400 text-sm mt-4">El equipo de consultoría fue notificado y continuará con la siguiente etapa.</p>
+                <div className="space-y-5">
+                  {/* Confirmación */}
+                  <div className="bg-emerald-950/30 border border-emerald-800 rounded-xl p-6 text-center">
+                    <CheckCircle2 className="w-12 h-12 text-emerald-400 mx-auto mb-3" />
+                    <h2 className="text-xl font-bold text-emerald-300">¡Proceso aprobado!</h2>
+                    {proceso.aprobado_at && (
+                      <p className="text-slate-400 text-sm mt-2">Aprobado el {fecha(proceso.aprobado_at)}</p>
+                    )}
+                    {proceso.comentario_aprobacion && (
+                      <p className="text-slate-300 text-sm mt-3 bg-slate-900 rounded-lg p-3">{proceso.comentario_aprobacion}</p>
+                    )}
+                    <p className="text-slate-400 text-sm mt-3">El equipo de consultoría fue notificado y continuará con la siguiente etapa.</p>
+                  </div>
+
+                  {/* Paso 7: ¿Qué sigue? */}
+                  <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
+                    <h3 className="font-semibold text-slate-200 mb-4 flex items-center gap-2">
+                      <Rocket className="w-5 h-5 text-indigo-400" /> ¿Qué hacemos ahora?
+                    </h3>
+                    <div className="grid sm:grid-cols-2 gap-3">
+                      <button
+                        onClick={onCerrar}
+                        className="flex flex-col items-start gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-4 rounded-xl transition-colors text-left"
+                      >
+                        <Upload className="w-5 h-5" />
+                        <div>
+                          <p className="font-semibold text-sm">Cargar siguiente proceso</p>
+                          <p className="text-xs text-indigo-200 mt-0.5">
+                            {proceso.numero_en_macroproceso != null && proceso.total_en_macroproceso != null
+                              ? `Proceso ${proceso.numero_en_macroproceso} de ${proceso.total_en_macroproceso} completado`
+                              : 'Continúa con el siguiente documento'}
+                          </p>
+                        </div>
+                      </button>
+                      <Link
+                        href="/implementacion"
+                        className="flex flex-col items-start gap-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 px-5 py-4 rounded-xl transition-colors"
+                      >
+                        <Rocket className="w-5 h-5 text-emerald-400" />
+                        <div>
+                          <p className="font-semibold text-sm">Ver zona de implementación</p>
+                          <p className="text-xs text-slate-400 mt-0.5">Asigna sistemas (ERP, CRM, RPA) a tus procesos aprobados</p>
+                        </div>
+                      </Link>
+                    </div>
+                  </div>
                 </div>
               ) : proceso.estado_aprobacion === 'rechazado' ? (
-                <div className="bg-red-950/20 border border-red-800 rounded-xl p-6 text-center">
-                  <XCircle className="w-12 h-12 text-red-400 mx-auto mb-3" />
-                  <h2 className="text-xl font-bold text-red-300">Observaciones enviadas</h2>
-                  {proceso.comentario_aprobacion && (
-                    <p className="text-slate-300 text-sm mt-3 bg-slate-900 rounded-lg p-3">{proceso.comentario_aprobacion}</p>
-                  )}
-                  <p className="text-slate-400 text-sm mt-4">El equipo revisará sus observaciones y volverá con una versión actualizada.</p>
+                <div className="space-y-5">
+                  <div className="bg-red-950/20 border border-red-800 rounded-xl p-6 text-center">
+                    <XCircle className="w-12 h-12 text-red-400 mx-auto mb-3" />
+                    <h2 className="text-xl font-bold text-red-300">Observaciones enviadas</h2>
+                    {proceso.comentario_aprobacion && (
+                      <p className="text-slate-300 text-sm mt-3 bg-slate-900 rounded-lg p-3">{proceso.comentario_aprobacion}</p>
+                    )}
+                    <p className="text-slate-400 text-sm mt-4">El equipo revisará sus observaciones y volverá con una versión actualizada.</p>
+                  </div>
+                  <button onClick={onCerrar} className="w-full flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 text-slate-300 px-6 py-3 rounded-xl font-medium border border-slate-700 transition-colors">
+                    <ChevronLeft className="w-4 h-4" /> Volver al portal
+                  </button>
                 </div>
               ) : (
                 <>

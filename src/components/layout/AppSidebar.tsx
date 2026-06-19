@@ -31,6 +31,7 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { label: 'Mi Portal', href: '/portal', icon: UserCircle, roles: ['sponsor_cliente', 'usuario_cliente'] },
+  { label: 'Zona de Implementación', href: '/implementacion', icon: Zap, roles: ['sponsor_cliente', 'usuario_cliente'] },
   { label: 'Bienvenida', href: '/bienvenida', icon: Sparkles, roles: ['super_admin', 'director_proyecto', 'consultor', 'sponsor_cliente', 'usuario_cliente'] },
   { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, roles: ['super_admin', 'director_proyecto', 'consultor', 'sponsor_cliente', 'usuario_cliente'] },
   { label: 'Clientes e Industrias', href: '/clientes', icon: Building2, roles: ['super_admin', 'director_proyecto', 'consultor'] },

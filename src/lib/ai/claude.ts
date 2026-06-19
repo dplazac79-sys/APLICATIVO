@@ -80,6 +80,40 @@ export async function resumirDocumento(texto: string) {
   }
 }
 
+export async function reAnalizarContenidoEditado(contenidoEditado: {
+  descripcion: string
+  sin_proceso_riesgos: string
+  con_proceso_beneficios: string
+  nombre_proceso: string
+}) {
+  const msg = await client.messages.create({
+    model: 'claude-sonnet-4-6',
+    max_tokens: 2048,
+    system: `Eres un experto en análisis de procesos de negocio. Recibirás contenido editado por el cliente sobre un proceso. Tu tarea es actualizar los KPIs y riesgos en base al nuevo contenido.
+
+Devuelve SOLO un objeto JSON válido:
+{
+  "valor_negocio": "resumen del valor actualizado según el contenido editado",
+  "kpis": [
+    {"nombre": "nombre del KPI", "valor_actual": "estimado actual", "valor_objetivo": "objetivo", "unidad": "%, días, $, etc"}
+  ],
+  "riesgos": [
+    {"descripcion": "descripción del riesgo", "probabilidad": "alta|media|baja", "impacto": "alto|medio|bajo"}
+  ]
+}`,
+    messages: [{
+      role: 'user',
+      content: `Proceso: ${contenidoEditado.nombre_proceso}\n\nDescripción actualizada:\n${contenidoEditado.descripcion}\n\nSin este proceso:\n${contenidoEditado.sin_proceso_riesgos}\n\nCon este proceso:\n${contenidoEditado.con_proceso_beneficios}`
+    }],
+  })
+  if (msg.stop_reason === 'max_tokens') throw new Error('Respuesta IA incompleta al re-analizar')
+  return extractJson((msg.content[0] as { text: string }).text) as {
+    valor_negocio: string
+    kpis: Array<{ nombre: string; valor_actual: string; valor_objetivo: string; unidad: string }>
+    riesgos: Array<{ descripcion: string; probabilidad: string; impacto: string }>
+  }
+}
+
 export async function enriquecerProcesoCliente(
   textoDocumento: string,
   contextoProyecto: string
