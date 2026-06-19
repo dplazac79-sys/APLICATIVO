@@ -4,56 +4,26 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
-const FASES = [
-  {
-    tag: 'Fases 1 & 2', color: 'text-cyan-400', weeks: 'Semanas 1–16',
-    title: 'Fundación & Descubrimiento AI',
-    desc: 'Ingesta documental automatizada, clasificación y primer inventario de procesos (Niveles 0–2).',
-  },
-  {
-    tag: 'Fases 3 & 4', color: 'text-blue-400', weeks: 'Semanas 17–34',
-    title: 'Artefactos & Gestión PMI',
-    desc: 'Generación de los 12 artefactos metodológicos (SIPOC, RACI, BPMN) y control integral del proyecto.',
-  },
-  {
-    tag: 'Fases 5 & 6', color: 'text-emerald-400', weeks: 'Semanas 35–54',
-    title: 'Simulación & Automatización',
-    desc: 'Cálculo de ROI operacional/financiero y diseño de automatizaciones mediante Knowledge Graphs.',
-  },
-]
-
-const CAPABILITIES = [
-  { icon: '🔍', color: 'bg-cyan-500/10 text-cyan-400', title: 'Process Discovery Integrado', desc: 'Mapeo y extracción automática de roles, riesgos y actividades desde texto desestructurado.' },
-  { icon: '⚙️', color: 'bg-blue-500/10 text-blue-400', title: '12 Artefactos Dinámicos', desc: 'SIPOC, BPMN AS-IS/TO-BE interactivos, RACI y matrices completas de control de riesgos.' },
-  { icon: '📈', color: 'bg-emerald-500/10 text-emerald-400', title: 'Simulación de Impacto ROI', desc: 'Modelado de escenarios (conservador, base, optimista) con recálculo dinámico de eficiencias.' },
-  { icon: '🧠', color: 'bg-purple-500/10 text-purple-400', title: 'Knowledge Graph Corporativo', desc: 'Aprendizaje continuo cross-proyecto y recomendación de automatizaciones candidatas.' },
-]
-
 export default function LoginPage() {
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
+  const [email, setEmail]             = useState('')
+  const [password, setPassword]       = useState('')
   const [showPassword, setShowPassword] = useState(false)
-  const [error, setError] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [tab, setTab] = useState<'roadmap' | 'capabilities'>('roadmap')
-  const router = useRouter()
+  const [error, setError]             = useState('')
+  const [loading, setLoading]         = useState(false)
+  const router  = useRouter()
   const supabase = createClient()
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
     setError('')
-
     const { error } = await supabase.auth.signInWithPassword({ email, password })
-
     if (error) {
       setError('Las credenciales proporcionadas no corresponden a un perfil activo.')
       setLoading(false)
       return
     }
-
     const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel()
-
     if (aal?.nextLevel === 'aal2' && aal.currentLevel !== aal.nextLevel) {
       router.push('/mfa/challenge')
     } else if (aal?.nextLevel === 'aal1') {
@@ -65,275 +35,321 @@ export default function LoginPage() {
   }
 
   return (
-    <div
-      className="min-h-screen flex flex-col font-sans text-slate-100"
-      style={{
-        backgroundColor: '#030712',
-        backgroundImage:
-          'radial-gradient(circle at 0% 0%, rgba(15,23,42,0.9) 0%, transparent 50%), radial-gradient(circle at 100% 100%, rgba(6,182,212,0.08) 0%, transparent 40%), radial-gradient(circle at 50% 50%, rgba(59,130,246,0.04) 0%, transparent 60%)',
-      }}
-    >
-      {/* Header */}
-      <header className="w-full px-6 py-4 flex justify-between items-center border-b border-white/5">
+    <div className="min-h-screen flex flex-col" style={{ backgroundColor: '#04060f', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
+
+      {/* ── Header ── */}
+      <header style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }} className="px-8 py-5 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-lg p-[1px] shadow-lg" style={{ background: 'linear-gradient(135deg, #3B82F6, #06B6D4)' }}>
-            <div className="h-full w-full rounded-[7px] flex items-center justify-center" style={{ background: '#050B14' }}>
-              <span className="font-extrabold text-xs tracking-wider" style={{ background: 'linear-gradient(90deg, #F8FAFC, #06B6D4)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>AP</span>
-            </div>
+          {/* Logotipo */}
+          <div style={{
+            width: 36, height: 36, borderRadius: 8,
+            background: 'linear-gradient(135deg, #1d4ed8, #0891b2)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <span style={{ color: '#fff', fontWeight: 800, fontSize: 13, letterSpacing: 1 }}>AP</span>
           </div>
           <div>
-            <div className="flex items-center gap-2">
-              <span className="text-lg font-bold tracking-tight text-white">APAC</span>
-              <span className="text-[9px] px-2 py-0.5 bg-blue-500/20 text-blue-400 border border-blue-500/30 rounded-full font-semibold uppercase tracking-wider">Platform</span>
-            </div>
-            <p className="text-[10px] text-slate-400 font-medium tracking-wide">AICOUNTS Process Intelligence</p>
+            <span style={{ color: '#f8fafc', fontWeight: 700, fontSize: 15, letterSpacing: '0.02em' }}>APAC</span>
+            <span style={{ color: '#334155', fontSize: 11, fontWeight: 500, marginLeft: 8 }}>Process Intelligence</span>
           </div>
         </div>
-        <div className="hidden md:flex items-center gap-6 text-xs text-slate-400">
-          <div className="flex items-center gap-2">
-            <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span>Región Sudamérica (v1.0)</span>
-          </div>
-          <span className="text-slate-700">|</span>
-          <span>Enterprise Grade Security</span>
+        <div className="hidden md:flex items-center gap-2">
+          <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#22c55e', display: 'inline-block' }} />
+          <span style={{ color: '#475569', fontSize: 11 }}>Sistemas operativos</span>
         </div>
       </header>
 
-      {/* Main */}
-      <main className="flex-1 flex flex-col lg:flex-row max-w-[1700px] w-full mx-auto px-4 py-8 md:px-8 lg:py-12 gap-10 items-center justify-center">
+      {/* ── Main ── */}
+      <main className="flex-1 flex flex-col lg:flex-row max-w-[1400px] w-full mx-auto px-8 py-16 lg:py-0 gap-16 lg:gap-24 items-center">
 
-        {/* LEFT — Value Proposition */}
-        <div className="w-full lg:w-3/5 flex flex-col justify-center gap-8 lg:pr-8">
+        {/* ────── LEFT ────── */}
+        <div className="w-full lg:w-1/2 flex flex-col gap-14 lg:py-24">
 
-          {/* Tag */}
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full w-fit border border-cyan-500/20" style={{ background: 'linear-gradient(90deg, rgba(59,130,246,0.1), rgba(6,182,212,0.1))' }}>
-            <span className="text-cyan-400 text-xs">✦</span>
-            <span className="text-xs font-semibold text-cyan-400 uppercase tracking-widest">Nivel Consultoría Estratégica</span>
+          {/* Eyebrow */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ width: 28, height: 1, background: '#1d4ed8' }} />
+            <span style={{ color: '#60a5fa', fontSize: 11, fontWeight: 600, letterSpacing: '0.14em', textTransform: 'uppercase' }}>
+              Consultoría Estratégica de Procesos
+            </span>
           </div>
 
           {/* Headline */}
-          <div className="space-y-4">
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight text-white leading-tight">
-              De la{' '}
-              <span style={{ background: 'linear-gradient(90deg, #06B6D4, #3B82F6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-                Complejidad Documental
-              </span>{' '}
-              a la Optimización Operativa
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+            <h1 style={{ fontSize: 'clamp(36px, 4.5vw, 64px)', fontWeight: 800, lineHeight: 1.08, color: '#f8fafc', letterSpacing: '-0.02em', margin: 0 }}>
+              El estándar operativo<br />
+              de las organizaciones<br />
+              <span style={{ color: '#38bdf8' }}>que lideran.</span>
             </h1>
-            <p className="text-slate-400 text-base md:text-lg max-w-xl font-light leading-relaxed">
-              Sintetice silos documentales masivos en arquitecturas de procesos interactivas y planes estructurados de hiperautomatización con precisión basada en datos.
+            <p style={{ color: '#64748b', fontSize: 16, lineHeight: 1.7, maxWidth: 460, margin: 0, fontWeight: 400 }}>
+              Metodología de seis fases que convierte documentación dispersa en arquitecturas de procesos accionables, con medición de impacto desde el primer día.
             </p>
           </div>
 
-          {/* Tabs panel */}
-          <div className="rounded-2xl p-6 space-y-6" style={{ background: 'rgba(15,23,42,0.45)', backdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,0.05)' }}>
-            <div className="flex border-b border-white/5 text-xs font-semibold gap-1">
-              <button
-                onClick={() => setTab('roadmap')}
-                className={`pb-3 pr-4 border-b-2 transition-all ${tab === 'roadmap' ? 'border-cyan-400 text-white' : 'border-transparent text-slate-400 hover:text-white'}`}
-              >
-                📍 PLAN DE TRABAJO (6 FASES)
-              </button>
-              <button
-                onClick={() => setTab('capabilities')}
-                className={`pb-3 px-4 border-b-2 transition-all ${tab === 'capabilities' ? 'border-cyan-400 text-white' : 'border-transparent text-slate-400 hover:text-white'}`}
-              >
-                ⚡ ENGINE CAPABILITIES
-              </button>
-            </div>
-
-            {tab === 'roadmap' && (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {FASES.map(f => (
-                  <div key={f.tag} className="group p-4 rounded-xl transition-all" style={{ background: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.05)' }}
-                    onMouseEnter={e => (e.currentTarget.style.borderColor = 'rgba(6,182,212,0.3)')}
-                    onMouseLeave={e => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.05)')}
-                  >
-                    <div className="flex justify-between items-start mb-2">
-                      <span className={`text-[10px] font-bold uppercase tracking-widest ${f.color}`}>{f.tag}</span>
-                      <span className="text-[10px] text-slate-500 font-mono">{f.weeks}</span>
-                    </div>
-                    <h4 className="text-sm font-semibold text-slate-200">{f.title}</h4>
-                    <p className="text-xs text-slate-400 mt-1 leading-relaxed">{f.desc}</p>
-                  </div>
-                ))}
+          {/* Métricas */}
+          <div style={{ display: 'flex', gap: 0 }}>
+            {[
+              { value: '6',   label: 'Fases metodológicas' },
+              { value: '12',  label: 'Artefactos entregables' },
+              { value: '54',  label: 'Semanas de transformación' },
+            ].map((m, i) => (
+              <div key={m.label} style={{
+                flex: 1,
+                paddingLeft: i === 0 ? 0 : 28,
+                marginLeft: i === 0 ? 0 : 28,
+                borderLeft: i === 0 ? 'none' : '1px solid rgba(255,255,255,0.06)',
+              }}>
+                <div style={{ fontSize: 38, fontWeight: 800, color: '#f8fafc', letterSpacing: '-0.03em', lineHeight: 1 }}>{m.value}</div>
+                <div style={{ fontSize: 11, color: '#475569', marginTop: 6, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.08em' }}>{m.label}</div>
               </div>
-            )}
-
-            {tab === 'capabilities' && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {CAPABILITIES.map(c => (
-                  <div key={c.title} className="flex items-start gap-3 p-3 rounded-lg" style={{ background: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.05)' }}>
-                    <div className={`p-2 rounded text-sm shrink-0 ${c.color}`}>{c.icon}</div>
-                    <div>
-                      <h5 className="text-xs font-semibold text-white">{c.title}</h5>
-                      <p className="text-[11px] text-slate-400 mt-0.5">{c.desc}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+            ))}
           </div>
 
-          {/* Metrics */}
-          <div className="flex flex-wrap gap-x-10 gap-y-4 pt-2">
-            <div>
-              <span className="block text-2xl font-bold text-white tracking-tight">100%</span>
-              <span className="text-xs text-slate-500 uppercase tracking-widest font-medium">Objetivo & Medible</span>
-            </div>
-            <div className="border-l border-white/10 pl-6">
-              <span className="block text-2xl font-bold text-cyan-400 tracking-tight">10 / 10</span>
-              <span className="text-xs text-slate-500 uppercase tracking-widest font-medium">Módulos Operacionales</span>
-            </div>
-            <div className="border-l border-white/10 pl-6">
-              <span className="block text-2xl font-bold text-blue-400 tracking-tight">&lt; 1 Día</span>
-              <span className="text-xs text-slate-500 uppercase tracking-widest font-medium">Time-to-Value</span>
-            </div>
+          {/* Tres outcomes */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {[
+              'Inventario completo de procesos a partir de documentación existente',
+              'Análisis de impacto con KPIs y ROI calculado por inteligencia artificial',
+              'Plan de implementación tecnológica priorizado y aprobado digitalmente',
+            ].map((item) => (
+              <div key={item} style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
+                <div style={{ width: 4, height: 4, borderRadius: '50%', background: '#1d4ed8', marginTop: 8, flexShrink: 0 }} />
+                <span style={{ color: '#94a3b8', fontSize: 14, lineHeight: 1.6 }}>{item}</span>
+              </div>
+            ))}
           </div>
+
         </div>
 
-        {/* RIGHT — Login */}
-        <div className="w-full lg:w-2/5 max-w-[460px]">
-          <div className="rounded-2xl p-8 shadow-2xl relative overflow-hidden" style={{ background: 'rgba(15,23,42,0.45)', backdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,0.1)' }}>
-            {/* Top glow line */}
-            <div className="absolute top-0 left-0 right-0 h-[1px]" style={{ background: 'linear-gradient(90deg, transparent, rgba(6,182,212,0.4), transparent)' }} />
+        {/* ────── RIGHT — Formulario ────── */}
+        <div className="w-full lg:w-5/12 max-w-[420px] lg:py-24">
 
-            <div className="text-center mb-8">
-              <h2 className="text-2xl font-bold text-white tracking-tight">Portal Ejecutivo</h2>
-              <p className="text-xs text-slate-400 mt-1.5">Ingrese credenciales corporativas para acceder a APAC</p>
+          <div style={{
+            background: 'rgba(12,15,28,0.8)',
+            border: '1px solid rgba(255,255,255,0.07)',
+            borderRadius: 20,
+            padding: '40px 36px',
+            backdropFilter: 'blur(16px)',
+            position: 'relative',
+            overflow: 'hidden',
+          }}>
+            {/* Línea superior sutil */}
+            <div style={{ position: 'absolute', top: 0, left: '20%', right: '20%', height: 1, background: 'linear-gradient(90deg, transparent, rgba(56,189,248,0.35), transparent)' }} />
+
+            {/* Título form */}
+            <div style={{ marginBottom: 32 }}>
+              <h2 style={{ color: '#f8fafc', fontSize: 20, fontWeight: 700, margin: 0, letterSpacing: '-0.01em' }}>
+                Acceso al portal
+              </h2>
+              <p style={{ color: '#475569', fontSize: 13, marginTop: 6, margin: '6px 0 0' }}>
+                Ingresa tus credenciales corporativas
+              </p>
             </div>
 
             {/* Error */}
             {error && (
-              <div className="mb-6 p-4 rounded-xl flex items-start gap-3" style={{ background: 'rgba(127,29,29,0.3)', border: '1px solid rgba(239,68,68,0.3)' }}>
-                <span className="text-red-400 mt-0.5 shrink-0">⚠</span>
-                <div>
-                  <h4 className="text-xs font-semibold text-red-200">Error de Autenticación</h4>
-                  <p className="text-[11px] text-red-300/80 mt-0.5">{error}</p>
-                </div>
+              <div style={{
+                marginBottom: 24, padding: '12px 16px', borderRadius: 10,
+                background: 'rgba(127,29,29,0.2)', border: '1px solid rgba(239,68,68,0.2)',
+                display: 'flex', alignItems: 'flex-start', gap: 10,
+              }}>
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" style={{ color: '#f87171', flexShrink: 0, marginTop: 1 }}>
+                  <circle cx="8" cy="8" r="7" stroke="currentColor" strokeWidth="1.5"/>
+                  <path d="M8 5v3.5M8 11v.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                </svg>
+                <span style={{ color: '#fca5a5', fontSize: 12, lineHeight: 1.5 }}>{error}</span>
               </div>
             )}
 
-            <form onSubmit={handleLogin} className="space-y-5">
+            <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+
               {/* Email */}
-              <div className="space-y-2">
-                <div className="flex justify-between items-center">
-                  <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider">Correo Corporativo</label>
-                  <span className="text-[10px] text-cyan-400 font-medium">Directorio Activo</span>
-                </div>
-                <div className="relative">
-                  <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-500 text-sm">✉</span>
+              <div>
+                <label style={{ display: 'block', color: '#94a3b8', fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 8 }}>
+                  Correo corporativo
+                </label>
+                <div style={{ position: 'relative' }}>
+                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: '#475569' }}>
+                    <rect x="1" y="3" width="14" height="10" rx="2" stroke="currentColor" strokeWidth="1.4"/>
+                    <path d="M1 6l7 4.5L15 6" stroke="currentColor" strokeWidth="1.4"/>
+                  </svg>
                   <input
                     type="email"
                     required
                     value={email}
                     onChange={e => setEmail(e.target.value)}
-                    placeholder="nombre.apellido@empresa.com"
-                    className="w-full pl-9 pr-4 py-3 rounded-xl text-sm text-white placeholder-slate-500 outline-none transition-all"
-                    style={{ background: 'rgba(3,7,18,0.6)', border: '1px solid rgba(255,255,255,0.08)' }}
-                    onFocus={e => { e.target.style.borderColor = 'rgba(6,182,212,0.5)'; e.target.style.boxShadow = '0 0 15px rgba(6,182,212,0.15)' }}
-                    onBlur={e => { e.target.style.borderColor = 'rgba(255,255,255,0.08)'; e.target.style.boxShadow = 'none' }}
+                    placeholder="nombre@empresa.com"
+                    style={{
+                      width: '100%', boxSizing: 'border-box',
+                      paddingLeft: 38, paddingRight: 14, paddingTop: 12, paddingBottom: 12,
+                      borderRadius: 10, fontSize: 14, color: '#f8fafc',
+                      background: 'rgba(3,7,18,0.5)',
+                      border: '1px solid rgba(255,255,255,0.07)',
+                      outline: 'none', transition: 'border-color 0.15s',
+                    }}
+                    onFocus={e => { e.target.style.borderColor = 'rgba(56,189,248,0.4)' }}
+                    onBlur={e => { e.target.style.borderColor = 'rgba(255,255,255,0.07)' }}
                   />
                 </div>
               </div>
 
               {/* Password */}
-              <div className="space-y-2">
-                <div className="flex justify-between items-center">
-                  <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider">Contraseña</label>
-                  <a href="#" className="text-[10px] text-slate-400 hover:text-cyan-400 transition-colors">¿Olvidó su contraseña?</a>
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                  <label style={{ color: '#94a3b8', fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+                    Contraseña
+                  </label>
+                  <a href="#" style={{ color: '#475569', fontSize: 11, textDecoration: 'none' }}
+                    onMouseEnter={e => ((e.target as HTMLElement).style.color = '#94a3b8')}
+                    onMouseLeave={e => ((e.target as HTMLElement).style.color = '#475569')}
+                  >
+                    ¿Olvidaste tu contraseña?
+                  </a>
                 </div>
-                <div className="relative">
-                  <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-500 text-sm">🔒</span>
+                <div style={{ position: 'relative' }}>
+                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: '#475569' }}>
+                    <rect x="3" y="7" width="10" height="8" rx="1.5" stroke="currentColor" strokeWidth="1.4"/>
+                    <path d="M5 7V5a3 3 0 0 1 6 0v2" stroke="currentColor" strokeWidth="1.4"/>
+                  </svg>
                   <input
                     type={showPassword ? 'text' : 'password'}
                     required
                     value={password}
                     onChange={e => setPassword(e.target.value)}
                     placeholder="••••••••••••"
-                    className="w-full pl-9 pr-10 py-3 rounded-xl text-sm text-white placeholder-slate-500 outline-none transition-all"
-                    style={{ background: 'rgba(3,7,18,0.6)', border: '1px solid rgba(255,255,255,0.08)' }}
-                    onFocus={e => { e.target.style.borderColor = 'rgba(6,182,212,0.5)'; e.target.style.boxShadow = '0 0 15px rgba(6,182,212,0.15)' }}
-                    onBlur={e => { e.target.style.borderColor = 'rgba(255,255,255,0.08)'; e.target.style.boxShadow = 'none' }}
+                    style={{
+                      width: '100%', boxSizing: 'border-box',
+                      paddingLeft: 38, paddingRight: 42, paddingTop: 12, paddingBottom: 12,
+                      borderRadius: 10, fontSize: 14, color: '#f8fafc',
+                      background: 'rgba(3,7,18,0.5)',
+                      border: '1px solid rgba(255,255,255,0.07)',
+                      outline: 'none', transition: 'border-color 0.15s',
+                    }}
+                    onFocus={e => { e.target.style.borderColor = 'rgba(56,189,248,0.4)' }}
+                    onBlur={e => { e.target.style.borderColor = 'rgba(255,255,255,0.07)' }}
                   />
-                  <button type="button" onClick={() => setShowPassword(v => !v)} className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-500 hover:text-slate-300 text-sm">
-                    {showPassword ? '🙈' : '👁'}
+                  <button type="button" onClick={() => setShowPassword(v => !v)}
+                    style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: '#475569' }}
+                  >
+                    {showPassword ? (
+                      <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M1 8s2.5-5 7-5 7 5 7 5-2.5 5-7 5-7-5-7-5Z" stroke="currentColor" strokeWidth="1.4"/><circle cx="8" cy="8" r="2" stroke="currentColor" strokeWidth="1.4"/><path d="M2 2l12 12" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/></svg>
+                    ) : (
+                      <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M1 8s2.5-5 7-5 7 5 7 5-2.5 5-7 5-7-5-7-5Z" stroke="currentColor" strokeWidth="1.4"/><circle cx="8" cy="8" r="2" stroke="currentColor" strokeWidth="1.4"/></svg>
+                    )}
                   </button>
                 </div>
               </div>
 
-              {/* MFA tag */}
-              <div className="flex items-center justify-between py-1">
-                <div className="flex items-center gap-2">
-                  <input type="checkbox" className="rounded border-white/10 h-4 w-4 accent-cyan-400" />
-                  <label className="text-xs text-slate-400 select-none">Recordar este dispositivo</label>
-                </div>
-                <div className="flex items-center text-[11px] text-slate-400 gap-1">
-                  <span className="text-cyan-400">🛡</span> MFA Activo
+              {/* MFA badge inline */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+                  <input type="checkbox" style={{ accentColor: '#38bdf8', width: 14, height: 14 }} />
+                  <span style={{ color: '#475569', fontSize: 12 }}>Recordar dispositivo</span>
+                </label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <svg width="12" height="12" viewBox="0 0 16 16" fill="none" style={{ color: '#38bdf8' }}>
+                    <path d="M8 1L2 4v4c0 3.3 2.5 6.4 6 7 3.5-.6 6-3.7 6-7V4L8 1Z" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round"/>
+                  </svg>
+                  <span style={{ color: '#38bdf8', fontSize: 11, fontWeight: 500 }}>MFA activo</span>
                 </div>
               </div>
 
-              {/* CTA */}
+              {/* Botón */}
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full relative overflow-hidden rounded-xl p-[1px] transition-all hover:scale-[1.01] disabled:opacity-60 disabled:cursor-not-allowed"
-                style={{ background: 'linear-gradient(90deg, #3B82F6, #06B6D4, #3B82F6)' }}
+                style={{
+                  width: '100%', padding: '13px 0',
+                  borderRadius: 10, border: 'none', cursor: loading ? 'not-allowed' : 'pointer',
+                  background: loading ? '#1e293b' : 'linear-gradient(90deg, #1d4ed8, #0891b2)',
+                  color: '#fff', fontSize: 13, fontWeight: 700,
+                  letterSpacing: '0.06em', textTransform: 'uppercase',
+                  opacity: loading ? 0.7 : 1, transition: 'opacity 0.15s, transform 0.1s',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                }}
+                onMouseEnter={e => { if (!loading) (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(-1px)' }}
+                onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(0)' }}
               >
-                <div className="px-8 py-3.5 rounded-[11px] flex justify-center items-center gap-2 transition-all"
-                  style={{ background: loading ? 'transparent' : 'rgba(5,11,20,0.9)' }}
-                  onMouseEnter={e => (e.currentTarget.style.background = 'transparent')}
-                  onMouseLeave={e => (e.currentTarget.style.background = loading ? 'transparent' : 'rgba(5,11,20,0.9)')}
-                >
-                  <span className="text-sm font-semibold text-white tracking-wide">
-                    {loading ? 'AUTENTICANDO...' : 'INGRESAR AL SISTEMA'}
-                  </span>
-                  {!loading && <span className="text-cyan-400 text-xs">→</span>}
-                </div>
+                {loading ? (
+                  <>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ animation: 'spin 1s linear infinite' }}>
+                      <circle cx="12" cy="12" r="10" stroke="rgba(255,255,255,0.2)" strokeWidth="3"/>
+                      <path d="M12 2a10 10 0 0 1 10 10" stroke="white" strokeWidth="3" strokeLinecap="round"/>
+                    </svg>
+                    Verificando
+                  </>
+                ) : 'Ingresar al sistema'}
               </button>
             </form>
 
-            {/* Divider SSO */}
-            <div className="relative my-7 text-center">
-              <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-white/5" /></div>
-              <span className="relative px-3 text-[10px] font-semibold text-slate-500 tracking-widest uppercase" style={{ background: 'rgba(15,23,42,0.9)' }}>Federated Login SSO</span>
+            {/* SSO */}
+            <div style={{ margin: '28px 0', position: 'relative', textAlign: 'center' }}>
+              <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center' }}>
+                <div style={{ width: '100%', height: 1, background: 'rgba(255,255,255,0.05)' }} />
+              </div>
+              <span style={{ position: 'relative', padding: '0 12px', background: 'rgba(12,15,28,0.8)', color: '#334155', fontSize: 10, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+                o continúa con
+              </span>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
               {[
-                { icon: '🪟', label: 'Azure AD' },
-                { icon: '🔵', label: 'Google Workspace' },
+                {
+                  label: 'Azure AD',
+                  icon: (
+                    <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+                      <rect width="7" height="7" fill="#0078d4"/><rect x="9" width="7" height="7" fill="#50e6ff"/>
+                      <rect y="9" width="7" height="7" fill="#50e6ff"/><rect x="9" y="9" width="7" height="7" fill="#0078d4"/>
+                    </svg>
+                  ),
+                },
+                {
+                  label: 'Google Workspace',
+                  icon: (
+                    <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+                      <path d="M8 6.5h6.5c.1.5.1 1 .1 1.5 0 3.6-2.4 6-6.6 6C4 14 1 11 1 8s3-6 6.6-6c1.6 0 3 .6 4 1.5L9.9 5.2C9.2 4.6 8.7 4.5 8 4.5 5.8 4.5 4 6.2 4 8s1.8 3.5 4 3.5c2 0 3.2-1 3.4-2.5H8V6.5z" fill="#4285f4"/>
+                    </svg>
+                  ),
+                },
               ].map(p => (
-                <button key={p.label} className="flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-xs font-medium text-slate-300 transition-all hover:text-white" style={{ border: '1px solid rgba(255,255,255,0.05)', background: 'rgba(255,255,255,0.01)' }}
-                  onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(255,255,255,0.1)'; (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.03)' }}
-                  onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(255,255,255,0.05)'; (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.01)' }}
+                <button key={p.label}
+                  style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                    padding: '10px 12px', borderRadius: 10, cursor: 'pointer',
+                    background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)',
+                    color: '#64748b', fontSize: 12, fontWeight: 500, transition: 'all 0.15s',
+                  }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(255,255,255,0.12)'; (e.currentTarget as HTMLButtonElement).style.color = '#94a3b8' }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(255,255,255,0.06)'; (e.currentTarget as HTMLButtonElement).style.color = '#64748b' }}
                 >
-                  <span>{p.icon}</span><span>{p.label}</span>
+                  {p.icon}
+                  {p.label}
                 </button>
               ))}
             </div>
+
           </div>
 
-          <div className="text-center mt-6">
-            <p className="text-[10px] text-slate-500 leading-relaxed">
-              🔒 Acceso auditado bajo estándares de gobernanza y control RBAC.<br />
-              Cada intento queda registrado en <span className="font-mono text-slate-400">audit_log</span>.
-            </p>
-          </div>
+          {/* Nota seguridad */}
+          <p style={{ textAlign: 'center', color: '#334155', fontSize: 11, marginTop: 20, lineHeight: 1.7 }}>
+            Acceso auditado bajo RBAC. Cada sesión queda registrada en <span style={{ fontFamily: 'monospace', color: '#475569' }}>audit_log</span>.
+          </p>
         </div>
       </main>
 
-      {/* Footer */}
-      <footer className="w-full px-6 py-4 flex flex-col md:flex-row justify-between items-center border-t border-white/5 text-[10px] text-slate-500 gap-2">
-        <span>© 2026 AICOUNTS. Todos los derechos reservados.</span>
-        <div className="flex items-center gap-4">
-          <a href="#" className="hover:text-white transition-colors">Políticas de Privacidad</a>
-          <span>•</span>
-          <a href="#" className="hover:text-white transition-colors">EULA</a>
-          <span>•</span>
-          <a href="#" className="hover:text-white transition-colors">Soporte Técnico</a>
+      {/* ── Footer ── */}
+      <footer style={{ borderTop: '1px solid rgba(255,255,255,0.04)', padding: '16px 32px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <span style={{ color: '#334155', fontSize: 11 }}>© 2026 AICOUNTS. Todos los derechos reservados.</span>
+        <div style={{ display: 'flex', gap: 24 }}>
+          {['Privacidad', 'EULA', 'Soporte'].map(link => (
+            <a key={link} href="#" style={{ color: '#334155', fontSize: 11, textDecoration: 'none', transition: 'color 0.15s' }}
+              onMouseEnter={e => ((e.target as HTMLElement).style.color = '#64748b')}
+              onMouseLeave={e => ((e.target as HTMLElement).style.color = '#334155')}
+            >{link}</a>
+          ))}
         </div>
       </footer>
+
+      <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
     </div>
   )
 }
