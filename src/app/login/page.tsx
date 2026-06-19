@@ -324,8 +324,16 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError]               = useState('')
   const [loading, setLoading]           = useState(false)
+  const [isMobile, setIsMobile]         = useState(false)
   const router   = useRouter()
   const supabase = createClient()
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth <= 600)
+    check()
+    window.addEventListener('resize', check)
+    return () => window.removeEventListener('resize', check)
+  }, [])
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
@@ -479,7 +487,7 @@ export default function LoginPage() {
       </header>
 
       {/* ── Main ── */}
-      <main className="login-main" style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 32px', position: 'relative', zIndex: 10, gap: 48 }}>
+      <main className="login-main" style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: isMobile ? 'stretch' : 'center', justifyContent: isMobile ? 'flex-start' : 'center', padding: isMobile ? '0' : '40px 32px', position: 'relative', zIndex: 10, gap: isMobile ? 0 : 48 }}>
 
         {/* Diagrama de flujo animado — centrado arriba del contenido */}
         <div className="login-flow" style={{ animation: 'textIn 0.8s ease both', animationDelay: '0.1s' }}>
@@ -556,20 +564,24 @@ export default function LoginPage() {
           </div>
 
           {/* ── RIGHT — Formulario ── */}
-          <div className="login-form-wrap" style={{ animation: 'textIn 0.8s ease both', animationDelay: '0.3s' }}>
+          <div className="login-form-wrap" style={{ animation: 'textIn 0.8s ease both', animationDelay: '0.3s', ...(isMobile ? { width: '100%' } : {}) }}>
             <div className="login-form-card" style={{
-              background: 'rgba(8,12,24,0.85)', border: '1px solid rgba(255,255,255,0.08)',
-              borderRadius: 20, padding: '36px 32px',
+              background: 'rgba(8,12,24,0.85)',
+              border: isMobile ? 'none' : '1px solid rgba(255,255,255,0.08)',
+              borderTop: '1px solid rgba(255,255,255,0.08)',
+              borderRadius: isMobile ? 0 : 20,
+              padding: isMobile ? '32px 22px 40px' : '36px 32px',
               backdropFilter: 'blur(20px)', position: 'relative', overflow: 'hidden',
+              ...(isMobile ? { minHeight: 'calc(100dvh - 62px)', display: 'flex', flexDirection: 'column', justifyContent: 'center' } : {}),
             }}>
               {/* Línea superior */}
               <div style={{ position: 'absolute', top: 0, left: '15%', right: '15%', height: 1, background: 'linear-gradient(90deg, transparent, rgba(56,189,248,0.5), transparent)' }} />
               {/* Glow esquina */}
               <div style={{ position: 'absolute', top: -60, right: -60, width: 200, height: 200, borderRadius: '50%', background: 'radial-gradient(circle, rgba(29,78,216,0.1) 0%, transparent 70%)', pointerEvents: 'none' }} />
 
-              <div style={{ marginBottom: 28 }}>
-                <h2 className="login-form-title" style={{ color: '#f8fafc', fontSize: 19, fontWeight: 700, margin: 0, letterSpacing: '-0.01em' }}>Acceso al portal</h2>
-                <p className="login-form-subtitle" style={{ color: '#475569', fontSize: 13, marginTop: 5, margin: '5px 0 0' }}>Ingresa tus credenciales corporativas</p>
+              <div style={{ marginBottom: isMobile ? 32 : 28 }}>
+                <h2 className="login-form-title" style={{ color: '#f8fafc', fontSize: isMobile ? 26 : 19, fontWeight: 700, margin: 0, letterSpacing: '-0.02em' }}>Acceso al portal</h2>
+                <p className="login-form-subtitle" style={{ color: '#475569', fontSize: isMobile ? 15 : 13, marginTop: 6, margin: '6px 0 0' }}>Ingresa tus credenciales corporativas</p>
               </div>
 
               {error && (
@@ -590,7 +602,7 @@ export default function LoginPage() {
                     <input type="email" required value={email} onChange={e => setEmail(e.target.value)}
                       placeholder="nombre@empresa.com"
                       className="login-input"
-                      style={{ width: '100%', boxSizing: 'border-box', paddingLeft: 36, paddingRight: 12, paddingTop: 11, paddingBottom: 11, borderRadius: 10, fontSize: 13.5, color: '#f8fafc', background: 'rgba(3,7,18,0.6)', border: '1px solid rgba(255,255,255,0.07)', outline: 'none', transition: 'border-color 0.15s' }}
+                      style={{ width: '100%', boxSizing: 'border-box', paddingLeft: 40, paddingRight: 12, paddingTop: isMobile ? 16 : 11, paddingBottom: isMobile ? 16 : 11, borderRadius: isMobile ? 14 : 10, fontSize: isMobile ? 16 : 13.5, color: '#f8fafc', background: 'rgba(3,7,18,0.6)', border: '1px solid rgba(255,255,255,0.07)', outline: 'none', transition: 'border-color 0.15s' }}
                       onFocus={e => { e.target.style.borderColor = 'rgba(56,189,248,0.45)' }}
                       onBlur={e => { e.target.style.borderColor = 'rgba(255,255,255,0.07)' }}
                     />
@@ -613,7 +625,7 @@ export default function LoginPage() {
                     <input type={showPassword ? 'text' : 'password'} required value={password} onChange={e => setPassword(e.target.value)}
                       placeholder="••••••••••••"
                       className="login-input"
-                      style={{ width: '100%', boxSizing: 'border-box', paddingLeft: 36, paddingRight: 40, paddingTop: 11, paddingBottom: 11, borderRadius: 10, fontSize: 13.5, color: '#f8fafc', background: 'rgba(3,7,18,0.6)', border: '1px solid rgba(255,255,255,0.07)', outline: 'none', transition: 'border-color 0.15s' }}
+                      style={{ width: '100%', boxSizing: 'border-box', paddingLeft: 40, paddingRight: 44, paddingTop: isMobile ? 16 : 11, paddingBottom: isMobile ? 16 : 11, borderRadius: isMobile ? 14 : 10, fontSize: isMobile ? 16 : 13.5, color: '#f8fafc', background: 'rgba(3,7,18,0.6)', border: '1px solid rgba(255,255,255,0.07)', outline: 'none', transition: 'border-color 0.15s' }}
                       onFocus={e => { e.target.style.borderColor = 'rgba(56,189,248,0.45)' }}
                       onBlur={e => { e.target.style.borderColor = 'rgba(255,255,255,0.07)' }}
                     />
@@ -642,7 +654,7 @@ export default function LoginPage() {
 
                 <button type="submit" disabled={loading}
                   className="login-btn"
-                  style={{ width: '100%', padding: '13px 0', borderRadius: 10, border: 'none', cursor: loading ? 'not-allowed' : 'pointer', background: loading ? '#1e293b' : 'linear-gradient(90deg, #1d4ed8, #0891b2)', color: '#fff', fontSize: 12, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', opacity: loading ? 0.7 : 1, transition: 'all 0.15s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, position: 'relative', overflow: 'hidden' }}
+                  style={{ width: '100%', padding: isMobile ? '18px 0' : '13px 0', borderRadius: isMobile ? 14 : 10, border: 'none', cursor: loading ? 'not-allowed' : 'pointer', background: loading ? '#1e293b' : 'linear-gradient(90deg, #1d4ed8, #0891b2)', color: '#fff', fontSize: isMobile ? 15 : 12, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', opacity: loading ? 0.7 : 1, transition: 'all 0.15s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, position: 'relative', overflow: 'hidden', marginTop: isMobile ? 8 : 0 }}
                   onMouseEnter={e => { if (!loading) { (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(-1px)'; (e.currentTarget as HTMLButtonElement).style.boxShadow = '0 8px 24px rgba(29,78,216,0.35)' } }}
                   onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(0)'; (e.currentTarget as HTMLButtonElement).style.boxShadow = 'none' }}
                 >
@@ -654,15 +666,15 @@ export default function LoginPage() {
               </form>
 
             </div>
-            <p className="login-audit-note" style={{ textAlign: 'center', color: '#1e293b', fontSize: 11, marginTop: 16, lineHeight: 1.7 }}>
+            {!isMobile && <p className="login-audit-note" style={{ textAlign: 'center', color: '#1e293b', fontSize: 11, marginTop: 16, lineHeight: 1.7 }}>
               Acceso auditado bajo RBAC · <span style={{ fontFamily: 'monospace' }}>audit_log</span> activo
-            </p>
+            </p>}
           </div>
         </div>
       </main>
 
       {/* ── Footer ── */}
-      <footer className="login-footer" style={{ borderTop: '1px solid rgba(255,255,255,0.03)', padding: '14px 32px', justifyContent: 'space-between', alignItems: 'center', position: 'relative', zIndex: 10 }}>
+      {!isMobile && <footer className="login-footer" style={{ borderTop: '1px solid rgba(255,255,255,0.03)', padding: '14px 32px', justifyContent: 'space-between', alignItems: 'center', position: 'relative', zIndex: 10 }}>
         <span style={{ color: '#1e293b', fontSize: 11 }}>© 2026 AICOUNTS CONSULTORES. Todos los derechos reservados.</span>
         <div className="login-footer-links" style={{ display: 'flex', gap: 24 }}>
           {['Privacidad', 'EULA', 'Soporte'].map(link => (
@@ -672,7 +684,7 @@ export default function LoginPage() {
             >{link}</a>
           ))}
         </div>
-      </footer>
+      </footer>}
     </div>
   )
 }
