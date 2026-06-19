@@ -1,5 +1,3 @@
-import { withSentryConfig } from '@sentry/nextjs'
-
 /** @type {import('next').NextConfig} */
 const securityHeaders = [
   { key: 'X-DNS-Prefetch-Control',  value: 'on' },
@@ -15,7 +13,7 @@ const securityHeaders = [
     key: 'Content-Security-Policy',
     value: [
       "default-src 'self'",
-      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.anthropic.com https://api.voyageai.com https://*.sentry.io",
+      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.anthropic.com https://api.voyageai.com https://*.sentry.io https://o4511589511528448.ingest.us.sentry.io",
       "style-src 'self' 'unsafe-inline'",
       "script-src 'self' 'unsafe-eval' 'unsafe-inline'",
       "img-src 'self' data: blob: https://*.supabase.co",
@@ -45,12 +43,4 @@ const nextConfig = {
   },
 }
 
-export default withSentryConfig(nextConfig, {
-  org: process.env.SENTRY_ORG,
-  project: process.env.SENTRY_PROJECT,
-  silent: true,
-  widenClientFileUpload: true,
-  hideSourceMaps: true,
-  disableLogger: true,
-  automaticVercelMonitors: false,
-})
+export default nextConfig
