@@ -38,24 +38,68 @@ export default function LoginPage() {
     <div className="min-h-screen flex flex-col" style={{ backgroundColor: '#04060f', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
 
       {/* ── Header ── */}
-      <header style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }} className="px-8 py-5 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          {/* Logotipo */}
-          <div style={{
-            width: 36, height: 36, borderRadius: 8,
-            background: 'linear-gradient(135deg, #1d4ed8, #0891b2)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>
-            <span style={{ color: '#fff', fontWeight: 800, fontSize: 13, letterSpacing: 1 }}>AP</span>
-          </div>
-          <div>
-            <span style={{ color: '#f8fafc', fontWeight: 700, fontSize: 15, letterSpacing: '0.02em' }}>APAC</span>
-            <span style={{ color: '#334155', fontSize: 11, fontWeight: 500, marginLeft: 8 }}>Process Intelligence</span>
+      <header style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }} className="px-8 py-4 flex items-center justify-between">
+
+        {/* ── Logo ProcessOS ── */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+          {/* Ícono geométrico: nodos de proceso conectados */}
+          <svg width="38" height="38" viewBox="0 0 38 38" fill="none" xmlns="http://www.w3.org/2000/svg">
+            {/* Fondo */}
+            <rect width="38" height="38" rx="10" fill="#04060f"/>
+            <rect width="38" height="38" rx="10" fill="url(#logoGrad)" fillOpacity="0.12"/>
+            <rect x="0.5" y="0.5" width="37" height="37" rx="9.5" stroke="url(#logoGrad)" strokeOpacity="0.4"/>
+            {/* Nodo izquierdo */}
+            <circle cx="10" cy="19" r="3" fill="#38bdf8"/>
+            {/* Nodo centro-arriba */}
+            <circle cx="19" cy="11" r="3" fill="url(#logoGrad)"/>
+            {/* Nodo centro-abajo */}
+            <circle cx="19" cy="27" r="3" fill="url(#logoGrad)"/>
+            {/* Nodo derecho */}
+            <circle cx="28" cy="19" r="3" fill="#38bdf8"/>
+            {/* Líneas de conexión */}
+            <line x1="13" y1="19" x2="16" y2="13" stroke="#1d4ed8" strokeWidth="1.2" strokeOpacity="0.8"/>
+            <line x1="13" y1="19" x2="16" y2="25" stroke="#1d4ed8" strokeWidth="1.2" strokeOpacity="0.8"/>
+            <line x1="22" y1="13" x2="25" y2="18" stroke="#0891b2" strokeWidth="1.2" strokeOpacity="0.8"/>
+            <line x1="22" y1="25" x2="25" y2="20" stroke="#0891b2" strokeWidth="1.2" strokeOpacity="0.8"/>
+            {/* Línea central diagonal */}
+            <line x1="19" y1="14" x2="19" y2="24" stroke="rgba(56,189,248,0.25)" strokeWidth="1" strokeDasharray="2 2"/>
+            <defs>
+              <linearGradient id="logoGrad" x1="0" y1="0" x2="38" y2="38" gradientUnits="userSpaceOnUse">
+                <stop stopColor="#1d4ed8"/>
+                <stop offset="1" stopColor="#0891b2"/>
+              </linearGradient>
+            </defs>
+          </svg>
+
+          {/* Wordmark */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 0 }}>
+              <span style={{ color: '#f8fafc', fontWeight: 800, fontSize: 17, letterSpacing: '-0.03em' }}>Process</span>
+              <span style={{
+                color: '#38bdf8', fontWeight: 800, fontSize: 17, letterSpacing: '-0.03em',
+                background: 'linear-gradient(90deg,#38bdf8,#818cf8)',
+                WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+              }}>OS</span>
+            </div>
+            <span style={{ color: '#334155', fontSize: 10, fontWeight: 500, letterSpacing: '0.12em', textTransform: 'uppercase' }}>
+              by AICOUNTS
+            </span>
           </div>
         </div>
-        <div className="hidden md:flex items-center gap-2">
-          <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#22c55e', display: 'inline-block' }} />
-          <span style={{ color: '#475569', fontSize: 11 }}>Sistemas operativos</span>
+
+        {/* Estado sistema */}
+        <div className="hidden md:flex items-center gap-6">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#22c55e', display: 'inline-block', boxShadow: '0 0 6px #22c55e' }} />
+            <span style={{ color: '#475569', fontSize: 11 }}>Sistemas operativos</span>
+          </div>
+          <div style={{ width: 1, height: 14, background: 'rgba(255,255,255,0.06)' }} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <svg width="11" height="11" viewBox="0 0 16 16" fill="none">
+              <path d="M8 1L2 4v4c0 3.3 2.5 6.4 6 7 3.5-.6 6-3.7 6-7V4L8 1Z" stroke="#334155" strokeWidth="1.4" strokeLinejoin="round"/>
+            </svg>
+            <span style={{ color: '#334155', fontSize: 11 }}>Enterprise Security</span>
+          </div>
         </div>
       </header>
 
