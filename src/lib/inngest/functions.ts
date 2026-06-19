@@ -3,6 +3,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { clasificarDocumento, resumirDocumento, discoveryProcesos } from '@/lib/ai/claude'
 import { generarEmbedding } from '@/lib/ai/embeddings'
 import { registrarAudit } from '@/lib/audit'
+import { verificarLimiteIA, registrarUsoIA } from '@/lib/ai/rate-limit'
 
 // ─── Job 1: Procesar documento ────────────────────────────────────────────────
 export const procesarDocumento = inngest.createFunction(
@@ -21,6 +22,13 @@ export const procesarDocumento = inngest.createFunction(
     const doc = await step.run('obtener-documento', async () => {
       const { data, error } = await admin.from('documento').select('*').eq('id', documento_id).single()
       if (error || !data) throw new Error('Documento no encontrado')
+
+      const limite = await verificarLimiteIA(data.proyecto_id, 'clasificar')
+      if (!limite.permitido) {
+        await admin.from('documento').update({ estado_procesamiento: 'error' }).eq('id', documento_id)
+        throw new Error(limite.mensaje)
+      }
+
       await admin.from('documento').update({ estado_procesamiento: 'procesando' }).eq('id', documento_id)
       return data
     })
@@ -52,8 +60,18 @@ export const procesarDocumento = inngest.createFunction(
       step.run('resumir', () => resumirDocumento(texto)),
     ])
 
+    await step.run('registrar-uso-clasificar', () =>
+      registrarUsoIA({ proyecto_id: doc.proyecto_id, usuario_id, tipo: 'clasificar', tokens_input: 2048, tokens_output: 512 })
+    )
+    await step.run('registrar-uso-resumir', () =>
+      registrarUsoIA({ proyecto_id: doc.proyecto_id, usuario_id, tipo: 'resumir', tokens_input: 4000, tokens_output: 2000 })
+    )
+
     const embedding = await step.run('embedding', () =>
       generarEmbedding(texto, 'document').catch(() => null)
+    )
+    await step.run('registrar-uso-embedding', () =>
+      registrarUsoIA({ proyecto_id: doc.proyecto_id, usuario_id, tipo: 'embedding' })
     )
 
     await step.run('guardar', async () => {
@@ -94,6 +112,10 @@ export const discoveryAI = inngest.createFunction(
     const { proyecto, documentos } = await step.run('cargar-datos', async () => {
       const { data: proyecto } = await admin.from('proyecto').select('*, cliente(*)').eq('id', proyecto_id).single()
       if (!proyecto) throw new Error('Proyecto no encontrado')
+
+      const limite = await verificarLimiteIA(proyecto_id, 'discovery')
+      if (!limite.permitido) throw new Error(limite.mensaje)
+
       const { data: documentos } = await admin
         .from('documento')
         .select('id, nombre_archivo, resumen_ejecutivo, clasificacion')
@@ -135,6 +157,10 @@ export const discoveryAI = inngest.createFunction(
         )
       }
     })
+
+    await step.run('registrar-uso-discovery', () =>
+      registrarUsoIA({ proyecto_id, usuario_id, tipo: 'discovery', tokens_input: 8000, tokens_output: 4000 })
+    )
 
     await step.run('guardar-resumen', async () => {
       await admin.from('proyecto').update({ discovery_resumen: resultado }).eq('id', proyecto_id)
