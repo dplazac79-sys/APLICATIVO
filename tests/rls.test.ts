@@ -7,7 +7,8 @@
  */
 
 import { createClient } from '@supabase/supabase-js'
-import ws from 'ws'
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const ws = require('ws')
 import * as dotenv from 'dotenv'
 import * as path from 'path'
 
