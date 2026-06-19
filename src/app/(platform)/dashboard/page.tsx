@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Building2, FileText, FolderOpen, Sparkles } from 'lucide-react'
 import Link from 'next/link'
 import FaseWorkflow from '@/components/fases/FaseWorkflow'
+import { getFasesProyecto } from '@/lib/fases'
 
 export default async function DashboardPage() {
   const supabase = createClient()
@@ -29,9 +30,8 @@ export default async function DashboardPage() {
     supabase.from('documento').select('*', { count: 'exact', head: true }),
   ])
 
-  // Cargar proyecto activo para workflow de fases
   const proyectoIds = (usuario?.usuario_proyecto ?? []).map((up: { proyecto_id: string }) => up.proyecto_id)
-  let proyecto = null
+  let proyectoMeta = null
   let fases = null
 
   if (proyectoIds.length > 0) {
@@ -44,16 +44,10 @@ export default async function DashboardPage() {
       .limit(1)
       .single()
 
-    proyecto = p
-
-    if (proyecto) {
-      const appUrl = process.env.APP_URL ?? 'http://localhost:3000'
-      try {
-        const res = await fetch(`${appUrl}/api/proyectos/${proyecto.id}/fases`, {
-          cache: 'no-store',
-        })
-        if (res.ok) fases = (await res.json()).fases
-      } catch { /* continuar sin fases */ }
+    if (p) {
+      proyectoMeta = p
+      const result = await getFasesProyecto(p.id)
+      fases = result.fases
     }
   }
 
@@ -68,9 +62,7 @@ export default async function DashboardPage() {
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-bold text-white">Dashboard</h1>
-          <p className="text-slate-400 text-sm mt-1">
-            Bienvenido, {usuario?.nombre}
-          </p>
+          <p className="text-slate-400 text-sm mt-1">Bienvenido, {usuario?.nombre}</p>
         </div>
         <Link
           href="/bienvenida"
@@ -80,7 +72,6 @@ export default async function DashboardPage() {
         </Link>
       </div>
 
-      {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {stats.map(stat => {
           const Icon = stat.icon
@@ -102,21 +93,18 @@ export default async function DashboardPage() {
         })}
       </div>
 
-      {/* Workflow de fases */}
-      {proyecto && fases ? (
-        <div className="space-y-4">
-          <Card className="bg-slate-900 border-slate-800">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-white text-base flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-indigo-400" />
-                Progreso metodológico — {proyecto.nombre}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <FaseWorkflow fases={fases} />
-            </CardContent>
-          </Card>
-        </div>
+      {proyectoMeta && fases ? (
+        <Card className="bg-slate-900 border-slate-800">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-white text-base flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-indigo-400" />
+              Progreso metodológico — {proyectoMeta.nombre}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <FaseWorkflow fases={fases} />
+          </CardContent>
+        </Card>
       ) : (
         <Card className="bg-slate-900 border-slate-800">
           <CardContent className="p-8 text-center">
