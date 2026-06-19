@@ -275,11 +275,35 @@ export default function LoginPage() {
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: '#04060f', fontFamily: 'system-ui, -apple-system, sans-serif', position: 'relative' }}>
 
+      {/* ── Media queries responsivas ── */}
+      <style>{`
+        .login-header-status { display: flex; }
+        .login-flow { display: flex; }
+        .login-grid { display: grid; grid-template-columns: 1fr auto; gap: 80px; }
+        .login-form-wrap { width: 400px; flex-shrink: 0; }
+        .login-footer { display: flex; }
+        .login-footer-links { display: flex; }
+        @media (max-width: 900px) {
+          .login-header-status { display: none !important; }
+          .login-flow { display: none !important; }
+          .login-grid { grid-template-columns: 1fr !important; gap: 36px !important; }
+          .login-form-wrap { width: 100% !important; max-width: 480px; margin: 0 auto; }
+          .login-left-caps { display: none !important; }
+          .login-trustbar { display: none !important; }
+        }
+        @media (max-width: 600px) {
+          .login-footer { flex-direction: column !important; align-items: center; gap: 8px; text-align: center; }
+          .login-footer-links { flex-wrap: wrap; justify-content: center; gap: 16px !important; }
+          .login-header { padding: 14px 20px !important; }
+          .login-main { padding: 24px 20px !important; }
+        }
+      `}</style>
+
       <BackgroundOrbs />
       <ParticleCanvas />
 
       {/* ── Header ── */}
-      <header style={{ borderBottom: '1px solid rgba(255,255,255,0.04)', padding: '16px 32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'relative', zIndex: 10 }}>
+      <header className="login-header" style={{ borderBottom: '1px solid rgba(255,255,255,0.04)', padding: '16px 32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'relative', zIndex: 10 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
           <svg width="38" height="38" viewBox="0 0 38 38" fill="none" xmlns="http://www.w3.org/2000/svg">
             <rect width="38" height="38" rx="10" fill="#04060f"/>
@@ -308,7 +332,7 @@ export default function LoginPage() {
             <span style={{ color: '#334155', fontSize: 10, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase' }}>by AICOUNTS CONSULTORES</span>
           </div>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        <div className="login-header-status" style={{ alignItems: 'center', gap: 6 }}>
           <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#22c55e', display: 'inline-block', boxShadow: '0 0 8px #22c55e', animation: 'ping 2.5s ease-in-out infinite' }} />
           <span style={{ color: '#475569', fontSize: 11 }}>Sistemas operativos</span>
           <span style={{ color: '#1e293b', margin: '0 8px' }}>|</span>
@@ -317,15 +341,15 @@ export default function LoginPage() {
       </header>
 
       {/* ── Main ── */}
-      <main style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 32px', position: 'relative', zIndex: 10, gap: 48 }}>
+      <main className="login-main" style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 32px', position: 'relative', zIndex: 10, gap: 48 }}>
 
         {/* Diagrama de flujo animado — centrado arriba del contenido */}
-        <div style={{ animation: 'textIn 0.8s ease both', animationDelay: '0.1s' }}>
+        <div className="login-flow" style={{ animation: 'textIn 0.8s ease both', animationDelay: '0.1s' }}>
           <FlowDiagram />
         </div>
 
-        {/* Contenido principal en dos columnas */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 80, width: '100%', maxWidth: 1300, alignItems: 'center' }}>
+        {/* Contenido principal — dos columnas en desktop, una en móvil */}
+        <div className="login-grid" style={{ width: '100%', maxWidth: 1300, alignItems: 'center' }}>
 
           {/* ── LEFT ── */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
@@ -367,7 +391,7 @@ export default function LoginPage() {
             </p>
 
             {/* 3 capacidades */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+            <div className="login-left-caps" style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
               {[
                 { icon: '★', color: '#38bdf8', title: 'IA que documenta por ti.', desc: 'Carga tu documentación y la IA genera el inventario completo de procesos, detecta brechas y calcula oportunidades de mejora — en horas, no en meses.', delay: '0.6s' },
                 { icon: '→', color: '#818cf8', title: 'Del proceso al ROI en tiempo real.', desc: 'Cada proceso analizado entrega automáticamente su análisis de impacto financiero, riesgos operacionales y KPIs proyectados — aprobados digitalmente.', delay: '0.75s' },
@@ -391,7 +415,7 @@ export default function LoginPage() {
             </div>
 
             {/* Trust bar */}
-            <div style={{ display: 'flex', gap: 32, paddingTop: 8, animation: 'textIn 0.6s ease both', animationDelay: '1.05s' }}>
+            <div className="login-trustbar" style={{ display: 'flex', gap: 32, paddingTop: 8, animation: 'textIn 0.6s ease both', animationDelay: '1.05s' }}>
               {[
                 { value: '10×', label: 'más rápido que consultoría tradicional' },
                 { value: '< 48h', label: 'del diagnóstico al plan de implementación' },
@@ -408,7 +432,7 @@ export default function LoginPage() {
           </div>
 
           {/* ── RIGHT — Formulario ── */}
-          <div style={{ width: 400, animation: 'textIn 0.8s ease both', animationDelay: '0.3s', flexShrink: 0 }}>
+          <div className="login-form-wrap" style={{ animation: 'textIn 0.8s ease both', animationDelay: '0.3s' }}>
             <div style={{
               background: 'rgba(8,12,24,0.85)', border: '1px solid rgba(255,255,255,0.08)',
               borderRadius: 20, padding: '36px 32px',
@@ -530,9 +554,9 @@ export default function LoginPage() {
       </main>
 
       {/* ── Footer ── */}
-      <footer style={{ borderTop: '1px solid rgba(255,255,255,0.03)', padding: '14px 32px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'relative', zIndex: 10 }}>
+      <footer className="login-footer" style={{ borderTop: '1px solid rgba(255,255,255,0.03)', padding: '14px 32px', justifyContent: 'space-between', alignItems: 'center', position: 'relative', zIndex: 10 }}>
         <span style={{ color: '#1e293b', fontSize: 11 }}>© 2026 AICOUNTS CONSULTORES. Todos los derechos reservados.</span>
-        <div style={{ display: 'flex', gap: 24 }}>
+        <div className="login-footer-links" style={{ display: 'flex', gap: 24 }}>
           {['Privacidad', 'EULA', 'Soporte'].map(link => (
             <a key={link} href="#" style={{ color: '#1e293b', fontSize: 11, textDecoration: 'none', transition: 'color 0.15s' }}
               onMouseEnter={e => ((e.target as HTMLElement).style.color = '#475569')}
