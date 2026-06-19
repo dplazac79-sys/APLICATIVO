@@ -12,6 +12,7 @@ import {
   SelectTrigger,
 } from '@/components/ui/select'
 import { Upload, X, CheckCircle2, Loader2 } from 'lucide-react'
+import { toast } from 'sonner'
 
 interface Proyecto {
   id: string
@@ -43,7 +44,6 @@ export default function DocumentUploader({ proyectos }: Props) {
   const [files, setFiles] = useState<File[]>([])
   const [uploading, setUploading] = useState(false)
   const [done, setDone] = useState(0)
-  const [error, setError] = useState('')
 
   function handleProyectoChange(v: string) {
     setProyectoId(v)
@@ -71,12 +71,9 @@ export default function DocumentUploader({ proyectos }: Props) {
 
   async function handleUpload() {
     const pid = proyectoIdRef.current || proyectoId
-    if (!pid || files.length === 0) {
-      setError(!pid ? 'Selecciona un proyecto primero' : 'Selecciona al menos un archivo')
-      return
-    }
+    if (!pid) { toast.error('Selecciona un proyecto primero'); return }
+    if (files.length === 0) { toast.error('Selecciona al menos un archivo'); return }
     setUploading(true)
-    setError('')
     setDone(0)
 
     for (const file of files) {
@@ -87,7 +84,7 @@ export default function DocumentUploader({ proyectos }: Props) {
         .upload(path, file)
 
       if (storageError) {
-        setError(`Error: ${storageError.message}`)
+        toast.error(`Error al subir ${file.name}: ${storageError.message}`)
         continue
       }
 
@@ -104,11 +101,12 @@ export default function DocumentUploader({ proyectos }: Props) {
 
       if (!res.ok) {
         const data = await res.json().catch(() => ({}))
-        setError(`Error al registrar: ${data.error ?? 'desconocido'}`)
+        toast.error(`Error al registrar ${file.name}: ${data.error ?? 'error desconocido'}`)
         continue
       }
 
       setDone(prev => prev + 1)
+      toast.success(`${file.name} cargado — procesando con IA en segundo plano`)
     }
 
     setFiles([])
@@ -176,8 +174,6 @@ export default function DocumentUploader({ proyectos }: Props) {
             {done} archivo{done !== 1 ? 's' : ''} cargado{done !== 1 ? 's' : ''} correctamente
           </div>
         )}
-
-        {error && <p className="text-red-400 text-sm">{error}</p>}
 
         <Button
           onClick={handleUpload}

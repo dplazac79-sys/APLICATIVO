@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select'
 import { Sparkles, Zap } from 'lucide-react'
+import { toast } from 'sonner'
 
 interface Props {
   proyectos: { id: string; nombre: string }[]
@@ -23,7 +24,6 @@ export default function DiscoveryAcciones({ proyectos }: Props) {
   const [proyectoId, setProyectoId] = useState('')
   const [proyectoNombre, setProyectoNombre] = useState('')
   const [cargando, setCargando] = useState(false)
-  const [error, setError] = useState<string | null>(null)
   const [etapaIdx, setEtapaIdx] = useState(0)
   const [segundos, setSegundos] = useState(0)
   const pollRef = useRef<NodeJS.Timeout | null>(null)
@@ -46,7 +46,6 @@ export default function DiscoveryAcciones({ proyectos }: Props) {
   async function ejecutarDiscovery() {
     if (!proyectoId) return
     setCargando(true)
-    setError(null)
     setEtapaIdx(0)
     setSegundos(0)
 
@@ -67,16 +66,17 @@ export default function DiscoveryAcciones({ proyectos }: Props) {
         if (!r.ok) return
         if (d.job.estado === 'listo') {
           limpiarTimers()
+          toast.success('Discovery AI completado — inventario de procesos generado')
           window.location.reload()
         } else if (d.job.estado === 'error') {
           limpiarTimers()
-          setError(d.job.error_mensaje ?? 'Error al generar el inventario')
+          toast.error(d.job.error_mensaje ?? 'Error al generar el inventario de procesos')
           setCargando(false)
         }
       }, 3000)
     } catch (err) {
       limpiarTimers()
-      setError(err instanceof Error ? err.message : 'Error desconocido')
+      toast.error(err instanceof Error ? err.message : 'Error inesperado al iniciar Discovery')
       setCargando(false)
     }
   }
@@ -127,7 +127,6 @@ export default function DiscoveryAcciones({ proyectos }: Props) {
           Ejecutar Discovery AI
         </Button>
       </div>
-      {error && <p className="text-red-400 text-xs">{error}</p>}
     </div>
   )
 }

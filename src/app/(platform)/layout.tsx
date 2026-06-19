@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import AppShell from '@/components/layout/AppShell'
+import { Toaster } from 'sonner'
 
 export default async function PlatformLayout({
   children,
@@ -42,6 +43,13 @@ export default async function PlatformLayout({
   return (
     <AppShell usuario={usuario} rol={usuario?.rol ?? 'usuario_cliente'}>
       {children}
+      <Toaster
+        position="bottom-right"
+        theme="dark"
+        richColors
+        closeButton
+        toastOptions={{ duration: 5000 }}
+      />
     </AppShell>
   )
 }
