@@ -1,4 +1,6 @@
+import { redirect } from 'next/navigation'
 import Link from 'next/link'
+import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -12,7 +14,16 @@ const MADUREZ_COLOR: Record<string, string> = {
 
 export const dynamic = 'force-dynamic'
 
+const ROLES_INTERNOS = ['super_admin', 'director_proyecto', 'consultor']
+
 export default async function ClientesPage() {
+  // Protección de ruta — solo roles internos
+  const supabaseAuth = createClient()
+  const { data: { user } } = await supabaseAuth.auth.getUser()
+  if (!user) redirect('/login')
+  const { data: usuario } = await supabaseAuth.from('usuario').select('rol').eq('id', user.id).single()
+  if (!usuario || !ROLES_INTERNOS.includes(usuario.rol)) redirect('/portal')
+
   const supabase = createAdminClient()
   const { data: clientes } = await supabase
     .from('cliente')
