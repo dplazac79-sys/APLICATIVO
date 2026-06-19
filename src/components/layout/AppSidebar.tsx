@@ -17,6 +17,7 @@ import {
   LayoutDashboard,
   UserCircle,
   X,
+  Sparkles,
 } from 'lucide-react'
 
 interface NavItem {
@@ -30,6 +31,7 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { label: 'Mi Portal', href: '/portal', icon: UserCircle, roles: ['sponsor_cliente', 'usuario_cliente'] },
+  { label: 'Bienvenida', href: '/bienvenida', icon: Sparkles, roles: ['super_admin', 'director_proyecto', 'consultor', 'sponsor_cliente', 'usuario_cliente'] },
   { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, roles: ['super_admin', 'director_proyecto', 'consultor', 'sponsor_cliente', 'usuario_cliente'] },
   { label: 'Clientes e Industrias', href: '/clientes', icon: Building2, roles: ['super_admin', 'director_proyecto', 'consultor'] },
   { label: 'Centro Documental', href: '/documentos', icon: FileText, roles: ['super_admin', 'director_proyecto', 'consultor', 'sponsor_cliente'] },

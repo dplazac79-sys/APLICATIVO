@@ -1,6 +1,11 @@
+export const dynamic = 'force-dynamic'
+
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Building2, FileText, FolderOpen, Activity } from 'lucide-react'
+import { Building2, FileText, FolderOpen, Sparkles } from 'lucide-react'
+import Link from 'next/link'
+import FaseWorkflow from '@/components/fases/FaseWorkflow'
 
 export default async function DashboardPage() {
   const supabase = createClient()
@@ -8,9 +13,11 @@ export default async function DashboardPage() {
 
   const { data: usuario } = await supabase
     .from('usuario')
-    .select('*, usuario_proyecto(proyecto_id)')
+    .select('nombre, rol, usuario_proyecto(proyecto_id)')
     .eq('id', user!.id)
     .single()
+
+  const admin = createAdminClient()
 
   const [
     { count: clientesCount },
@@ -22,37 +29,55 @@ export default async function DashboardPage() {
     supabase.from('documento').select('*', { count: 'exact', head: true }),
   ])
 
+  // Cargar proyecto activo para workflow de fases
+  const proyectoIds = (usuario?.usuario_proyecto ?? []).map((up: { proyecto_id: string }) => up.proyecto_id)
+  let proyecto = null
+  let fases = null
+
+  if (proyectoIds.length > 0) {
+    const { data: p } = await admin
+      .from('proyecto')
+      .select('id, nombre, estado_general, cliente:cliente_id(razon_social)')
+      .in('id', proyectoIds)
+      .eq('estado_general', 'activo')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single()
+
+    proyecto = p
+
+    if (proyecto) {
+      const appUrl = process.env.APP_URL ?? 'http://localhost:3000'
+      try {
+        const res = await fetch(`${appUrl}/api/proyectos/${proyecto.id}/fases`, {
+          cache: 'no-store',
+        })
+        if (res.ok) fases = (await res.json()).fases
+      } catch { /* continuar sin fases */ }
+    }
+  }
+
   const stats = [
-    {
-      label: 'Clientes',
-      value: clientesCount ?? 0,
-      icon: Building2,
-      color: 'text-indigo-400',
-      bg: 'bg-indigo-950/50',
-    },
-    {
-      label: 'Proyectos activos',
-      value: proyectosCount ?? 0,
-      icon: FolderOpen,
-      color: 'text-emerald-400',
-      bg: 'bg-emerald-950/50',
-    },
-    {
-      label: 'Documentos',
-      value: documentosCount ?? 0,
-      icon: FileText,
-      color: 'text-amber-400',
-      bg: 'bg-amber-950/50',
-    },
+    { label: 'Clientes', value: clientesCount ?? 0, icon: Building2, color: 'text-indigo-400', bg: 'bg-indigo-950/50' },
+    { label: 'Proyectos activos', value: proyectosCount ?? 0, icon: FolderOpen, color: 'text-emerald-400', bg: 'bg-emerald-950/50' },
+    { label: 'Documentos', value: documentosCount ?? 0, icon: FileText, color: 'text-amber-400', bg: 'bg-amber-950/50' },
   ]
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-white">Dashboard</h1>
-        <p className="text-slate-400 text-sm mt-1">
-          Bienvenido, {usuario?.nombre}
-        </p>
+    <div className="space-y-6 max-w-5xl">
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div>
+          <h1 className="text-2xl font-bold text-white">Dashboard</h1>
+          <p className="text-slate-400 text-sm mt-1">
+            Bienvenido, {usuario?.nombre}
+          </p>
+        </div>
+        <Link
+          href="/bienvenida"
+          className="flex items-center gap-2 text-sm text-indigo-400 hover:text-indigo-300 border border-indigo-500/30 px-3 py-1.5 rounded-lg hover:bg-indigo-500/10 transition-colors"
+        >
+          <Sparkles className="w-3.5 h-3.5" /> Ver pantalla de bienvenida
+        </Link>
       </div>
 
       {/* Stats */}
@@ -77,57 +102,35 @@ export default async function DashboardPage() {
         })}
       </div>
 
-      {/* Estado de construcción */}
-      <Card className="bg-slate-900 border-slate-800">
-        <CardHeader>
-          <CardTitle className="text-white flex items-center gap-2">
-            <Activity className="w-5 h-5 text-indigo-400" />
-            Roadmap de implementación ProcessOS
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            {[
-              { fase: 1, nombre: 'Fundación & Clientes', estado: 'completado', modulos: 'Clientes, RBAC, MFA, Auditoría' },
-              { fase: 2, nombre: 'IA de Descubrimiento', estado: 'completado', modulos: 'Centro Documental, RAG, Process Discovery AI' },
-              { fase: 3, nombre: 'Artefactos Inteligentes', estado: 'completado', modulos: 'Process Architect, 12 Artefactos IA' },
-              { fase: 4, nombre: 'Gestión de Proyecto', estado: 'completado', modulos: 'PCC, Workflow, KPIs, Riesgos, Reuniones' },
-              { fase: 5, nombre: 'Simulación de Impacto', estado: 'completado', modulos: 'Horizonte de Impacto, Simulaciones, Export PDF' },
-              { fase: 6, nombre: 'Automation Studio', estado: 'completado', modulos: 'Recomendaciones IA, Roadmap, Knowledge Graph' },
-            ].map(f => (
-              <div key={f.fase} className="flex items-center gap-4">
-                <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
-                  f.estado === 'completado'
-                    ? 'bg-emerald-600 text-white'
-                    : f.estado === 'en_curso'
-                    ? 'bg-indigo-600 text-white'
-                    : 'bg-slate-800 text-slate-500'
-                }`}>
-                  {f.fase}
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <span className={`text-sm font-medium ${f.estado !== 'pendiente' ? 'text-white' : 'text-slate-500'}`}>
-                      Fase {f.fase} — {f.nombre}
-                    </span>
-                    {f.estado === 'completado' && (
-                      <span className="text-xs bg-emerald-600/20 text-emerald-400 px-2 py-0.5 rounded-full">
-                        Completado
-                      </span>
-                    )}
-                    {f.estado === 'en_curso' && (
-                      <span className="text-xs bg-indigo-600/20 text-indigo-400 px-2 py-0.5 rounded-full">
-                        En curso
-                      </span>
-                    )}
-                  </div>
-                  <p className={`text-xs ${f.estado !== 'pendiente' ? 'text-slate-400' : 'text-slate-600'}`}>{f.modulos}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+      {/* Workflow de fases */}
+      {proyecto && fases ? (
+        <div className="space-y-4">
+          <Card className="bg-slate-900 border-slate-800">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-white text-base flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-indigo-400" />
+                Progreso metodológico — {proyecto.nombre}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <FaseWorkflow fases={fases} />
+            </CardContent>
+          </Card>
+        </div>
+      ) : (
+        <Card className="bg-slate-900 border-slate-800">
+          <CardContent className="p-8 text-center">
+            <p className="text-slate-500 text-sm">
+              Sin proyecto activo asignado.{' '}
+              {usuario?.rol === 'super_admin' && (
+                <Link href="/admin/onboarding" className="text-indigo-400 hover:underline">
+                  Crear cliente y proyecto
+                </Link>
+              )}
+            </p>
+          </CardContent>
+        </Card>
+      )}
     </div>
   )
 }
