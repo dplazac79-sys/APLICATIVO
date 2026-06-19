@@ -107,57 +107,109 @@ export default function LoginPage() {
       <main className="flex-1 flex flex-col lg:flex-row max-w-[1400px] w-full mx-auto px-8 py-16 lg:py-0 gap-16 lg:gap-24 items-center">
 
         {/* ────── LEFT ────── */}
-        <div className="w-full lg:w-1/2 flex flex-col gap-14 lg:py-24">
+        <div className="w-full lg:w-1/2 flex flex-col gap-12 lg:py-20">
 
-          {/* Eyebrow */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div style={{ width: 28, height: 1, background: '#1d4ed8' }} />
-            <span style={{ color: '#60a5fa', fontSize: 11, fontWeight: 600, letterSpacing: '0.14em', textTransform: 'uppercase' }}>
+          {/* Eyebrow — más grande y con borde */}
+          <div style={{
+            display: 'inline-flex', alignItems: 'center', gap: 12,
+            border: '1px solid rgba(56,189,248,0.2)',
+            borderRadius: 100, padding: '8px 18px', width: 'fit-content',
+            background: 'rgba(56,189,248,0.04)',
+          }}>
+            <span style={{
+              width: 7, height: 7, borderRadius: '50%',
+              background: '#38bdf8', display: 'inline-block',
+              boxShadow: '0 0 8px #38bdf8',
+            }} />
+            <span style={{ color: '#7dd3fc', fontSize: 12, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase' }}>
               Consultoría Estratégica de Procesos
             </span>
           </div>
 
           {/* Headline */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-            <h1 style={{ fontSize: 'clamp(36px, 4.5vw, 64px)', fontWeight: 800, lineHeight: 1.08, color: '#f8fafc', letterSpacing: '-0.02em', margin: 0 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+            <h1 style={{ fontSize: 'clamp(40px, 5vw, 68px)', fontWeight: 900, lineHeight: 1.05, color: '#f8fafc', letterSpacing: '-0.03em', margin: 0 }}>
               El estándar operativo<br />
               de las organizaciones<br />
-              <span style={{ color: '#38bdf8' }}>que lideran.</span>
+              <span style={{
+                background: 'linear-gradient(90deg, #38bdf8, #818cf8)',
+                WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+              }}>que lideran.</span>
             </h1>
-            <p style={{ color: '#64748b', fontSize: 16, lineHeight: 1.7, maxWidth: 460, margin: 0, fontWeight: 400 }}>
-              Metodología de seis fases que convierte documentación dispersa en arquitecturas de procesos accionables, con medición de impacto desde el primer día.
+            <p style={{ color: '#64748b', fontSize: 17, lineHeight: 1.75, maxWidth: 480, margin: 0, fontWeight: 400 }}>
+              La primera plataforma de inteligencia artificial que transforma
+              documentación operacional en arquitecturas de procesos accionables,
+              con impacto medible desde el primer día.
             </p>
           </div>
 
-          {/* Métricas */}
-          <div style={{ display: 'flex', gap: 0 }}>
+          {/* Separador */}
+          <div style={{ width: 48, height: 1, background: 'rgba(56,189,248,0.3)' }} />
+
+          {/* Tres capacidades revolucionarias */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
             {[
-              { value: '6',   label: 'Fases metodológicas' },
-              { value: '12',  label: 'Artefactos entregables' },
-              { value: '54',  label: 'Semanas de transformación' },
-            ].map((m, i) => (
-              <div key={m.label} style={{
-                flex: 1,
-                paddingLeft: i === 0 ? 0 : 28,
-                marginLeft: i === 0 ? 0 : 28,
-                borderLeft: i === 0 ? 'none' : '1px solid rgba(255,255,255,0.06)',
-              }}>
-                <div style={{ fontSize: 38, fontWeight: 800, color: '#f8fafc', letterSpacing: '-0.03em', lineHeight: 1 }}>{m.value}</div>
-                <div style={{ fontSize: 11, color: '#475569', marginTop: 6, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.08em' }}>{m.label}</div>
+              {
+                icon: (
+                  <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
+                    <path d="M8 1l1.5 4.5H14l-3.7 2.7 1.4 4.3L8 9.8l-3.7 2.7 1.4-4.3L2 5.5h4.5L8 1z" fill="#38bdf8"/>
+                  </svg>
+                ),
+                title: 'IA que documenta por ti.',
+                desc: 'Carga tu documentación existente y la IA genera el inventario completo de procesos, detecta brechas y calcula oportunidades de mejora — en horas, no en meses.',
+              },
+              {
+                icon: (
+                  <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
+                    <path d="M2 8h12M8 2l4 6-4 6" stroke="#818cf8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                ),
+                title: 'Del proceso al ROI en tiempo real.',
+                desc: 'Cada proceso analizado entrega automáticamente su análisis de impacto financiero, riesgos operacionales y KPIs proyectados — validados y aprobados digitalmente.',
+              },
+              {
+                icon: (
+                  <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
+                    <circle cx="8" cy="8" r="6.5" stroke="#34d399" strokeWidth="1.4"/>
+                    <path d="M5 8l2 2 4-4" stroke="#34d399" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                ),
+                title: 'Implementación lista para ejecutar.',
+                desc: 'El sistema prioriza automáticamente qué automatizar primero (ERP, RPA, BPM) y genera el plan tecnológico con los sistemas exactos que necesita tu organización.',
+              },
+            ].map((item) => (
+              <div key={item.title} style={{ display: 'flex', alignItems: 'flex-start', gap: 16 }}>
+                <div style={{
+                  width: 32, height: 32, borderRadius: 8, flexShrink: 0,
+                  background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: 2,
+                }}>
+                  {item.icon}
+                </div>
+                <div>
+                  <p style={{ color: '#e2e8f0', fontSize: 14, fontWeight: 700, margin: '0 0 4px', letterSpacing: '-0.01em' }}>
+                    {item.title}
+                  </p>
+                  <p style={{ color: '#475569', fontSize: 13, lineHeight: 1.65, margin: 0 }}>
+                    {item.desc}
+                  </p>
+                </div>
               </div>
             ))}
           </div>
 
-          {/* Tres outcomes */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          {/* Trust bar */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 20, paddingTop: 8 }}>
             {[
-              'Inventario completo de procesos a partir de documentación existente',
-              'Análisis de impacto con KPIs y ROI calculado por inteligencia artificial',
-              'Plan de implementación tecnológica priorizado y aprobado digitalmente',
-            ].map((item) => (
-              <div key={item} style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
-                <div style={{ width: 4, height: 4, borderRadius: '50%', background: '#1d4ed8', marginTop: 8, flexShrink: 0 }} />
-                <span style={{ color: '#94a3b8', fontSize: 14, lineHeight: 1.6 }}>{item}</span>
+              { value: '10×', label: 'más rápido que consultoría tradicional' },
+              { value: '< 48h', label: 'del diagnóstico al plan' },
+            ].map((t, i) => (
+              <div key={t.label} style={{ display: 'flex', alignItems: 'center', gap: i === 0 ? 0 : 20 }}>
+                {i > 0 && <div style={{ width: 1, height: 28, background: 'rgba(255,255,255,0.06)', marginRight: 20 }} />}
+                <div>
+                  <div style={{ color: '#f8fafc', fontSize: 22, fontWeight: 800, letterSpacing: '-0.03em', lineHeight: 1 }}>{t.value}</div>
+                  <div style={{ color: '#334155', fontSize: 10, marginTop: 4, textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 600 }}>{t.label}</div>
+                </div>
               </div>
             ))}
           </div>
