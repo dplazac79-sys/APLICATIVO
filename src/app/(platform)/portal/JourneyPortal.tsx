@@ -354,7 +354,7 @@ function JourneyProceso({ procesoId, onCerrar }: { procesoId: string; onCerrar: 
               </div>
 
               {/* Sin proceso / Con proceso */}
-              <div className="grid sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="bg-red-950/20 border border-red-900/40 rounded-xl p-5">
                   <h3 className="font-semibold text-red-300 mb-3 flex items-center gap-2">
                     <AlertTriangle className="w-4 h-4" /> Sin este proceso
@@ -380,7 +380,7 @@ function JourneyProceso({ procesoId, onCerrar }: { procesoId: string; onCerrar: 
               )}
 
               {/* Actores y sistemas */}
-              <div className="grid sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {proceso.actores?.length > 0 && (
                   <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
                     <h3 className="text-sm font-semibold text-slate-300 mb-3 flex items-center gap-2">
@@ -496,7 +496,7 @@ function JourneyProceso({ procesoId, onCerrar }: { procesoId: string; onCerrar: 
                   <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
                     <BarChart3 className="w-5 h-5 text-amber-400" /> KPIs del proceso
                   </h2>
-                  <div className="grid sm:grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {proceso.kpis.map((kpi, i) => (
                       <div key={i} className="bg-slate-900 border border-slate-800 rounded-xl p-4">
                         <p className="text-sm font-medium text-slate-200 mb-3">{kpi.nombre}</p>
@@ -579,7 +579,7 @@ function JourneyProceso({ procesoId, onCerrar }: { procesoId: string; onCerrar: 
                     <h3 className="font-semibold text-slate-200 mb-4 flex items-center gap-2">
                       <Rocket className="w-5 h-5 text-indigo-400" /> ¿Qué hacemos ahora?
                     </h3>
-                    <div className="grid sm:grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <button
                         onClick={onCerrar}
                         className="flex flex-col items-start gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-4 rounded-xl transition-colors text-left"

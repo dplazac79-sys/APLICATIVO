@@ -49,7 +49,7 @@ export default async function BienvenidaPage() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-8 py-2">
-      <div className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-indigo-950/30 to-slate-900 border border-indigo-500/20 rounded-2xl p-8">
+      <div className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-indigo-950/30 to-slate-900 border border-indigo-500/20 rounded-2xl p-4 md:p-8">
         <div className="absolute inset-0 opacity-20 pointer-events-none">
           <div className="absolute top-0 left-1/4 w-64 h-64 bg-indigo-500 rounded-full blur-3xl" />
           <div className="absolute bottom-0 right-1/4 w-48 h-48 bg-violet-500 rounded-full blur-3xl" />
@@ -88,7 +88,7 @@ export default async function BienvenidaPage() {
           </div>
 
           {proyectoMeta && fases && (
-            <div className="grid grid-cols-3 gap-4 mt-8 pt-6 border-t border-slate-800">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-8 pt-6 border-t border-slate-800">
               {[
                 {
                   label: 'Fase actual',
@@ -128,7 +128,7 @@ export default async function BienvenidaPage() {
           <FaseWorkflow fases={fases} />
         </div>
       ) : (
-        <div className="bg-slate-900 border border-slate-800 rounded-xl p-8 text-center space-y-4">
+        <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 md:p-8 text-center space-y-4">
           <div className="w-14 h-14 bg-indigo-950 rounded-2xl flex items-center justify-center mx-auto text-2xl">🏗️</div>
           <div>
             <h3 className="text-white font-semibold">Sin proyecto asignado</h3>

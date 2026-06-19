@@ -71,7 +71,7 @@ export default async function ArtefactosPage() {
       const hayIncompletos = generados < total
 
       return (
-        <div key={p.id} style={{ marginLeft: nivel * 20 }}>
+        <div key={p.id} style={{ marginLeft: `${Math.min(nivel * 12, 48)}px` }}>
           <Link href={`/artefactos/${p.id}`} className="block">
             <div className={`flex items-center justify-between rounded-lg border px-3 py-2 mb-1.5 hover:opacity-80 transition-opacity cursor-pointer ${cfg.bg}`}>
               <div className="flex items-center gap-2 min-w-0">
@@ -121,7 +121,7 @@ export default async function ArtefactosPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         {[
           { label: 'Procesos aceptados', value: totalProcesosAceptados, color: 'text-white' },
           { label: 'Artefactos generados', value: totalArtefactos, color: 'text-purple-400' },

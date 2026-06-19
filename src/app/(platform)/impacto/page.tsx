@@ -218,9 +218,9 @@ export default function ImpactoPage() {
   }
 
   return (
-    <div className="flex h-full">
+    <div className="flex h-full relative">
       {/* Lista lateral */}
-      <aside className="w-72 border-r border-slate-800 flex flex-col bg-slate-900">
+      <aside className="hidden md:flex w-72 border-r border-slate-800 flex-col bg-slate-900 shrink-0">
         <div className="px-4 py-4 border-b border-slate-800">
           <div className="flex items-center gap-2 mb-3">
             <BarChart3 className="w-4 h-4 text-indigo-400" />
@@ -371,7 +371,7 @@ function FormularioSimulacion({
           )}
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="text-xs text-slate-400 mb-1 block">Tipo de motor</label>
             <select
@@ -422,7 +422,7 @@ function ParamEditor({ tipo, params, onChange }: { tipo: TipoSimulacion; params:
   const num = (key: string) => Number(p[key] ?? 0)
 
   if (tipo === 'operacional') return (
-    <div className="grid grid-cols-2 gap-3">
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
       <Field label="Tiempo ciclo AS-IS (horas)" value={num('tiempo_ciclo_asis_horas')} onChange={v => set('tiempo_ciclo_asis_horas', v)} />
       <Field label="Throughput AS-IS (unidades/día)" value={num('throughput_asis_unidades_dia')} onChange={v => set('throughput_asis_unidades_dia', v)} />
       <Field label="FTEs actuales" value={num('carga_trabajo_asis_ftes')} onChange={v => set('carga_trabajo_asis_ftes', v)} />
@@ -433,7 +433,7 @@ function ParamEditor({ tipo, params, onChange }: { tipo: TipoSimulacion; params:
   )
 
   if (tipo === 'financiera') return (
-    <div className="grid grid-cols-2 gap-3">
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
       <Field label="Costo operacional mensual (CLP)" value={num('costo_operacional_mensual_clp')} onChange={v => set('costo_operacional_mensual_clp', v)} step={100000} realPlaceholder />
       <Field label="Costo implementación (CLP)" value={num('costo_implementacion_clp')} onChange={v => set('costo_implementacion_clp', v)} step={500000} realPlaceholder />
       <Field label="Valor hora FTE (CLP)" value={num('valor_hora_clp')} onChange={v => set('valor_hora_clp', v)} step={1000} realPlaceholder />
@@ -445,7 +445,7 @@ function ParamEditor({ tipo, params, onChange }: { tipo: TipoSimulacion; params:
 
   const po = p as Record<string, unknown>
   return (
-    <div className="grid grid-cols-2 gap-3">
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
       <Field label="Headcount actual" value={num('headcount_actual')} onChange={v => set('headcount_actual', v)} />
       <Field label="FTEs a liberar (escenario base)" value={num('ftes_a_liberar_base')} onChange={v => set('ftes_a_liberar_base', v)} step={0.5} />
       <div className="col-span-2">
@@ -654,7 +654,7 @@ function ComparativoOperacional({ resultados, asis }: { resultados: Record<Escen
         ]}
         format={fmt}
       />
-      <div className="grid grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {ESCENARIOS_INTERMEDIOS.map(e => (
           <KpiCard key={e} color={ESCENARIO_COLOR[e]} label={e} value={`${fmt(resultados[e]?.ftes_liberados ?? 0)} FTEs liberados`} />
         ))}
@@ -676,7 +676,7 @@ function ComparativoFinanciera({ resultados }: { resultados: Record<Escenario, R
         ]}
         format={fmtCLP}
       />
-      <div className="grid grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {ESCENARIOS_INTERMEDIOS.map(e => (
           <KpiCard key={e} color={ESCENARIO_COLOR[e]} label={e}
             value={`ROI ${fmt(resultados[e]?.roi_pct ?? 0)}%`}
@@ -695,7 +695,7 @@ function ComparativoFinanciera({ resultados }: { resultados: Record<Escenario, R
 function ComparativoOrganizacional({ resultados, asis }: { resultados: Record<Escenario, ResultadoOrganizacional>; asis: ParametrosOrganizacional }) {
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {ESCENARIOS_INTERMEDIOS.map(e => (
           <KpiCard key={e} color={ESCENARIO_COLOR[e]} label={e}
             value={`${fmt(resultados[e]?.ftes_optimizados ?? 0)} FTEs`}
@@ -707,7 +707,7 @@ function ComparativoOrganizacional({ resultados, asis }: { resultados: Record<Es
           sub={`${fmt(resultados.optimista?.reduccion_dotacion_pct ?? 0)}% reducción`}
         />
       </div>
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {([...ESCENARIOS_INTERMEDIOS, 'optimista'] as Escenario[]).map(e => {
           const label = e === 'optimista' ? 'TO-BE / Optimista' : e
           const color = e === 'optimista' ? ESCENARIO_COLOR['TO-BE'] : ESCENARIO_COLOR[e]
@@ -765,18 +765,18 @@ function MetricTable({
       <p className="text-xs text-slate-400 mb-3 font-medium">{label}</p>
       {/* AS-IS */}
       <div className="flex items-center gap-3 mb-2">
-        <span className="text-xs w-28 shrink-0 font-medium" style={{ color: ESCENARIO_COLOR['AS-IS'] }}>{asisLabel}</span>
+        <span className="text-xs w-16 sm:w-28 shrink-0 font-medium" style={{ color: ESCENARIO_COLOR['AS-IS'] }}>{asisLabel}</span>
         <div className="flex-1 h-4 bg-slate-800 rounded-sm overflow-hidden">
           <div className="h-full rounded-sm" style={{ width: `${(asisValue / safeMax) * 100}%`, background: ESCENARIO_COLOR['AS-IS'] }} />
         </div>
-        <span className="text-xs text-slate-400 w-28 text-right shrink-0 font-medium">{format(asisValue)}</span>
+        <span className="text-xs text-slate-400 w-16 sm:w-28 text-right shrink-0 font-medium">{format(asisValue)}</span>
       </div>
       {rows.map(row => {
         const pct = (row.value / safeMax) * 100
         const isBetter = inverted ? row.value < asisValue : row.value > asisValue
         return (
           <div key={row.label} className="flex items-center gap-3 mb-2">
-            <span className="text-xs w-28 shrink-0 capitalize text-slate-500">{row.label}</span>
+            <span className="text-xs w-16 sm:w-28 shrink-0 capitalize text-slate-500">{row.label}</span>
             <div className="flex-1 h-4 bg-slate-800 rounded-sm overflow-hidden">
               <div className="h-full rounded-sm transition-all duration-300" style={{ width: `${pct}%`, background: row.color }} />
             </div>

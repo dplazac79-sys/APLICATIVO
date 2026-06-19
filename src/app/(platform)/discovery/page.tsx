@@ -105,7 +105,7 @@ export default async function DiscoveryPage() {
             </div>
 
             {/* Stats */}
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <Card className="bg-slate-900 border-slate-800">
                 <CardContent className="p-4">
                   <p className="text-slate-400 text-xs uppercase tracking-wider">Total procesos</p>

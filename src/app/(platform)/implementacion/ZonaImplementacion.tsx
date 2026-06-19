@@ -95,7 +95,7 @@ function ProcesoImplCard({ proceso }: { proceso: ProcesoAprobado }) {
         ) : (
           <>
             <p className="text-xs font-medium text-slate-400 mb-3">¿En qué sistema se implementa este proceso?</p>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
               {SISTEMAS_IMPL.map(s => (
                 <button
                   key={s.id}

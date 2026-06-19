@@ -89,7 +89,7 @@ export default async function ClienteDetallePage({ params }: { params: { id: str
             <Building2 className="w-4 h-4" /> Ficha 360°
           </CardTitle>
         </CardHeader>
-        <CardContent className="grid grid-cols-2 gap-4 text-sm">
+        <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
           {cliente.rut && (
             <div><p className="text-slate-500 text-xs">RUT</p><p className="text-slate-200">{cliente.rut}</p></div>
           )}
