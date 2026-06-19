@@ -1,3 +1,5 @@
+import { withSentryConfig } from '@sentry/nextjs'
+
 /** @type {import('next').NextConfig} */
 const securityHeaders = [
   { key: 'X-DNS-Prefetch-Control',  value: 'on' },
@@ -13,17 +15,15 @@ const securityHeaders = [
     key: 'Content-Security-Policy',
     value: [
       "default-src 'self'",
-      // Supabase realtime + auth
-      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.anthropic.com https://api.voyageai.com",
-      // Estilos inline de Tailwind + shadcn
+      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.anthropic.com https://api.voyageai.com https://*.sentry.io",
       "style-src 'self' 'unsafe-inline'",
-      // Scripts: Next.js necesita unsafe-inline en desarrollo; en prod se usa nonce
       "script-src 'self' 'unsafe-eval' 'unsafe-inline'",
       "img-src 'self' data: blob: https://*.supabase.co",
       "font-src 'self'",
       "frame-ancestors 'none'",
       "base-uri 'self'",
       "form-action 'self'",
+      "worker-src 'self' blob:",
     ].join('; '),
   },
 ]
@@ -33,8 +33,6 @@ const nextConfig = {
   eslint: { ignoreDuringBuilds: true },
   typescript: { ignoreBuildErrors: false },
   experimental: {
-    // @xenova/transformers usa binarios nativos (onnxruntime-node) que webpack
-    // no puede empaquetar — se mantienen como dependencias externas de Node.js
     serverComponentsExternalPackages: ['@xenova/transformers', 'onnxruntime-node', '@react-pdf/renderer'],
   },
   async headers() {
@@ -47,4 +45,12 @@ const nextConfig = {
   },
 }
 
-export default nextConfig
+export default withSentryConfig(nextConfig, {
+  org: process.env.SENTRY_ORG,
+  project: process.env.SENTRY_PROJECT,
+  silent: true,
+  widenClientFileUpload: true,
+  hideSourceMaps: true,
+  disableLogger: true,
+  automaticVercelMonitors: false,
+})
