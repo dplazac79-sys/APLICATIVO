@@ -10,6 +10,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { Menu } from 'lucide-react'
 import type { Usuario } from '@/types/database'
 
 const ROL_LABELS: Record<string, string> = {
@@ -22,9 +23,10 @@ const ROL_LABELS: Record<string, string> = {
 
 interface Props {
   usuario: Usuario | null
+  onMenuClick?: () => void
 }
 
-export default function AppHeader({ usuario }: Props) {
+export default function AppHeader({ usuario, onMenuClick }: Props) {
   const router = useRouter()
   const supabase = createClient()
 
@@ -42,8 +44,19 @@ export default function AppHeader({ usuario }: Props) {
     .toUpperCase() ?? 'U'
 
   return (
-    <header className="h-14 border-b border-slate-800 bg-slate-900 flex items-center justify-between px-6">
-      <div />
+    <header className="h-14 border-b border-slate-800 bg-slate-900 flex items-center justify-between px-4 md:px-6">
+      {/* Hamburger — solo móvil */}
+      <button
+        onClick={onMenuClick}
+        className="md:hidden p-2 rounded-md text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+        aria-label="Abrir menú"
+      >
+        <Menu className="w-5 h-5" />
+      </button>
+
+      {/* Spacer desktop */}
+      <div className="hidden md:block" />
+
       <div className="flex items-center gap-3">
         <DropdownMenu>
           <DropdownMenuTrigger className="flex items-center gap-2 py-1.5 px-2 rounded-md hover:bg-slate-800 outline-none">
@@ -52,7 +65,7 @@ export default function AppHeader({ usuario }: Props) {
                 {initials}
               </AvatarFallback>
             </Avatar>
-            <div className="text-left">
+            <div className="text-left hidden sm:block">
               <p className="text-sm text-slate-200 font-medium leading-tight">{usuario?.nombre ?? 'Usuario'}</p>
               <p className="text-xs text-slate-500 leading-tight">{ROL_LABELS[usuario?.rol ?? ''] ?? ''}</p>
             </div>
