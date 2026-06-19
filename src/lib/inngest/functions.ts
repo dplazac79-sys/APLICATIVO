@@ -323,7 +323,8 @@ export const analizarGlosarioRolesJob = inngest.createFunction(
         .select('nombre_persona, cargo_actual, texto_cv').eq('proyecto_id', proyecto_id)
       const { data: proy } = await admin.from('proyecto')
         .select('nombre, cliente(razon_social, industria)').eq('id', proyecto_id).single()
-      const cliente = proy?.cliente as Record<string, string> | null
+      const clienteRaw = proy?.cliente
+      const cliente = (Array.isArray(clienteRaw) ? clienteRaw[0] : clienteRaw) as { razon_social?: string; industria?: string } | null
       return {
         roles: (analisis?.roles_en_procesos ?? []) as RolProceso[],
         textoOrganigrama: org?.texto_extraido ?? '',
