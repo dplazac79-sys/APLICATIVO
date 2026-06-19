@@ -448,8 +448,8 @@ export default function LoginPage() {
       <BackgroundOrbs />
       <ParticleCanvas />
 
-      {/* ── Header ── */}
-      <header className="login-header" style={{ borderBottom: '1px solid rgba(255,255,255,0.04)', padding: '16px 32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'relative', zIndex: 10 }}>
+      {/* ── Header — oculto en mobile (logo va dentro del form) ── */}
+      <header className="login-header" style={{ borderBottom: '1px solid rgba(255,255,255,0.04)', padding: '16px 32px', display: isMobile ? 'none' : 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'relative', zIndex: 10 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
           <svg width="38" height="38" viewBox="0 0 38 38" fill="none" xmlns="http://www.w3.org/2000/svg">
             <rect width="38" height="38" rx="10" fill="#04060f"/>
@@ -487,7 +487,7 @@ export default function LoginPage() {
       </header>
 
       {/* ── Main ── */}
-      <main className="login-main" style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: isMobile ? '0' : '40px 32px', position: 'relative', zIndex: 10, gap: 48 }}>
+      <main className="login-main" style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: isMobile ? 'flex-start' : 'center', padding: isMobile ? '0' : '40px 32px', position: 'relative', zIndex: 10, gap: 48 }}>
 
         {/* Diagrama de flujo animado — solo desktop */}
         {!isMobile && (
@@ -568,20 +568,52 @@ export default function LoginPage() {
           {/* ── RIGHT — Formulario ── */}
           <div className="login-form-wrap" style={{ animation: 'textIn 0.8s ease both', animationDelay: '0.3s', width: isMobile ? '100%' : undefined }}>
             <div className="login-form-card" style={{
-              background: isMobile ? 'transparent' : 'rgba(8,12,24,0.85)',
+              background: isMobile ? 'rgba(4,6,15,0.55)' : 'rgba(8,12,24,0.85)',
               border: isMobile ? 'none' : '1px solid rgba(255,255,255,0.08)',
               borderRadius: isMobile ? 0 : 20,
-              padding: isMobile ? '40px 24px 48px' : '36px 32px',
-              backdropFilter: isMobile ? 'none' : 'blur(20px)',
+              padding: isMobile ? '56px 28px 48px' : '36px 32px',
+              backdropFilter: isMobile ? 'blur(12px)' : 'blur(20px)',
               position: 'relative', overflow: 'hidden',
+              ...(isMobile ? { minHeight: '100dvh' } : {}),
             }}>
               {/* Línea superior */}
               <div style={{ position: 'absolute', top: 0, left: '15%', right: '15%', height: 1, background: 'linear-gradient(90deg, transparent, rgba(56,189,248,0.5), transparent)' }} />
               {/* Glow esquina */}
               <div style={{ position: 'absolute', top: -60, right: -60, width: 200, height: 200, borderRadius: '50%', background: 'radial-gradient(circle, rgba(29,78,216,0.1) 0%, transparent 70%)', pointerEvents: 'none' }} />
 
+              {/* Logo inline — solo mobile */}
+              {isMobile && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 36 }}>
+                  <svg width="42" height="42" viewBox="0 0 38 38" fill="none">
+                    <rect width="38" height="38" rx="10" fill="#04060f"/>
+                    <rect width="38" height="38" rx="10" fill="url(#mLogoGrad)" fillOpacity="0.12"/>
+                    <rect x="0.5" y="0.5" width="37" height="37" rx="9.5" stroke="url(#mLogoGrad)" strokeOpacity="0.4"/>
+                    <circle cx="10" cy="19" r="3" fill="#38bdf8"/>
+                    <circle cx="19" cy="11" r="3" fill="url(#mLogoGrad)"/>
+                    <circle cx="19" cy="27" r="3" fill="url(#mLogoGrad)"/>
+                    <circle cx="28" cy="19" r="3" fill="#38bdf8"/>
+                    <line x1="13" y1="19" x2="16" y2="13" stroke="#1d4ed8" strokeWidth="1.2" strokeOpacity="0.8"/>
+                    <line x1="13" y1="19" x2="16" y2="25" stroke="#1d4ed8" strokeWidth="1.2" strokeOpacity="0.8"/>
+                    <line x1="22" y1="13" x2="25" y2="18" stroke="#0891b2" strokeWidth="1.2" strokeOpacity="0.8"/>
+                    <line x1="22" y1="25" x2="25" y2="20" stroke="#0891b2" strokeWidth="1.2" strokeOpacity="0.8"/>
+                    <defs>
+                      <linearGradient id="mLogoGrad" x1="0" y1="0" x2="38" y2="38" gradientUnits="userSpaceOnUse">
+                        <stop stopColor="#1d4ed8"/><stop offset="1" stopColor="#0891b2"/>
+                      </linearGradient>
+                    </defs>
+                  </svg>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 1 }}>
+                      <span style={{ color: '#f8fafc', fontWeight: 800, fontSize: 20, letterSpacing: '-0.03em' }}>Process</span>
+                      <span style={{ fontWeight: 800, fontSize: 20, letterSpacing: '-0.03em', background: 'linear-gradient(90deg,#38bdf8,#818cf8)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>OS</span>
+                    </div>
+                    <span style={{ color: '#334155', fontSize: 10, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase' }}>by AICOUNTS</span>
+                  </div>
+                </div>
+              )}
+
               <div style={{ marginBottom: isMobile ? 32 : 28 }}>
-                <h2 className="login-form-title" style={{ color: '#f8fafc', fontSize: isMobile ? 26 : 19, fontWeight: 700, margin: 0, letterSpacing: '-0.02em' }}>Acceso al portal</h2>
+                <h2 className="login-form-title" style={{ color: '#f8fafc', fontSize: isMobile ? 28 : 19, fontWeight: 800, margin: 0, letterSpacing: '-0.03em' }}>Acceso al portal</h2>
                 <p className="login-form-subtitle" style={{ color: '#475569', fontSize: isMobile ? 15 : 13, marginTop: 6, margin: '6px 0 0' }}>Ingresa tus credenciales corporativas</p>
               </div>
 
