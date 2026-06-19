@@ -487,7 +487,7 @@ export default function LoginPage() {
       </header>
 
       {/* ── Main ── */}
-      <main className="login-main" style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: isMobile ? 'stretch' : 'center', justifyContent: isMobile ? 'flex-start' : 'center', padding: isMobile ? '0' : '40px 32px', position: 'relative', zIndex: 10, gap: isMobile ? 0 : 48 }}>
+      <main className="login-main" style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: isMobile ? '0' : '40px 32px', position: 'relative', zIndex: 10, gap: 48 }}>
 
         {/* Diagrama de flujo animado — solo desktop */}
         {!isMobile && (
@@ -497,7 +497,7 @@ export default function LoginPage() {
         )}
 
         {/* Contenido principal — dos columnas en desktop, una en móvil */}
-        <div className="login-grid" style={{ width: '100%', maxWidth: 1300, alignItems: 'center' }}>
+        <div className="login-grid" style={{ width: '100%', maxWidth: isMobile ? '100%' : 1300, alignItems: 'center' }}>
 
           {/* ── LEFT ── */}
           <div className="login-left" style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
@@ -566,15 +566,14 @@ export default function LoginPage() {
           </div>
 
           {/* ── RIGHT — Formulario ── */}
-          <div className="login-form-wrap" style={{ animation: 'textIn 0.8s ease both', animationDelay: '0.3s', ...(isMobile ? { width: '100%' } : {}) }}>
+          <div className="login-form-wrap" style={{ animation: 'textIn 0.8s ease both', animationDelay: '0.3s', width: isMobile ? '100%' : undefined }}>
             <div className="login-form-card" style={{
-              background: 'rgba(8,12,24,0.85)',
+              background: isMobile ? 'transparent' : 'rgba(8,12,24,0.85)',
               border: isMobile ? 'none' : '1px solid rgba(255,255,255,0.08)',
-              borderTop: '1px solid rgba(255,255,255,0.08)',
               borderRadius: isMobile ? 0 : 20,
-              padding: isMobile ? '32px 22px 40px' : '36px 32px',
-              backdropFilter: 'blur(20px)', position: 'relative', overflow: 'hidden',
-              ...(isMobile ? { minHeight: 'calc(100dvh - 62px)', display: 'flex', flexDirection: 'column', justifyContent: 'center' } : {}),
+              padding: isMobile ? '40px 24px 48px' : '36px 32px',
+              backdropFilter: isMobile ? 'none' : 'blur(20px)',
+              position: 'relative', overflow: 'hidden',
             }}>
               {/* Línea superior */}
               <div style={{ position: 'absolute', top: 0, left: '15%', right: '15%', height: 1, background: 'linear-gradient(90deg, transparent, rgba(56,189,248,0.5), transparent)' }} />
