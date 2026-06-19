@@ -4,7 +4,8 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Users, Shield, Database, Activity } from 'lucide-react'
+import { Users, Shield, Database, Activity, Plus } from 'lucide-react'
+import Link from 'next/link'
 
 const ROL_LABEL: Record<string, string> = {
   super_admin: 'Super Admin',
@@ -56,9 +57,16 @@ export default async function AdminPage() {
 
   return (
     <div className="space-y-8 max-w-6xl">
-      <div>
-        <h1 className="text-2xl font-bold text-white">Administración del Sistema</h1>
-        <p className="text-slate-400 text-sm mt-1">Gestión de usuarios, accesos y auditoría — Solo Super Administrador</p>
+      <div className="flex items-center justify-between flex-wrap gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-white">Administración del Sistema</h1>
+          <p className="text-slate-400 text-sm mt-1">Gestión de usuarios, accesos y auditoría — Solo Super Administrador</p>
+        </div>
+        <Link href="/admin/onboarding">
+          <button className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">
+            <Plus className="w-4 h-4" /> Nuevo cliente
+          </button>
+        </Link>
       </div>
 
       {/* Stats */}
