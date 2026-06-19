@@ -242,6 +242,82 @@ function BackgroundOrbs() {
 }
 
 // ── Página principal ──────────────────────────────────────────────────────────
+const TRUST_ITEMS = [
+  { icon: '⚡', label: 'Velocidad real', desc: 'Inventario de procesos completo en horas, no en semanas.' },
+  { icon: '🎯', label: 'ROI desde el día 1', desc: 'Cada proceso entrega su impacto financiero proyectado.' },
+  { icon: '🔒', label: 'Seguridad enterprise', desc: 'RBAC, MFA y auditoría completa en cada acción.' },
+  { icon: '🤖', label: 'IA que trabaja por ti', desc: 'Claude AI analiza, clasifica y enriquece sin intervención manual.' },
+  { icon: '📊', label: 'Decisiones basadas en datos', desc: 'KPIs, riesgos y oportunidades calculados automáticamente.' },
+]
+
+function TrustCarousel() {
+  const [active, setActive] = useState(0)
+  const [visible, setVisible] = useState(true)
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setVisible(false)
+      setTimeout(() => {
+        setActive(prev => (prev + 1) % TRUST_ITEMS.length)
+        setVisible(true)
+      }, 400)
+    }, 3200)
+    return () => clearInterval(interval)
+  }, [])
+
+  const item = TRUST_ITEMS[active]
+
+  return (
+    <div className="login-trustbar" style={{ paddingTop: 8, animation: 'textIn 0.6s ease both', animationDelay: '1.05s' }}>
+      <style>{`
+        @keyframes trustFadeIn {
+          from { opacity: 0; transform: translateY(10px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes trustFadeOut {
+          from { opacity: 1; transform: translateY(0); }
+          to   { opacity: 0; transform: translateY(-10px); }
+        }
+      `}</style>
+
+      {/* Item animado */}
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 16,
+        padding: '16px 20px', borderRadius: 14,
+        background: 'rgba(255,255,255,0.03)',
+        border: '1px solid rgba(255,255,255,0.06)',
+        minHeight: 72, position: 'relative', overflow: 'hidden',
+        animation: visible ? 'trustFadeIn 0.4s ease both' : 'trustFadeOut 0.3s ease both',
+      }}>
+        {/* Línea top */}
+        <div style={{ position: 'absolute', top: 0, left: '20%', right: '20%', height: 1, background: 'linear-gradient(90deg, transparent, rgba(56,189,248,0.4), transparent)' }} />
+
+        <span style={{ fontSize: 28, flexShrink: 0 }}>{item.icon}</span>
+        <div>
+          <div style={{ color: '#e2e8f0', fontSize: 14, fontWeight: 700, letterSpacing: '-0.01em' }}>{item.label}</div>
+          <div style={{ color: '#475569', fontSize: 12, marginTop: 4, lineHeight: 1.5 }}>{item.desc}</div>
+        </div>
+      </div>
+
+      {/* Dots */}
+      <div style={{ display: 'flex', gap: 6, justifyContent: 'center', marginTop: 12 }}>
+        {TRUST_ITEMS.map((_, i) => (
+          <button
+            key={i}
+            onClick={() => { setVisible(false); setTimeout(() => { setActive(i); setVisible(true) }, 300) }}
+            style={{
+              width: i === active ? 20 : 6, height: 6, borderRadius: 3,
+              background: i === active ? '#38bdf8' : 'rgba(255,255,255,0.12)',
+              border: 'none', cursor: 'pointer', padding: 0,
+              transition: 'all 0.3s ease',
+            }}
+          />
+        ))}
+      </div>
+    </div>
+  )
+}
+
 export default function LoginPage() {
   const [email, setEmail]               = useState('')
   const [password, setPassword]         = useState('')
@@ -414,24 +490,7 @@ export default function LoginPage() {
               ))}
             </div>
 
-            {/* Trust bar */}
-            <div className="login-trustbar" style={{ animation: 'textIn 0.6s ease both', animationDelay: '1.05s', paddingTop: 8 }}>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
-                {[
-                  { icon: '⚡', label: 'Velocidad real', desc: 'Inventario de procesos completo en horas, no en semanas.' },
-                  { icon: '🎯', label: 'ROI desde el día 1', desc: 'Cada proceso entrega su impacto financiero proyectado.' },
-                  { icon: '🔒', label: 'Seguridad enterprise', desc: 'RBAC, MFA y auditoría completa en cada acción.' },
-                ].map((t) => (
-                  <div key={t.label} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '12px 0', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-                    <span style={{ fontSize: 16, flexShrink: 0, marginTop: 1 }}>{t.icon}</span>
-                    <div>
-                      <div style={{ color: '#e2e8f0', fontSize: 12, fontWeight: 700, letterSpacing: '-0.01em' }}>{t.label}</div>
-                      <div style={{ color: '#475569', fontSize: 11, marginTop: 3, lineHeight: 1.5 }}>{t.desc}</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
+            <TrustCarousel />
           </div>
 
           {/* ── RIGHT — Formulario ── */}
