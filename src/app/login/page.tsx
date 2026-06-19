@@ -362,16 +362,18 @@ export default function LoginPage() {
         @media (max-width: 900px) {
           .login-header-status { display: none !important; }
           .login-flow { display: none !important; }
-          .login-grid { grid-template-columns: 1fr !important; gap: 36px !important; }
-          .login-form-wrap { width: 100% !important; max-width: 480px; margin: 0 auto; }
-          .login-left-caps { display: none !important; }
-          .login-trustbar { display: none !important; }
+          .login-grid { grid-template-columns: 1fr !important; gap: 0 !important; }
+          .login-form-wrap { width: 100% !important; max-width: 420px; margin: 0 auto; }
+          .login-left { display: none !important; }
+          .login-main { justify-content: flex-start !important; padding-top: 20px !important; }
         }
         @media (max-width: 600px) {
           .login-footer { flex-direction: column !important; align-items: center; gap: 8px; text-align: center; }
           .login-footer-links { flex-wrap: wrap; justify-content: center; gap: 16px !important; }
-          .login-header { padding: 14px 20px !important; }
-          .login-main { padding: 24px 20px !important; }
+          .login-header { padding: 12px 16px !important; }
+          .login-main { padding: 16px !important; gap: 16px !important; }
+          .login-form-wrap { max-width: 100% !important; }
+          .login-form-card { padding: 24px 20px !important; }
         }
       `}</style>
 
@@ -428,7 +430,7 @@ export default function LoginPage() {
         <div className="login-grid" style={{ width: '100%', maxWidth: 1300, alignItems: 'center' }}>
 
           {/* ── LEFT ── */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
+          <div className="login-left" style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
 
             {/* Eyebrow pill */}
             <div style={{
@@ -495,7 +497,7 @@ export default function LoginPage() {
 
           {/* ── RIGHT — Formulario ── */}
           <div className="login-form-wrap" style={{ animation: 'textIn 0.8s ease both', animationDelay: '0.3s' }}>
-            <div style={{
+            <div className="login-form-card" style={{
               background: 'rgba(8,12,24,0.85)', border: '1px solid rgba(255,255,255,0.08)',
               borderRadius: 20, padding: '36px 32px',
               backdropFilter: 'blur(20px)', position: 'relative', overflow: 'hidden',
