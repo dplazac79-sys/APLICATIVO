@@ -376,6 +376,41 @@ export default function LoginPage() {
         .login-footer { display: flex; }
         .login-footer-links { display: flex; }
         .login-input { padding-top: 12px !important; padding-bottom: 12px !important; font-size: 14px !important; }
+        @keyframes ping {
+          0%   { transform: scale(1); opacity: 0.8; }
+          70%  { transform: scale(2.2); opacity: 0; }
+          100% { transform: scale(2.2); opacity: 0; }
+        }
+        @keyframes travel {
+          0%   { left: 0;    opacity: 0; }
+          10%  { opacity: 1; }
+          90%  { opacity: 1; }
+          100% { left: 13px; opacity: 0; }
+        }
+        @keyframes fadeSlideUp {
+          from { opacity: 0; transform: translateY(16px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes floatA {
+          0%, 100% { transform: translate(0, 0); }
+          50%      { transform: translate(30px, -40px); }
+        }
+        @keyframes floatB {
+          0%, 100% { transform: translate(0, 0); }
+          50%      { transform: translate(-20px, 30px); }
+        }
+        @keyframes floatC {
+          0%, 100% { transform: translate(0, 0); }
+          50%      { transform: translate(25px, 25px); }
+        }
+        @keyframes textIn {
+          from { opacity: 0; transform: translateY(20px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to   { transform: rotate(360deg); }
+        }
 
         /* ── Tablet (≤ 900px) ── */
         @media (max-width: 900px) {
