@@ -1,6 +1,6 @@
 import { inngest } from './client'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { clasificarDocumento, resumirDocumento, discoveryProcesos, enriquecerProcesoCliente } from '@/lib/ai/claude'
+import { clasificarDocumento, resumirDocumento, discoveryProcesos, enriquecerProcesoCliente, analizarGlosarioRoles, RolProceso, PersonaOrg } from '@/lib/ai/claude'
 import { generarEmbedding } from '@/lib/ai/embeddings'
 import { registrarAudit } from '@/lib/audit'
 import { verificarLimiteIA, registrarUsoIA } from '@/lib/ai/rate-limit'
@@ -293,5 +293,70 @@ export const enriquecerDocumentoCliente = inngest.createFunction(
     })
 
     return { ok: true, proceso: enriquecido.nombre_proceso }
+  }
+)
+
+// ─── Job 4: Analizar Glosario de Roles ───────────────────────────────────────
+export const analizarGlosarioRolesJob = inngest.createFunction(
+  {
+    id: 'analizar-glosario-roles',
+    name: 'Glosario de Roles — Análisis IA',
+    retries: 2,
+    timeouts: { finish: '15m' },
+    triggers: [{ event: 'portal/analizar-glosario-roles' }],
+  },
+  async ({ event, step }: any) => {
+    const { analisis_id, proyecto_id } = event.data
+    const admin = createAdminClient()
+
+    await step.run('marcar-procesando', async () => {
+      await admin.from('glosario_roles_analisis').update({ estado: 'generando' }).eq('id', analisis_id)
+    })
+
+    // Cargar todos los datos necesarios en un solo step
+    const contexto = await step.run('cargar-contexto', async () => {
+      const { data: analisis } = await admin.from('glosario_roles_analisis')
+        .select('organigrama_id, roles_en_procesos').eq('id', analisis_id).single()
+      const { data: org } = await admin.from('organigrama_cliente')
+        .select('texto_extraido').eq('id', analisis?.organigrama_id ?? '').single()
+      const { data: cvs } = await admin.from('cv_persona_org')
+        .select('nombre_persona, cargo_actual, texto_cv').eq('proyecto_id', proyecto_id)
+      const { data: proy } = await admin.from('proyecto')
+        .select('nombre, cliente(razon_social, industria)').eq('id', proyecto_id).single()
+      const cliente = proy?.cliente as Record<string, string> | null
+      return {
+        roles: (analisis?.roles_en_procesos ?? []) as RolProceso[],
+        textoOrganigrama: org?.texto_extraido ?? '',
+        personas: (cvs ?? []).map(c => ({ nombre: c.nombre_persona, cargo: c.cargo_actual ?? '', skills: c.texto_cv ?? '' })) as PersonaOrg[],
+        nombreEmpresa: cliente?.razon_social ?? 'Empresa cliente',
+        industria: cliente?.industria ?? 'No especificada',
+        nombreProyecto: proy?.nombre ?? '',
+      }
+    })
+
+    const resultadoFinal = await step.run('analizar-con-ia', async () => {
+      return analizarGlosarioRoles({
+        rolesEnProcesos: contexto.roles,
+        textoOrganigrama: contexto.textoOrganigrama,
+        personas: contexto.personas,
+        nombreEmpresa: contexto.nombreEmpresa,
+        industria: contexto.industria,
+        contextoProcesos: `Proyecto: ${contexto.nombreProyecto}`,
+      })
+    })
+
+    await step.run('guardar-resultado', async () => {
+      const mapeos = resultadoFinal.mapeos ?? []
+      await admin.from('glosario_roles_analisis').update({
+        estado: 'completado',
+        mapeos,
+        resumen_ejecutivo: resultadoFinal.resumen_ejecutivo,
+        total_mapeados:      mapeos.filter((m: any) => m.tipo === 'mapeo_directo').length,
+        total_equivalencias: mapeos.filter((m: any) => m.tipo === 'equivalencia').length,
+        total_crear_cargo:   mapeos.filter((m: any) => m.tipo === 'crear_cargo').length,
+      }).eq('id', analisis_id)
+    })
+
+    return { analisis_id, total: resultadoFinal.mapeos?.length ?? 0 }
   }
 )

@@ -225,3 +225,112 @@ ${documentosResumidos.map((d, i) => `--- Documento ${i + 1} ---\n${d}`).join('\n
     recomendacion_ceo: string
   }
 }
+
+// ── Glosario de Roles ─────────────────────────────────────────────────────────
+export interface RolProceso {
+  rol: string
+  descripcion: string
+  procesos: string[]    // nombres de procesos donde aparece
+}
+
+export interface PersonaOrg {
+  nombre: string
+  cargo: string
+  skills?: string
+}
+
+export interface RolMapeo {
+  rol_proceso: string
+  descripcion_rol: string
+  tipo: 'mapeo_directo' | 'equivalencia' | 'crear_cargo'
+  persona_sugerida: string | null
+  cargo_sugerido: string | null
+  confianza: number           // 0–100
+  justificacion: string
+  skills_requeridos: string[]
+  gap_detectado: string | null
+  accion_recomendada: string
+}
+
+export async function analizarGlosarioRoles(params: {
+  rolesEnProcesos: RolProceso[]
+  textoOrganigrama: string
+  personas: PersonaOrg[]
+  nombreEmpresa: string
+  industria: string
+  contextoProcesos: string
+}) {
+  const { rolesEnProcesos, textoOrganigrama, personas, nombreEmpresa, industria, contextoProcesos } = params
+
+  const system = `Eres un experto en gestión organizacional, diseño de cargos y transformación de procesos con más de 20 años de experiencia en industrias de salud, retail, manufactura y servicios. Tu especialidad es mapear roles funcionales de documentos de procesos a estructuras organizacionales reales.
+
+Tu análisis debe ser:
+- PRAGMÁTICO: recomienda personas reales, no cargos ideales imposibles
+- HONESTO: si hay gaps, dilo claramente con el impacto
+- ACCIONABLE: cada recomendación debe poder ejecutarse en < 30 días
+- BASADO EN EVIDENCIA: justifica con los datos del organigrama y los CVs
+
+Responde SIEMPRE en JSON válido, sin texto fuera del bloque JSON.`
+
+  const userContent = `
+EMPRESA: ${nombreEmpresa}
+INDUSTRIA: ${industria}
+
+ROLES MENCIONADOS EN LOS DOCUMENTOS DE PROCESO:
+${rolesEnProcesos.map(r => `• ${r.rol}: ${r.descripcion} (aparece en: ${r.procesos.join(', ')})`).join('\n')}
+
+ORGANIGRAMA DEL CLIENTE:
+${textoOrganigrama || 'No disponible — analiza solo con los CVs y contexto de industria'}
+
+PERSONAS Y CVS DISPONIBLES:
+${personas.length > 0
+  ? personas.map(p => `• ${p.nombre} — ${p.cargo}${p.skills ? `: ${p.skills}` : ''}`).join('\n')
+  : 'No se subieron CVs — analiza con el organigrama disponible'}
+
+CONTEXTO DE LOS PROCESOS:
+${contextoProcesos}
+
+INSTRUCCIONES:
+Para cada rol del proceso, determina:
+1. Si existe en el organigrama → mapeo_directo (con persona y cargo exacto)
+2. Si hay un rol equivalente por skills/responsabilidades → equivalencia (explica por qué)
+3. Si no existe nadie que pueda asumirlo → crear_cargo (con descripción del perfil a contratar)
+
+Retorna este JSON exacto:
+{
+  "mapeos": [
+    {
+      "rol_proceso": "Jefe de Supply Chain",
+      "descripcion_rol": "Qué hace este rol en el proceso",
+      "tipo": "mapeo_directo" | "equivalencia" | "crear_cargo",
+      "persona_sugerida": "Nombre Apellido" | null,
+      "cargo_sugerido": "Cargo real en la empresa" | null,
+      "confianza": 85,
+      "justificacion": "Razón detallada de la recomendación",
+      "skills_requeridos": ["skill1", "skill2"],
+      "gap_detectado": "Qué le falta si es equivalencia" | null,
+      "accion_recomendada": "Paso concreto a tomar en los próximos 30 días"
+    }
+  ],
+  "resumen_ejecutivo": "Párrafo ejecutivo con el diagnóstico general",
+  "alertas_criticas": ["Alerta 1 si hay roles sin cobertura críticos"],
+  "plan_accion_30_dias": ["Acción 1", "Acción 2"],
+  "score_cobertura_organizacional": 72
+}
+`
+
+  const msg = await client.messages.create({
+    model: 'claude-sonnet-4-6',
+    max_tokens: 8000,
+    system,
+    messages: [{ role: 'user', content: userContent }],
+  })
+
+  return extractJson((msg.content[0] as { text: string }).text) as {
+    mapeos: RolMapeo[]
+    resumen_ejecutivo: string
+    alertas_criticas: string[]
+    plan_accion_30_dias: string[]
+    score_cobertura_organizacional: number
+  }
+}

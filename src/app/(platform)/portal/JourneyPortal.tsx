@@ -6,9 +6,10 @@ import {
   Upload, FileText, Loader2, CheckCircle2, XCircle,
   ChevronRight, ChevronLeft, AlertTriangle, TrendingUp,
   Users, Monitor, BarChart3, Edit3, Shield, Zap, ArrowRight,
-  Clock, Star, Sparkles, Rocket
+  Clock, Star, Sparkles, Rocket, BookOpen, ChevronDown
 } from 'lucide-react'
 import Link from 'next/link'
+import { GlosarioRoles } from './GlosarioRoles'
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 interface ProcesoResumen {
@@ -819,10 +820,68 @@ export function JourneyPortal({ proyectos, nombreUsuario }: JourneyPortalProps) 
           </section>
         )}
 
+        {/* Glosario de Roles — se muestra si hay procesos aprobados */}
+        {proyectoSeleccionado && procesos.some(p => p.estado_aprobacion === 'aprobado') && (
+          <GlosarioRolesSection
+            proyectoId={proyectoSeleccionado}
+            nombreProyecto={proyecto?.nombre ?? ''}
+            procesos={procesos.filter(p => p.estado_aprobacion === 'aprobado')}
+          />
+        )}
+
         {proyectos.length === 0 && (
           <p className="text-slate-500 text-sm">Aún no tienes proyectos asignados. El equipo te notificará cuando estés listo.</p>
         )}
       </div>
     </>
+  )
+}
+
+// ── Sección colapsable de Glosario de Roles ───────────────────────────────────
+function GlosarioRolesSection({
+  proyectoId,
+  nombreProyecto,
+  procesos,
+}: {
+  proyectoId: string
+  nombreProyecto: string
+  procesos: ProcesoResumen[]
+}) {
+  const [expandido, setExpandido] = useState(false)
+
+  const rolesDetectados = procesos.map(p => ({
+    rol: p.nombre_proceso,
+    descripcion: p.macroproceso ? `Responsable del proceso "${p.nombre_proceso}" dentro del macroproceso ${p.macroproceso}` : `Responsable del proceso "${p.nombre_proceso}"`,
+    procesos: [p.nombre_proceso],
+  }))
+
+  return (
+    <section className="border border-indigo-900/30 rounded-2xl overflow-hidden">
+      <button
+        onClick={() => setExpandido(v => !v)}
+        className="w-full flex items-center justify-between p-5 bg-gradient-to-r from-indigo-950/40 to-violet-950/20 hover:from-indigo-950/60 transition-colors"
+      >
+        <div className="flex items-center gap-3 text-left">
+          <BookOpen className="w-5 h-5 text-indigo-400 shrink-0" />
+          <div>
+            <p className="font-semibold text-slate-100 text-sm">Glosario de Roles</p>
+            <p className="text-xs text-slate-400 mt-0.5">
+              ¿Quién de tu organización debe liderar cada proceso? La IA te recomienda los responsables.
+            </p>
+          </div>
+        </div>
+        <ChevronDown className={`w-4 h-4 text-slate-500 transition-transform shrink-0 ${expandido ? 'rotate-180' : ''}`} />
+      </button>
+
+      {expandido && (
+        <div className="border-t border-indigo-900/20 px-5 bg-slate-950/60">
+          <GlosarioRoles
+            proyectoId={proyectoId}
+            nombreProyecto={nombreProyecto}
+            rolesDetectados={rolesDetectados}
+          />
+        </div>
+      )}
+    </section>
   )
 }
