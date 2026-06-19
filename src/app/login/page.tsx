@@ -418,21 +418,16 @@ export default function LoginPage() {
             <div className="login-trustbar" style={{ animation: 'textIn 0.6s ease both', animationDelay: '1.05s', paddingTop: 8 }}>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
                 {[
-                  { value: '10×', label: 'Más rápido', sub: 'que consultoría tradicional', color: '#38bdf8', glow: 'rgba(56,189,248,0.12)' },
-                  { value: '< 48h', label: 'Diagnóstico a plan', sub: 'de implementación ejecutable', color: '#818cf8', glow: 'rgba(129,140,248,0.12)' },
-                  { value: '100%', label: 'IA nativa', sub: 'sin templates genéricos', color: '#34d399', glow: 'rgba(52,211,153,0.12)' },
+                  { icon: '⚡', label: 'Velocidad real', desc: 'Inventario de procesos completo en horas, no en semanas.' },
+                  { icon: '🎯', label: 'ROI desde el día 1', desc: 'Cada proceso entrega su impacto financiero proyectado.' },
+                  { icon: '🔒', label: 'Seguridad enterprise', desc: 'RBAC, MFA y auditoría completa en cada acción.' },
                 ].map((t) => (
-                  <div key={t.label} style={{
-                    padding: '14px 16px', borderRadius: 12,
-                    background: t.glow,
-                    border: `1px solid ${t.color}20`,
-                    position: 'relative', overflow: 'hidden',
-                  }}>
-                    {/* Línea top */}
-                    <div style={{ position: 'absolute', top: 0, left: '10%', right: '10%', height: 1, background: `linear-gradient(90deg, transparent, ${t.color}50, transparent)` }} />
-                    <div style={{ color: t.color, fontSize: 26, fontWeight: 900, letterSpacing: '-0.04em', lineHeight: 1 }}>{t.value}</div>
-                    <div style={{ color: '#e2e8f0', fontSize: 11, fontWeight: 700, marginTop: 6, letterSpacing: '-0.01em' }}>{t.label}</div>
-                    <div style={{ color: '#475569', fontSize: 10, marginTop: 2, lineHeight: 1.4 }}>{t.sub}</div>
+                  <div key={t.label} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '12px 0', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                    <span style={{ fontSize: 16, flexShrink: 0, marginTop: 1 }}>{t.icon}</span>
+                    <div>
+                      <div style={{ color: '#e2e8f0', fontSize: 12, fontWeight: 700, letterSpacing: '-0.01em' }}>{t.label}</div>
+                      <div style={{ color: '#475569', fontSize: 11, marginTop: 3, lineHeight: 1.5 }}>{t.desc}</div>
+                    </div>
                   </div>
                 ))}
               </div>
