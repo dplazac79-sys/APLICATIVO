@@ -580,6 +580,50 @@ export default function LoginPage() {
               {/* Glow esquina */}
               <div style={{ position: 'absolute', top: -60, right: -60, width: 200, height: 200, borderRadius: '50%', background: 'radial-gradient(circle, rgba(29,78,216,0.1) 0%, transparent 70%)', pointerEvents: 'none' }} />
 
+              {/* Flow diagram compacto — solo mobile */}
+              {isMobile && (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0, marginBottom: 32 }}>
+                  {[
+                    { label: 'Documento', sub: 'PDF/DOCX', color: '#38bdf8', icon: <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 2h7l3 3v9H3V2z" stroke="#38bdf8" strokeWidth="1.3"/><path d="M10 2v3h3" stroke="#38bdf8" strokeWidth="1.3"/></svg> },
+                    { label: 'IA', sub: 'Claude', color: '#818cf8', icon: <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="3" stroke="#818cf8" strokeWidth="1.3"/><path d="M8 2v1M8 13v1M2 8h1M13 8h1" stroke="#818cf8" strokeWidth="1.3" strokeLinecap="round"/></svg> },
+                    { label: 'Proceso', sub: 'IA', color: '#a78bfa', icon: <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="2" y="2" width="5" height="5" rx="1" stroke="#a78bfa" strokeWidth="1.3"/><rect x="9" y="2" width="5" height="5" rx="1" stroke="#a78bfa" strokeWidth="1.3"/><rect x="2" y="9" width="5" height="5" rx="1" stroke="#a78bfa" strokeWidth="1.3"/><rect x="9" y="9" width="5" height="5" rx="1" stroke="#a78bfa" strokeWidth="1.3"/></svg> },
+                    { label: 'Aprob.', sub: 'Digital', color: '#34d399', icon: <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="#34d399" strokeWidth="1.3"/><path d="M5 8l2 2 4-4" stroke="#34d399" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/></svg> },
+                    { label: 'Implmta', sub: 'ERP/RPA', color: '#fb923c', icon: <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 2l2 4h4l-3.3 2.4 1.3 3.9L8 10l-3.9 2.3 1.3-3.9L2 6h4L8 2z" stroke="#fb923c" strokeWidth="1.3" strokeLinejoin="round"/></svg> },
+                  ].map((step, i, arr) => (
+                    <div key={step.label} style={{ display: 'flex', alignItems: 'center' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+                        <div style={{
+                          width: 44, height: 44, borderRadius: 12,
+                          border: `1px solid ${step.color}35`,
+                          background: `${step.color}0d`,
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          boxShadow: `0 0 14px ${step.color}18`,
+                          position: 'relative',
+                        }}>
+                          {step.icon}
+                          <span style={{
+                            position: 'absolute', top: -3, right: -3,
+                            width: 7, height: 7, borderRadius: '50%',
+                            background: step.color,
+                            animation: 'ping 2s cubic-bezier(0,0,0.2,1) infinite',
+                            animationDelay: `${i * 0.4}s`,
+                          }} />
+                        </div>
+                        <div style={{ textAlign: 'center' }}>
+                          <p style={{ color: '#e2e8f0', fontSize: 9, fontWeight: 700, margin: 0, letterSpacing: '0.02em' }}>{step.label}</p>
+                          <p style={{ color: '#334155', fontSize: 8, margin: '1px 0 0' }}>{step.sub}</p>
+                        </div>
+                      </div>
+                      {i < arr.length - 1 && (
+                        <div style={{ position: 'relative', width: 18, height: 2, margin: '0 2px', marginBottom: 22, background: `linear-gradient(90deg,${step.color}50,${arr[i+1].color}50)`, borderRadius: 1 }}>
+                          <div style={{ position: 'absolute', top: -2, width: 5, height: 5, borderRadius: '50%', background: '#38bdf8', animation: 'travel 2s linear infinite', animationDelay: `${i * 0.4}s` }} />
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+
               {/* Logo inline — solo mobile */}
               {isMobile && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 40 }}>
