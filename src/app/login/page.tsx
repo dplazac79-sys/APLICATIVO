@@ -415,19 +415,27 @@ export default function LoginPage() {
             </div>
 
             {/* Trust bar */}
-            <div className="login-trustbar" style={{ display: 'flex', gap: 32, paddingTop: 8, animation: 'textIn 0.6s ease both', animationDelay: '1.05s' }}>
-              {[
-                { value: '10×', label: 'más rápido que consultoría tradicional' },
-                { value: '< 48h', label: 'del diagnóstico al plan de implementación' },
-              ].map((t, i) => (
-                <div key={t.label} style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
-                  {i > 0 && <div style={{ width: 1, height: 28, background: 'rgba(255,255,255,0.06)', marginRight: 12 }} />}
-                  <div>
-                    <div style={{ color: '#f8fafc', fontSize: 22, fontWeight: 800, letterSpacing: '-0.03em', lineHeight: 1 }}>{t.value}</div>
-                    <div style={{ color: '#334155', fontSize: 10, marginTop: 4, textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 600 }}>{t.label}</div>
+            <div className="login-trustbar" style={{ animation: 'textIn 0.6s ease both', animationDelay: '1.05s', paddingTop: 8 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+                {[
+                  { value: '10×', label: 'Más rápido', sub: 'que consultoría tradicional', color: '#38bdf8', glow: 'rgba(56,189,248,0.12)' },
+                  { value: '< 48h', label: 'Diagnóstico a plan', sub: 'de implementación ejecutable', color: '#818cf8', glow: 'rgba(129,140,248,0.12)' },
+                  { value: '100%', label: 'IA nativa', sub: 'sin templates genéricos', color: '#34d399', glow: 'rgba(52,211,153,0.12)' },
+                ].map((t) => (
+                  <div key={t.label} style={{
+                    padding: '14px 16px', borderRadius: 12,
+                    background: t.glow,
+                    border: `1px solid ${t.color}20`,
+                    position: 'relative', overflow: 'hidden',
+                  }}>
+                    {/* Línea top */}
+                    <div style={{ position: 'absolute', top: 0, left: '10%', right: '10%', height: 1, background: `linear-gradient(90deg, transparent, ${t.color}50, transparent)` }} />
+                    <div style={{ color: t.color, fontSize: 26, fontWeight: 900, letterSpacing: '-0.04em', lineHeight: 1 }}>{t.value}</div>
+                    <div style={{ color: '#e2e8f0', fontSize: 11, fontWeight: 700, marginTop: 6, letterSpacing: '-0.01em' }}>{t.label}</div>
+                    <div style={{ color: '#475569', fontSize: 10, marginTop: 2, lineHeight: 1.4 }}>{t.sub}</div>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           </div>
 
