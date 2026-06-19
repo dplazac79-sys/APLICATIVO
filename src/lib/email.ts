@@ -1,7 +1,7 @@
 import { Resend } from 'resend'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
-const FROM = process.env.EMAIL_FROM ?? 'APIP <notificaciones@aicounts.cl>'
+const FROM = process.env.EMAIL_FROM ?? 'APAC <notificaciones@aicounts.cl>'
 
 export interface EmailParams {
   to: string | string[]
@@ -32,7 +32,7 @@ export function templateCambioEstado(opts: {
   return `
     <div style="font-family:sans-serif;max-width:560px;margin:0 auto;color:#1e293b">
       <div style="background:#1e293b;padding:24px 32px;border-radius:8px 8px 0 0">
-        <h1 style="color:#fff;margin:0;font-size:18px">APIP — Cambio de estado</h1>
+        <h1 style="color:#fff;margin:0;font-size:18px">APAC — Cambio de estado</h1>
       </div>
       <div style="background:#f8fafc;padding:24px 32px;border-radius:0 0 8px 8px;border:1px solid #e2e8f0">
         <p style="margin:0 0 16px">El proyecto <strong>${opts.proyecto}</strong> cambió de estado.</p>
@@ -63,7 +63,7 @@ export function templateEscalacion(opts: {
   return `
     <div style="font-family:sans-serif;max-width:560px;margin:0 auto;color:#1e293b">
       <div style="background:#dc2626;padding:24px 32px;border-radius:8px 8px 0 0">
-        <h1 style="color:#fff;margin:0;font-size:18px">⚠ APIP — Escalación ${opts.nivel}</h1>
+        <h1 style="color:#fff;margin:0;font-size:18px">⚠ APAC — Escalación ${opts.nivel}</h1>
       </div>
       <div style="background:#f8fafc;padding:24px 32px;border-radius:0 0 8px 8px;border:1px solid #e2e8f0">
         <p style="margin:0 0 16px">Proyecto <strong>${opts.proyecto}</strong> requiere atención inmediata.</p>
@@ -85,7 +85,7 @@ export function templateNuevaAsignacion(opts: {
   return `
     <div style="font-family:sans-serif;max-width:560px;margin:0 auto;color:#1e293b">
       <div style="background:#4f46e5;padding:24px 32px;border-radius:8px 8px 0 0">
-        <h1 style="color:#fff;margin:0;font-size:18px">APIP — Nueva asignación</h1>
+        <h1 style="color:#fff;margin:0;font-size:18px">APAC — Nueva asignación</h1>
       </div>
       <div style="background:#f8fafc;padding:24px 32px;border-radius:0 0 8px 8px;border:1px solid #e2e8f0">
         <p style="margin:0 0 16px">Fuiste asignado al proyecto <strong>${opts.proyecto}</strong> con rol <strong>${opts.rol}</strong>.</p>

@@ -546,12 +546,12 @@ const TIPO_LABEL_DOC: Record<string, string> = {
 function EntregableDoc({ e }: { e: EntregablePdf }) {
   const tipoLabel = TIPO_LABEL_DOC[e.tipo] ?? humaniz(e.tipo)
   return (
-    <Document title={e.nombre} author="AICOUNTS Consultores" creator="APIP — ProcessOS">
+    <Document title={e.nombre} author="AICOUNTS Consultores" creator="APAC — ProcessOS">
       <Page size="A4" style={S.page}>
         {/* Header */}
         <View style={S.header} fixed>
           <View>
-            <Text style={S.logo}>APIP — AICOUNTS Consultores</Text>
+            <Text style={S.logo}>APAC — AICOUNTS Consultores</Text>
             <Text style={S.logoSub}>Plataforma de Optimización de Procesos</Text>
           </View>
           <View style={S.headerRight}>

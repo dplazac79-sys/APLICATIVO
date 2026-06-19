@@ -5,7 +5,7 @@ import './globals.css'
 const inter = Inter({ subsets: ['latin'], variable: '--font-sans' })
 
 export const metadata: Metadata = {
-  title: 'APIP — AICOUNTS Process Intelligence Platform',
+  title: 'APAC — AICOUNTS Process Intelligence Platform',
   description: 'Plataforma de inteligencia de procesos operacionales',
 }
 
