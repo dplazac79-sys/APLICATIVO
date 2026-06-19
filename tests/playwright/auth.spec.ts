@@ -17,9 +17,9 @@ test.describe('Login', () => {
     await page.goto('/login')
     await expect(page).toHaveURL(/\/login/)
 
-    await page.getByLabel(/correo|email/i).fill(EMAIL)
-    await page.getByLabel(/contraseña|password/i).fill(PASSWORD)
-    await page.getByRole('button', { name: /iniciar sesión|ingresar|login/i }).click()
+    await page.locator('input[type="email"]').fill(EMAIL)
+    await page.locator('input[type="password"]').fill(PASSWORD)
+    await page.locator('button[type="submit"]').click()
 
     // Acepta dashboard, bienvenida o mfa/challenge (si MFA activo)
     await expect(page).toHaveURL(/\/(dashboard|bienvenida|mfa|portal)/, { timeout: 15_000 })
@@ -27,12 +27,12 @@ test.describe('Login', () => {
 
   test('credenciales incorrectas muestra error', async ({ page }) => {
     await page.goto('/login')
-    await page.getByLabel(/correo|email/i).fill('noexiste@apac.cl')
-    await page.getByLabel(/contraseña|password/i).fill('WrongPass999!')
-    await page.getByRole('button', { name: /iniciar sesión|ingresar|login/i }).click()
+    await page.locator('input[type="email"]').fill('noexiste@apac.cl')
+    await page.locator('input[type="password"]').fill('WrongPass999!')
+    await page.locator('button[type="submit"]').click()
 
     await expect(
-      page.getByText(/contraseña|credenciales|inválid|incorrect|invalid/i)
+      page.getByText('Las credenciales proporcionadas no corresponden a un perfil activo.')
     ).toBeVisible({ timeout: 8_000 })
 
     await expect(page).toHaveURL(/\/login/)

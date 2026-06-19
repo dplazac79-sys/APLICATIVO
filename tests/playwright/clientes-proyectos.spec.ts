@@ -10,9 +10,9 @@ const TS       = Date.now()
 
 async function login(page: Page) {
   await page.goto('/login')
-  await page.getByLabel(/correo|email/i).fill(EMAIL)
-  await page.getByLabel(/contraseña|password/i).fill(PASSWORD)
-  await page.getByRole('button', { name: /iniciar sesión|ingresar|login/i }).click()
+  await page.locator('input[type="email"]').fill(EMAIL)
+  await page.locator('input[type="password"]').fill(PASSWORD)
+  await page.locator('button[type="submit"]').click()
   await expect(page).toHaveURL(/\/(dashboard|bienvenida|portal)/, { timeout: 15_000 })
 }
 
