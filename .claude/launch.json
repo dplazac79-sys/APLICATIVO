@@ -3,9 +3,8 @@
   "configurations": [
     {
       "name": "processos-dev",
-      "cwd": "../../Desktop/APIP/app",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev"],
+      "runtimeArgs": ["run", "dev", "--prefix", "/Users/danielplaza/Desktop/APIP/app"],
       "port": 3001
     }
   ]

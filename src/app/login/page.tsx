@@ -364,24 +364,76 @@ export default function LoginPage() {
         .login-header-status { display: flex; }
         .login-flow { display: flex; }
         .login-grid { display: grid; grid-template-columns: 1fr auto; gap: 80px; }
-        .login-form-wrap { width: 400px; flex-shrink: 0; }
+        .login-form-wrap { width: 420px; flex-shrink: 0; }
         .login-footer { display: flex; }
         .login-footer-links { display: flex; }
+        .login-input { padding-top: 12px !important; padding-bottom: 12px !important; font-size: 14px !important; }
+
+        /* ── Tablet (≤ 900px) ── */
         @media (max-width: 900px) {
           .login-header-status { display: none !important; }
           .login-flow { display: none !important; }
           .login-grid { grid-template-columns: 1fr !important; gap: 0 !important; }
-          .login-form-wrap { width: 100% !important; max-width: 420px; margin: 0 auto; }
+          .login-form-wrap { width: 100% !important; max-width: 480px; margin: 0 auto; }
           .login-left { display: none !important; }
-          .login-main { justify-content: flex-start !important; padding-top: 20px !important; }
+          .login-main { justify-content: center !important; padding: 24px 20px !important; min-height: 0; }
         }
+
+        /* ── Móvil (≤ 600px) ── */
         @media (max-width: 600px) {
-          .login-footer { flex-direction: column !important; align-items: center; gap: 8px; text-align: center; }
-          .login-footer-links { flex-wrap: wrap; justify-content: center; gap: 16px !important; }
-          .login-header { padding: 12px 16px !important; }
-          .login-main { padding: 16px !important; gap: 16px !important; }
-          .login-form-wrap { max-width: 100% !important; }
-          .login-form-card { padding: 24px 20px !important; }
+          .login-header { padding: 14px 18px !important; }
+          .login-header-logo-text { font-size: 15px !important; }
+          .login-header-sub { display: none !important; }
+
+          .login-main {
+            padding: 0 !important;
+            justify-content: flex-start !important;
+            align-items: stretch !important;
+            min-height: calc(100vh - 60px) !important;
+          }
+
+          .login-grid { width: 100% !important; }
+
+          .login-form-wrap {
+            width: 100% !important;
+            max-width: 100% !important;
+            margin: 0 !important;
+          }
+
+          .login-form-card {
+            border-radius: 0 !important;
+            border-left: none !important;
+            border-right: none !important;
+            border-bottom: none !important;
+            padding: 28px 20px 32px !important;
+            min-height: calc(100vh - 60px) !important;
+            display: flex !important;
+            flex-direction: column !important;
+            justify-content: center !important;
+          }
+
+          .login-form-title { font-size: 24px !important; }
+          .login-form-subtitle { font-size: 14px !important; }
+
+          .login-input {
+            padding-top: 15px !important;
+            padding-bottom: 15px !important;
+            font-size: 16px !important; /* evita zoom en iOS */
+            border-radius: 12px !important;
+          }
+
+          .login-btn {
+            padding-top: 16px !important;
+            padding-bottom: 16px !important;
+            font-size: 14px !important;
+            border-radius: 12px !important;
+          }
+
+          .login-audit-note { display: none !important; }
+
+          .login-footer { display: none !important; }
+
+          .login-flow { display: none !important; }
         }
       `}</style>
 
@@ -411,11 +463,11 @@ export default function LoginPage() {
             </defs>
           </svg>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-            <div style={{ display: 'flex', alignItems: 'baseline' }}>
+            <div className="login-header-logo-text" style={{ display: 'flex', alignItems: 'baseline' }}>
               <span style={{ color: '#f8fafc', fontWeight: 800, fontSize: 17, letterSpacing: '-0.03em' }}>Process</span>
               <span style={{ fontWeight: 800, fontSize: 17, letterSpacing: '-0.03em', background: 'linear-gradient(90deg,#38bdf8,#818cf8)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>OS</span>
             </div>
-            <span style={{ color: '#334155', fontSize: 10, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase' }}>by AICOUNTS CONSULTORES</span>
+            <span className="login-header-sub" style={{ color: '#334155', fontSize: 10, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase' }}>by AICOUNTS CONSULTORES</span>
           </div>
         </div>
         <div className="login-header-status" style={{ alignItems: 'center', gap: 6 }}>
@@ -516,8 +568,8 @@ export default function LoginPage() {
               <div style={{ position: 'absolute', top: -60, right: -60, width: 200, height: 200, borderRadius: '50%', background: 'radial-gradient(circle, rgba(29,78,216,0.1) 0%, transparent 70%)', pointerEvents: 'none' }} />
 
               <div style={{ marginBottom: 28 }}>
-                <h2 style={{ color: '#f8fafc', fontSize: 19, fontWeight: 700, margin: 0, letterSpacing: '-0.01em' }}>Acceso al portal</h2>
-                <p style={{ color: '#475569', fontSize: 13, marginTop: 5, margin: '5px 0 0' }}>Ingresa tus credenciales corporativas</p>
+                <h2 className="login-form-title" style={{ color: '#f8fafc', fontSize: 19, fontWeight: 700, margin: 0, letterSpacing: '-0.01em' }}>Acceso al portal</h2>
+                <p className="login-form-subtitle" style={{ color: '#475569', fontSize: 13, marginTop: 5, margin: '5px 0 0' }}>Ingresa tus credenciales corporativas</p>
               </div>
 
               {error && (
@@ -537,6 +589,7 @@ export default function LoginPage() {
                     </svg>
                     <input type="email" required value={email} onChange={e => setEmail(e.target.value)}
                       placeholder="nombre@empresa.com"
+                      className="login-input"
                       style={{ width: '100%', boxSizing: 'border-box', paddingLeft: 36, paddingRight: 12, paddingTop: 11, paddingBottom: 11, borderRadius: 10, fontSize: 13.5, color: '#f8fafc', background: 'rgba(3,7,18,0.6)', border: '1px solid rgba(255,255,255,0.07)', outline: 'none', transition: 'border-color 0.15s' }}
                       onFocus={e => { e.target.style.borderColor = 'rgba(56,189,248,0.45)' }}
                       onBlur={e => { e.target.style.borderColor = 'rgba(255,255,255,0.07)' }}
@@ -559,6 +612,7 @@ export default function LoginPage() {
                     </svg>
                     <input type={showPassword ? 'text' : 'password'} required value={password} onChange={e => setPassword(e.target.value)}
                       placeholder="••••••••••••"
+                      className="login-input"
                       style={{ width: '100%', boxSizing: 'border-box', paddingLeft: 36, paddingRight: 40, paddingTop: 11, paddingBottom: 11, borderRadius: 10, fontSize: 13.5, color: '#f8fafc', background: 'rgba(3,7,18,0.6)', border: '1px solid rgba(255,255,255,0.07)', outline: 'none', transition: 'border-color 0.15s' }}
                       onFocus={e => { e.target.style.borderColor = 'rgba(56,189,248,0.45)' }}
                       onBlur={e => { e.target.style.borderColor = 'rgba(255,255,255,0.07)' }}
@@ -587,6 +641,7 @@ export default function LoginPage() {
                 </div>
 
                 <button type="submit" disabled={loading}
+                  className="login-btn"
                   style={{ width: '100%', padding: '13px 0', borderRadius: 10, border: 'none', cursor: loading ? 'not-allowed' : 'pointer', background: loading ? '#1e293b' : 'linear-gradient(90deg, #1d4ed8, #0891b2)', color: '#fff', fontSize: 12, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', opacity: loading ? 0.7 : 1, transition: 'all 0.15s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, position: 'relative', overflow: 'hidden' }}
                   onMouseEnter={e => { if (!loading) { (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(-1px)'; (e.currentTarget as HTMLButtonElement).style.boxShadow = '0 8px 24px rgba(29,78,216,0.35)' } }}
                   onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(0)'; (e.currentTarget as HTMLButtonElement).style.boxShadow = 'none' }}
@@ -599,7 +654,7 @@ export default function LoginPage() {
               </form>
 
             </div>
-            <p style={{ textAlign: 'center', color: '#1e293b', fontSize: 11, marginTop: 16, lineHeight: 1.7 }}>
+            <p className="login-audit-note" style={{ textAlign: 'center', color: '#1e293b', fontSize: 11, marginTop: 16, lineHeight: 1.7 }}>
               Acceso auditado bajo RBAC · <span style={{ fontFamily: 'monospace' }}>audit_log</span> activo
             </p>
           </div>
