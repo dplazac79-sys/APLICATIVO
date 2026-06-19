@@ -82,7 +82,7 @@ export default function LoginPage() {
               }}>OS</span>
             </div>
             <span style={{ color: '#334155', fontSize: 10, fontWeight: 500, letterSpacing: '0.12em', textTransform: 'uppercase' }}>
-              by AICOUNTS
+              by AICOUNTS CONSULTORES
             </span>
           </div>
         </div>
