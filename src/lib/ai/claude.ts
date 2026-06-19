@@ -80,6 +80,60 @@ export async function resumirDocumento(texto: string) {
   }
 }
 
+export async function enriquecerProcesoCliente(
+  textoDocumento: string,
+  contextoProyecto: string
+) {
+  const msg = await client.messages.create({
+    model: 'claude-sonnet-4-6',
+    max_tokens: 4096,
+    system: `Eres un experto en análisis de procesos de negocio. Recibirás un documento de proceso enviado por un cliente y el contexto del proyecto de consultoría. Tu tarea es enriquecer ese documento para que el cliente entienda:
+1. Qué es exactamente este proceso y dónde se ubica en su cadena de valor
+2. Qué riesgos existen si este proceso no existe o falla
+3. Qué beneficios obtiene si el proceso existe y funciona bien
+4. El valor real del proceso para el negocio
+
+Devuelve SOLO un objeto JSON válido con esta estructura exacta:
+{
+  "nombre_proceso": "nombre claro del proceso",
+  "macroproceso": "nombre del macroproceso al que pertenece",
+  "numero_en_macroproceso": 2,
+  "total_en_macroproceso": 7,
+  "descripcion": "descripción clara del proceso en lenguaje de negocio (2-3 párrafos)",
+  "sin_proceso_riesgos": "texto explicando qué riesgos y consecuencias reales ocurren si este proceso no existe o falla (lenguaje ejecutivo, no técnico)",
+  "con_proceso_beneficios": "texto explicando qué beneficios concretos obtiene la organización con este proceso funcionando bien",
+  "valor_negocio": "valor cuantificable: ahorro estimado, reducción de errores, tiempo ahorrado, etc.",
+  "actores": ["lista de roles o personas involucradas"],
+  "sistemas": ["lista de sistemas de información involucrados"],
+  "kpis": [
+    {"nombre": "nombre del KPI", "valor_actual": "estimado actual", "valor_objetivo": "objetivo", "unidad": "%, días, $, etc"}
+  ],
+  "riesgos": [
+    {"descripcion": "descripción del riesgo", "probabilidad": "alta|media|baja", "impacto": "alto|medio|bajo"}
+  ]
+}`,
+    messages: [{
+      role: 'user',
+      content: `Documento del cliente:\n${textoDocumento.slice(0, 10000)}\n\nContexto del proyecto:\n${contextoProyecto.slice(0, 4000)}`
+    }],
+  })
+  if (msg.stop_reason === 'max_tokens') throw new Error('Respuesta IA incompleta al enriquecer proceso')
+  return extractJson((msg.content[0] as { text: string }).text) as {
+    nombre_proceso: string
+    macroproceso: string
+    numero_en_macroproceso: number
+    total_en_macroproceso: number
+    descripcion: string
+    sin_proceso_riesgos: string
+    con_proceso_beneficios: string
+    valor_negocio: string
+    actores: string[]
+    sistemas: string[]
+    kpis: Array<{ nombre: string; valor_actual: string; valor_objetivo: string; unidad: string }>
+    riesgos: Array<{ descripcion: string; probabilidad: string; impacto: string }>
+  }
+}
+
 export async function discoveryProcesos(contextoCliente: string, documentosResumidos: string[]) {
   const system = loadPrompt('discovery-procesos')
   const contenido = `
