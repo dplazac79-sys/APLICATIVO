@@ -11,10 +11,10 @@ import { CheckCircle, Building2, FolderOpen, Users, Eye, Plus, Trash2, ChevronRi
 const INDUSTRIAS = ['Manufactura', 'Retail', 'Salud', 'Educación', 'Finanzas', 'Tecnología', 'Logística', 'Construcción', 'Energía', 'Servicios', 'Minería', 'Otro']
 const TAMANOS = ['1-50 empleados', '51-200 empleados', '201-500 empleados', '501-1000 empleados', 'Más de 1000 empleados']
 const ROLES = [
-  { value: 'director_proyecto', label: 'Director de Proyecto', desc: 'Equipo AICOUNTS. Ve todos los módulos, aprueba artefactos y gestiona el proyecto.' },
-  { value: 'consultor', label: 'Consultor', desc: 'Equipo AICOUNTS. Genera y edita artefactos, sube documentos, ejecuta Discovery AI.' },
-  { value: 'sponsor_cliente', label: 'Sponsor Cliente', desc: 'Lado cliente. Ve artefactos publicados, aprueba entregables y accede al portal ejecutivo.' },
-  { value: 'usuario_cliente', label: 'Usuario Cliente', desc: 'Lado cliente. Solo ve el portal con los artefactos publicados que le comparten.' },
+  { value: 'director_proyecto', label: 'Director de Proyecto', desc: 'Equipo AICOUNTS. Supervisa el proyecto, aprueba artefactos y gestiona el equipo. Acceso completo a todos los módulos.' },
+  { value: 'consultor', label: 'Consultor', desc: 'Equipo AICOUNTS. Ejecuta el trabajo: genera artefactos, sube documentos, corre Discovery AI y modela procesos.' },
+  { value: 'sponsor_cliente', label: 'Cliente Activo', desc: 'Lado cliente autónomo. Carga sus propios procesos, ejecuta Discovery AI, genera artefactos y trabaja sin depender del equipo AICOUNTS.' },
+  { value: 'usuario_cliente', label: 'Cliente Observador', desc: 'Lado cliente solo lectura. Accede al portal para ver los artefactos publicados que le comparten.' },
 ]
 
 const PASOS = [
