@@ -84,17 +84,27 @@ export default function OnboardingPage() {
               {exito.equipo.map(m => (
                 <div key={m.email} className="flex items-center justify-between text-sm">
                   <span className="text-slate-300">{m.email}</span>
-                  <span className={`text-xs px-2 py-0.5 rounded ${m.status === 'invitado' ? 'bg-emerald-900/40 text-emerald-400' : m.status === 'rol_actualizado' ? 'bg-blue-900/40 text-blue-400' : 'bg-red-900/40 text-red-400'}`}>
-                    {m.status === 'invitado' ? 'Invitación enviada' : m.status === 'rol_actualizado' ? 'Rol actualizado' : 'Error'}
+                  <span className={`text-xs px-2 py-0.5 rounded ${['creado','invitado'].includes(m.status) ? 'bg-emerald-900/40 text-emerald-400' : m.status === 'rol_actualizado' ? 'bg-blue-900/40 text-blue-400' : 'bg-red-900/40 text-red-400'}`}>
+                    {m.status === 'creado' ? 'Usuario creado' : m.status === 'invitado' ? 'Invitación enviada' : m.status === 'rol_actualizado' ? 'Rol actualizado' : 'Error'}
                   </span>
                 </div>
               ))}
+            </div>
+            <div className="bg-indigo-950/40 border border-indigo-800/50 rounded-lg p-4 mb-4 text-left">
+              <p className="text-indigo-300 text-sm font-medium mb-1">📁 Siguiente paso recomendado</p>
+              <p className="text-slate-400 text-xs">Sube los documentos del proyecto (propuesta, diagnóstico, contrato, kick-off) para que el cliente tenga contexto completo al ingresar.</p>
+              <Button
+                className="mt-3 w-full bg-indigo-600 hover:bg-indigo-700 text-sm"
+                onClick={() => router.push(`/documentos?proyecto_id=${exito.proyecto_id}`)}
+              >
+                Cargar documentos del proyecto →
+              </Button>
             </div>
             <div className="flex gap-3">
               <Button variant="outline" className="flex-1 border-slate-700 text-slate-300" onClick={() => { setExito(null); setPaso(1); setEmpresa({ razon_social: '', industria: '', tamano: '', objetivos_estrategicos: '' }); setProyecto({ nombre: '', descripcion: '', fecha_inicio: '', fecha_estimada_cierre: '' }); setEquipo([{ email: '', nombre: '', rol: 'director_proyecto', password: '' }]) }}>
                 Nuevo cliente
               </Button>
-              <Button className="flex-1 bg-indigo-600 hover:bg-indigo-700" onClick={() => router.push('/admin')}>
+              <Button variant="outline" className="flex-1 border-slate-700 text-slate-300" onClick={() => router.push('/admin')}>
                 Ir al admin
               </Button>
             </div>

@@ -22,6 +22,7 @@ interface Proyecto {
 
 interface Props {
   proyectos: Proyecto[]
+  proyectoPreseleccionado?: string | null
 }
 
 function detectTipo(file: File): string {
@@ -33,14 +34,15 @@ function detectTipo(file: File): string {
   return 'otro'
 }
 
-export default function DocumentUploader({ proyectos }: Props) {
+export default function DocumentUploader({ proyectos, proyectoPreseleccionado }: Props) {
   const router = useRouter()
   const supabase = createClient()
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const proyectoIdRef = useRef('')
+  const proyectoIdRef = useRef(proyectoPreseleccionado ?? '')
 
-  const [proyectoId, setProyectoId] = useState('')
-  const [proyectoNombre, setProyectoNombre] = useState('')
+  const preNombre = proyectoPreseleccionado ? (proyectos.find(p => p.id === proyectoPreseleccionado)?.nombre ?? '') : ''
+  const [proyectoId, setProyectoId] = useState(proyectoPreseleccionado ?? '')
+  const [proyectoNombre, setProyectoNombre] = useState(preNombre)
   const [files, setFiles] = useState<File[]>([])
   const [uploading, setUploading] = useState(false)
   const [done, setDone] = useState(0)

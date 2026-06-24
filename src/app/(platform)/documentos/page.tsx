@@ -35,8 +35,9 @@ function FileIcon({ tipo }: { tipo: string | null }) {
 
 export const dynamic = 'force-dynamic'
 
-export default async function DocumentosPage() {
+export default async function DocumentosPage({ searchParams }: { searchParams: { proyecto_id?: string } }) {
   const admin = createAdminClient()
+  const proyectoFiltro = searchParams.proyecto_id ?? null
 
   const { data: proyectosRaw } = await admin
     .from('proyecto')
@@ -49,22 +50,44 @@ export default async function DocumentosPage() {
     cliente: Array.isArray(p.cliente) ? (p.cliente[0] ?? null) : p.cliente,
   }))
 
-  const { data: documentos } = await admin
+  const proyectoActivo = proyectoFiltro ? proyectos.find(p => p.id === proyectoFiltro) : null
+
+  let query = admin
     .from('documento')
     .select('*, proyecto(nombre)')
     .order('created_at', { ascending: false })
     .limit(100)
 
+  if (proyectoFiltro) query = query.eq('proyecto_id', proyectoFiltro)
+
+  const { data: documentos } = await query
+
   type DocConProyecto = Documento & { proyecto: { nombre: string } | null }
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-white">Centro Documental</h1>
-        <p className="text-slate-400 text-sm mt-1">Ingesta, búsqueda y análisis IA de documentos</p>
+      <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div>
+          <h1 className="text-2xl font-bold text-white">Centro Documental</h1>
+          {proyectoActivo ? (
+            <p className="text-slate-400 text-sm mt-1">
+              Proyecto: <span className="text-indigo-300 font-medium">{proyectoActivo.nombre}</span>
+              {(proyectoActivo.cliente as any)?.razon_social && (
+                <> · <span className="text-slate-300">{(proyectoActivo.cliente as any).razon_social}</span></>
+              )}
+            </p>
+          ) : (
+            <p className="text-slate-400 text-sm mt-1">Ingesta, búsqueda y análisis IA de documentos</p>
+          )}
+        </div>
+        {proyectoFiltro && (
+          <a href="/documentos" className="text-xs text-slate-500 hover:text-slate-300 transition-colors mt-1">
+            Ver todos los proyectos →
+          </a>
+        )}
       </div>
 
-      <DocumentUploader proyectos={proyectos} />
+      <DocumentUploader proyectos={proyectos} proyectoPreseleccionado={proyectoFiltro} />
 
       <BuscadorSemantico />
 
