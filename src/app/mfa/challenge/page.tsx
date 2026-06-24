@@ -39,7 +39,7 @@ export default function MfaChallengePage() {
       // Si la sesión ya alcanzó AAL2, no mostramos el formulario: vamos directo al dashboard.
       const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel()
       if (aal?.currentLevel === 'aal2') {
-        router.replace('/dashboard')
+        router.replace("/bienvenida")
         return
       }
 
@@ -82,7 +82,7 @@ export default function MfaChallengePage() {
       return
     }
 
-    router.replace('/dashboard')
+    router.replace("/bienvenida")
     router.refresh()
   }
 
