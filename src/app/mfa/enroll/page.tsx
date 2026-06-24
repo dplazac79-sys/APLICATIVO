@@ -70,7 +70,7 @@ export default function MfaEnrollPage() {
       return
     }
 
-    router.push('/dashboard')
+    router.push('/bienvenida')
     router.refresh()
   }
 
