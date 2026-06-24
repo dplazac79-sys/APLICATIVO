@@ -356,10 +356,8 @@ export default function LoginPage() {
     } else if (aal?.nextLevel === 'aal1' && rolInterno) {
       // Solo forzar MFA enroll a roles internos
       router.push('/mfa/enroll')
-    } else if (esCliente) {
-      router.push('/portal')
     } else {
-      router.push('/dashboard')
+      router.push('/bienvenida')
     }
     router.refresh()
   }

@@ -11,10 +11,10 @@ import { CheckCircle, Building2, FolderOpen, Users, Eye, Plus, Trash2, ChevronRi
 const INDUSTRIAS = ['Manufactura', 'Retail', 'Salud', 'Educación', 'Finanzas', 'Tecnología', 'Logística', 'Construcción', 'Energía', 'Servicios', 'Minería', 'Otro']
 const TAMANOS = ['1-50 empleados', '51-200 empleados', '201-500 empleados', '501-1000 empleados', 'Más de 1000 empleados']
 const ROLES = [
-  { value: 'director_proyecto', label: 'Director de Proyecto' },
-  { value: 'consultor', label: 'Consultor' },
-  { value: 'sponsor_cliente', label: 'Sponsor Cliente' },
-  { value: 'usuario_cliente', label: 'Usuario Cliente' },
+  { value: 'director_proyecto', label: 'Director de Proyecto', desc: 'Equipo AICOUNTS. Ve todos los módulos, aprueba artefactos y gestiona el proyecto.' },
+  { value: 'consultor', label: 'Consultor', desc: 'Equipo AICOUNTS. Genera y edita artefactos, sube documentos, ejecuta Discovery AI.' },
+  { value: 'sponsor_cliente', label: 'Sponsor Cliente', desc: 'Lado cliente. Ve artefactos publicados, aprueba entregables y accede al portal ejecutivo.' },
+  { value: 'usuario_cliente', label: 'Usuario Cliente', desc: 'Lado cliente. Solo ve el portal con los artefactos publicados que le comparten.' },
 ]
 
 const PASOS = [
@@ -232,6 +232,11 @@ export default function OnboardingPage() {
                   <select className="w-full mt-1 bg-slate-800 border border-slate-700 text-white rounded-md px-3 py-2 text-sm" value={m.rol} onChange={e => updateMiembro(i, 'rol', e.target.value)}>
                     {ROLES.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
                   </select>
+                  {m.rol && (
+                    <p className="text-slate-500 text-xs mt-1.5 leading-snug">
+                      {ROLES.find(r => r.value === m.rol)?.desc}
+                    </p>
+                  )}
                 </div>
               </div>
             ))}
