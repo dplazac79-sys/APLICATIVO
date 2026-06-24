@@ -25,7 +25,7 @@ alter table artefacto_historial enable row level security;
 create policy "historial_lectura_proyecto" on artefacto_historial
   for select using (
     exists (
-      select 1 from proyecto_usuario pu
+      select 1 from usuario_proyecto pu
       join artefacto a on a.proceso_id = artefacto_historial.proceso_id
       where pu.proyecto_id = a.proyecto_id
         and pu.usuario_id = auth.uid()
@@ -58,7 +58,7 @@ create policy "encuesta_insertar_propio" on encuesta_feedback
 create policy "encuesta_leer_proyecto" on encuesta_feedback
   for select using (
     exists (
-      select 1 from proyecto_usuario pu
+      select 1 from usuario_proyecto pu
       where pu.proyecto_id = encuesta_feedback.proyecto_id
         and pu.usuario_id = auth.uid()
     )
@@ -99,7 +99,7 @@ alter table firma_solicitud enable row level security;
 create policy "firma_leer_proyecto" on firma_solicitud
   for select using (
     exists (
-      select 1 from proyecto_usuario pu
+      select 1 from usuario_proyecto pu
       where pu.proyecto_id = firma_solicitud.proyecto_id
         and pu.usuario_id = auth.uid()
     )
@@ -117,7 +117,7 @@ create policy "firma_insertar_interno" on firma_solicitud
 create policy "firma_actualizar_proyecto" on firma_solicitud
   for update using (
     exists (
-      select 1 from proyecto_usuario pu
+      select 1 from usuario_proyecto pu
       where pu.proyecto_id = firma_solicitud.proyecto_id
         and pu.usuario_id = auth.uid()
     )
