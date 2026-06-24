@@ -133,6 +133,9 @@ export type TipoArtefacto =
   | 'checklist'
   | 'backlog'
   | 'cinco_porques'
+  | 'acta_inicio'
+  | 'plan_pruebas'
+  | 'roadmap'
 
 export type EstadoValidacion = 'pendiente' | 'validado' | 'publicado'
 
@@ -147,6 +150,50 @@ export interface Artefacto {
   generado_por_ia: boolean
   created_at: string
   updated_at: string
+}
+
+export interface ArtefactoHistorial {
+  id: string
+  artefacto_id: string
+  proceso_id: string
+  tipo: TipoArtefacto
+  contenido: Record<string, unknown>
+  version: number
+  estado_validacion: EstadoValidacion
+  modificado_por: string | null
+  motivo_cambio: string | null
+  created_at: string
+}
+
+export interface EncuestaFeedback {
+  id: string
+  artefacto_id: string
+  proyecto_id: string
+  usuario_id: string | null
+  puntuacion: number
+  comentario: string | null
+  aprobado: boolean
+  created_at: string
+}
+
+export type EstadoFirma = 'pendiente' | 'firmado' | 'rechazado' | 'expirado'
+
+export interface FirmaSolicitud {
+  id: string
+  proyecto_id: string
+  artefacto_id: string | null
+  titulo: string
+  descripcion: string | null
+  token: string
+  solicitado_por: string | null
+  firmante_nombre: string | null
+  firmante_email: string | null
+  firmante_cargo: string | null
+  estado: EstadoFirma
+  firmado_at: string | null
+  expira_at: string
+  ip_firma: string | null
+  created_at: string
 }
 
 // ── Fase 4: Gestión de Proyecto ──────────────────────────────────────────────

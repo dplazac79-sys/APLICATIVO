@@ -1,7 +1,7 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { notFound } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Layers, FileText, ChevronLeft } from 'lucide-react'
+import { Layers, FileText, ChevronLeft, Printer } from 'lucide-react'
 import Link from 'next/link'
 import type { Artefacto } from '@/types/database'
 import ArtefactoGenerador from '@/components/artefactos/ArtefactoGenerador'
@@ -60,10 +60,21 @@ export default async function ProcesoArtefactosPage({ params }: Props) {
             <span className="ml-2 text-slate-600">Nivel {proceso.nivel} · {proceso.origen}</span>
           </p>
         </div>
-        <ArtefactoGenerador
-          procesoId={params.procesoId}
-          tieneArtefactos={totalGenerados > 0}
-        />
+        <div className="flex items-center gap-2">
+          {totalPublicados > 0 && (
+            <Link
+              href={`/artefactos/${params.procesoId}/print`}
+              className="flex items-center gap-1.5 text-sm text-slate-400 hover:text-slate-200 border border-slate-700 hover:border-slate-500 rounded-lg px-3 py-1.5 transition-colors"
+            >
+              <Printer className="w-3.5 h-3.5" />
+              Exportar PDF
+            </Link>
+          )}
+          <ArtefactoGenerador
+            procesoId={params.procesoId}
+            tieneArtefactos={totalGenerados > 0}
+          />
+        </div>
       </div>
 
       {/* Stats */}

@@ -36,6 +36,9 @@ export default function VistaArtefacto({ artefacto }: Props) {
     case 'checklist': return <VistaChecklist c={c} />
     case 'backlog': return <VistaBacklog c={c} />
     case 'cinco_porques': return <VistaCincoPorques c={c} />
+    case 'acta_inicio': return <VistaActaInicio c={c} />
+    case 'plan_pruebas': return <VistaPlanPruebas c={c} />
+    case 'roadmap': return <VistaRoadmap c={c} />
     default: return <pre className="text-xs text-slate-400 overflow-auto">{JSON.stringify(c, null, 2)}</pre>
   }
 }
@@ -674,6 +677,241 @@ function VistaCincoPorques({ c }: { c: Record<string, unknown> }) {
           <p className="text-slate-200 text-sm leading-relaxed">{String(c.conclusion_sistemica)}</p>
         </div>
       ) : null}
+    </div>
+  )
+}
+
+function VistaActaInicio({ c }: { c: Record<string, unknown> }) {
+  const objetivos = (c.objetivos as Array<Record<string, unknown>>) ?? []
+  const alcance = c.alcance as Record<string, string[]> | undefined
+  return (
+    <div className="space-y-4">
+      <div className="bg-gradient-to-br from-slate-800/80 to-slate-900 border border-slate-700 rounded-xl p-4 space-y-2">
+        <p className="text-white text-base font-medium">{String(c.titulo_proyecto ?? '')}</p>
+        <div className="flex flex-wrap gap-4 text-xs text-slate-400">
+          <span>Inicio: <span className="text-slate-200">{String(c.fecha_inicio ?? '—')}</span></span>
+          <span>Fin est.: <span className="text-slate-200">{String(c.fecha_fin_estimada ?? '—')}</span></span>
+          <span>Presupuesto: <span className="text-slate-200">{String(c.presupuesto_estimado ?? '—')}</span></span>
+        </div>
+        <div className="flex flex-wrap gap-3 text-xs text-slate-400">
+          {c.patrocinador ? <span>Sponsor: <Pill text={String(c.patrocinador)} color="purple" /></span> : null}
+          {c.director_proyecto ? <span>Director: <Pill text={String(c.director_proyecto)} color="blue" /></span> : null}
+        </div>
+      </div>
+      {c.proposito ? (
+        <Section title="Propósito">
+          <p className="text-slate-300 text-sm leading-relaxed">{String(c.proposito)}</p>
+        </Section>
+      ) : null}
+      {alcance ? (
+        <div className="grid grid-cols-2 gap-3">
+          <div className="bg-emerald-950/20 border border-emerald-800/30 rounded-lg p-3">
+            <p className="text-emerald-400 text-xs font-semibold uppercase tracking-wider mb-2">Incluye</p>
+            <Lista items={alcance.incluye ?? []} />
+          </div>
+          <div className="bg-red-950/20 border border-red-800/30 rounded-lg p-3">
+            <p className="text-red-400 text-xs font-semibold uppercase tracking-wider mb-2">Excluye</p>
+            <Lista items={alcance.excluye ?? []} />
+          </div>
+        </div>
+      ) : null}
+      {objetivos.length > 0 && (
+        <Section title="Objetivos">
+          <div className="space-y-2">
+            {objetivos.map((o, i) => (
+              <div key={i} className="bg-slate-800/50 rounded-lg p-2.5 flex gap-3">
+                <span className="text-slate-600 text-xs font-bold w-5 shrink-0">{i + 1}</span>
+                <div className="flex-1">
+                  <p className="text-slate-200 text-sm">{String(o.descripcion ?? '')}</p>
+                  <div className="flex gap-3 text-xs text-slate-500 mt-0.5">
+                    <span>Métrica: {String(o.metrica ?? '')}</span>
+                    <span>· Meta: <span className="text-emerald-400">{String(o.meta ?? '')}</span></span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Section>
+      )}
+      <div className="grid grid-cols-2 gap-3">
+        {(c.supuestos as string[] ?? []).length > 0 && (
+          <Section title="Supuestos"><Lista items={c.supuestos as string[]} /></Section>
+        )}
+        {(c.restricciones as string[] ?? []).length > 0 && (
+          <Section title="Restricciones"><Lista items={c.restricciones as string[]} /></Section>
+        )}
+      </div>
+      {(c.criterios_exito as string[] ?? []).length > 0 && (
+        <Section title="Criterios de éxito">
+          <ul className="space-y-1">
+            {(c.criterios_exito as string[]).map((item, i) => (
+              <li key={i} className="text-slate-300 text-sm flex gap-2">
+                <span className="text-emerald-500 shrink-0">✓</span>{item}
+              </li>
+            ))}
+          </ul>
+        </Section>
+      )}
+      {(c.firmas_requeridas as string[] ?? []).length > 0 && (
+        <div className="border border-dashed border-slate-600 rounded-lg p-3">
+          <p className="text-slate-500 text-xs uppercase tracking-wider mb-2">Firmas requeridas</p>
+          <div className="flex flex-wrap gap-3">
+            {(c.firmas_requeridas as string[]).map((f, i) => (
+              <div key={i} className="border border-slate-600 rounded px-4 py-5 text-center min-w-[120px]">
+                <div className="h-6 border-b border-slate-600 mb-1" />
+                <p className="text-slate-500 text-xs">{f}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function VistaPlanPruebas({ c }: { c: Record<string, unknown> }) {
+  const casos = (c.casos as Array<Record<string, unknown>>) ?? []
+  const tipoColor: Record<string, string> = { funcional: 'blue', excepcion: 'amber', integracion: 'purple' }
+  const prioColor: Record<string, string> = { alta: 'red', media: 'amber', baja: 'slate' }
+  return (
+    <div className="space-y-4">
+      {c.resumen ? <p className="text-slate-300 text-sm leading-relaxed">{String(c.resumen)}</p> : null}
+      <div className="grid grid-cols-2 gap-3 text-xs">
+        <div className="bg-slate-800/50 rounded-lg p-2.5">
+          <p className="text-slate-500">Ambiente</p>
+          <p className="text-slate-200 mt-0.5">{String(c.ambiente_pruebas ?? '—')}</p>
+        </div>
+        <div className="bg-slate-800/50 rounded-lg p-2.5">
+          <p className="text-slate-500">Responsable</p>
+          <p className="text-slate-200 mt-0.5">{String(c.responsable_pruebas ?? '—')}</p>
+        </div>
+      </div>
+      <Section title={`Casos de prueba (${casos.length})`}>
+        <div className="space-y-2">
+          {casos.map((cp, i) => {
+            const pasos = (cp.pasos as string[]) ?? []
+            return (
+              <div key={i} className="bg-slate-800/50 rounded-lg p-3 space-y-2">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-slate-500 text-xs font-mono">{String(cp.id ?? `CP-${i+1}`)}</span>
+                  <Pill text={String(cp.tipo ?? '')} color={tipoColor[String(cp.tipo)] ?? 'slate'} />
+                  <Pill text={String(cp.prioridad ?? '')} color={prioColor[String(cp.prioridad)] ?? 'slate'} />
+                  <span className="text-slate-200 text-sm font-medium">{String(cp.nombre ?? '')}</span>
+                </div>
+                {cp.precondicion ? <p className="text-slate-500 text-xs">Precondición: {String(cp.precondicion)}</p> : null}
+                {pasos.length > 0 && (
+                  <ol className="space-y-0.5 pl-4">
+                    {pasos.map((p, j) => <li key={j} className="text-slate-400 text-xs list-decimal">{p}</li>)}
+                  </ol>
+                )}
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div className="bg-emerald-950/30 rounded p-2">
+                    <p className="text-emerald-600 font-medium">Resultado esperado</p>
+                    <p className="text-slate-300 mt-0.5">{String(cp.resultado_esperado ?? '')}</p>
+                  </div>
+                  <div className="bg-red-950/30 rounded p-2">
+                    <p className="text-red-600 font-medium">Criterio de falla</p>
+                    <p className="text-slate-300 mt-0.5">{String(cp.criterio_falla ?? '')}</p>
+                  </div>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      </Section>
+      {(c.criterios_aprobacion as string[] ?? []).length > 0 && (
+        <Section title="Criterios de aprobación">
+          <ul className="space-y-1">
+            {(c.criterios_aprobacion as string[]).map((item, i) => (
+              <li key={i} className="text-slate-300 text-sm flex gap-2">
+                <span className="text-emerald-500 shrink-0">✓</span>{item}
+              </li>
+            ))}
+          </ul>
+        </Section>
+      )}
+      {c.plan_contingencia ? (
+        <div className="bg-amber-950/20 border border-amber-700/40 rounded-lg p-3">
+          <p className="text-amber-400 text-xs font-semibold uppercase tracking-wider mb-1">Plan de contingencia</p>
+          <p className="text-slate-300 text-sm">{String(c.plan_contingencia)}</p>
+        </div>
+      ) : null}
+    </div>
+  )
+}
+
+function VistaRoadmap({ c }: { c: Record<string, unknown> }) {
+  const fases = (c.fases as Array<Record<string, unknown>>) ?? []
+  const duracionTotal = Number(c.duracion_total_semanas ?? 0)
+  const barColors = ['#378ADD', '#7F77DD', '#1D9E75', '#BA7517', '#D85A30']
+  const textColors = ['text-blue-400', 'text-purple-400', 'text-emerald-400', 'text-amber-400', 'text-red-400']
+  const bgBorders = [
+    'bg-blue-950/10 border-blue-800/40',
+    'bg-purple-950/10 border-purple-800/40',
+    'bg-emerald-950/10 border-emerald-800/40',
+    'bg-amber-950/10 border-amber-800/40',
+    'bg-red-950/10 border-red-800/40',
+  ]
+  return (
+    <div className="space-y-4">
+      <div className="flex gap-4 text-xs text-slate-400">
+        <span>Duración total: <span className="text-white font-medium">{duracionTotal} semanas</span></span>
+        <span>Metodología: <span className="text-white font-medium">{String(c.metodologia ?? '—')}</span></span>
+      </div>
+      <div className="h-3 bg-slate-800 rounded-full overflow-hidden flex">
+        {fases.map((f, i) => {
+          const semInicio = Number(f.semana_inicio ?? 1)
+          const semFin = Number(f.semana_fin ?? semInicio)
+          const pct = duracionTotal > 0 ? ((semFin - semInicio + 1) / duracionTotal) * 100 : 0
+          return (
+            <div key={i} style={{ width: `${pct}%`, backgroundColor: barColors[i % barColors.length] }} className="h-full" title={String(f.nombre ?? '')} />
+          )
+        })}
+      </div>
+      {fases.map((f, i) => {
+        const actividades = (f.actividades as string[]) ?? []
+        const entregables = (f.entregables as string[]) ?? []
+        const hitos = (f.hitos as string[]) ?? []
+        return (
+          <div key={i} className={`border rounded-xl p-4 space-y-3 ${bgBorders[i % bgBorders.length]}`}>
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <div className="flex items-center gap-2">
+                <span className={`text-sm font-bold ${textColors[i % textColors.length]}`}>Fase {i+1}</span>
+                <p className="text-white text-sm font-medium">{String(f.nombre ?? '')}</p>
+              </div>
+              <span className={`text-xs ${textColors[i % textColors.length]}`}>Sem {String(f.semana_inicio ?? '')}–{String(f.semana_fin ?? '')} · {String(f.duracion_semanas ?? '')} semanas</span>
+            </div>
+            <p className="text-slate-400 text-sm">{String(f.objetivo ?? '')}</p>
+            <div className="grid grid-cols-3 gap-3 text-xs">
+              {actividades.length > 0 && (
+                <div>
+                  <p className="text-slate-500 uppercase tracking-wider mb-1">Actividades</p>
+                  <Lista items={actividades} />
+                </div>
+              )}
+              {entregables.length > 0 && (
+                <div>
+                  <p className="text-slate-500 uppercase tracking-wider mb-1">Entregables</p>
+                  <Lista items={entregables} />
+                </div>
+              )}
+              {hitos.length > 0 && (
+                <div>
+                  <p className="text-slate-500 uppercase tracking-wider mb-1">Hitos</p>
+                  <ul className="space-y-1">
+                    {hitos.map((h, j) => (
+                      <li key={j} className={`text-xs flex gap-1.5 ${textColors[i % textColors.length]}`}>◆ <span className="text-slate-300">{h}</span></li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          </div>
+        )
+      })}
+      {(c.factores_exito as string[] ?? []).length > 0 && (
+        <Section title="Factores de éxito"><Lista items={c.factores_exito as string[]} /></Section>
+      )}
     </div>
   )
 }

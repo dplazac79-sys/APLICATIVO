@@ -16,6 +16,9 @@ export const ORDEN_GENERACION: TipoArtefacto[] = [
   'checklist',
   'backlog',
   'cinco_porques',
+  'acta_inicio',
+  'plan_pruebas',
+  'roadmap',
 ]
 
 export const LABEL_ARTEFACTO: Record<TipoArtefacto, string> = {
@@ -34,4 +37,7 @@ export const LABEL_ARTEFACTO: Record<TipoArtefacto, string> = {
   checklist: 'Checklists por Rol',
   backlog: 'Backlog Priorizado',
   cinco_porques: '5 Porqués',
+  acta_inicio: 'Acta de Inicio',
+  plan_pruebas: 'Plan de Pruebas',
+  roadmap: 'Roadmap de Implementación',
 }
