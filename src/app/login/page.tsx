@@ -348,14 +348,14 @@ export default function LoginPage() {
     const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel()
     const { data: { user } } = await supabase.auth.getUser()
     const { data: usuario } = await supabase.from('usuario').select('rol').eq('id', user!.id).single()
-    const rolInterno = ['super_admin', 'director_proyecto', 'consultor'].includes(usuario?.rol ?? '')
-    const esCliente  = ['sponsor_cliente', 'usuario_cliente'].includes(usuario?.rol ?? '')
+    const rolConMfa = ['super_admin', 'director_proyecto', 'consultor', 'sponsor_cliente'].includes(usuario?.rol ?? '')
 
     if (aal?.nextLevel === 'aal2' && aal.currentLevel !== aal.nextLevel) {
       router.push('/mfa/challenge')
-    } else if (aal?.nextLevel === 'aal1' && rolInterno) {
-      // Solo forzar MFA enroll a roles internos
+    } else if (aal?.nextLevel === 'aal1' && rolConMfa) {
       router.push('/mfa/enroll')
+    } else if (usuario?.rol === 'usuario_cliente') {
+      router.push('/portal')
     } else {
       router.push('/bienvenida')
     }

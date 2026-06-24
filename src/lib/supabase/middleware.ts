@@ -61,7 +61,7 @@ export async function updateSession(request: NextRequest) {
           .eq('id', user.id)
           .single()
         const url = request.nextUrl.clone()
-        if (usuario?.rol === 'sponsor_cliente' || usuario?.rol === 'usuario_cliente') {
+        if (usuario?.rol === 'usuario_cliente') {
           url.pathname = '/portal'
         } else {
           url.pathname = '/bienvenida'
