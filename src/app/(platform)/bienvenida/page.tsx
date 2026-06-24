@@ -7,6 +7,7 @@ import Link from 'next/link'
 import { ArrowRight, Sparkles } from 'lucide-react'
 import FaseWorkflow from '@/components/fases/FaseWorkflow'
 import Saludo from './Saludo'
+import ResumenProyecto from './ResumenProyecto'
 import { getFasesProyecto } from '@/lib/fases'
 
 export default async function BienvenidaPage() {
@@ -29,7 +30,7 @@ export default async function BienvenidaPage() {
   if (proyectoIds.length > 0) {
     const { data: p } = await admin
       .from('proyecto')
-      .select('id, nombre, estado_general, cliente:cliente_id(razon_social, industria)')
+      .select('id, nombre, estado_general, descripcion, contexto, objetivos, alcance_incluye, alcance_excluye, n_procesos_estimados, fecha_inicio, fecha_estimada_cierre, cliente:cliente_id(razon_social, industria)')
       .in('id', proyectoIds)
       .eq('estado_general', 'activo')
       .order('created_at', { ascending: false })
@@ -43,8 +44,17 @@ export default async function BienvenidaPage() {
     }
   }
 
+  let equipo: { nombre: string; rol: string }[] = []
+  if (proyectoMeta) {
+    const { data: miembros } = await admin
+      .from('usuario_proyecto')
+      .select('usuario:usuario_id(nombre, rol)')
+      .eq('proyecto_id', proyectoMeta.id)
+    equipo = (miembros ?? []).map((m: any) => ({ nombre: m.usuario?.nombre ?? '', rol: m.usuario?.rol ?? '' }))
+  }
+
   const nombre = usuario?.nombre?.split(' ')[0] ?? 'Equipo'
-  const cliente = proyectoMeta?.cliente as { razon_social?: string } | null
+  const cliente = proyectoMeta?.cliente as { razon_social?: string; industria?: string } | null
 
   return (
     <div className="max-w-4xl mx-auto space-y-8 py-2">
@@ -115,14 +125,19 @@ export default async function BienvenidaPage() {
       </div>
 
       {proyectoMeta && fases ? (
-        <div className="space-y-4">
-          <div>
-            <h2 className="text-lg font-semibold text-white">Workflow de fases</h2>
-            <p className="text-sm text-slate-400 mt-0.5">
-              Avanza fase por fase. Las fases se desbloquean al completar los requisitos de la anterior.
-            </p>
+        <div className="space-y-6">
+          {/* Resumen ejecutivo del proyecto */}
+          <ResumenProyecto proyecto={proyectoMeta as any} cliente={cliente} equipo={equipo} rol={usuario?.rol ?? ''} />
+
+          <div className="space-y-4">
+            <div>
+              <h2 className="text-lg font-semibold text-white">Workflow de fases</h2>
+              <p className="text-sm text-slate-400 mt-0.5">
+                Avanza fase por fase. Las fases se desbloquean al completar los requisitos de la anterior.
+              </p>
+            </div>
+            <FaseWorkflow fases={fases} />
           </div>
-          <FaseWorkflow fases={fases} />
         </div>
       ) : (
         <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 md:p-8 text-center space-y-4">
