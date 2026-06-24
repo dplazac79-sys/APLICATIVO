@@ -69,7 +69,7 @@ export default async function ProcesoArtefactosPage({ params }: Props) {
       {/* Stats */}
       {totalGenerados > 0 && (
         <div className="flex items-center gap-6 text-sm">
-          <span className="text-slate-400">{totalGenerados}/12 artefactos generados</span>
+          <span className="text-slate-400">{totalGenerados}/{ORDEN_GENERACION.length} artefactos generados</span>
           <span className="text-blue-400">{totalPublicados} publicados</span>
           <span className="text-amber-400">{artefactos.filter(a => a.estado_validacion === 'pendiente').length} pendientes revisión</span>
         </div>

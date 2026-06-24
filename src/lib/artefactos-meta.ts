@@ -13,6 +13,9 @@ export const ORDEN_GENERACION: TipoArtefacto[] = [
   'to_be',
   'dashboard_brechas',
   'cierre_ejecutivo',
+  'checklist',
+  'backlog',
+  'cinco_porques',
 ]
 
 export const LABEL_ARTEFACTO: Record<TipoArtefacto, string> = {
@@ -28,4 +31,7 @@ export const LABEL_ARTEFACTO: Record<TipoArtefacto, string> = {
   to_be: 'TO-BE',
   dashboard_brechas: 'Dashboard de Brechas',
   cierre_ejecutivo: 'Cierre Ejecutivo',
+  checklist: 'Checklists por Rol',
+  backlog: 'Backlog Priorizado',
+  cinco_porques: '5 Porqués',
 }

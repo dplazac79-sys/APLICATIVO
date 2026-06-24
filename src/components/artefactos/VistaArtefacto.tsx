@@ -33,6 +33,9 @@ export default function VistaArtefacto({ artefacto }: Props) {
     case 'to_be': return <VistaTOBE c={c} />
     case 'dashboard_brechas': return <VistaBrechas c={c} />
     case 'cierre_ejecutivo': return <VistaCierre c={c} />
+    case 'checklist': return <VistaChecklist c={c} />
+    case 'backlog': return <VistaBacklog c={c} />
+    case 'cinco_porques': return <VistaCincoPorques c={c} />
     default: return <pre className="text-xs text-slate-400 overflow-auto">{JSON.stringify(c, null, 2)}</pre>
   }
 }
@@ -266,6 +269,8 @@ function VistaRiesgos({ c }: { c: Record<string, unknown> }) {
 
 function VistaKPIs({ c }: { c: Record<string, unknown> }) {
   const indicadores = (c.indicadores as Array<Record<string, unknown>>) ?? []
+  const fin = c.financiero as Record<string, unknown> | undefined
+  const fmt = (n: unknown) => n ? Number(n).toLocaleString('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }) : '—'
   return (
     <div className="space-y-3">
       {indicadores.map((k, i) => (
@@ -277,14 +282,18 @@ function VistaKPIs({ c }: { c: Record<string, unknown> }) {
             </div>
             <Pill text={String(k.frecuencia ?? '')} color="blue" />
           </div>
-          <div className="grid grid-cols-3 gap-2 text-xs">
+          <div className="grid grid-cols-4 gap-2 text-xs">
             <div className="bg-slate-900 rounded p-2">
               <p className="text-slate-500">Línea base</p>
               <p className="text-slate-200 font-medium">{String(k.linea_base ?? '')}</p>
             </div>
             <div className="bg-emerald-950/40 rounded p-2">
-              <p className="text-emerald-600">Meta</p>
+              <p className="text-emerald-600">Meta 12m</p>
               <p className="text-emerald-300 font-medium">{String(k.meta ?? '')}</p>
+            </div>
+            <div className="bg-purple-950/40 rounded p-2">
+              <p className="text-purple-500">Valor real</p>
+              <p className="text-purple-300 font-medium italic">{String(k.valor_real ?? '—')}</p>
             </div>
             <div className="bg-blue-950/40 rounded p-2">
               <p className="text-blue-600">SLA</p>
@@ -294,9 +303,24 @@ function VistaKPIs({ c }: { c: Record<string, unknown> }) {
           <div className="flex gap-4 text-xs text-slate-500">
             <span>Fórmula: <span className="text-slate-300 font-mono">{String(k.formula ?? '')}</span></span>
             <span>· Dueño: {String(k.dueno ?? '')}</span>
+            <span>· Fuente: {String(k.fuente_dato ?? '')}</span>
           </div>
         </div>
       ))}
+      {fin && (Number(fin.costo_mensual_proceso_clp) > 0 || Number(fin.inversion_estimada_clp) > 0) && (
+        <div className="grid grid-cols-3 gap-3 mt-2">
+          {[
+            { label: 'Costo/hora FTE', value: fmt(fin.costo_hora_fte_clp), color: 'slate' },
+            { label: 'Costo mensual proceso', value: fmt(fin.costo_mensual_proceso_clp), color: 'amber' },
+            { label: 'Inversión estimada', value: fmt(fin.inversion_estimada_clp), color: 'emerald' },
+          ].map(m => (
+            <div key={m.label} className="bg-slate-800/50 rounded-lg p-3 text-center">
+              <p className="text-slate-500 text-xs">{m.label}</p>
+              <p className={`text-${m.color}-300 text-sm font-bold mt-1`}>{m.value}</p>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
@@ -346,22 +370,34 @@ function VistaDiagnostico({ c }: { c: Record<string, unknown> }) {
 
 function VistaTOBE({ c }: { c: Record<string, unknown> }) {
   const pasos = (c.pasos as Array<Record<string, unknown>>) ?? []
+  const metricas = (c.metricas_objetivo as Array<Record<string, unknown>>) ?? []
   return (
     <div className="space-y-4">
       {c.descripcion_estado_futuro ? (
-        <p className="text-slate-300 text-sm leading-relaxed">{String(c.descripcion_estado_futuro)}</p>
+        <div className="bg-emerald-950/30 border border-emerald-700/40 rounded-xl p-4">
+          <p className="text-emerald-400 text-xs font-semibold uppercase tracking-widest mb-1.5">Estado Futuro TO-BE</p>
+          <p className="text-slate-200 text-sm leading-relaxed">{String(c.descripcion_estado_futuro)}</p>
+        </div>
       ) : null}
+      <div className="grid grid-cols-2 gap-4">
+        <Section title="Actores">
+          <div className="flex flex-wrap gap-1">{(c.actores as string[] ?? []).map((a, i) => <Pill key={i} text={a} color="emerald" />)}</div>
+        </Section>
+        <Section title="Sistemas requeridos">
+          <div className="flex flex-wrap gap-1">{(c.sistemas_requeridos as string[] ?? []).map((s, i) => <Pill key={i} text={s} color="purple" />)}</div>
+        </Section>
+      </div>
       {pasos.length > 0 && (
         <Section title="Pasos del proceso futuro">
           <div className="space-y-2">
             {pasos.map((p, i) => (
-              <div key={i} className="flex gap-3 bg-slate-800/50 rounded-lg p-2.5">
-                <span className="text-slate-600 text-xs font-bold w-5 shrink-0">{String(p.orden ?? i + 1)}</span>
+              <div key={i} className={`flex gap-3 rounded-lg p-2.5 ${p.automatizado ? 'bg-emerald-950/30 border border-emerald-800/30' : 'bg-slate-800/50'}`}>
+                <span className="text-emerald-600 text-xs font-bold w-5 shrink-0">{String(p.orden ?? i + 1)}</span>
                 <div className="flex-1 min-w-0">
                   <p className="text-slate-200 text-sm">{String(p.descripcion ?? '')}</p>
                   <div className="flex gap-3 mt-0.5 text-xs text-slate-500 flex-wrap">
                     {p.responsable ? <span>{String(p.responsable)}</span> : null}
-                    {p.automatizado ? <span className="text-purple-400">· Automatizado</span> : null}
+                    {p.automatizado ? <span className="text-emerald-400 font-medium">⚡ Automatizado</span> : null}
                     {p.herramienta ? <span>· {String(p.herramienta)}</span> : null}
                   </div>
                 </div>
@@ -370,9 +406,32 @@ function VistaTOBE({ c }: { c: Record<string, unknown> }) {
           </div>
         </Section>
       )}
+      {metricas.length > 0 && (
+        <Section title="Métricas objetivo">
+          <div className="grid grid-cols-2 gap-2">
+            {metricas.map((m, i) => (
+              <div key={i} className="bg-slate-800/50 rounded-lg p-2.5 text-xs">
+                <p className="text-slate-400 font-medium mb-1">{String(m.nombre ?? '')}</p>
+                <div className="flex items-center gap-2">
+                  <span className="text-red-400 line-through">{String(m.valor_actual ?? '')}</span>
+                  <span className="text-slate-600">→</span>
+                  <span className="text-emerald-400 font-bold">{String(m.valor_objetivo ?? '')}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Section>
+      )}
       {(c.mejoras_respecto_asis as string[] ?? []).length > 0 && (
         <Section title="Mejoras vs AS-IS">
-          <Lista items={c.mejoras_respecto_asis as string[]} />
+          <ul className="space-y-1">
+            {(c.mejoras_respecto_asis as string[]).map((item, i) => (
+              <li key={i} className="text-slate-300 text-sm flex gap-2">
+                <span className="text-emerald-500 shrink-0">✓</span>
+                {item}
+              </li>
+            ))}
+          </ul>
         </Section>
       )}
     </div>
@@ -451,6 +510,168 @@ function VistaCierre({ c }: { c: Record<string, unknown> }) {
         <div className="bg-amber-950/30 border border-amber-700/40 rounded-xl p-4">
           <p className="text-amber-400 text-xs font-semibold uppercase tracking-widest mb-2">Recomendación para el CEO</p>
           <p className="text-white text-sm font-medium leading-relaxed">{String(c.recomendacion_ceo)}</p>
+        </div>
+      ) : null}
+    </div>
+  )
+}
+
+function VistaChecklist({ c }: { c: Record<string, unknown> }) {
+  const checklists = (c.checklists as Array<Record<string, unknown>>) ?? []
+  const faseColors: Record<string, string> = {
+    preparacion: 'blue', ejecucion: 'emerald', cierre: 'amber',
+  }
+  const faseLabel: Record<string, string> = {
+    preparacion: 'Preparación', ejecucion: 'Ejecución', cierre: 'Cierre',
+  }
+  return (
+    <div className="space-y-6">
+      {c.frecuencia_uso ? (
+        <p className="text-slate-500 text-xs">Frecuencia de uso: <Pill text={String(c.frecuencia_uso)} color="blue" /></p>
+      ) : null}
+      {checklists.map((cl, i) => {
+        const items = (cl.items as Array<Record<string, unknown>>) ?? []
+        const fases = ['preparacion', 'ejecucion', 'cierre'] as const
+        return (
+          <div key={i} className="space-y-3">
+            <div>
+              <p className="text-white text-sm font-semibold">{String(cl.rol ?? '')}</p>
+              <p className="text-slate-500 text-xs">{String(cl.descripcion_rol ?? '')}</p>
+            </div>
+            {fases.map(fase => {
+              const faseItems = items.filter(it => String(it.fase) === fase)
+              if (!faseItems.length) return null
+              return (
+                <div key={fase}>
+                  <p className={`text-${faseColors[fase]}-400 text-xs font-semibold uppercase tracking-wider mb-1.5`}>
+                    {faseLabel[fase]}
+                  </p>
+                  <div className="space-y-1">
+                    {faseItems.map((it, j) => (
+                      <div key={j} className={`flex gap-2.5 rounded-lg p-2 ${it.critico ? 'bg-red-950/20 border border-red-800/20' : 'bg-slate-800/40'}`}>
+                        <span className="w-4 h-4 border border-slate-600 rounded shrink-0 mt-0.5" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-slate-200 text-sm">{String(it.descripcion ?? '')}</p>
+                          {it.nota ? <p className="text-slate-500 text-xs mt-0.5">{String(it.nota)}</p> : null}
+                        </div>
+                        {it.critico ? <span className="text-red-400 text-xs shrink-0">crítico</span> : null}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )
+            })}
+            {i < checklists.length - 1 && <hr className="border-slate-800" />}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+function VistaBacklog({ c }: { c: Record<string, unknown> }) {
+  const iniciativas = (c.iniciativas as Array<Record<string, unknown>>) ?? []
+  const resumen = c.resumen as Record<string, unknown> | undefined
+  const catColor: Record<string, string> = {
+    quick_win: 'emerald', proyecto_medio: 'blue', proyecto_mayor: 'amber',
+  }
+  const catLabel: Record<string, string> = {
+    quick_win: 'Quick Win', proyecto_medio: 'Proyecto Medio', proyecto_mayor: 'Proyecto Mayor',
+  }
+  return (
+    <div className="space-y-3">
+      {resumen && (
+        <div className="grid grid-cols-3 gap-3 mb-2">
+          {[
+            { label: 'Quick Wins', value: resumen.total_quick_wins, color: 'emerald' },
+            { label: 'Proyectos medianos', value: resumen.total_proyectos_medios, color: 'blue' },
+            { label: 'Proyectos mayores', value: resumen.total_proyectos_mayores, color: 'amber' },
+          ].map(m => (
+            <div key={m.label} className={`bg-${m.color}-950/30 border border-${m.color}-800/30 rounded-lg p-3 text-center`}>
+              <p className={`text-${m.color}-400 text-lg font-bold`}>{String(m.value ?? 0)}</p>
+              <p className="text-slate-500 text-xs">{m.label}</p>
+            </div>
+          ))}
+        </div>
+      )}
+      {iniciativas.map((ini, i) => (
+        <div key={i} className="bg-slate-800/50 rounded-lg p-3 space-y-2">
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-0.5">
+                <span className="text-slate-500 text-xs font-mono">{String(ini.id ?? '')}</span>
+                <Pill text={catLabel[String(ini.categoria)] ?? String(ini.categoria)} color={catColor[String(ini.categoria)] ?? 'slate'} />
+                <Pill text={String(ini.tiempo_estimado ?? '')} />
+              </div>
+              <p className="text-slate-200 text-sm font-medium">{String(ini.titulo ?? '')}</p>
+            </div>
+            <div className="text-right shrink-0">
+              <div className="flex gap-1 justify-end">
+                {Array.from({ length: 5 }).map((_, n) => (
+                  <div key={n} className={`w-2 h-4 rounded-sm ${n < Number(ini.impacto ?? 0) ? 'bg-emerald-500' : 'bg-slate-700'}`} />
+                ))}
+              </div>
+              <p className="text-slate-500 text-xs mt-0.5">impacto</p>
+            </div>
+          </div>
+          <p className="text-slate-400 text-xs">{String(ini.descripcion ?? '')}</p>
+          <div className="flex justify-between text-xs text-slate-500">
+            <span>Esfuerzo: {'●'.repeat(Number(ini.esfuerzo ?? 0))}{'○'.repeat(5 - Number(ini.esfuerzo ?? 0))}</span>
+            <span>Líder: {String(ini.responsable_sugerido ?? '')}</span>
+          </div>
+          <p className="text-emerald-400 text-xs">{String(ini.beneficio_esperado ?? '')}</p>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function VistaCincoPorques({ c }: { c: Record<string, unknown> }) {
+  const analisis = (c.analisis as Array<Record<string, unknown>>) ?? []
+  const tipoColor: Record<string, string> = {
+    proceso: 'blue', tecnologia: 'purple', personas: 'amber', datos: 'emerald', gestion: 'red',
+  }
+  return (
+    <div className="space-y-6">
+      {analisis.map((a, i) => {
+        const cadena = (a.cadena as Array<Record<string, unknown>>) ?? []
+        return (
+          <div key={i} className="space-y-3">
+            <div className="bg-red-950/30 border border-red-800/30 rounded-lg p-3">
+              <p className="text-red-400 text-xs font-semibold uppercase tracking-wider mb-1">Problema {i + 1}</p>
+              <p className="text-white text-sm font-medium">{String(a.problema ?? '')}</p>
+              <p className="text-slate-400 text-xs mt-1">{String(a.impacto ?? '')}</p>
+            </div>
+            <div className="relative pl-4">
+              <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-slate-700 rounded" />
+              {cadena.map((paso, j) => (
+                <div key={j} className="relative mb-2 pl-4">
+                  <div className="absolute left-[-1px] top-2 w-3 h-0.5 bg-slate-700" />
+                  <div className="bg-slate-800/50 rounded-lg p-2.5">
+                    <span className="text-slate-500 text-xs font-bold">{j < 4 ? `¿Por qué? ${j + 1}` : '↳ Causa raíz'}</span>
+                    <p className={`text-sm mt-0.5 ${j === 4 ? 'text-amber-300 font-medium' : 'text-slate-300'}`}>{String(paso.porque ?? '')}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="bg-amber-950/30 border border-amber-700/40 rounded-lg p-3 space-y-2">
+              <div className="flex items-center gap-2">
+                <Pill text={String(a.tipo_causa ?? '')} color={tipoColor[String(a.tipo_causa)] ?? 'slate'} />
+                <p className="text-amber-300 text-xs font-medium">{String(a.causa_raiz ?? '')}</p>
+              </div>
+              <div className="border-t border-amber-800/30 pt-2">
+                <p className="text-slate-500 text-xs mb-0.5">Acción correctiva</p>
+                <p className="text-slate-200 text-sm">{String(a.accion_correctiva ?? '')}</p>
+              </div>
+            </div>
+            {i < analisis.length - 1 && <hr className="border-slate-800" />}
+          </div>
+        )
+      })}
+      {c.conclusion_sistemica ? (
+        <div className="bg-purple-950/30 border border-purple-700/40 rounded-xl p-4">
+          <p className="text-purple-400 text-xs font-semibold uppercase tracking-widest mb-2">Conclusión Sistémica</p>
+          <p className="text-slate-200 text-sm leading-relaxed">{String(c.conclusion_sistemica)}</p>
         </div>
       ) : null}
     </div>

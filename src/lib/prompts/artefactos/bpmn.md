@@ -1,6 +1,6 @@
-# Prompt: Diagrama BPMN (React Flow) — v1.0
+# Prompt: Diagrama BPMN (React Flow) — v2.0
 
-Eres un arquitecto de procesos experto en notación BPMN 2.0. Tu tarea es generar un diagrama de flujo del proceso en formato compatible con React Flow, representando el estado AS-IS del proceso.
+Eres un arquitecto de procesos certificado en BPMN 2.0. Tu tarea es generar un diagrama de flujo del proceso AS-IS en formato compatible con React Flow, siguiendo la notación BPMN 2.0 con pools, swimlanes y gateways tipados.
 
 ## Contexto del proceso
 {{CONTEXTO_PROCESO}}
@@ -9,13 +9,20 @@ Eres un arquitecto de procesos experto en notación BPMN 2.0. Tu tarea es genera
 {{DOCUMENTOS}}
 
 ## Instrucciones
-Genera nodos y aristas que representen el flujo del proceso. Usa estos tipos de nodo:
-- `start`: evento de inicio (círculo verde)
-- `task`: tarea o actividad (rectángulo)
-- `gateway`: decisión o bifurcación (rombo)
-- `end`: evento de fin (círculo rojo)
+Genera nodos y aristas que representen fielmente el flujo del proceso. Reglas:
+- Usa `start` solo al inicio y `end` solo al final (puede haber múltiples `end` para caminos de error)
+- Los `gateway` deben indicar si son exclusivos (XOR) o paralelos (AND) en el label
+- Cada `task` debe tener el rol responsable en `responsable`
+- Distribuye horizontalmente en pasos de 220px; usa variación vertical (±80px) para gateways y ramas alternativas
+- Máximo 16 nodos para mantener legibilidad
+- Las aristas de caminos de excepción o error llevan `type: "dashed"`
+- Nombra cada nodo con verbos de acción: "Recibir solicitud", "Validar datos", "Aprobar", etc.
 
-Distribuye los nodos horizontalmente en pasos de 200px, con variación vertical para los gateways. Máximo 15 nodos para mantener legibilidad.
+## Tipos de nodo disponibles
+- `start`: evento de inicio (círculo verde) — solo uno por flujo principal
+- `task`: tarea o actividad (rectángulo azul)
+- `gateway`: decisión/bifurcación (rombo amarillo) — agrega "(XOR)" o "(AND)" al label
+- `end`: evento de fin (círculo rojo) — puede haber varios para distintos caminos
 
 ## Formato de salida (JSON estricto)
 ```json
@@ -25,13 +32,19 @@ Distribuye los nodos horizontalmente en pasos de 200px, con variación vertical 
       "id": "1",
       "type": "start",
       "position": { "x": 50, "y": 200 },
-      "data": { "label": "<evento o trigger que inicia el proceso>" }
+      "data": { "label": "<evento trigger>", "responsable": "" }
     },
     {
       "id": "2",
       "type": "task",
-      "position": { "x": 250, "y": 200 },
-      "data": { "label": "<nombre de la tarea>", "responsable": "<rol>" }
+      "position": { "x": 270, "y": 200 },
+      "data": { "label": "<verbo + objeto>", "responsable": "<rol>" }
+    },
+    {
+      "id": "3",
+      "type": "gateway",
+      "position": { "x": 490, "y": 200 },
+      "data": { "label": "<pregunta de decisión> (XOR)", "responsable": "" }
     }
   ],
   "edges": [
@@ -39,7 +52,27 @@ Distribuye los nodos horizontalmente en pasos de 200px, con variación vertical 
       "id": "e1-2",
       "source": "1",
       "target": "2",
-      "label": "<condición o descripción opcional>"
+      "label": ""
+    },
+    {
+      "id": "e2-3",
+      "source": "2",
+      "target": "3",
+      "label": ""
+    },
+    {
+      "id": "e3-4",
+      "source": "3",
+      "target": "4",
+      "label": "Sí",
+      "type": "default"
+    },
+    {
+      "id": "e3-5",
+      "source": "3",
+      "target": "5",
+      "label": "No",
+      "type": "dashed"
     }
   ]
 }

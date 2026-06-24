@@ -130,6 +130,9 @@ export type TipoArtefacto =
   | 'to_be'
   | 'dashboard_brechas'
   | 'cierre_ejecutivo'
+  | 'checklist'
+  | 'backlog'
+  | 'cinco_porques'
 
 export type EstadoValidacion = 'pendiente' | 'validado' | 'publicado'
 
