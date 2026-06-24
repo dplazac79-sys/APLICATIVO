@@ -54,17 +54,19 @@ export async function updateSession(request: NextRequest) {
 
       // Tras el login, los roles de cliente van a su portal dedicado en lugar del dashboard.
       const pathname = request.nextUrl.pathname
-      if (pathname === '/' || pathname === '/dashboard') {
+      if (pathname === '/') {
         const { data: usuario } = await supabase
           .from('usuario')
           .select('rol')
           .eq('id', user.id)
           .single()
+        const url = request.nextUrl.clone()
         if (usuario?.rol === 'sponsor_cliente' || usuario?.rol === 'usuario_cliente') {
-          const url = request.nextUrl.clone()
           url.pathname = '/portal'
-          return NextResponse.redirect(url)
+        } else {
+          url.pathname = '/bienvenida'
         }
+        return NextResponse.redirect(url)
       }
     }
   }
