@@ -24,7 +24,7 @@ const PASOS = [
   { id: 4, label: 'Confirmar', icon: Eye },
 ]
 
-interface Miembro { email: string; nombre: string; rol: string }
+interface Miembro { email: string; nombre: string; rol: string; password: string }
 
 export default function OnboardingPage() {
   const router = useRouter()
@@ -35,9 +35,9 @@ export default function OnboardingPage() {
 
   const [empresa, setEmpresa] = useState({ razon_social: '', industria: '', tamano: '', objetivos_estrategicos: '' })
   const [proyecto, setProyecto] = useState({ nombre: '', descripcion: '', fecha_inicio: '', fecha_estimada_cierre: '' })
-  const [equipo, setEquipo] = useState<Miembro[]>([{ email: '', nombre: '', rol: 'director_proyecto' }])
+  const [equipo, setEquipo] = useState<Miembro[]>([{ email: '', nombre: '', rol: 'director_proyecto', password: '' }])
 
-  function addMiembro() { setEquipo(e => [...e, { email: '', nombre: '', rol: 'consultor' }]) }
+  function addMiembro() { setEquipo(e => [...e, { email: '', nombre: '', rol: 'consultor', password: '' }]) }
   function removeMiembro(i: number) { setEquipo(e => e.filter((_, idx) => idx !== i)) }
   function updateMiembro(i: number, field: keyof Miembro, val: string) {
     setEquipo(e => e.map((m, idx) => idx === i ? { ...m, [field]: val } : m))
@@ -91,7 +91,7 @@ export default function OnboardingPage() {
               ))}
             </div>
             <div className="flex gap-3">
-              <Button variant="outline" className="flex-1 border-slate-700 text-slate-300" onClick={() => { setExito(null); setPaso(1); setEmpresa({ razon_social: '', industria: '', tamano: '', objetivos_estrategicos: '' }); setProyecto({ nombre: '', descripcion: '', fecha_inicio: '', fecha_estimada_cierre: '' }); setEquipo([{ email: '', nombre: '', rol: 'director_proyecto' }]) }}>
+              <Button variant="outline" className="flex-1 border-slate-700 text-slate-300" onClick={() => { setExito(null); setPaso(1); setEmpresa({ razon_social: '', industria: '', tamano: '', objetivos_estrategicos: '' }); setProyecto({ nombre: '', descripcion: '', fecha_inicio: '', fecha_estimada_cierre: '' }); setEquipo([{ email: '', nombre: '', rol: 'director_proyecto', password: '' }]) }}>
                 Nuevo cliente
               </Button>
               <Button className="flex-1 bg-indigo-600 hover:bg-indigo-700" onClick={() => router.push('/admin')}>
@@ -237,6 +237,10 @@ export default function OnboardingPage() {
                       {ROLES.find(r => r.value === m.rol)?.desc}
                     </p>
                   )}
+                </div>
+                <div>
+                  <Label className="text-slate-400 text-xs">Contraseña *</Label>
+                  <Input className="mt-1 bg-slate-800 border-slate-700 text-white" type="password" placeholder="Mínimo 6 caracteres" value={m.password} onChange={e => updateMiembro(i, 'password', e.target.value)} />
                 </div>
               </div>
             ))}

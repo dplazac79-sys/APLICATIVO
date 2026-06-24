@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
         fecha_inicio: string
         fecha_estimada_cierre: string
       }
-      equipo: Array<{ email: string; nombre: string; rol: string }>
+      equipo: Array<{ email: string; nombre: string; rol: string; password: string }>
     }
 
     const admin = createAdminClient()
@@ -72,17 +72,16 @@ export async function POST(req: NextRequest) {
     for (const miembro of equipo) {
       if (!miembro.email) continue
       try {
-        // Invitar vía Supabase Auth (envía email de invitación)
-        const { data: invitado, error: errInvite } = await admin.auth.admin.inviteUserByEmail(
-          miembro.email,
-          {
-            redirectTo: `${appUrl}/login`,
-            data: { full_name: miembro.nombre },
-          }
-        )
+        // Crear usuario con contraseña directamente
+        const { data: creado, error: errCreate } = await admin.auth.admin.createUser({
+          email: miembro.email,
+          password: miembro.password,
+          email_confirm: true,
+          user_metadata: { full_name: miembro.nombre },
+        })
 
-        if (errInvite || !invitado?.user) {
-          // Si ya existe el usuario, buscarlo
+        if (errCreate || !creado?.user) {
+          // Si ya existe, buscar y actualizar rol
           const { data: usuarioExistente } = await admin
             .from('usuario')
             .select('id')
@@ -90,25 +89,24 @@ export async function POST(req: NextRequest) {
             .single()
 
           if (usuarioExistente) {
-            // Actualizar rol si el usuario ya existe
             await admin.from('usuario').update({ rol: miembro.rol as never }).eq('id', usuarioExistente.id)
             resultadosEquipo.push({ email: miembro.email, status: 'rol_actualizado' })
           } else {
-            resultadosEquipo.push({ email: miembro.email, status: 'error', error: errInvite?.message })
+            resultadosEquipo.push({ email: miembro.email, status: 'error', error: errCreate?.message })
           }
           continue
         }
 
         // Crear registro en tabla usuario
         await admin.from('usuario').upsert({
-          id: invitado.user.id,
+          id: creado.user.id,
           email: miembro.email,
           nombre: miembro.nombre || miembro.email.split('@')[0],
           rol: miembro.rol as never,
           activo: true,
         })
 
-        resultadosEquipo.push({ email: miembro.email, status: 'invitado' })
+        resultadosEquipo.push({ email: miembro.email, status: 'creado' })
       } catch (e) {
         resultadosEquipo.push({ email: miembro.email, status: 'error', error: String(e) })
       }
