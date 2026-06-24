@@ -6,6 +6,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import Link from 'next/link'
 import { ArrowRight, Sparkles } from 'lucide-react'
 import FaseWorkflow from '@/components/fases/FaseWorkflow'
+import Saludo from './Saludo'
 import { getFasesProyecto } from '@/lib/fases'
 
 export default async function BienvenidaPage() {
@@ -43,8 +44,6 @@ export default async function BienvenidaPage() {
   }
 
   const nombre = usuario?.nombre?.split(' ')[0] ?? 'Equipo'
-  const hora = new Date().getHours()
-  const saludo = hora < 12 ? 'Buenos días' : hora < 19 ? 'Buenas tardes' : 'Buenas noches'
   const cliente = proyectoMeta?.cliente as { razon_social?: string } | null
 
   return (
@@ -62,9 +61,7 @@ export default async function BienvenidaPage() {
                 <Sparkles className="w-5 h-5 text-indigo-400" />
                 <span className="text-xs text-indigo-300 font-medium uppercase tracking-widest">APAC — Aplicativo Consultivo</span>
               </div>
-              <h1 className="text-3xl md:text-4xl font-bold text-white">
-                {saludo}, <span className="bg-gradient-to-r from-indigo-300 via-violet-300 to-cyan-300 bg-clip-text text-transparent">{nombre}</span>
-              </h1>
+              <Saludo nombre={nombre} />
               {proyectoMeta ? (
                 <p className="text-slate-400 mt-2 text-base">
                   Proyecto activo: <span className="text-slate-200 font-medium">{proyectoMeta.nombre}</span>
