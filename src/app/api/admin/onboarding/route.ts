@@ -53,7 +53,10 @@ export async function POST(req: NextRequest) {
       .from('proyecto')
       .insert({
         nombre: proyecto.nombre,
+        descripcion: proyecto.descripcion || null,
         cliente_id: clienteCreado.id,
+        fecha_inicio: proyecto.fecha_inicio || null,
+        fecha_estimada_cierre: proyecto.fecha_estimada_cierre || null,
         estado_general: 'activo',
       })
       .select()
