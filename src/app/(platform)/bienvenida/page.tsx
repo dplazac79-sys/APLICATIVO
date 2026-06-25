@@ -59,7 +59,7 @@ export default async function BienvenidaPage() {
       .select('id, accion, entidad, detalle, created_at, usuario:usuario_id(nombre)')
       .order('created_at', { ascending: false })
       .limit(10)
-    bitacora = (logs ?? []) as typeof bitacora
+    bitacora = (logs ?? []) as unknown as typeof bitacora
   }
 
   let equipo: { nombre: string; rol: string }[] = []
