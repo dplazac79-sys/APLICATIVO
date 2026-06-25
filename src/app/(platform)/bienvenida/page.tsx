@@ -74,14 +74,26 @@ export default async function BienvenidaPage() {
   const nombre = usuario?.nombre?.split(' ')[0] ?? 'Equipo'
   const cliente = proyectoMeta?.cliente as { razon_social?: string; industria?: string } | null
 
+  const accionVerbo: Record<string, string> = {
+    CREATE: 'Creó', UPDATE: 'Modificó', DELETE: 'Eliminó',
+    LOGIN: 'Inició sesión', EXPORT: 'Exportó', UPLOAD: 'Subió archivo',
+    RUN: 'Ejecutó', APPROVE: 'Aprobó', REJECT: 'Rechazó',
+  }
+  const entidadNombre: Record<string, string> = {
+    usuario: 'usuario', proyecto: 'proyecto', cliente: 'cliente',
+    proceso: 'proceso', artefacto: 'artefacto', documento: 'documento',
+    discovery_job: 'Discovery AI', fase: 'fase',
+  }
+
   return (
-    <div className="max-w-4xl mx-auto space-y-8 py-2">
-      <div className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-indigo-950/30 to-slate-900 border border-indigo-500/20 rounded-2xl p-4 md:p-8">
+    <div className="max-w-5xl mx-auto space-y-6 py-2">
+
+      {/* Header */}
+      <div className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-indigo-950/30 to-slate-900 border border-indigo-500/20 rounded-2xl p-6 md:p-8">
         <div className="absolute inset-0 opacity-20 pointer-events-none">
           <div className="absolute top-0 left-1/4 w-64 h-64 bg-indigo-500 rounded-full blur-3xl" />
           <div className="absolute bottom-0 right-1/4 w-48 h-48 bg-violet-500 rounded-full blur-3xl" />
         </div>
-
         <div className="relative z-10">
           <div className="flex items-start justify-between gap-4 flex-wrap">
             <div>
@@ -93,43 +105,31 @@ export default async function BienvenidaPage() {
               {proyectoMeta ? (
                 <p className="text-slate-400 mt-2 text-base">
                   Proyecto activo: <span className="text-slate-200 font-medium">{proyectoMeta.nombre}</span>
-                  {cliente?.razon_social && (
-                    <> · <span className="text-slate-300">{cliente.razon_social}</span></>
-                  )}
+                  {cliente?.razon_social && <> · <span className="text-slate-300">{cliente.razon_social}</span></>}
                 </p>
               ) : (
                 <p className="text-slate-400 mt-2">No hay proyectos activos asignados aún.</p>
               )}
             </div>
-
-            {proyectoMeta && (
-              <Link
-                href="/dashboard"
-                className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium px-5 py-2.5 rounded-xl transition-colors shrink-0"
-              >
-                Ir al dashboard <ArrowRight className="w-4 h-4" />
-              </Link>
-            )}
+            <div className="flex gap-2 flex-wrap">
+              {proyectoMeta && (
+                <Link href="/dashboard" className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium px-5 py-2.5 rounded-xl transition-colors">
+                  Dashboard <ArrowRight className="w-4 h-4" />
+                </Link>
+              )}
+              {esSuperAdmin && (
+                <Link href="/admin/onboarding" className="flex items-center gap-2 bg-slate-700 hover:bg-slate-600 text-white text-sm font-medium px-4 py-2.5 rounded-xl transition-colors">
+                  + Nuevo cliente
+                </Link>
+              )}
+            </div>
           </div>
-
           {proyectoMeta && fases && (
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-8 pt-6 border-t border-slate-800">
+            <div className="grid grid-cols-3 gap-4 mt-6 pt-6 border-t border-slate-800">
               {[
-                {
-                  label: 'Fase actual',
-                  value: `F${fases.find(f => f.status === 'activa')?.id ?? '—'}`,
-                  sub: fases.find(f => f.status === 'activa')?.nombre ?? 'Sin fase activa',
-                },
-                {
-                  label: 'Completadas',
-                  value: `${fases.filter(f => f.status === 'completada').length}/${fases.length}`,
-                  sub: 'fases del proyecto',
-                },
-                {
-                  label: 'Progreso global',
-                  value: `${Math.round((fases.filter(f => f.status === 'completada').length / fases.length) * 100)}%`,
-                  sub: 'de avance metodológico',
-                },
+                { label: 'Fase actual', value: `F${fases.find(f => f.status === 'activa')?.id ?? '—'}`, sub: fases.find(f => f.status === 'activa')?.nombre ?? 'Sin fase activa' },
+                { label: 'Completadas', value: `${fases.filter(f => f.status === 'completada').length}/${fases.length}`, sub: 'fases del proyecto' },
+                { label: 'Progreso global', value: `${Math.round((fases.filter(f => f.status === 'completada').length / fases.length) * 100)}%`, sub: 'de avance metodológico' },
               ].map(m => (
                 <div key={m.label}>
                   <p className="text-xs text-slate-500 uppercase tracking-widest">{m.label}</p>
@@ -142,26 +142,108 @@ export default async function BienvenidaPage() {
         </div>
       </div>
 
-      {proyectoMeta && fases ? (
+      {/* Layout principal: para super_admin 2 columnas, para el resto 1 columna */}
+      {esSuperAdmin ? (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+          {/* Columna izquierda: resumen proyecto + workflow */}
+          <div className="space-y-6">
+            {proyectoMeta && fases ? (
+              <>
+                <ResumenProyecto proyecto={proyectoMeta as any} cliente={cliente} equipo={equipo} rol={usuario?.rol ?? ''} />
+                <div className="space-y-3">
+                  <h2 className="text-base font-semibold text-white">Workflow de fases</h2>
+                  <FaseWorkflow fases={fases} />
+                </div>
+              </>
+            ) : (
+              <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 text-center space-y-3">
+                <div className="w-12 h-12 bg-indigo-950 rounded-2xl flex items-center justify-center mx-auto text-xl">🏗️</div>
+                <p className="text-white font-medium text-sm">Sin proyecto activo</p>
+                <p className="text-slate-400 text-xs">Crea un cliente y proyecto desde el onboarding.</p>
+              </div>
+            )}
+          </div>
+
+          {/* Columna derecha: bitácora SIEMPRE VISIBLE */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-base font-semibold text-white">Bitácora de actividad</h2>
+                <p className="text-xs text-slate-500 mt-0.5">{bitacora.length} acciones recientes en el sistema</p>
+              </div>
+            </div>
+            <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+              {bitacora.length === 0 ? (
+                <div className="p-8 text-center">
+                  <p className="text-slate-500 text-sm">Sin actividad registrada aún.</p>
+                </div>
+              ) : (
+                <div className="max-h-[600px] overflow-y-auto">
+                  {bitacora.map((log, i) => {
+                    const verbo = accionVerbo[log.accion] ?? log.accion
+                    const entidad = entidadNombre[log.entidad] ?? log.entidad.replace(/_/g, ' ')
+                    const detNombre = String(log.detalle?.nombre ?? log.detalle?.email ?? log.detalle?.titulo ?? log.detalle?.nombre_archivo ?? '').slice(0, 50)
+                    const fecha = new Date(log.created_at)
+                    const diffMin = Math.floor((Date.now() - fecha.getTime()) / 60000)
+                    const cuando = diffMin < 1 ? 'ahora mismo'
+                      : diffMin < 60 ? `hace ${diffMin} min`
+                      : diffMin < 1440 ? `hace ${Math.floor(diffMin / 60)}h`
+                      : fecha.toLocaleDateString('es-CL', { day: 'numeric', month: 'short' })
+                    const colorDot = log.accion === 'CREATE' ? 'bg-emerald-400'
+                      : log.accion === 'DELETE' ? 'bg-red-400'
+                      : log.accion === 'UPDATE' ? 'bg-blue-400'
+                      : log.accion === 'LOGIN' ? 'bg-indigo-400'
+                      : log.accion === 'RUN' ? 'bg-violet-400'
+                      : 'bg-slate-500'
+                    return (
+                      <div key={log.id} className={`flex items-start gap-3 px-4 py-3 hover:bg-slate-800/40 transition-colors ${i < bitacora.length - 1 ? 'border-b border-slate-800/60' : ''}`}>
+                        <div className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${colorDot}`} />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm text-slate-200 leading-snug">
+                            <span className="font-semibold text-white">{log.usuario?.nombre ?? 'Sistema'}</span>
+                            {' '}<span className="text-slate-400">{verbo}</span>{' '}
+                            <span className="text-slate-300">{entidad}</span>
+                            {detNombre && <span className="text-slate-500"> — {detNombre}</span>}
+                          </p>
+                          {log.detalle && Object.keys(log.detalle).filter(k => !['nombre','email','titulo','nombre_archivo'].includes(k)).length > 0 && (
+                            <p className="text-xs text-slate-600 mt-0.5 truncate">
+                              {Object.entries(log.detalle)
+                                .filter(([k]) => !['nombre','email','titulo','nombre_archivo'].includes(k))
+                                .slice(0, 2)
+                                .map(([k, v]) => `${k}: ${String(v).slice(0,25)}`)
+                                .join(' · ')}
+                            </p>
+                          )}
+                        </div>
+                        <div className="text-right shrink-0 ml-2">
+                          <p className="text-xs text-slate-500 whitespace-nowrap">{cuando}</p>
+                          <p className="text-xs text-slate-700">{fecha.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' })}</p>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      ) : proyectoMeta && fases ? (
         <div className="space-y-6">
           <ResumenProyecto proyecto={proyectoMeta as any} cliente={cliente} equipo={equipo} rol={usuario?.rol ?? ''} />
           <div className="space-y-4">
-            <div>
-              <h2 className="text-lg font-semibold text-white">Workflow de fases</h2>
-              <p className="text-sm text-slate-400 mt-0.5">Avanza fase por fase. Las fases se desbloquean al completar los requisitos de la anterior.</p>
-            </div>
+            <h2 className="text-lg font-semibold text-white">Workflow de fases</h2>
             <FaseWorkflow fases={fases} />
           </div>
         </div>
-      ) : !esSuperAdmin ? (
-        <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 md:p-8 text-center space-y-4">
+      ) : (
+        <div className="bg-slate-900 border border-slate-800 rounded-xl p-8 text-center space-y-4">
           <div className="w-14 h-14 bg-indigo-950 rounded-2xl flex items-center justify-center mx-auto text-2xl">🏗️</div>
           <div>
             <h3 className="text-white font-semibold">Sin proyecto asignado</h3>
             <p className="text-slate-400 text-sm mt-1">Un administrador debe crear un proyecto y asignarte a él para comenzar.</p>
           </div>
         </div>
-      ) : null}
+      )}
 
       {/* Bitácora siempre visible para super_admin */}
       {esSuperAdmin && (
