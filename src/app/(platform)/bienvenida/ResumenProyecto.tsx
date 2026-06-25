@@ -1,7 +1,12 @@
 'use client'
 
 import { useState } from 'react'
-import { Calendar, Users, Target, Layers, ChevronDown, ChevronUp, CheckCircle, XCircle, Edit3, Save, X } from 'lucide-react'
+import Link from 'next/link'
+import {
+  Calendar, Users, Target, Layers, ChevronDown, ChevronUp,
+  CheckCircle, XCircle, Edit3, Save, X, FileText, Brain,
+  TrendingUp, Clock, ArrowRight, AlertCircle, CheckCircle2,
+} from 'lucide-react'
 
 const LABEL_ROL: Record<string, string> = {
   super_admin: 'Super Admin',
@@ -9,6 +14,14 @@ const LABEL_ROL: Record<string, string> = {
   consultor: 'Consultor',
   sponsor_cliente: 'Cliente Activo',
   usuario_cliente: 'Cliente Observador',
+}
+
+const ROL_COLOR: Record<string, string> = {
+  super_admin: 'bg-red-900/30 text-red-300 border-red-800',
+  director_proyecto: 'bg-indigo-900/30 text-indigo-300 border-indigo-800',
+  consultor: 'bg-blue-900/30 text-blue-300 border-blue-800',
+  sponsor_cliente: 'bg-emerald-900/30 text-emerald-300 border-emerald-800',
+  usuario_cliente: 'bg-slate-800 text-slate-400 border-slate-700',
 }
 
 interface Proyecto {
@@ -24,17 +37,38 @@ interface Proyecto {
   fecha_estimada_cierre?: string
 }
 
+interface Stats {
+  documentos: number
+  procesos: number
+  procesosAprobados: number
+  artefactos: number
+}
+
+interface FaseActual {
+  id: number
+  nombre: string
+  href: string
+  progreso: number
+}
+
 interface Props {
   proyecto: Proyecto
   cliente: { razon_social?: string; industria?: string } | null
   equipo: { nombre: string; rol: string }[]
   rol: string
+  stats: Stats
+  faseActual: FaseActual | null
+}
+
+function diasRestantes(cierre?: string) {
+  if (!cierre) return null
+  const diff = new Date(cierre).getTime() - Date.now()
+  return Math.ceil(diff / (1000 * 60 * 60 * 24))
 }
 
 function semanas(inicio?: string, cierre?: string) {
   if (!inicio || !cierre) return null
-  const diff = new Date(cierre).getTime() - new Date(inicio).getTime()
-  return Math.round(diff / (1000 * 60 * 60 * 24 * 7))
+  return Math.round((new Date(cierre).getTime() - new Date(inicio).getTime()) / (1000 * 60 * 60 * 24 * 7))
 }
 
 function formatFecha(f?: string) {
@@ -42,7 +76,7 @@ function formatFecha(f?: string) {
   return new Date(f).toLocaleDateString('es-CL', { day: 'numeric', month: 'long', year: 'numeric' })
 }
 
-export default function ResumenProyecto({ proyecto, cliente, equipo, rol }: Props) {
+export default function ResumenProyecto({ proyecto, cliente, equipo, rol, stats, faseActual }: Props) {
   const [expandido, setExpandido] = useState(true)
   const [editando, setEditando] = useState(false)
   const [form, setForm] = useState({
@@ -56,6 +90,8 @@ export default function ResumenProyecto({ proyecto, cliente, equipo, rol }: Prop
 
   const puedeEditar = ['super_admin', 'director_proyecto', 'consultor'].includes(rol)
   const sw = semanas(proyecto.fecha_inicio, proyecto.fecha_estimada_cierre)
+  const dias = diasRestantes(proyecto.fecha_estimada_cierre)
+  const pctProcesos = stats.procesos > 0 ? Math.round((stats.procesosAprobados / stats.procesos) * 100) : 0
 
   async function guardar() {
     setGuardando(true)
@@ -77,17 +113,18 @@ export default function ResumenProyecto({ proyecto, cliente, equipo, rol }: Prop
 
   return (
     <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+
       {/* Header */}
       <div
         className="flex items-center justify-between px-5 py-4 cursor-pointer hover:bg-slate-800/40 transition-colors"
         onClick={() => setExpandido(v => !v)}
       >
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-indigo-600/20 border border-indigo-600/30 flex items-center justify-center">
+          <div className="w-9 h-9 rounded-xl bg-indigo-600/20 border border-indigo-600/30 flex items-center justify-center shrink-0">
             <Target className="w-4 h-4 text-indigo-400" />
           </div>
           <div>
-            <h2 className="text-white font-semibold text-sm">Resumen del Proyecto</h2>
+            <h2 className="text-white font-semibold text-sm">{proyecto.nombre}</h2>
             <p className="text-slate-500 text-xs">{cliente?.razon_social} · {cliente?.industria}</p>
           </div>
         </div>
@@ -105,189 +142,272 @@ export default function ResumenProyecto({ proyecto, cliente, equipo, rol }: Prop
       </div>
 
       {expandido && (
-        <div className="px-5 pb-5 space-y-5 border-t border-slate-800">
+        <div className="border-t border-slate-800 space-y-0">
 
-          {/* Métricas clave */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-4">
-            <div className="bg-slate-800/50 rounded-lg p-3">
-              <div className="flex items-center gap-1.5 mb-1">
-                <Calendar className="w-3.5 h-3.5 text-indigo-400" />
-                <span className="text-slate-500 text-xs uppercase tracking-wide">Inicio</span>
-              </div>
-              <p className="text-white text-sm font-medium">{formatFecha(proyecto.fecha_inicio)}</p>
-            </div>
-            <div className="bg-slate-800/50 rounded-lg p-3">
-              <div className="flex items-center gap-1.5 mb-1">
-                <Calendar className="w-3.5 h-3.5 text-violet-400" />
-                <span className="text-slate-500 text-xs uppercase tracking-wide">Cierre</span>
-              </div>
-              <p className="text-white text-sm font-medium">{formatFecha(proyecto.fecha_estimada_cierre)}</p>
-            </div>
-            <div className="bg-slate-800/50 rounded-lg p-3">
-              <div className="flex items-center gap-1.5 mb-1">
-                <Layers className="w-3.5 h-3.5 text-cyan-400" />
-                <span className="text-slate-500 text-xs uppercase tracking-wide">Procesos</span>
-              </div>
-              <p className="text-white text-sm font-medium">
-                {proyecto.n_procesos_estimados ? `${proyecto.n_procesos_estimados} estimados` : '—'}
-              </p>
-            </div>
-            <div className="bg-slate-800/50 rounded-lg p-3">
-              <div className="flex items-center gap-1.5 mb-1">
-                <Users className="w-3.5 h-3.5 text-emerald-400" />
-                <span className="text-slate-500 text-xs uppercase tracking-wide">Duración</span>
-              </div>
-              <p className="text-white text-sm font-medium">{sw ? `${sw} semanas` : '—'}</p>
-            </div>
-          </div>
-
-          {/* Contexto */}
-          <div>
-            <p className="text-slate-400 text-xs uppercase tracking-wide mb-1.5">Contexto del proyecto</p>
-            {editando ? (
-              <textarea
-                className="w-full bg-slate-800 border border-slate-700 text-white rounded-lg px-3 py-2 text-sm resize-none focus:outline-none focus:border-indigo-500"
-                rows={3}
-                placeholder="Describe el contexto, problemática y motivación del proyecto..."
-                value={form.contexto}
-                onChange={e => setForm(v => ({ ...v, contexto: e.target.value }))}
-              />
-            ) : (
-              <p className="text-slate-300 text-sm leading-relaxed">
-                {proyecto.contexto || <span className="text-slate-600 italic">Sin contexto definido aún.</span>}
-              </p>
-            )}
-          </div>
-
-          {/* Objetivos */}
-          <div>
-            <p className="text-slate-400 text-xs uppercase tracking-wide mb-1.5">Objetivos del proyecto</p>
-            {editando ? (
-              <textarea
-                className="w-full bg-slate-800 border border-slate-700 text-white rounded-lg px-3 py-2 text-sm resize-none focus:outline-none focus:border-indigo-500"
-                rows={3}
-                placeholder="Lista los objetivos principales, uno por línea..."
-                value={form.objetivos}
-                onChange={e => setForm(v => ({ ...v, objetivos: e.target.value }))}
-              />
-            ) : proyecto.objetivos ? (
-              <ul className="space-y-1">
-                {proyecto.objetivos.split('\n').filter(Boolean).map((o, i) => (
-                  <li key={i} className="flex items-start gap-2 text-sm text-slate-300">
-                    <span className="text-indigo-400 mt-0.5">•</span>{o}
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="text-slate-600 italic text-sm">Sin objetivos definidos aún.</p>
-            )}
-          </div>
-
-          {/* Alcance */}
-          <div className="grid sm:grid-cols-2 gap-4">
-            <div>
-              <div className="flex items-center gap-1.5 mb-1.5">
-                <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
-                <p className="text-slate-400 text-xs uppercase tracking-wide">Incluye</p>
-              </div>
-              {editando ? (
-                <textarea
-                  className="w-full bg-slate-800 border border-slate-700 text-white rounded-lg px-3 py-2 text-sm resize-none focus:outline-none focus:border-indigo-500"
-                  rows={3}
-                  placeholder="Qué está dentro del alcance..."
-                  value={form.alcance_incluye}
-                  onChange={e => setForm(v => ({ ...v, alcance_incluye: e.target.value }))}
-                />
-              ) : proyecto.alcance_incluye ? (
-                <ul className="space-y-1">
-                  {proyecto.alcance_incluye.split('\n').filter(Boolean).map((a, i) => (
-                    <li key={i} className="flex items-start gap-2 text-sm text-slate-300">
-                      <span className="text-emerald-400 mt-0.5">✓</span>{a}
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="text-slate-600 italic text-sm">No definido.</p>
-              )}
-            </div>
-            <div>
-              <div className="flex items-center gap-1.5 mb-1.5">
-                <XCircle className="w-3.5 h-3.5 text-rose-400" />
-                <p className="text-slate-400 text-xs uppercase tracking-wide">Excluye</p>
-              </div>
-              {editando ? (
-                <textarea
-                  className="w-full bg-slate-800 border border-slate-700 text-white rounded-lg px-3 py-2 text-sm resize-none focus:outline-none focus:border-indigo-500"
-                  rows={3}
-                  placeholder="Qué está fuera del alcance..."
-                  value={form.alcance_excluye}
-                  onChange={e => setForm(v => ({ ...v, alcance_excluye: e.target.value }))}
-                />
-              ) : proyecto.alcance_excluye ? (
-                <ul className="space-y-1">
-                  {proyecto.alcance_excluye.split('\n').filter(Boolean).map((a, i) => (
-                    <li key={i} className="flex items-start gap-2 text-sm text-slate-300">
-                      <span className="text-rose-400 mt-0.5">✗</span>{a}
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="text-slate-600 italic text-sm">No definido.</p>
-              )}
-            </div>
-          </div>
-
-          {/* Nº procesos si está editando */}
-          {editando && (
-            <div>
-              <p className="text-slate-400 text-xs uppercase tracking-wide mb-1.5">Nº procesos estimados</p>
-              <input
-                type="number"
-                className="bg-slate-800 border border-slate-700 text-white rounded-lg px-3 py-2 text-sm w-32 focus:outline-none focus:border-indigo-500"
-                placeholder="Ej: 12"
-                value={form.n_procesos_estimados}
-                onChange={e => setForm(v => ({ ...v, n_procesos_estimados: e.target.value }))}
-              />
-            </div>
-          )}
-
-          {/* Equipo */}
-          <div>
-            <p className="text-slate-400 text-xs uppercase tracking-wide mb-2">Equipo asignado</p>
-            <div className="flex flex-wrap gap-2">
-              {equipo.map((m, i) => (
-                <div key={i} className="flex items-center gap-2 bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5">
-                  <div className="w-6 h-6 rounded-full bg-indigo-600/30 flex items-center justify-center text-indigo-300 text-xs font-bold">
-                    {m.nombre.charAt(0).toUpperCase()}
-                  </div>
-                  <div>
-                    <p className="text-white text-xs font-medium">{m.nombre}</p>
-                    <p className="text-slate-500 text-xs">{LABEL_ROL[m.rol] ?? m.rol}</p>
-                  </div>
+          {/* KPIs rápidos — siempre visibles */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-y sm:divide-y-0 divide-slate-800">
+            {[
+              {
+                icon: <Calendar className="w-4 h-4 text-indigo-400" />,
+                label: 'Inicio',
+                value: formatFecha(proyecto.fecha_inicio),
+                sub: sw ? `${sw} semanas de duración` : null,
+              },
+              {
+                icon: <Clock className="w-4 h-4 text-violet-400" />,
+                label: 'Cierre estimado',
+                value: formatFecha(proyecto.fecha_estimada_cierre),
+                sub: dias != null ? (dias > 0 ? `${dias} días restantes` : `Venció hace ${Math.abs(dias)} días`) : null,
+                subColor: dias != null && dias < 30 ? 'text-amber-400' : 'text-slate-500',
+              },
+              {
+                icon: <FileText className="w-4 h-4 text-cyan-400" />,
+                label: 'Documentos',
+                value: String(stats.documentos),
+                sub: stats.documentos === 0 ? 'Sin documentos aún' : `${stats.documentos} archivo${stats.documentos !== 1 ? 's' : ''} cargado${stats.documentos !== 1 ? 's' : ''}`,
+                subColor: stats.documentos === 0 ? 'text-amber-500' : 'text-slate-500',
+                href: '/documentos',
+              },
+              {
+                icon: <Brain className="w-4 h-4 text-emerald-400" />,
+                label: 'Procesos',
+                value: stats.procesos > 0 ? `${stats.procesosAprobados}/${stats.procesos}` : '0',
+                sub: stats.procesos > 0 ? `${pctProcesos}% aprobados` : 'Sin procesos descubiertos',
+                subColor: stats.procesos === 0 ? 'text-slate-600' : pctProcesos === 100 ? 'text-emerald-400' : 'text-slate-500',
+                href: '/discovery',
+              },
+            ].map((kpi, i) => (
+              <div key={i} className="px-4 py-3.5 space-y-1">
+                <div className="flex items-center gap-1.5">
+                  {kpi.icon}
+                  <span className="text-xs text-slate-500 uppercase tracking-wide">{kpi.label}</span>
                 </div>
-              ))}
-            </div>
+                <p className="text-white font-semibold text-base">{kpi.value}</p>
+                {kpi.sub && (
+                  kpi.href ? (
+                    <Link href={kpi.href} className={`text-xs ${kpi.subColor ?? 'text-slate-500'} hover:text-indigo-400 flex items-center gap-1`} onClick={e => e.stopPropagation()}>
+                      {kpi.sub} <ArrowRight className="w-3 h-3" />
+                    </Link>
+                  ) : (
+                    <p className={`text-xs ${kpi.subColor ?? 'text-slate-500'}`}>{kpi.sub}</p>
+                  )
+                )}
+              </div>
+            ))}
           </div>
 
-          {/* Botones guardar/cancelar */}
-          {editando && (
-            <div className="flex gap-2 pt-1">
-              <button
-                onClick={guardar}
-                disabled={guardando}
-                className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors disabled:opacity-50"
+          {/* Fase actual + próximo paso */}
+          {faseActual && (
+            <div className="border-t border-slate-800 px-5 py-4 flex items-center justify-between gap-4 bg-indigo-950/20">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-8 h-8 rounded-lg bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center shrink-0">
+                  <span className="text-indigo-300 text-xs font-bold">F{faseActual.id}</span>
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs text-slate-500 uppercase tracking-wide">Fase activa</p>
+                  <p className="text-white text-sm font-medium truncate">{faseActual.nombre}</p>
+                </div>
+                <div className="hidden sm:flex items-center gap-2 ml-2">
+                  <div className="w-24 h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                    <div className="h-full bg-indigo-500 rounded-full" style={{ width: `${faseActual.progreso}%` }} />
+                  </div>
+                  <span className="text-xs text-indigo-400">{faseActual.progreso}%</span>
+                </div>
+              </div>
+              <Link
+                href={faseActual.href}
+                onClick={e => e.stopPropagation()}
+                className="flex items-center gap-1.5 text-xs bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg transition-colors shrink-0"
               >
-                <Save className="w-4 h-4" />
-                {guardando ? 'Guardando...' : 'Guardar'}
-              </button>
-              <button
-                onClick={() => setEditando(false)}
-                className="flex items-center gap-2 border border-slate-700 text-slate-400 hover:text-white text-sm px-4 py-2 rounded-lg transition-colors"
-              >
-                <X className="w-4 h-4" /> Cancelar
-              </button>
+                Continuar <ArrowRight className="w-3 h-3" />
+              </Link>
             </div>
           )}
+
+          {/* Alerta si faltan documentos */}
+          {stats.documentos === 0 && (
+            <div className="border-t border-slate-800 px-5 py-3 flex items-center gap-3 bg-amber-950/20">
+              <AlertCircle className="w-4 h-4 text-amber-400 shrink-0" />
+              <p className="text-amber-300 text-sm flex-1">
+                Sin documentos cargados. Para ejecutar Discovery AI necesitas subir al menos un documento del proyecto.
+              </p>
+              <Link href="/documentos" onClick={e => e.stopPropagation()} className="text-xs text-amber-400 hover:text-amber-300 underline shrink-0">
+                Cargar ahora
+              </Link>
+            </div>
+          )}
+
+          {/* Detalle expandible */}
+          <div className="border-t border-slate-800 px-5 py-5 space-y-5">
+
+            {/* Contexto */}
+            <div>
+              <p className="text-slate-400 text-xs uppercase tracking-wide mb-2">Contexto del proyecto</p>
+              {editando ? (
+                <textarea
+                  className="w-full bg-slate-800 border border-slate-700 text-white rounded-lg px-3 py-2 text-sm resize-none focus:outline-none focus:border-indigo-500"
+                  rows={3}
+                  placeholder="Describe el contexto, problemática y motivación del proyecto..."
+                  value={form.contexto}
+                  onChange={e => setForm(v => ({ ...v, contexto: e.target.value }))}
+                />
+              ) : (
+                <p className="text-slate-300 text-sm leading-relaxed">
+                  {proyecto.contexto || <span className="text-slate-600 italic">Sin contexto definido aún.</span>}
+                </p>
+              )}
+            </div>
+
+            {/* Objetivos */}
+            <div>
+              <p className="text-slate-400 text-xs uppercase tracking-wide mb-2">Objetivos del proyecto</p>
+              {editando ? (
+                <textarea
+                  className="w-full bg-slate-800 border border-slate-700 text-white rounded-lg px-3 py-2 text-sm resize-none focus:outline-none focus:border-indigo-500"
+                  rows={3}
+                  placeholder="Lista los objetivos principales, uno por línea..."
+                  value={form.objetivos}
+                  onChange={e => setForm(v => ({ ...v, objetivos: e.target.value }))}
+                />
+              ) : proyecto.objetivos ? (
+                <ul className="space-y-1.5">
+                  {proyecto.objetivos.split('\n').filter(Boolean).map((o, i) => (
+                    <li key={i} className="flex items-start gap-2.5 text-sm text-slate-300">
+                      <CheckCircle2 className="w-4 h-4 text-indigo-400 shrink-0 mt-0.5" />
+                      <span>{o}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-slate-600 italic text-sm">Sin objetivos definidos aún.</p>
+              )}
+            </div>
+
+            {/* Alcance */}
+            <div className="grid sm:grid-cols-2 gap-4">
+              <div className="bg-emerald-950/20 border border-emerald-900/40 rounded-lg p-4">
+                <div className="flex items-center gap-1.5 mb-2.5">
+                  <CheckCircle className="w-4 h-4 text-emerald-400" />
+                  <p className="text-emerald-300 text-xs font-medium uppercase tracking-wide">Incluye</p>
+                </div>
+                {editando ? (
+                  <textarea
+                    className="w-full bg-slate-800 border border-slate-700 text-white rounded-lg px-3 py-2 text-sm resize-none focus:outline-none focus:border-indigo-500"
+                    rows={3}
+                    placeholder="Qué está dentro del alcance..."
+                    value={form.alcance_incluye}
+                    onChange={e => setForm(v => ({ ...v, alcance_incluye: e.target.value }))}
+                  />
+                ) : proyecto.alcance_incluye ? (
+                  <ul className="space-y-1.5">
+                    {proyecto.alcance_incluye.split('\n').filter(Boolean).map((a, i) => (
+                      <li key={i} className="flex items-start gap-2 text-sm text-slate-300">
+                        <span className="text-emerald-400 shrink-0 mt-0.5">✓</span><span>{a}</span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-slate-600 italic text-sm">No definido.</p>
+                )}
+              </div>
+              <div className="bg-rose-950/20 border border-rose-900/40 rounded-lg p-4">
+                <div className="flex items-center gap-1.5 mb-2.5">
+                  <XCircle className="w-4 h-4 text-rose-400" />
+                  <p className="text-rose-300 text-xs font-medium uppercase tracking-wide">Excluye</p>
+                </div>
+                {editando ? (
+                  <textarea
+                    className="w-full bg-slate-800 border border-slate-700 text-white rounded-lg px-3 py-2 text-sm resize-none focus:outline-none focus:border-indigo-500"
+                    rows={3}
+                    placeholder="Qué está fuera del alcance..."
+                    value={form.alcance_excluye}
+                    onChange={e => setForm(v => ({ ...v, alcance_excluye: e.target.value }))}
+                  />
+                ) : proyecto.alcance_excluye ? (
+                  <ul className="space-y-1.5">
+                    {proyecto.alcance_excluye.split('\n').filter(Boolean).map((a, i) => (
+                      <li key={i} className="flex items-start gap-2 text-sm text-slate-300">
+                        <span className="text-rose-400 shrink-0 mt-0.5">✗</span><span>{a}</span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-slate-600 italic text-sm">No definido.</p>
+                )}
+              </div>
+            </div>
+
+            {/* Nº procesos si editando */}
+            {editando && (
+              <div>
+                <p className="text-slate-400 text-xs uppercase tracking-wide mb-1.5">Nº procesos estimados</p>
+                <input
+                  type="number"
+                  className="bg-slate-800 border border-slate-700 text-white rounded-lg px-3 py-2 text-sm w-32 focus:outline-none focus:border-indigo-500"
+                  placeholder="Ej: 12"
+                  value={form.n_procesos_estimados}
+                  onChange={e => setForm(v => ({ ...v, n_procesos_estimados: e.target.value }))}
+                />
+              </div>
+            )}
+
+            {/* Equipo */}
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <Users className="w-4 h-4 text-slate-400" />
+                <p className="text-slate-400 text-xs uppercase tracking-wide">Equipo asignado</p>
+                <span className="text-xs text-slate-600">({equipo.length} persona{equipo.length !== 1 ? 's' : ''})</span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {equipo.length === 0 ? (
+                  <p className="text-slate-600 text-sm italic">Sin equipo asignado.</p>
+                ) : equipo.map((m, i) => (
+                  <div key={i} className={`flex items-center gap-2 border rounded-lg px-3 py-1.5 ${ROL_COLOR[m.rol] ?? 'bg-slate-800 text-slate-400 border-slate-700'}`}>
+                    <div className="w-6 h-6 rounded-full bg-slate-700 flex items-center justify-center text-white text-xs font-bold shrink-0">
+                      {m.nombre.charAt(0).toUpperCase()}
+                    </div>
+                    <div>
+                      <p className="text-xs font-medium">{m.nombre}</p>
+                      <p className="text-xs opacity-70">{LABEL_ROL[m.rol] ?? m.rol}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Artefactos generados */}
+            {stats.artefactos > 0 && (
+              <div className="flex items-center gap-3 bg-slate-800/50 rounded-lg px-4 py-3">
+                <Layers className="w-4 h-4 text-violet-400 shrink-0" />
+                <p className="text-slate-300 text-sm flex-1">
+                  <span className="text-white font-semibold">{stats.artefactos}</span> artefacto{stats.artefactos !== 1 ? 's' : ''} metodológico{stats.artefactos !== 1 ? 's' : ''} generado{stats.artefactos !== 1 ? 's' : ''}
+                </p>
+                <Link href="/artefactos" onClick={e => e.stopPropagation()} className="text-xs text-violet-400 hover:text-violet-300 flex items-center gap-1">
+                  Ver <ArrowRight className="w-3 h-3" />
+                </Link>
+              </div>
+            )}
+
+            {/* Botones */}
+            {editando && (
+              <div className="flex gap-2 pt-1">
+                <button
+                  onClick={guardar}
+                  disabled={guardando}
+                  className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors disabled:opacity-50"
+                >
+                  <Save className="w-4 h-4" />
+                  {guardando ? 'Guardando...' : 'Guardar cambios'}
+                </button>
+                <button
+                  onClick={() => setEditando(false)}
+                  className="flex items-center gap-2 border border-slate-700 text-slate-400 hover:text-white text-sm px-4 py-2 rounded-lg transition-colors"
+                >
+                  <X className="w-4 h-4" /> Cancelar
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>
