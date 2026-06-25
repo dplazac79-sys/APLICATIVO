@@ -46,15 +46,17 @@ export default async function DashboardPage() {
   }
 
   // Stats del proyecto activo
-  let stats = { documentos: 0, procesosTotal: 0, procesosAprobados: 0, artefactos: 0 }
+  let stats = { documentos: 0, docsListos: 0, procesosTotal: 0, procesosAprobados: 0, artefactos: 0 }
   if (proyectoMeta) {
-    const [docsRes, procesosRes, artefactosRes] = await Promise.all([
+    const [docsRes, docsListosRes, procesosRes, artefactosRes] = await Promise.all([
       admin.from('documento').select('id', { count: 'exact', head: true }).eq('proyecto_id', proyectoMeta.id),
+      admin.from('documento').select('id', { count: 'exact', head: true }).eq('proyecto_id', proyectoMeta.id).eq('estado_procesamiento', 'listo'),
       admin.from('proceso').select('id, estado_oferta', { count: 'exact' }).eq('proyecto_id', proyectoMeta.id),
       admin.from('artefacto').select('id', { count: 'exact', head: true }).eq('proyecto_id', proyectoMeta.id),
     ])
     stats = {
       documentos: docsRes.count ?? 0,
+      docsListos: docsListosRes.count ?? 0,
       procesosTotal: procesosRes.count ?? 0,
       procesosAprobados: (procesosRes.data ?? []).filter((p: any) => p.estado_oferta === 'aceptado').length,
       artefactos: artefactosRes.count ?? 0,
@@ -196,17 +198,18 @@ export default async function DashboardPage() {
         </div>
       )}
 
-      {/* CTA próximo paso contextual */}
+      {/* CTA próximo paso contextual — flujo: docs → analizar docs → discovery → aprobar */}
       {proyectoMeta && (() => {
+        // Paso 1: sin documentos → ir a cargar
         if (stats.documentos === 0) return (
           <div className="relative overflow-hidden bg-gradient-to-r from-cyan-900/30 via-cyan-800/10 to-slate-900 border border-cyan-600/30 rounded-2xl p-6">
             <div className="absolute right-0 top-0 w-32 h-32 bg-cyan-500/10 rounded-full blur-2xl pointer-events-none" />
             <div className="relative flex items-center justify-between gap-6 flex-wrap">
               <div className="space-y-1">
-                <p className="text-xs text-cyan-300 uppercase tracking-widest font-medium">Paso 1 de la Fase 2</p>
+                <p className="text-xs text-cyan-300 uppercase tracking-widest font-medium">Paso 1 · Fase 2</p>
                 <h3 className="text-white text-base font-semibold">Carga los documentos del proyecto</h3>
                 <p className="text-slate-400 text-sm max-w-md">
-                  Para ejecutar el análisis con IA necesitas subir primero los documentos: propuesta, diagnóstico, organigramas, manuales de procesos.
+                  Sube los documentos base: propuesta, diagnóstico, organigramas, manuales. El Centro Documental los organiza y la IA los analizará para extraer contexto del negocio.
                 </p>
               </div>
               <Link href="/documentos" className="flex items-center gap-2 bg-cyan-600 hover:bg-cyan-700 active:scale-95 text-white font-semibold px-5 py-3 rounded-xl transition-all text-sm shadow-lg shadow-cyan-900/30 shrink-0">
@@ -215,15 +218,34 @@ export default async function DashboardPage() {
             </div>
           </div>
         )
-        if (stats.procesosTotal === 0) return (
+        // Paso 2: hay docs pero ninguno está analizado → volver a Centro Documental a analizar
+        if (stats.documentos > 0 && stats.docsListos === 0) return (
+          <div className="relative overflow-hidden bg-gradient-to-r from-cyan-900/30 via-cyan-800/10 to-slate-900 border border-cyan-600/30 rounded-2xl p-6">
+            <div className="absolute right-0 top-0 w-32 h-32 bg-cyan-500/10 rounded-full blur-2xl pointer-events-none" />
+            <div className="relative flex items-center justify-between gap-6 flex-wrap">
+              <div className="space-y-1">
+                <p className="text-xs text-cyan-300 uppercase tracking-widest font-medium">Paso 2 · Fase 2 — {stats.documentos} doc{stats.documentos !== 1 ? 's' : ''} cargado{stats.documentos !== 1 ? 's' : ''}</p>
+                <h3 className="text-white text-base font-semibold">Analiza los documentos con IA</h3>
+                <p className="text-slate-400 text-sm max-w-md">
+                  Los documentos están cargados pero aún no han sido analizados. Ve al Centro Documental y ejecuta el análisis IA en cada uno para extraer procesos, roles y brechas.
+                </p>
+              </div>
+              <Link href="/documentos" className="flex items-center gap-2 bg-cyan-600 hover:bg-cyan-700 active:scale-95 text-white font-semibold px-5 py-3 rounded-xl transition-all text-sm shadow-lg shadow-cyan-900/30 shrink-0">
+                Analizar documentos <ArrowRight className="w-4 h-4" />
+              </Link>
+            </div>
+          </div>
+        )
+        // Paso 3: docs analizados, pero sin Discovery ejecutado → ir a Discovery AI
+        if (stats.docsListos > 0 && stats.procesosTotal === 0) return (
           <div className="relative overflow-hidden bg-gradient-to-r from-violet-900/30 via-violet-800/10 to-slate-900 border border-violet-600/30 rounded-2xl p-6">
             <div className="absolute right-0 top-0 w-32 h-32 bg-violet-500/10 rounded-full blur-2xl pointer-events-none" />
             <div className="relative flex items-center justify-between gap-6 flex-wrap">
               <div className="space-y-1">
-                <p className="text-xs text-violet-300 uppercase tracking-widest font-medium">Paso 2 de la Fase 2 · {stats.documentos} doc{stats.documentos !== 1 ? 's' : ''} listos</p>
-                <h3 className="text-white text-base font-semibold">Ejecuta el Discovery AI</h3>
+                <p className="text-xs text-violet-300 uppercase tracking-widest font-medium">Paso 3 · Fase 2 — {stats.docsListos} doc{stats.docsListos !== 1 ? 's' : ''} analizado{stats.docsListos !== 1 ? 's' : ''}</p>
+                <h3 className="text-white text-base font-semibold">Ejecuta el Process Discovery AI</h3>
                 <p className="text-slate-400 text-sm max-w-md">
-                  Ya tienes documentos cargados. El siguiente paso es correr el análisis de Process Discovery AI para que la IA identifique y mapee los procesos del negocio.
+                  Los documentos están analizados. Ahora ejecuta Discovery AI para que el sistema identifique automáticamente todos los procesos del negocio a partir del contenido.
                 </p>
               </div>
               <Link href="/discovery" className="flex items-center gap-2 bg-violet-600 hover:bg-violet-700 active:scale-95 text-white font-semibold px-5 py-3 rounded-xl transition-all text-sm shadow-lg shadow-violet-900/30 shrink-0">
@@ -232,6 +254,7 @@ export default async function DashboardPage() {
             </div>
           </div>
         )
+        // Paso 4: procesos descubiertos sin aprobar → revisar
         if (stats.procesosAprobados < stats.procesosTotal) return (
           <div className="relative overflow-hidden bg-gradient-to-r from-emerald-900/30 via-emerald-800/10 to-slate-900 border border-emerald-600/30 rounded-2xl p-6">
             <div className="absolute right-0 top-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none" />
