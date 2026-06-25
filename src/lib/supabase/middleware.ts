@@ -45,21 +45,24 @@ export async function updateSession(request: NextRequest) {
     const isMfaRoute = mfaPaths.some(p => request.nextUrl.pathname.startsWith(p))
 
     if (!isMfaRoute) {
-      const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel()
-      if (aal && aal.nextLevel === 'aal2' && aal.nextLevel !== aal.currentLevel) {
-        const url = request.nextUrl.clone()
-        url.pathname = '/mfa/challenge'
-        return NextResponse.redirect(url)
+      const { data: usuario } = await supabase
+        .from('usuario')
+        .select('rol, mfa_habilitado')
+        .eq('id', user.id)
+        .single()
+
+      // Solo forzar MFA si el usuario lo tiene habilitado
+      if (usuario?.mfa_habilitado !== false) {
+        const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel()
+        if (aal && aal.nextLevel === 'aal2' && aal.nextLevel !== aal.currentLevel) {
+          const url = request.nextUrl.clone()
+          url.pathname = '/mfa/challenge'
+          return NextResponse.redirect(url)
+        }
       }
 
-      // Tras el login, los roles de cliente van a su portal dedicado en lugar del dashboard.
       const pathname = request.nextUrl.pathname
       if (pathname === '/') {
-        const { data: usuario } = await supabase
-          .from('usuario')
-          .select('rol')
-          .eq('id', user.id)
-          .single()
         const url = request.nextUrl.clone()
         if (usuario?.rol === 'usuario_cliente') {
           url.pathname = '/portal'

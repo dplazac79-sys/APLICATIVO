@@ -49,7 +49,7 @@ function addTitleSlide(pptx: PptxGenJS, e: EntregablePdf) {
 
   slide.addShape(pptx.ShapeType.rect, { x: 0, y: 0, w: '100%', h: 0.06, fill: { color: C.white }, line: { color: C.white } })
 
-  slide.addText('APAC — AICOUNTS Consultores', {
+  slide.addText('ProcessOS — AICOUNTS Consultores', {
     x: 0.5, y: 1.0, w: 9, h: 0.5,
     fontSize: 14, color: 'CCCCFF', bold: false,
   })

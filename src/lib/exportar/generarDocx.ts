@@ -272,7 +272,7 @@ export async function generarEntregableDocx(e: EntregablePdf): Promise<Buffer> {
         default: new Header({
           children: [new Paragraph({
             children: [
-              new TextRun({ text: 'APAC — AICOUNTS Consultores', bold: true, color: ACCENT, size: 18 }),
+              new TextRun({ text: 'ProcessOS — AICOUNTS Consultores', bold: true, color: ACCENT, size: 18 }),
               new TextRun({ text: `   |   ${e.proyecto}`, color: SLATE500, size: 18 }),
             ],
             border: { bottom: { style: BorderStyle.SINGLE, size: 4, color: ACCENT, space: 4 } },

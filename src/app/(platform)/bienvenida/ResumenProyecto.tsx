@@ -5,8 +5,9 @@ import Link from 'next/link'
 import {
   Calendar, Users, Target, Layers, ChevronDown, ChevronUp,
   CheckCircle, XCircle, Edit3, Save, X, FileText, Brain,
-  TrendingUp, Clock, ArrowRight, AlertCircle, CheckCircle2,
+  Clock, ArrowRight, AlertCircle, CheckCircle2,
 } from 'lucide-react'
+import type { Fase } from '@/lib/fases'
 
 const LABEL_ROL: Record<string, string> = {
   super_admin: 'Super Admin',
@@ -44,20 +45,13 @@ interface Stats {
   artefactos: number
 }
 
-interface FaseActual {
-  id: number
-  nombre: string
-  href: string
-  progreso: number
-}
-
 interface Props {
   proyecto: Proyecto
   cliente: { razon_social?: string; industria?: string } | null
   equipo: { nombre: string; rol: string }[]
   rol: string
   stats: Stats
-  faseActual: FaseActual | null
+  faseActual: Fase | null
 }
 
 function diasRestantes(cierre?: string) {

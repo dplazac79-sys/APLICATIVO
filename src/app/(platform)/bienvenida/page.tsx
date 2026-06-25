@@ -63,12 +63,22 @@ export default async function BienvenidaPage() {
   }
 
   let equipo: { nombre: string; rol: string }[] = []
+  let statsProyecto = { documentos: 0, procesos: 0, procesosAprobados: 0, artefactos: 0 }
+
   if (proyectoMeta) {
-    const { data: miembros } = await admin
-      .from('usuario_proyecto')
-      .select('usuario:usuario_id(nombre, rol)')
-      .eq('proyecto_id', proyectoMeta.id)
-    equipo = (miembros ?? []).map((m: any) => ({ nombre: m.usuario?.nombre ?? '', rol: m.usuario?.rol ?? '' }))
+    const [miembrosRes, docsRes, procesosRes, artefactosRes] = await Promise.all([
+      admin.from('usuario_proyecto').select('usuario:usuario_id(nombre, rol)').eq('proyecto_id', proyectoMeta.id),
+      admin.from('documento').select('id', { count: 'exact', head: true }).eq('proyecto_id', proyectoMeta.id),
+      admin.from('proceso').select('id, estado_oferta', { count: 'exact' }).eq('proyecto_id', proyectoMeta.id),
+      admin.from('artefacto').select('id', { count: 'exact', head: true }).eq('proyecto_id', proyectoMeta.id),
+    ])
+    equipo = (miembrosRes.data ?? []).map((m: any) => ({ nombre: m.usuario?.nombre ?? '', rol: m.usuario?.rol ?? '' }))
+    statsProyecto = {
+      documentos: docsRes.count ?? 0,
+      procesos: procesosRes.count ?? 0,
+      procesosAprobados: (procesosRes.data ?? []).filter((p: any) => p.estado_oferta === 'aceptado').length,
+      artefactos: artefactosRes.count ?? 0,
+    }
   }
 
   const nombre = usuario?.nombre?.split(' ')[0] ?? 'Equipo'
@@ -99,7 +109,7 @@ export default async function BienvenidaPage() {
             <div>
               <div className="flex items-center gap-2 mb-3">
                 <Sparkles className="w-5 h-5 text-indigo-400" />
-                <span className="text-xs text-indigo-300 font-medium uppercase tracking-widest">APAC — Aplicativo Consultivo</span>
+                <span className="text-xs text-indigo-300 font-medium uppercase tracking-widest">ProcessOS — Aplicativo Consultivo</span>
               </div>
               <Saludo nombre={nombre} />
               {proyectoMeta ? (
@@ -149,7 +159,7 @@ export default async function BienvenidaPage() {
           <div className="space-y-6">
             {proyectoMeta && fases ? (
               <>
-                <ResumenProyecto proyecto={proyectoMeta as any} cliente={cliente} equipo={equipo} rol={usuario?.rol ?? ''} />
+                <ResumenProyecto proyecto={proyectoMeta as any} cliente={cliente} equipo={equipo} rol={usuario?.rol ?? ''} stats={statsProyecto} faseActual={fases?.find(f => f.status === 'activa') ?? null} />
               </>
             ) : (
               <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 text-center space-y-3">
@@ -225,7 +235,7 @@ export default async function BienvenidaPage() {
         </div>
       ) : proyectoMeta && fases ? (
         <div className="space-y-6">
-          <ResumenProyecto proyecto={proyectoMeta as any} cliente={cliente} equipo={equipo} rol={usuario?.rol ?? ''} />
+          <ResumenProyecto proyecto={proyectoMeta as any} cliente={cliente} equipo={equipo} rol={usuario?.rol ?? ''} stats={statsProyecto} faseActual={fases?.find(f => f.status === 'activa') ?? null} />
           <div className="space-y-4">
             <h2 className="text-lg font-semibold text-white">Workflow de fases</h2>
             <FaseWorkflow fases={fases} compact />
