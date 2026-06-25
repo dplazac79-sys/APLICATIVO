@@ -58,7 +58,7 @@ export default async function BienvenidaPage() {
       .from('audit_log')
       .select('id, accion, entidad, detalle, created_at, usuario:usuario_id(nombre)')
       .order('created_at', { ascending: false })
-      .limit(30)
+      .limit(50)
     bitacora = (logs ?? []) as unknown as typeof bitacora
   }
 
@@ -245,92 +245,6 @@ export default async function BienvenidaPage() {
         </div>
       )}
 
-      {/* Bitácora siempre visible para super_admin */}
-      {esSuperAdmin && (
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-lg font-semibold text-white">Bitácora del sistema</h2>
-              <p className="text-sm text-slate-400 mt-0.5">Últimas {bitacora.length} acciones registradas en tiempo real</p>
-            </div>
-            <Link
-              href="/admin/onboarding"
-              className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium px-4 py-2 rounded-xl transition-colors shrink-0"
-            >
-              Nuevo cliente <ArrowRight className="w-4 h-4" />
-            </Link>
-          </div>
-          <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
-            {bitacora.length === 0 ? (
-              <div className="p-8 text-center">
-                <p className="text-slate-500 text-sm">No hay actividad registrada aún.</p>
-              </div>
-            ) : (
-              <div className="max-h-[480px] overflow-y-auto divide-y divide-slate-800/60">
-                {bitacora.map((log) => {
-                  const accionLabel: Record<string, string> = {
-                    CREATE: 'Creó', UPDATE: 'Modificó', DELETE: 'Eliminó',
-                    LOGIN: 'Inició sesión', EXPORT: 'Exportó', UPLOAD: 'Subió archivo',
-                  }
-                  const entidadLabel: Record<string, string> = {
-                    usuario: 'usuario', proyecto: 'proyecto', cliente: 'cliente',
-                    proceso: 'proceso', artefacto: 'artefacto', documento: 'documento',
-                    audit_log: 'registro de auditoría',
-                  }
-                  const verbo = accionLabel[log.accion] ?? log.accion
-                  const entidad = entidadLabel[log.entidad] ?? log.entidad.replace(/_/g, ' ')
-                  const detalleNombre = (log.detalle?.nombre ?? log.detalle?.email ?? log.detalle?.titulo ?? '') as string
-                  const ahora = new Date()
-                  const fecha = new Date(log.created_at)
-                  const diffMin = Math.floor((ahora.getTime() - fecha.getTime()) / 60000)
-                  const tiempoRelativo = diffMin < 1 ? 'hace un momento'
-                    : diffMin < 60 ? `hace ${diffMin} min`
-                    : diffMin < 1440 ? `hace ${Math.floor(diffMin / 60)}h`
-                    : fecha.toLocaleDateString('es-CL', { day: 'numeric', month: 'short' })
-
-                  return (
-                    <div key={log.id} className="flex items-start gap-3 px-5 py-3 hover:bg-slate-800/30 transition-colors">
-                      <div className={`w-1.5 h-1.5 rounded-full mt-2 shrink-0 ${
-                        log.accion === 'CREATE' ? 'bg-emerald-400' :
-                        log.accion === 'DELETE' ? 'bg-red-400' :
-                        log.accion === 'UPDATE' ? 'bg-blue-400' :
-                        log.accion === 'LOGIN'  ? 'bg-indigo-400' :
-                        log.accion === 'UPLOAD' ? 'bg-amber-400' :
-                        'bg-slate-500'
-                      }`} />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm text-slate-200">
-                          <span className="font-medium text-white">{log.usuario?.nombre ?? 'Sistema'}</span>
-                          {' '}{verbo}{' '}
-                          <span className="text-slate-300">{entidad}</span>
-                          {detalleNombre && (
-                            <span className="text-slate-400"> · <span className="italic">{String(detalleNombre).slice(0, 60)}</span></span>
-                          )}
-                        </p>
-                        {log.detalle && Object.keys(log.detalle).length > 0 && (
-                          <p className="text-xs text-slate-600 mt-0.5 truncate">
-                            {Object.entries(log.detalle)
-                              .filter(([k]) => !['nombre', 'email', 'titulo'].includes(k))
-                              .slice(0, 3)
-                              .map(([k, v]) => `${k}: ${String(v).slice(0, 30)}`)
-                              .join(' · ')}
-                          </p>
-                        )}
-                      </div>
-                      <div className="text-right shrink-0">
-                        <p className="text-xs text-slate-500">{tiempoRelativo}</p>
-                        <p className="text-xs text-slate-700 mt-0.5">
-                          {fecha.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' })}
-                        </p>
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
     </div>
   )
 }
