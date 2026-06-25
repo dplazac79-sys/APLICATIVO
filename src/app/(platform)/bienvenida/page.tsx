@@ -22,26 +22,38 @@ export default async function BienvenidaPage() {
     .single()
 
   const admin = createAdminClient()
+  const esSuperAdmin = usuario?.rol === 'super_admin'
   const proyectoIds = (usuario?.usuario_proyecto ?? []).map((up: { proyecto_id: string }) => up.proyecto_id)
 
   let proyectoMeta = null
   let fases = null
 
-  if (proyectoIds.length > 0) {
-    const { data: p } = await admin
-      .from('proyecto')
-      .select('id, nombre, estado_general, descripcion, contexto, objetivos, alcance_incluye, alcance_excluye, n_procesos_estimados, fecha_inicio, fecha_estimada_cierre, cliente:cliente_id(razon_social, industria)')
-      .in('id', proyectoIds)
-      .eq('estado_general', 'activo')
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .single()
+  // Super admin ve el proyecto más reciente sin necesitar asignación
+  const queryProyecto = admin
+    .from('proyecto')
+    .select('id, nombre, estado_general, descripcion, contexto, objetivos, alcance_incluye, alcance_excluye, n_procesos_estimados, fecha_inicio, fecha_estimada_cierre, cliente:cliente_id(razon_social, industria)')
+    .eq('estado_general', 'activo')
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .single()
 
-    if (p) {
-      proyectoMeta = p
-      const result = await getFasesProyecto(p.id)
-      fases = result.fases
-    }
+  if (esSuperAdmin) {
+    const { data: p } = await queryProyecto
+    if (p) { proyectoMeta = p; fases = (await getFasesProyecto(p.id)).fases }
+  } else if (proyectoIds.length > 0) {
+    const { data: p } = await queryProyecto.in('id', proyectoIds)
+    if (p) { proyectoMeta = p; fases = (await getFasesProyecto(p.id)).fases }
+  }
+
+  // Bitácora para super_admin
+  let bitacora: { id: number; accion: string; entidad: string; detalle: Record<string, unknown>; created_at: string; usuario: { nombre: string } | null }[] = []
+  if (esSuperAdmin) {
+    const { data: logs } = await admin
+      .from('audit_log')
+      .select('id, accion, entidad, detalle, created_at, usuario:usuario_id(nombre)')
+      .order('created_at', { ascending: false })
+      .limit(10)
+    bitacora = (logs ?? []) as typeof bitacora
   }
 
   let equipo: { nombre: string; rol: string }[] = []
@@ -139,6 +151,66 @@ export default async function BienvenidaPage() {
             <FaseWorkflow fases={fases} />
           </div>
         </div>
+      ) : esSuperAdmin ? (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-lg font-semibold text-white">Bitácora de actividad</h2>
+              <p className="text-sm text-slate-400 mt-0.5">Últimas acciones registradas en el sistema</p>
+            </div>
+            <Link
+              href="/admin/onboarding"
+              className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium px-4 py-2 rounded-xl transition-colors"
+            >
+              Nuevo cliente <ArrowRight className="w-4 h-4" />
+            </Link>
+          </div>
+          <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+            {bitacora.length === 0 ? (
+              <div className="p-8 text-center">
+                <p className="text-slate-500 text-sm">No hay actividad registrada aún.</p>
+              </div>
+            ) : (
+              <div className="divide-y divide-slate-800">
+                {bitacora.map((log, i) => (
+                  <div key={log.id} className="flex items-start gap-4 px-5 py-3.5">
+                    <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center shrink-0 mt-0.5">
+                      <span className="text-xs font-bold text-slate-400">{i + 1}</span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className={`text-xs px-2 py-0.5 rounded font-medium ${
+                          log.accion === 'CREATE' ? 'bg-emerald-900/40 text-emerald-400' :
+                          log.accion === 'UPDATE' ? 'bg-blue-900/40 text-blue-400' :
+                          log.accion === 'DELETE' ? 'bg-red-900/40 text-red-400' :
+                          log.accion === 'LOGIN'  ? 'bg-indigo-900/40 text-indigo-400' :
+                          'bg-slate-800 text-slate-400'
+                        }`}>{log.accion}</span>
+                        <span className="text-white text-sm font-medium capitalize">{log.entidad.replace(/_/g, ' ')}</span>
+                        {log.usuario?.nombre && (
+                          <span className="text-slate-500 text-xs">por {log.usuario.nombre}</span>
+                        )}
+                      </div>
+                      {log.detalle && Object.keys(log.detalle).length > 0 && (
+                        <p className="text-slate-500 text-xs mt-0.5 truncate">
+                          {Object.entries(log.detalle).slice(0, 2).map(([k, v]) => `${k}: ${v}`).join(' · ')}
+                        </p>
+                      )}
+                    </div>
+                    <div className="text-right shrink-0">
+                      <p className="text-slate-500 text-xs">
+                        {new Date(log.created_at).toLocaleDateString('es-CL', { day: 'numeric', month: 'short' })}
+                      </p>
+                      <p className="text-slate-600 text-xs">
+                        {new Date(log.created_at).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' })}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
       ) : (
         <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 md:p-8 text-center space-y-4">
           <div className="w-14 h-14 bg-indigo-950 rounded-2xl flex items-center justify-center mx-auto text-2xl">🏗️</div>
@@ -146,14 +218,6 @@ export default async function BienvenidaPage() {
             <h3 className="text-white font-semibold">Sin proyecto asignado</h3>
             <p className="text-slate-400 text-sm mt-1">Un administrador debe crear un proyecto y asignarte a él para comenzar.</p>
           </div>
-          {usuario?.rol === 'super_admin' && (
-            <Link
-              href="/admin/onboarding"
-              className="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium px-5 py-2.5 rounded-xl transition-colors"
-            >
-              Crear primer cliente y proyecto <ArrowRight className="w-4 h-4" />
-            </Link>
-          )}
         </div>
       )}
     </div>
