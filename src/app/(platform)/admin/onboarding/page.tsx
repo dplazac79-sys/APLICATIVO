@@ -34,7 +34,7 @@ export default function OnboardingPage() {
   const [error, setError] = useState('')
 
   const [empresa, setEmpresa] = useState({ razon_social: '', industria: '', tamano: '', objetivos_estrategicos: '' })
-  const [proyecto, setProyecto] = useState({ nombre: '', descripcion: '', fecha_inicio: '', fecha_estimada_cierre: '' })
+  const [proyecto, setProyecto] = useState({ nombre: '', descripcion: '', contexto: '', objetivos: '', alcance_incluye: '', alcance_excluye: '', n_procesos_estimados: '', fecha_inicio: '', fecha_estimada_cierre: '' })
   const [equipo, setEquipo] = useState<Miembro[]>([{ email: '', nombre: '', rol: 'director_proyecto', password: '' }])
 
   function addMiembro() { setEquipo(e => [...e, { email: '', nombre: '', rol: 'consultor', password: '' }]) }
@@ -101,7 +101,7 @@ export default function OnboardingPage() {
               </Button>
             </div>
             <div className="flex gap-3">
-              <Button variant="outline" className="flex-1 border-slate-700 text-slate-300" onClick={() => { setExito(null); setPaso(1); setEmpresa({ razon_social: '', industria: '', tamano: '', objetivos_estrategicos: '' }); setProyecto({ nombre: '', descripcion: '', fecha_inicio: '', fecha_estimada_cierre: '' }); setEquipo([{ email: '', nombre: '', rol: 'director_proyecto', password: '' }]) }}>
+              <Button variant="outline" className="flex-1 border-slate-700 text-slate-300" onClick={() => { setExito(null); setPaso(1); setEmpresa({ razon_social: '', industria: '', tamano: '', objetivos_estrategicos: '' }); setProyecto({ nombre: '', descripcion: '', contexto: '', objetivos: '', alcance_incluye: '', alcance_excluye: '', n_procesos_estimados: '', fecha_inicio: '', fecha_estimada_cierre: '' }); setEquipo([{ email: '', nombre: '', rol: 'director_proyecto', password: '' }]) }}>
                 Nuevo cliente
               </Button>
               <Button variant="outline" className="flex-1 border-slate-700 text-slate-300" onClick={() => router.push('/admin')}>
@@ -192,10 +192,36 @@ export default function OnboardingPage() {
               <Input className="bg-slate-800 border-slate-700 text-white mt-1" placeholder="Optimización de procesos 2026" value={proyecto.nombre} onChange={e => setProyecto(v => ({ ...v, nombre: e.target.value }))} />
             </div>
             <div>
-              <Label className="text-slate-300">Descripción</Label>
-              <textarea className="w-full mt-1 bg-slate-800 border border-slate-700 text-white rounded-md px-3 py-2 text-sm resize-none" rows={3} placeholder="Alcance y objetivos del proyecto..." value={proyecto.descripcion} onChange={e => setProyecto(v => ({ ...v, descripcion: e.target.value }))} />
+              <Label className="text-slate-300">Descripción breve</Label>
+              <textarea className="w-full mt-1 bg-slate-800 border border-slate-700 text-white rounded-md px-3 py-2 text-sm resize-none" rows={2} placeholder="Resumen ejecutivo del proyecto..." value={proyecto.descripcion} onChange={e => setProyecto(v => ({ ...v, descripcion: e.target.value }))} />
+            </div>
+            <div>
+              <Label className="text-slate-300">Contexto del proyecto</Label>
+              <p className="text-slate-500 text-xs mt-0.5 mb-1">¿Cuál es la problemática o motivación que origina este proyecto?</p>
+              <textarea className="w-full mt-1 bg-slate-800 border border-slate-700 text-white rounded-md px-3 py-2 text-sm resize-none" rows={3} placeholder="Ej: La empresa enfrenta ineficiencias en su cadena de suministro que generan pérdidas operacionales..." value={proyecto.contexto} onChange={e => setProyecto(v => ({ ...v, contexto: e.target.value }))} />
+            </div>
+            <div>
+              <Label className="text-slate-300">Objetivos del proyecto</Label>
+              <p className="text-slate-500 text-xs mt-0.5 mb-1">Un objetivo por línea</p>
+              <textarea className="w-full mt-1 bg-slate-800 border border-slate-700 text-white rounded-md px-3 py-2 text-sm resize-none" rows={4} placeholder={"Mapear todos los procesos del área de operaciones\nIdentificar los 3 principales cuellos de botella\nDefinir KPIs base para monitoreo continuo"} value={proyecto.objetivos} onChange={e => setProyecto(v => ({ ...v, objetivos: e.target.value }))} />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <Label className="text-slate-300">Alcance — qué incluye</Label>
+                <p className="text-slate-500 text-xs mt-0.5 mb-1">Un ítem por línea</p>
+                <textarea className="w-full mt-1 bg-slate-800 border border-slate-700 text-white rounded-md px-3 py-2 text-sm resize-none" rows={4} placeholder={"Procesos de compras y bodega\nGestión de inventario\nLogística de última milla"} value={proyecto.alcance_incluye} onChange={e => setProyecto(v => ({ ...v, alcance_incluye: e.target.value }))} />
+              </div>
+              <div>
+                <Label className="text-slate-300">Alcance — qué excluye</Label>
+                <p className="text-slate-500 text-xs mt-0.5 mb-1">Un ítem por línea</p>
+                <textarea className="w-full mt-1 bg-slate-800 border border-slate-700 text-white rounded-md px-3 py-2 text-sm resize-none" rows={4} placeholder={"Implementación de nuevos sistemas\nProcesos de RRHH y nómina\nAuditoria financiera"} value={proyecto.alcance_excluye} onChange={e => setProyecto(v => ({ ...v, alcance_excluye: e.target.value }))} />
+              </div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div>
+                <Label className="text-slate-300">Nº procesos estimados</Label>
+                <Input type="number" className="bg-slate-800 border-slate-700 text-white mt-1" placeholder="Ej: 15" value={proyecto.n_procesos_estimados} onChange={e => setProyecto(v => ({ ...v, n_procesos_estimados: e.target.value }))} />
+              </div>
               <div>
                 <Label className="text-slate-300">Fecha de inicio</Label>
                 <Input type="date" className="bg-slate-800 border-slate-700 text-white mt-1" value={proyecto.fecha_inicio} onChange={e => setProyecto(v => ({ ...v, fecha_inicio: e.target.value }))} />
@@ -279,6 +305,9 @@ export default function OnboardingPage() {
               <div className="flex justify-between"><span className="text-slate-400">Nombre</span><span className="text-white font-medium">{proyecto.nombre}</span></div>
               {proyecto.fecha_inicio && <div className="flex justify-between"><span className="text-slate-400">Inicio</span><span className="text-white">{proyecto.fecha_inicio}</span></div>}
               {proyecto.fecha_estimada_cierre && <div className="flex justify-between"><span className="text-slate-400">Cierre estimado</span><span className="text-white">{proyecto.fecha_estimada_cierre}</span></div>}
+              {proyecto.n_procesos_estimados && <div className="flex justify-between"><span className="text-slate-400">Procesos estimados</span><span className="text-white">{proyecto.n_procesos_estimados}</span></div>}
+              {proyecto.contexto && <div className="pt-2 border-t border-slate-800"><p className="text-slate-400 text-xs mb-1">Contexto</p><p className="text-slate-300 text-xs line-clamp-2">{proyecto.contexto}</p></div>}
+              {proyecto.objetivos && <div className="pt-2 border-t border-slate-800"><p className="text-slate-400 text-xs mb-1">Objetivos ({proyecto.objetivos.split('\n').filter(Boolean).length})</p><p className="text-slate-300 text-xs line-clamp-2">{proyecto.objetivos.split('\n').filter(Boolean)[0]}{proyecto.objetivos.split('\n').filter(Boolean).length > 1 ? '...' : ''}</p></div>}
             </CardContent>
           </Card>
           <Card className="bg-slate-900 border-slate-800">

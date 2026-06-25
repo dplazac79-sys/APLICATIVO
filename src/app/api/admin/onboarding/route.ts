@@ -23,6 +23,11 @@ export async function POST(req: NextRequest) {
       proyecto: {
         nombre: string
         descripcion: string
+        contexto: string
+        objetivos: string
+        alcance_incluye: string
+        alcance_excluye: string
+        n_procesos_estimados: string
         fecha_inicio: string
         fecha_estimada_cierre: string
       }
@@ -55,6 +60,11 @@ export async function POST(req: NextRequest) {
       .insert({
         nombre: proyecto.nombre,
         descripcion: proyecto.descripcion || null,
+        contexto: proyecto.contexto || null,
+        objetivos: proyecto.objetivos || null,
+        alcance_incluye: proyecto.alcance_incluye || null,
+        alcance_excluye: proyecto.alcance_excluye || null,
+        n_procesos_estimados: proyecto.n_procesos_estimados ? parseInt(proyecto.n_procesos_estimados) : null,
         cliente_id: clienteCreado.id,
         fecha_inicio: proyecto.fecha_inicio || null,
         fecha_estimada_cierre: proyecto.fecha_estimada_cierre || null,
