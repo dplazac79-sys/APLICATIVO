@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { Button } from '@/components/ui/button'
-import { Sparkles, CheckCircle, AlertCircle } from 'lucide-react'
+import { Sparkles, CheckCircle, AlertCircle, Trash2 } from 'lucide-react'
 
 interface Props {
   documentoId: string
@@ -22,6 +22,7 @@ const ETAPAS = [
 export default function DocumentoAcciones({ documentoId, estado: estadoInicial }: Props) {
   const [estado, setEstado] = useState(estadoInicial)
   const [cargando, setCargando] = useState(false)
+  const [eliminando, setEliminando] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [progreso, setProgreso] = useState(0)
   const [etapa, setEtapa] = useState('')
@@ -108,8 +109,21 @@ export default function DocumentoAcciones({ documentoId, estado: estadoInicial }
     )
   }
 
+  async function eliminar() {
+    if (!confirm('¿Eliminar este documento? Esta acción no se puede deshacer.')) return
+    setEliminando(true)
+    try {
+      const res = await fetch(`/api/documentos/${documentoId}`, { method: 'DELETE' })
+      if (!res.ok) throw new Error('Error al eliminar')
+      window.location.reload()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al eliminar')
+      setEliminando(false)
+    }
+  }
+
   return (
-    <div className="space-y-1">
+    <div className="flex items-center gap-2 flex-wrap">
       <Button
         size="sm"
         variant="outline"
@@ -118,6 +132,16 @@ export default function DocumentoAcciones({ documentoId, estado: estadoInicial }
       >
         <Sparkles className="w-3 h-3 mr-1.5" />
         Analizar con IA
+      </Button>
+      <Button
+        size="sm"
+        variant="outline"
+        onClick={eliminar}
+        disabled={eliminando}
+        className="h-7 text-xs border-red-900 text-red-400 hover:bg-red-950 hover:text-red-300"
+      >
+        <Trash2 className="w-3 h-3 mr-1.5" />
+        {eliminando ? 'Eliminando...' : 'Eliminar'}
       </Button>
       {error && (
         <div className="flex items-center gap-1 text-red-400 text-xs">
