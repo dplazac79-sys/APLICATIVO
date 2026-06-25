@@ -10,12 +10,13 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
   const admin = createAdminClient()
 
   // Obtener el documento para saber el storage path
-  const { data: doc } = await admin.from('documento').select('storage_path, proyecto_id').eq('id', params.id).single()
+  const { data: doc } = await admin.from('documento').select('url_storage, storage_path').eq('id', params.id).single()
   if (!doc) return NextResponse.json({ error: 'Documento no encontrado' }, { status: 404 })
 
-  // Eliminar del storage si tiene path
-  if (doc.storage_path) {
-    await admin.storage.from('documentos').remove([doc.storage_path])
+  // Eliminar del storage
+  const storagePath = doc.url_storage || doc.storage_path
+  if (storagePath) {
+    await admin.storage.from('documentos').remove([storagePath])
   }
 
   // Eliminar de la BD (cascade limpia embeddings)
