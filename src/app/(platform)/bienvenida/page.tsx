@@ -229,8 +229,31 @@ export default async function BienvenidaPage() {
           </div>
         </div>
       ) : proyectoMeta && fases ? (
-        /* Vista cliente: solo ResumenProyecto, sin workflow (está en Dashboard) */
-        <ResumenProyecto proyecto={proyectoMeta as any} cliente={cliente} equipo={equipo} rol={usuario?.rol ?? ''} stats={statsProyecto} faseActual={fases?.find(f => f.status === 'activa') ?? null} />
+        /* Vista cliente: ResumenProyecto + CTA prominente a Dashboard */
+        <div className="space-y-4">
+          <ResumenProyecto proyecto={proyectoMeta as any} cliente={cliente} equipo={equipo} rol={usuario?.rol ?? ''} stats={statsProyecto} faseActual={fases?.find(f => f.status === 'activa') ?? null} />
+
+          {/* CTA: siguiente paso hacia Dashboard */}
+          <div className="relative overflow-hidden bg-gradient-to-r from-indigo-900/40 via-indigo-800/20 to-slate-900 border border-indigo-500/30 rounded-2xl p-6">
+            <div className="absolute right-0 top-0 w-40 h-40 bg-indigo-500/10 rounded-full blur-2xl pointer-events-none" />
+            <div className="relative flex items-center justify-between gap-6 flex-wrap">
+              <div className="space-y-1">
+                <p className="text-xs text-indigo-300 uppercase tracking-widest font-medium">Siguiente paso</p>
+                <h3 className="text-white text-lg font-semibold">Revisa el avance del proyecto</h3>
+                <p className="text-slate-400 text-sm max-w-md">
+                  En el Dashboard verás el progreso detallado de cada fase, los documentos cargados, los procesos descubiertos y el próximo módulo a trabajar.
+                </p>
+              </div>
+              <Link
+                href="/dashboard"
+                className="flex items-center gap-3 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-semibold px-6 py-3.5 rounded-xl transition-all text-sm shadow-lg shadow-indigo-900/40 shrink-0"
+              >
+                Ir al Dashboard
+                <ArrowRight className="w-5 h-5" />
+              </Link>
+            </div>
+          </div>
+        </div>
       ) : (
         <div className="bg-slate-900 border border-slate-800 rounded-xl p-8 text-center space-y-4">
           <div className="w-14 h-14 bg-indigo-950 rounded-2xl flex items-center justify-center mx-auto text-2xl">🏗️</div>

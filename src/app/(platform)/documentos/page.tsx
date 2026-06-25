@@ -1,3 +1,4 @@
+import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { Card, CardContent } from '@/components/ui/card'
 import { FileText, FileImage, FileSpreadsheet, File, ExternalLink } from 'lucide-react'
@@ -6,6 +7,8 @@ import DocumentUploader from '@/components/documentos/DocumentUploader'
 import DocumentoAcciones from '@/components/documentos/DocumentoAcciones'
 import BuscadorSemantico from '@/components/documentos/BuscadorSemantico'
 import type { Documento } from '@/types/database'
+
+export const dynamic = 'force-dynamic'
 
 const ESTADO_CONFIG = {
   pendiente: { label: 'Pendiente', class: 'bg-amber-950 text-amber-400 border-amber-800' },
@@ -26,6 +29,8 @@ const BLOQUE_LABELS: Record<string, string> = {
   otro: 'Otro',
 }
 
+const ROL_INTERNO = ['super_admin', 'director_proyecto', 'consultor']
+
 function FileIcon({ tipo }: { tipo: string | null }) {
   if (tipo === 'pdf') return <FileText className="w-4 h-4 text-red-400" />
   if (tipo === 'xlsx') return <FileSpreadsheet className="w-4 h-4 text-emerald-400" />
@@ -33,9 +38,20 @@ function FileIcon({ tipo }: { tipo: string | null }) {
   return <File className="w-4 h-4 text-slate-400" />
 }
 
-export const dynamic = 'force-dynamic'
-
 export default async function DocumentosPage({ searchParams }: { searchParams: { proyecto_id?: string } }) {
+  const supabase = createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  const { data: usuario } = await supabase
+    .from('usuario')
+    .select('rol')
+    .eq('id', user!.id)
+    .single()
+
+  const rolActual = usuario?.rol ?? 'usuario_cliente'
+  const esInterno = ROL_INTERNO.includes(rolActual)
+  const esCliente = !esInterno
+
   const admin = createAdminClient()
   const proyectoFiltro = searchParams.proyecto_id ?? null
 
@@ -52,9 +68,10 @@ export default async function DocumentosPage({ searchParams }: { searchParams: {
 
   const proyectoActivo = proyectoFiltro ? proyectos.find(p => p.id === proyectoFiltro) : null
 
+  // Traer documentos incluyendo subido_por para resolver permisos
   let query = admin
     .from('documento')
-    .select('*, proyecto(nombre)')
+    .select('*, proyecto(nombre), subido_por:subido_por(rol)')
     .order('created_at', { ascending: false })
     .limit(100)
 
@@ -62,7 +79,10 @@ export default async function DocumentosPage({ searchParams }: { searchParams: {
 
   const { data: documentos } = await query
 
-  type DocConProyecto = Documento & { proyecto: { nombre: string } | null }
+  type DocConProyecto = Documento & {
+    proyecto: { nombre: string } | null
+    subido_por: { rol: string } | null
+  }
 
   return (
     <div className="space-y-6">
@@ -87,7 +107,10 @@ export default async function DocumentosPage({ searchParams }: { searchParams: {
         )}
       </div>
 
-      <DocumentUploader proyectos={proyectos} proyectoPreseleccionado={proyectoFiltro} />
+      {/* Solo roles internos y sponsor_cliente pueden subir documentos */}
+      {(esInterno || rolActual === 'sponsor_cliente') && (
+        <DocumentUploader proyectos={proyectos} proyectoPreseleccionado={proyectoFiltro} />
+      )}
 
       <BuscadorSemantico />
 
@@ -112,13 +135,18 @@ export default async function DocumentosPage({ searchParams }: { searchParams: {
           const bloque = clasificacion?.bloque as string | undefined
           const industria = clasificacion?.industria_detectada as string | undefined
           const tipoDoc = clasificacion?.tipo_documento as string | undefined
-          // resumen puede tener campos extendidos
+
           const resumenData = doc.resumen_ejecutivo ? (() => {
             try { return JSON.parse(doc.resumen_ejecutivo ?? '{}') } catch { return null }
           })() : null
           const resumenTexto = typeof doc.resumen_ejecutivo === 'string' && !doc.resumen_ejecutivo.startsWith('{')
             ? doc.resumen_ejecutivo
             : resumenData?.resumen_ejecutivo ?? null
+
+          // El doc fue subido por un rol interno → cliente no puede eliminar ni analizar
+          const docSubidoPorInterno = ROL_INTERNO.includes(doc.subido_por?.rol ?? '')
+          const puedeEliminar = esInterno || (!docSubidoPorInterno)
+          const puedeAnalizar = esInterno || (!docSubidoPorInterno)
 
           return (
             <Card key={doc.id} className="bg-slate-900 border-slate-800">
@@ -131,6 +159,9 @@ export default async function DocumentosPage({ searchParams }: { searchParams: {
                     <p className="text-white text-sm font-medium truncate">{doc.nombre_archivo}</p>
                     <p className="text-slate-500 text-xs mt-0.5">
                       {doc.proyecto?.nombre ?? 'Sin proyecto'} · {new Date(doc.created_at).toLocaleDateString('es-CL')}
+                      {docSubidoPorInterno && esCliente && (
+                        <span className="ml-2 text-indigo-400">· Cargado por AICOUNTS</span>
+                      )}
                     </p>
                   </div>
                   <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
@@ -185,7 +216,12 @@ export default async function DocumentosPage({ searchParams }: { searchParams: {
                 )}
 
                 <div className="pl-12 flex items-center gap-3">
-                  <DocumentoAcciones documentoId={doc.id} estado={estadoKey} />
+                  <DocumentoAcciones
+                    documentoId={doc.id}
+                    estado={estadoKey}
+                    puedeEliminar={puedeEliminar}
+                    puedeAnalizar={puedeAnalizar}
+                  />
                   {estadoKey === 'listo' && (
                     <Link
                       href={`/documentos/${doc.id}`}

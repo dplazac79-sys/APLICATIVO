@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic'
 
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { FileText, FolderOpen, Brain, Layers, Sparkles, ArrowRight, AlertCircle } from 'lucide-react'
+import { FileText, FolderOpen, Brain, Layers, Sparkles, ArrowRight, AlertCircle, ChevronRight } from 'lucide-react'
 import Link from 'next/link'
 import FaseWorkflow from '@/components/fases/FaseWorkflow'
 import { getFasesProyecto } from '@/lib/fases'
@@ -195,6 +195,62 @@ export default async function DashboardPage() {
           </Link>
         </div>
       )}
+
+      {/* CTA próximo paso contextual */}
+      {proyectoMeta && (() => {
+        if (stats.documentos === 0) return (
+          <div className="relative overflow-hidden bg-gradient-to-r from-cyan-900/30 via-cyan-800/10 to-slate-900 border border-cyan-600/30 rounded-2xl p-6">
+            <div className="absolute right-0 top-0 w-32 h-32 bg-cyan-500/10 rounded-full blur-2xl pointer-events-none" />
+            <div className="relative flex items-center justify-between gap-6 flex-wrap">
+              <div className="space-y-1">
+                <p className="text-xs text-cyan-300 uppercase tracking-widest font-medium">Paso 1 de la Fase 2</p>
+                <h3 className="text-white text-base font-semibold">Carga los documentos del proyecto</h3>
+                <p className="text-slate-400 text-sm max-w-md">
+                  Para ejecutar el análisis con IA necesitas subir primero los documentos: propuesta, diagnóstico, organigramas, manuales de procesos.
+                </p>
+              </div>
+              <Link href="/documentos" className="flex items-center gap-2 bg-cyan-600 hover:bg-cyan-700 active:scale-95 text-white font-semibold px-5 py-3 rounded-xl transition-all text-sm shadow-lg shadow-cyan-900/30 shrink-0">
+                Centro Documental <ArrowRight className="w-4 h-4" />
+              </Link>
+            </div>
+          </div>
+        )
+        if (stats.procesosTotal === 0) return (
+          <div className="relative overflow-hidden bg-gradient-to-r from-violet-900/30 via-violet-800/10 to-slate-900 border border-violet-600/30 rounded-2xl p-6">
+            <div className="absolute right-0 top-0 w-32 h-32 bg-violet-500/10 rounded-full blur-2xl pointer-events-none" />
+            <div className="relative flex items-center justify-between gap-6 flex-wrap">
+              <div className="space-y-1">
+                <p className="text-xs text-violet-300 uppercase tracking-widest font-medium">Paso 2 de la Fase 2 · {stats.documentos} doc{stats.documentos !== 1 ? 's' : ''} listos</p>
+                <h3 className="text-white text-base font-semibold">Ejecuta el Discovery AI</h3>
+                <p className="text-slate-400 text-sm max-w-md">
+                  Ya tienes documentos cargados. El siguiente paso es correr el análisis de Process Discovery AI para que la IA identifique y mapee los procesos del negocio.
+                </p>
+              </div>
+              <Link href="/discovery" className="flex items-center gap-2 bg-violet-600 hover:bg-violet-700 active:scale-95 text-white font-semibold px-5 py-3 rounded-xl transition-all text-sm shadow-lg shadow-violet-900/30 shrink-0">
+                Process Discovery AI <ArrowRight className="w-4 h-4" />
+              </Link>
+            </div>
+          </div>
+        )
+        if (stats.procesosAprobados < stats.procesosTotal) return (
+          <div className="relative overflow-hidden bg-gradient-to-r from-emerald-900/30 via-emerald-800/10 to-slate-900 border border-emerald-600/30 rounded-2xl p-6">
+            <div className="absolute right-0 top-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none" />
+            <div className="relative flex items-center justify-between gap-6 flex-wrap">
+              <div className="space-y-1">
+                <p className="text-xs text-emerald-300 uppercase tracking-widest font-medium">Paso 3 de la Fase 2 · {stats.procesosAprobados}/{stats.procesosTotal} aprobados</p>
+                <h3 className="text-white text-base font-semibold">Revisa y aprueba los procesos descubiertos</h3>
+                <p className="text-slate-400 text-sm max-w-md">
+                  La IA ya identificó {stats.procesosTotal} procesos. Revísalos, edítalos si es necesario y aprueba los que sean correctos para avanzar a la siguiente fase.
+                </p>
+              </div>
+              <Link href="/discovery" className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-semibold px-5 py-3 rounded-xl transition-all text-sm shadow-lg shadow-emerald-900/30 shrink-0">
+                Revisar procesos <ArrowRight className="w-4 h-4" />
+              </Link>
+            </div>
+          </div>
+        )
+        return null
+      })()}
 
       {/* Workflow de fases */}
       {proyectoMeta && fases ? (

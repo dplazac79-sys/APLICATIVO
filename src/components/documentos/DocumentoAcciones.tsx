@@ -2,11 +2,13 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { Button } from '@/components/ui/button'
-import { Sparkles, CheckCircle, AlertCircle, Trash2 } from 'lucide-react'
+import { Sparkles, CheckCircle, AlertCircle, Trash2, Lock } from 'lucide-react'
 
 interface Props {
   documentoId: string
   estado: 'pendiente' | 'procesando' | 'listo' | 'error'
+  puedeEliminar?: boolean
+  puedeAnalizar?: boolean
 }
 
 const ETAPAS = [
@@ -19,7 +21,7 @@ const ETAPAS = [
   { label: 'Finalizando análisis inteligente...', pct: 96 },
 ]
 
-export default function DocumentoAcciones({ documentoId, estado: estadoInicial }: Props) {
+export default function DocumentoAcciones({ documentoId, estado: estadoInicial, puedeEliminar = true, puedeAnalizar = true }: Props) {
   const [estado, setEstado] = useState(estadoInicial)
   const [cargando, setCargando] = useState(false)
   const [eliminando, setEliminando] = useState(false)
@@ -33,7 +35,6 @@ export default function DocumentoAcciones({ documentoId, estado: estadoInicial }
     etapaRef.current = 0
     setProgreso(0)
     setEtapa(ETAPAS[0].label)
-
     intervalRef.current = setInterval(() => {
       const idx = etapaRef.current
       if (idx < ETAPAS.length - 1) {
@@ -124,25 +125,33 @@ export default function DocumentoAcciones({ documentoId, estado: estadoInicial }
 
   return (
     <div className="flex items-center gap-2 flex-wrap">
-      <Button
-        size="sm"
-        variant="outline"
-        onClick={procesarConIA}
-        className="h-7 text-xs border-indigo-700 text-indigo-300 hover:bg-indigo-950 hover:text-indigo-200"
-      >
-        <Sparkles className="w-3 h-3 mr-1.5" />
-        Analizar con IA
-      </Button>
-      <Button
-        size="sm"
-        variant="outline"
-        onClick={eliminar}
-        disabled={eliminando}
-        className="h-7 text-xs border-red-900 text-red-400 hover:bg-red-950 hover:text-red-300"
-      >
-        <Trash2 className="w-3 h-3 mr-1.5" />
-        {eliminando ? 'Eliminando...' : 'Eliminar'}
-      </Button>
+      {puedeAnalizar && (
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={procesarConIA}
+          className="h-7 text-xs border-indigo-700 text-indigo-300 hover:bg-indigo-950 hover:text-indigo-200"
+        >
+          <Sparkles className="w-3 h-3 mr-1.5" />
+          Analizar con IA
+        </Button>
+      )}
+      {puedeEliminar ? (
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={eliminar}
+          disabled={eliminando}
+          className="h-7 text-xs border-red-900 text-red-400 hover:bg-red-950 hover:text-red-300"
+        >
+          <Trash2 className="w-3 h-3 mr-1.5" />
+          {eliminando ? 'Eliminando...' : 'Eliminar'}
+        </Button>
+      ) : (
+        <span className="flex items-center gap-1 text-xs text-slate-600">
+          <Lock className="w-3 h-3" /> Solo lectura
+        </span>
+      )}
       {error && (
         <div className="flex items-center gap-1 text-red-400 text-xs">
           <AlertCircle className="w-3 h-3" />
