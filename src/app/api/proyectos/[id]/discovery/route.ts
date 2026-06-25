@@ -29,7 +29,7 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
   })
 
   await registrarAudit({
-    accion: 'RUN' as any,
+    accion: 'RUN',
     entidad: 'discovery_job',
     entidad_id: job.id,
     detalle: { proyecto_id },
