@@ -28,20 +28,26 @@ export default async function BienvenidaPage() {
   let proyectoMeta = null
   let fases = null
 
-  // Super admin ve el proyecto más reciente sin necesitar asignación
-  const queryProyecto = admin
-    .from('proyecto')
-    .select('id, nombre, estado_general, descripcion, contexto, objetivos, alcance_incluye, alcance_excluye, n_procesos_estimados, fecha_inicio, fecha_estimada_cierre, cliente:cliente_id(razon_social, industria)')
-    .eq('estado_general', 'activo')
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .single()
+  const selectProyecto = 'id, nombre, estado_general, descripcion, contexto, objetivos, alcance_incluye, alcance_excluye, n_procesos_estimados, fecha_inicio, fecha_estimada_cierre, cliente:cliente_id(razon_social, industria)'
 
   if (esSuperAdmin) {
-    const { data: p } = await queryProyecto
+    const { data: p } = await admin
+      .from('proyecto')
+      .select(selectProyecto)
+      .eq('estado_general', 'activo')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single()
     if (p) { proyectoMeta = p; fases = (await getFasesProyecto(p.id)).fases }
   } else if (proyectoIds.length > 0) {
-    const { data: p } = await queryProyecto.in('id', proyectoIds)
+    const { data: p } = await admin
+      .from('proyecto')
+      .select(selectProyecto)
+      .eq('estado_general', 'activo')
+      .in('id', proyectoIds)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single()
     if (p) { proyectoMeta = p; fases = (await getFasesProyecto(p.id)).fases }
   }
 
