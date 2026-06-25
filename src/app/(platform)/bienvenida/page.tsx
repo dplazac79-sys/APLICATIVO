@@ -5,7 +5,6 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import Link from 'next/link'
 import { ArrowRight, Sparkles } from 'lucide-react'
-import FaseWorkflow from '@/components/fases/FaseWorkflow'
 import Saludo from './Saludo'
 import ResumenProyecto from './ResumenProyecto'
 import { getFasesProyecto } from '@/lib/fases'
@@ -152,15 +151,13 @@ export default async function BienvenidaPage() {
         </div>
       </div>
 
-      {/* Layout principal: para super_admin 2 columnas, para el resto 1 columna */}
+      {/* Layout principal */}
       {esSuperAdmin ? (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
           {/* Columna izquierda: resumen proyecto */}
           <div className="space-y-6">
             {proyectoMeta && fases ? (
-              <>
-                <ResumenProyecto proyecto={proyectoMeta as any} cliente={cliente} equipo={equipo} rol={usuario?.rol ?? ''} stats={statsProyecto} faseActual={fases?.find(f => f.status === 'activa') ?? null} />
-              </>
+              <ResumenProyecto proyecto={proyectoMeta as any} cliente={cliente} equipo={equipo} rol={usuario?.rol ?? ''} stats={statsProyecto} faseActual={fases?.find(f => f.status === 'activa') ?? null} />
             ) : (
               <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 text-center space-y-3">
                 <div className="w-12 h-12 bg-indigo-950 rounded-2xl flex items-center justify-center mx-auto text-xl">🏗️</div>
@@ -170,13 +167,11 @@ export default async function BienvenidaPage() {
             )}
           </div>
 
-          {/* Columna derecha: bitácora SIEMPRE VISIBLE */}
+          {/* Columna derecha: bitácora */}
           <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-base font-semibold text-white">Bitácora de actividad</h2>
-                <p className="text-xs text-slate-500 mt-0.5">{bitacora.length} acciones recientes en el sistema</p>
-              </div>
+            <div>
+              <h2 className="text-base font-semibold text-white">Bitácora de actividad</h2>
+              <p className="text-xs text-slate-500 mt-0.5">{bitacora.length} acciones recientes en el sistema</p>
             </div>
             <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
               {bitacora.length === 0 ? (
@@ -234,13 +229,8 @@ export default async function BienvenidaPage() {
           </div>
         </div>
       ) : proyectoMeta && fases ? (
-        <div className="space-y-6">
-          <ResumenProyecto proyecto={proyectoMeta as any} cliente={cliente} equipo={equipo} rol={usuario?.rol ?? ''} stats={statsProyecto} faseActual={fases?.find(f => f.status === 'activa') ?? null} />
-          <div className="space-y-4">
-            <h2 className="text-lg font-semibold text-white">Workflow de fases</h2>
-            <FaseWorkflow fases={fases} compact />
-          </div>
-        </div>
+        /* Vista cliente: solo ResumenProyecto, sin workflow (está en Dashboard) */
+        <ResumenProyecto proyecto={proyectoMeta as any} cliente={cliente} equipo={equipo} rol={usuario?.rol ?? ''} stats={statsProyecto} faseActual={fases?.find(f => f.status === 'activa') ?? null} />
       ) : (
         <div className="bg-slate-900 border border-slate-800 rounded-xl p-8 text-center space-y-4">
           <div className="w-14 h-14 bg-indigo-950 rounded-2xl flex items-center justify-center mx-auto text-2xl">🏗️</div>
@@ -248,14 +238,6 @@ export default async function BienvenidaPage() {
             <h3 className="text-white font-semibold">Sin proyecto asignado</h3>
             <p className="text-slate-400 text-sm mt-1">Un administrador debe crear un proyecto y asignarte a él para comenzar.</p>
           </div>
-        </div>
-      )}
-
-      {/* Workflow full-width solo para super_admin con proyecto */}
-      {esSuperAdmin && proyectoMeta && fases && (
-        <div className="space-y-3">
-          <h2 className="text-base font-semibold text-white">Workflow de fases</h2>
-          <FaseWorkflow fases={fases} />
         </div>
       )}
 
