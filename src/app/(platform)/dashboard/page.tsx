@@ -218,25 +218,25 @@ export default async function DashboardPage() {
             </div>
           </div>
         )
-        // Paso 2: hay docs pero ninguno está analizado → volver a Centro Documental a analizar
-        if (stats.documentos > 0 && stats.docsListos === 0) return (
+        // Paso 2: hay docs (del super_admin o propios) → ir a Centro Documental a revisarlos y subir los propios
+        if (stats.documentos > 0 && stats.procesosTotal === 0) return (
           <div className="relative overflow-hidden bg-gradient-to-r from-cyan-900/30 via-cyan-800/10 to-slate-900 border border-cyan-600/30 rounded-2xl p-6">
             <div className="absolute right-0 top-0 w-32 h-32 bg-cyan-500/10 rounded-full blur-2xl pointer-events-none" />
             <div className="relative flex items-center justify-between gap-6 flex-wrap">
               <div className="space-y-1">
-                <p className="text-xs text-cyan-300 uppercase tracking-widest font-medium">Paso 2 · Fase 2 — {stats.documentos} doc{stats.documentos !== 1 ? 's' : ''} cargado{stats.documentos !== 1 ? 's' : ''}</p>
-                <h3 className="text-white text-base font-semibold">Analiza los documentos con IA</h3>
+                <p className="text-xs text-cyan-300 uppercase tracking-widest font-medium">Paso 2 · Fase 2 — {stats.documentos} doc{stats.documentos !== 1 ? 's' : ''} disponible{stats.documentos !== 1 ? 's' : ''}</p>
+                <h3 className="text-white text-base font-semibold">Revisa los documentos del proyecto</h3>
                 <p className="text-slate-400 text-sm max-w-md">
-                  Los documentos están cargados pero aún no han sido analizados. Ve al Centro Documental y ejecuta el análisis IA en cada uno para extraer procesos, roles y brechas.
+                  Hay documentos cargados por el equipo consultor. Revísalos en el Centro Documental y sube los tuyos si tienes información adicional del negocio. Cuando estés listo, pasa a Process Discovery AI.
                 </p>
               </div>
               <Link href="/documentos" className="flex items-center gap-2 bg-cyan-600 hover:bg-cyan-700 active:scale-95 text-white font-semibold px-5 py-3 rounded-xl transition-all text-sm shadow-lg shadow-cyan-900/30 shrink-0">
-                Analizar documentos <ArrowRight className="w-4 h-4" />
+                Centro Documental <ArrowRight className="w-4 h-4" />
               </Link>
             </div>
           </div>
         )
-        // Paso 3: docs analizados, pero sin Discovery ejecutado → ir a Discovery AI
+        // Paso 3: ya hay procesos descubiertos, o docs listos → ir a Discovery AI
         if (stats.docsListos > 0 && stats.procesosTotal === 0) return (
           <div className="relative overflow-hidden bg-gradient-to-r from-violet-900/30 via-violet-800/10 to-slate-900 border border-violet-600/30 rounded-2xl p-6">
             <div className="absolute right-0 top-0 w-32 h-32 bg-violet-500/10 rounded-full blur-2xl pointer-events-none" />
