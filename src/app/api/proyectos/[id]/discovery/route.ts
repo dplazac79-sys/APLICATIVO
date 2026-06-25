@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { inngest } from '@/lib/inngest/client'
+import { registrarAudit } from '@/lib/audit'
 
 export async function POST(_req: NextRequest, { params }: { params: { id: string } }) {
   const proyecto_id = params.id
@@ -25,6 +26,13 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
   await inngest.send({
     name: 'proyecto/discovery',
     data: { proyecto_id, usuario_id: user.id },
+  })
+
+  await registrarAudit({
+    accion: 'RUN' as any,
+    entidad: 'discovery_job',
+    entidad_id: job.id,
+    detalle: { proyecto_id },
   })
 
   return NextResponse.json({ ok: true, job_id: job.id, status: 'encolado' })

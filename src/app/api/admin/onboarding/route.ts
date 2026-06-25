@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { registrarAudit } from '@/lib/audit'
 
 export async function POST(req: NextRequest) {
   try {
@@ -106,11 +107,33 @@ export async function POST(req: NextRequest) {
           activo: true,
         })
 
+        await registrarAudit({
+          accion: 'CREATE',
+          entidad: 'usuario',
+          entidad_id: creado.user.id,
+          detalle: { nombre: miembro.nombre, email: miembro.email, rol: miembro.rol },
+          usuarioId: user.id,
+        })
         resultadosEquipo.push({ email: miembro.email, status: 'creado' })
       } catch (e) {
         resultadosEquipo.push({ email: miembro.email, status: 'error', error: String(e) })
       }
     }
+
+    await registrarAudit({
+      accion: 'CREATE',
+      entidad: 'cliente',
+      entidad_id: clienteCreado.id,
+      detalle: { nombre: empresa.razon_social, industria: empresa.industria },
+      usuarioId: user.id,
+    })
+    await registrarAudit({
+      accion: 'CREATE',
+      entidad: 'proyecto',
+      entidad_id: proyectoCreado.id,
+      detalle: { nombre: proyecto.nombre, cliente: empresa.razon_social },
+      usuarioId: user.id,
+    })
 
     return NextResponse.json({
       ok: true,
