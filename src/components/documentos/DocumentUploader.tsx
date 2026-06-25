@@ -79,7 +79,10 @@ export default function DocumentUploader({ proyectos, proyectoPreseleccionado }:
     setDone(0)
 
     for (const file of files) {
-      const path = `${pid}/${Date.now()}-${file.name}`
+      const safeName = file.name
+        .normalize('NFD').replace(/[̀-ͯ]/g, '') // quitar tildes
+        .replace(/[^a-zA-Z0-9._-]/g, '_')                // reemplazar caracteres especiales
+      const path = `${pid}/${Date.now()}-${safeName}`
 
       const { error: storageError } = await supabase.storage
         .from('documentos')
