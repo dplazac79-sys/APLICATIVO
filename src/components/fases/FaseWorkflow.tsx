@@ -26,7 +26,7 @@ const COLOR_MAP: Record<string, { ring: string; bar: string; badge: string; text
   cyan:    { ring: 'border-cyan-500/50',    bar: 'bg-cyan-500',    badge: 'bg-cyan-500/20 text-cyan-300',    text: 'text-cyan-400',    glow: 'shadow-cyan-500/20' },
 }
 
-export default function FaseWorkflow({ fases }: { fases: Fase[] }) {
+export default function FaseWorkflow({ fases, compact }: { fases: Fase[]; compact?: boolean }) {
   const [expanded, setExpanded] = useState<number | null>(
     fases.find(f => f.status === 'activa')?.id ?? null
   )
@@ -69,7 +69,8 @@ export default function FaseWorkflow({ fases }: { fases: Fase[] }) {
         </div>
       </div>
 
-      {/* Fases */}
+      {/* Fases — grid 3 columnas cuando hay 6 fases y no es compacto */}
+      <div className={compact ? 'space-y-3' : 'grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3'}>
       {fases.map((fase, idx) => {
         const c = COLOR_MAP[fase.color]
         const isOpen = expanded === fase.id
@@ -87,8 +88,8 @@ export default function FaseWorkflow({ fases }: { fases: Fase[] }) {
                 : `${c.ring} bg-slate-900 shadow-lg ${c.glow}`
             }`}
           >
-            {/* Línea conectora */}
-            {idx < fases.length - 1 && (
+            {/* Línea conectora solo en layout compacto (1 columna) */}
+            {compact && idx < fases.length - 1 && (
               <div className="absolute left-7 -bottom-4 w-0.5 h-4 bg-slate-700 z-10" />
             )}
 
@@ -184,6 +185,7 @@ export default function FaseWorkflow({ fases }: { fases: Fase[] }) {
           </div>
         )
       })}
+      </div>
     </div>
   )
 }

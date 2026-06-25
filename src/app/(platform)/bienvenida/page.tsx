@@ -145,15 +145,11 @@ export default async function BienvenidaPage() {
       {/* Layout principal: para super_admin 2 columnas, para el resto 1 columna */}
       {esSuperAdmin ? (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
-          {/* Columna izquierda: resumen proyecto + workflow */}
+          {/* Columna izquierda: resumen proyecto */}
           <div className="space-y-6">
             {proyectoMeta && fases ? (
               <>
                 <ResumenProyecto proyecto={proyectoMeta as any} cliente={cliente} equipo={equipo} rol={usuario?.rol ?? ''} />
-                <div className="space-y-3">
-                  <h2 className="text-base font-semibold text-white">Workflow de fases</h2>
-                  <FaseWorkflow fases={fases} />
-                </div>
               </>
             ) : (
               <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 text-center space-y-3">
@@ -232,7 +228,7 @@ export default async function BienvenidaPage() {
           <ResumenProyecto proyecto={proyectoMeta as any} cliente={cliente} equipo={equipo} rol={usuario?.rol ?? ''} />
           <div className="space-y-4">
             <h2 className="text-lg font-semibold text-white">Workflow de fases</h2>
-            <FaseWorkflow fases={fases} />
+            <FaseWorkflow fases={fases} compact />
           </div>
         </div>
       ) : (
@@ -242,6 +238,14 @@ export default async function BienvenidaPage() {
             <h3 className="text-white font-semibold">Sin proyecto asignado</h3>
             <p className="text-slate-400 text-sm mt-1">Un administrador debe crear un proyecto y asignarte a él para comenzar.</p>
           </div>
+        </div>
+      )}
+
+      {/* Workflow full-width solo para super_admin con proyecto */}
+      {esSuperAdmin && proyectoMeta && fases && (
+        <div className="space-y-3">
+          <h2 className="text-base font-semibold text-white">Workflow de fases</h2>
+          <FaseWorkflow fases={fases} />
         </div>
       )}
 
