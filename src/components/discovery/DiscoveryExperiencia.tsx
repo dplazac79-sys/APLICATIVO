@@ -381,6 +381,8 @@ function EstadoVacioDiscovery({
 
   const [procesando, setProcesando] = useState(false)
   const [procesadosIds, setProcesadosIds] = useState<string[]>([])
+  const [exitoso, setExitoso] = useState(false)
+  const totalParaProcesar = selParaProcesar.length
 
   function toggleDoc(id: string) {
     setSeleccionados(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
@@ -410,7 +412,7 @@ function EstadoVacioDiscovery({
       } catch { /* continúa con el siguiente */ }
     }
     setProcesando(false)
-    setTimeout(() => window.location.reload(), 1500)
+    setExitoso(true)
   }
 
   return (
@@ -484,7 +486,97 @@ function EstadoVacioDiscovery({
         </div>
 
         {/* Cuerpo del paso */}
-        {documentos.length === 0 ? (
+        {exitoso ? (
+          /* ── Estado éxito ── */
+          <div className="p-8 flex flex-col items-center text-center space-y-6">
+            {/* Checkmark animado */}
+            <div className="relative">
+              <div className="w-20 h-20 rounded-full bg-emerald-900/40 border-2 border-emerald-500/60 flex items-center justify-center">
+                <CheckCircle className="w-10 h-10 text-emerald-400" />
+              </div>
+              <div className="absolute inset-0 rounded-full border-2 border-emerald-400/20 animate-ping" />
+            </div>
+            <div>
+              <p className="text-white font-bold text-xl mb-2">
+                {procesadosIds.length === totalParaProcesar
+                  ? `${procesadosIds.length} documento${procesadosIds.length !== 1 ? 's' : ''} enviado${procesadosIds.length !== 1 ? 's' : ''} al motor`
+                  : 'Documentos enviados al motor'}
+              </p>
+              <p className="text-slate-400 text-sm max-w-md leading-relaxed">
+                El motor está leyendo e indexando el contenido de cada documento. Este proceso toma 1–2 minutos. Cuando termine, quedarán listos para ejecutar el análisis completo.
+              </p>
+            </div>
+            {/* Barra de progreso 100% */}
+            <div className="w-full max-w-sm space-y-2">
+              <div className="flex justify-between text-xs text-slate-500">
+                <span>Documentos encolados</span>
+                <span className="text-emerald-400 font-semibold">{procesadosIds.length}/{totalParaProcesar}</span>
+              </div>
+              <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
+                <div className="h-full bg-gradient-to-r from-emerald-500 to-violet-500 rounded-full transition-all duration-700"
+                  style={{ width: `${totalParaProcesar > 0 ? (procesadosIds.length / totalParaProcesar) * 100 : 100}%` }} />
+              </div>
+            </div>
+            <div className="flex items-center gap-3 flex-wrap justify-center">
+              <button
+                onClick={() => window.location.reload()}
+                className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white text-sm font-semibold rounded-xl transition-all shadow-lg shadow-violet-900/40"
+              >
+                <Sparkles className="w-4 h-4" /> Verificar estado y continuar
+              </button>
+              <p className="text-slate-600 text-xs">El procesamiento continúa en segundo plano</p>
+            </div>
+          </div>
+
+        ) : procesando ? (
+          /* ── Estado procesando en curso ── */
+          <div className="p-5 space-y-3">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="relative w-8 h-8 shrink-0">
+                <div className="w-8 h-8 rounded-full bg-violet-900/50 border border-violet-600/40 flex items-center justify-center">
+                  <Brain className="w-4 h-4 text-violet-400" />
+                </div>
+                <div className="absolute inset-0 rounded-full border border-violet-500/30 animate-ping" />
+              </div>
+              <div>
+                <p className="text-white font-semibold text-sm">Activando inteligencia en tus documentos</p>
+                <p className="text-slate-500 text-xs">{procesadosIds.length} de {totalParaProcesar} encolados</p>
+              </div>
+              <div className="ml-auto text-xs font-bold text-violet-300 bg-violet-900/40 border border-violet-700/40 rounded-full px-3 py-1 shrink-0">
+                {totalParaProcesar > 0 ? Math.round((procesadosIds.length / totalParaProcesar) * 100) : 0}%
+              </div>
+            </div>
+            <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden mb-4">
+              <div className="h-full bg-gradient-to-r from-violet-500 via-fuchsia-500 to-indigo-500 rounded-full transition-all duration-500"
+                style={{ width: `${totalParaProcesar > 0 ? (procesadosIds.length / totalParaProcesar) * 100 : 5}%` }} />
+            </div>
+            {noListos.map(doc => {
+              const hecho = procesadosIds.includes(doc.id)
+              const activo = !hecho && procesadosIds.length < selParaProcesar.indexOf(doc.id) + 1
+              return (
+                <div key={doc.id} className={`flex items-center gap-3 rounded-xl px-4 py-3 border transition-all ${
+                  hecho ? 'bg-emerald-950/20 border-emerald-800/30' : 'bg-slate-800/30 border-slate-700/30'
+                }`}>
+                  <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${
+                    hecho ? 'bg-emerald-500' : 'border-2 border-slate-600'
+                  }`}>
+                    {hecho
+                      ? <CheckCircle className="w-3.5 h-3.5 text-white" strokeWidth={3} />
+                      : <span className="w-2 h-2 rounded-full border border-slate-500/50 border-t-slate-400 animate-spin" />}
+                  </div>
+                  <FileText className={`w-4 h-4 shrink-0 ${hecho ? 'text-emerald-400' : 'text-slate-500'}`} />
+                  <p className={`text-sm font-medium flex-1 truncate ${hecho ? 'text-emerald-300' : 'text-slate-400'}`}>
+                    {doc.nombre_archivo}
+                  </p>
+                  <span className={`text-xs shrink-0 ${hecho ? 'text-emerald-400' : 'text-slate-600'}`}>
+                    {hecho ? 'Encolado ✓' : 'Esperando'}
+                  </span>
+                </div>
+              )
+            })}
+          </div>
+
+        ) : documentos.length === 0 ? (
           <div className="p-8 text-center space-y-3">
             <AlertCircle className="w-8 h-8 text-amber-400 mx-auto" />
             <p className="text-white font-semibold">Aún no hay documentos cargados</p>
