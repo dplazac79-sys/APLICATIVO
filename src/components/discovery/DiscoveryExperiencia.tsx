@@ -611,32 +611,31 @@ function PollingScreen({
   })
   const [todosListos, setTodosListos] = useState(false)
   const [timeout3min, setTimeout3min] = useState(false)
-  // Simulated progress: advances slowly up to ~70% cap while waiting for real data
-  const [simulatedPct, setSimulatedPct] = useState(0)
+  // Elapsed seconds — drives asymptotic curve, always moving
+  const [elapsed, setElapsed] = useState(0)
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
-  const simRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const tickRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const startRef = useRef(Date.now())
+  const [estadosRef] = useState<{ current: Record<string, string> }>({ current: {} })
 
   // Map doc id → nombre
   const docMap = Object.fromEntries(documentos.map(d => [d.id, d.nombre_archivo]))
 
-  // Simulated tick: +1% every 1.5s, caps at 70%
+  // Tick every second — elapsed drives the curve so it never freezes
   useEffect(() => {
-    simRef.current = setInterval(() => {
-      setSimulatedPct(p => p < 70 ? p + 1 : p)
-    }, 1500)
-    return () => { if (simRef.current) clearInterval(simRef.current) }
+    tickRef.current = setInterval(() => setElapsed(s => s + 1), 1000)
+    return () => { if (tickRef.current) clearInterval(tickRef.current) }
   }, [])
 
   useEffect(() => {
     if (procesadosIds.length === 0) return
 
     async function poll() {
-      const elapsed = Date.now() - startRef.current
-      if (elapsed > 5 * 60 * 1000) {
+      const elapsedMs = Date.now() - startRef.current
+      if (elapsedMs > 8 * 60 * 1000) {
         setTimeout3min(true)
         if (intervalRef.current) clearInterval(intervalRef.current)
-        if (simRef.current) clearInterval(simRef.current)
+        if (tickRef.current) clearInterval(tickRef.current)
         return
       }
       try {
@@ -648,12 +647,12 @@ function PollingScreen({
           const newEstados: Record<string, string> = {}
           for (const doc of data.documentos) newEstados[doc.id] = doc.estado_procesamiento
           setEstadosDocs(newEstados)
+          estadosRef.current = newEstados
           const allDone = procesadosIds.every(id => newEstados[id] === 'listo')
           if (allDone) {
             setTodosListos(true)
-            setSimulatedPct(100)
             if (intervalRef.current) clearInterval(intervalRef.current)
-            if (simRef.current) clearInterval(simRef.current)
+            if (tickRef.current) clearInterval(tickRef.current)
           }
         }
       } catch { /* silent */ }
@@ -666,12 +665,16 @@ function PollingScreen({
 
   const listosCount = procesadosIds.filter(id => estadosDocs[id] === 'listo').length
   const procesandoCount = procesadosIds.filter(id => estadosDocs[id] === 'procesando').length
-  // Real progress: listo=100%, procesando=50% weight
+
+  // Asymptotic curve: 99 * (1 - e^(-t/tau)) — always moving, never reaches 99 on its own
+  // tau=120s → ~63% at 2min, ~86% at 4min, ~95% at 6min
+  const tau = 120
+  const curvePct = Math.round(99 * (1 - Math.exp(-elapsed / tau)))
+  // Real data takes precedence if higher
   const realPct = totalParaProcesar > 0
     ? Math.round(((listosCount + procesandoCount * 0.5) / totalParaProcesar) * 100)
     : 0
-  // Display: max of simulated or real, capped at 99% until truly done
-  const pct = todosListos ? 100 : Math.min(99, Math.max(simulatedPct, realPct))
+  const pct = todosListos ? 100 : Math.min(99, Math.max(curvePct, realPct))
   const circleRadius = 54
   const circleCircumference = 2 * Math.PI * circleRadius
   const circleOffset = circleCircumference - (pct / 100) * circleCircumference
