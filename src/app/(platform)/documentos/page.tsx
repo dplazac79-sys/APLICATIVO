@@ -77,11 +77,22 @@ export default async function DocumentosPage({ searchParams }: { searchParams: {
 
   if (proyectoFiltro) query = query.eq('proyecto_id', proyectoFiltro)
 
-  const { data: documentos } = await query
+  const { data: documentosRaw } = await query
+
+  // Generar URLs firmadas (1 hora) para todos los documentos
+  const documentos = await Promise.all(
+    (documentosRaw ?? []).map(async (doc) => {
+      const { data: signed } = await admin.storage
+        .from('documentos')
+        .createSignedUrl(doc.url_storage, 3600)
+      return { ...doc, signedUrl: signed?.signedUrl ?? null }
+    })
+  )
 
   type DocConProyecto = Documento & {
     proyecto: { nombre: string } | null
     subido_por: { rol: string } | null
+    signedUrl: string | null
   }
 
   return (
@@ -219,15 +230,22 @@ export default async function DocumentosPage({ searchParams }: { searchParams: {
 
                 <div className="pl-12 flex items-center gap-3 flex-wrap">
                   {/* Ver / descargar el archivo original — disponible para todos */}
-                  <a
-                    href={doc.url_storage}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 text-xs text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 border border-slate-700 px-3 py-1.5 rounded-lg transition-colors"
-                  >
-                    <Download className="w-3.5 h-3.5" />
-                    Ver documento
-                  </a>
+                  {doc.signedUrl ? (
+                    <a
+                      href={doc.signedUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 text-xs text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 border border-slate-700 px-3 py-1.5 rounded-lg transition-colors"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      Ver documento
+                    </a>
+                  ) : (
+                    <span className="inline-flex items-center gap-1.5 text-xs text-slate-600 bg-slate-800/40 border border-slate-800 px-3 py-1.5 rounded-lg cursor-not-allowed">
+                      <Download className="w-3.5 h-3.5" />
+                      No disponible
+                    </span>
+                  )}
 
                   <DocumentoAcciones
                     documentoId={doc.id}
