@@ -373,13 +373,31 @@ function EstadoVacioDiscovery({
 
   const [seleccionados, setSeleccionados] = useState<string[]>(listos.map(d => d.id))
   const todosSeleccionados = listos.length > 0 && seleccionados.length === listos.length
+  const [procesando, setProcesando] = useState(false)
+  const [procesadosIds, setProcesadosIds] = useState<string[]>([])
 
   function toggleDoc(id: string) {
     setSeleccionados(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
   }
-
   function toggleTodos() {
     setSeleccionados(todosSeleccionados ? [] : listos.map(d => d.id))
+  }
+
+  async function procesarPendientes() {
+    if (procesando || noListos.length === 0) return
+    setProcesando(true)
+    for (const doc of noListos) {
+      try {
+        await fetch('/api/documentos/procesar', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ documento_id: doc.id }),
+        })
+        setProcesadosIds(prev => [...prev, doc.id])
+      } catch { /* continúa con el siguiente */ }
+    }
+    setProcesando(false)
+    setTimeout(() => window.location.reload(), 1200)
   }
 
   return (
@@ -414,17 +432,25 @@ function EstadoVacioDiscovery({
         </div>
       </div>
 
-      {/* ── Paso 1: selección de documentos ── */}
+      {/* ── Paso 1: documentos ── */}
       <div className="rounded-2xl border border-slate-800 bg-slate-900/60 overflow-hidden">
+
+        {/* Header del paso */}
         <div className="p-5 border-b border-slate-800 flex items-center justify-between flex-wrap gap-3">
           <div className="flex items-center gap-3">
             <span className="w-7 h-7 rounded-full bg-violet-600 text-white text-xs font-bold flex items-center justify-center shrink-0">1</span>
             <div>
-              <p className="text-white font-semibold text-sm">Define el alcance del análisis</p>
-              <p className="text-slate-500 text-xs mt-0.5">Selecciona qué documentos procesados entran al motor de inteligencia.</p>
+              <p className="text-white font-semibold text-sm">Selecciona los documentos a analizar</p>
+              <p className="text-slate-500 text-xs mt-0.5">
+                {documentos.length === 0
+                  ? 'Carga documentación primero en Centro Documental.'
+                  : tieneListos
+                  ? `${listos.length} documento${listos.length !== 1 ? 's' : ''} listo${listos.length !== 1 ? 's' : ''} · elige cuáles entran al análisis`
+                  : `${noListos.length} documento${noListos.length !== 1 ? 's' : ''} pendiente${noListos.length !== 1 ? 's' : ''} de procesamiento`}
+              </p>
             </div>
           </div>
-          {listos.length > 0 && (
+          {tieneListos && (
             <div className="flex items-center gap-3 shrink-0">
               <button onClick={toggleTodos} className="text-xs text-violet-300 hover:text-violet-200 font-medium transition-colors">
                 {todosSeleccionados ? 'Quitar todos' : 'Seleccionar todos'}
@@ -436,6 +462,7 @@ function EstadoVacioDiscovery({
           )}
         </div>
 
+        {/* Cuerpo del paso */}
         {documentos.length === 0 ? (
           <div className="p-8 text-center space-y-3">
             <AlertCircle className="w-8 h-8 text-amber-400 mx-auto" />
@@ -445,7 +472,60 @@ function EstadoVacioDiscovery({
               <Layers className="w-4 h-4" /> Ir a Centro Documental
             </a>
           </div>
+
+        ) : !tieneListos ? (
+          /* Todos pendientes — mostrar estado bloqueado + acción */
+          <div className="p-5 space-y-4">
+            <div className="flex items-start gap-3 bg-amber-950/20 border border-amber-700/30 rounded-xl p-4">
+              <AlertCircle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+              <div>
+                <p className="text-amber-300 font-semibold text-sm">Documentos pendientes de procesamiento</p>
+                <p className="text-slate-400 text-xs mt-1">
+                  Tus documentos están cargados pero aún no han sido procesados. El motor de inteligencia necesita leer y comprender su contenido antes de poder analizarlos. Procésalos ahora con un clic.
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              {noListos.map(doc => {
+                const enProceso = procesadosIds.includes(doc.id)
+                return (
+                  <div key={doc.id} className={`flex items-center gap-3 rounded-xl px-4 py-3 border transition-colors ${
+                    enProceso ? 'bg-violet-950/20 border-violet-800/40' : 'bg-slate-800/30 border-slate-700/30'
+                  }`}>
+                    <div className="w-8 h-8 rounded-lg bg-slate-800 border border-slate-700 flex items-center justify-center shrink-0">
+                      <FileText className={`w-4 h-4 ${enProceso ? 'text-violet-400' : 'text-slate-500'}`} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className={`text-sm font-medium truncate ${enProceso ? 'text-violet-300' : 'text-slate-300'}`}>{doc.nombre_archivo}</p>
+                      <p className="text-xs text-slate-600">{enProceso ? 'Encolado para procesamiento...' : 'Pendiente'}</p>
+                    </div>
+                    {enProceso && <span className="w-3 h-3 rounded-full border-2 border-violet-400/30 border-t-violet-400 animate-spin shrink-0" />}
+                  </div>
+                )
+              })}
+            </div>
+
+            <div className="flex items-center gap-3 flex-wrap">
+              <button
+                onClick={procesarPendientes}
+                disabled={procesando}
+                className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white text-sm font-semibold rounded-xl transition-all shadow-lg shadow-violet-900/40 disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {procesando ? (
+                  <><span className="w-3.5 h-3.5 rounded-full border-2 border-white/30 border-t-white animate-spin" />Procesando documentos...</>
+                ) : (
+                  <><Sparkles className="w-4 h-4" />Procesar {noListos.length} documento{noListos.length !== 1 ? 's' : ''}</>
+                )}
+              </button>
+              <a href="/documentos" className="text-xs text-slate-500 hover:text-slate-300 transition-colors">
+                Gestionar en Centro Documental →
+              </a>
+            </div>
+          </div>
+
         ) : (
+          /* Hay listos — mostrar checkboxes seleccionables + pendientes al fondo */
           <div className="p-4 space-y-2">
             {listos.map(doc => {
               const bloque = (doc.clasificacion as any)?.bloque_metodologico as string | undefined
@@ -457,7 +537,7 @@ function EstadoVacioDiscovery({
                   className={`w-full flex items-center gap-3 rounded-xl px-4 py-3 transition-colors text-left ${
                     elegido
                       ? 'bg-emerald-950/20 border border-emerald-800/40 hover:border-emerald-700/60'
-                      : 'bg-slate-800/30 border border-slate-700/40 opacity-60 hover:opacity-80'
+                      : 'bg-slate-800/30 border border-slate-700/40 opacity-60 hover:opacity-90'
                   }`}
                 >
                   <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-colors ${
@@ -472,82 +552,83 @@ function EstadoVacioDiscovery({
                     <p className="text-white text-sm font-medium truncate">{doc.nombre_archivo}</p>
                     {bloque && <p className="text-slate-500 text-xs truncate">{bloque}</p>}
                   </div>
-                  <span className="text-xs text-emerald-400 font-medium shrink-0">Procesado</span>
+                  <span className="text-xs text-emerald-400 font-medium shrink-0">Listo</span>
                 </button>
               )
             })}
 
-            {noListos.map(doc => (
-              <div key={doc.id} className="flex items-center gap-3 bg-slate-800/20 border border-slate-700/30 rounded-xl px-4 py-3 opacity-50">
-                <div className="w-5 h-5 rounded-md border-2 border-slate-700 flex items-center justify-center shrink-0">
-                  <Lock className="w-3 h-3 text-slate-600" />
-                </div>
-                <div className="w-8 h-8 rounded-lg bg-slate-800 border border-slate-700 flex items-center justify-center shrink-0">
-                  <FileText className="w-4 h-4 text-slate-500" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-slate-400 text-sm truncate">{doc.nombre_archivo}</p>
-                  <p className="text-slate-600 text-xs">En cola de procesamiento — aún no disponible para el análisis</p>
-                </div>
+            {noListos.length > 0 && (
+              <div className="pt-2 border-t border-slate-800 space-y-2">
+                <p className="text-xs text-slate-600 px-1">Pendientes de procesamiento (no seleccionables)</p>
+                {noListos.map(doc => (
+                  <div key={doc.id} className="flex items-center gap-3 bg-slate-800/20 border border-slate-700/20 rounded-xl px-4 py-3 opacity-40">
+                    <div className="w-5 h-5 rounded-md border-2 border-slate-700 flex items-center justify-center shrink-0">
+                      <Lock className="w-3 h-3 text-slate-600" />
+                    </div>
+                    <div className="w-8 h-8 rounded-lg bg-slate-800 border border-slate-700 flex items-center justify-center shrink-0">
+                      <FileText className="w-4 h-4 text-slate-500" />
+                    </div>
+                    <p className="text-slate-400 text-sm truncate flex-1">{doc.nombre_archivo}</p>
+                  </div>
+                ))}
               </div>
-            ))}
+            )}
           </div>
         )}
       </div>
 
-      {/* ── Paso 2: impacto en Glosario de Roles ── */}
-      {documentos.length > 0 && (
-        <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-5 flex items-start gap-4">
-          <span className="w-7 h-7 rounded-full bg-violet-600 text-white text-xs font-bold flex items-center justify-center shrink-0">2</span>
-          <div className="flex items-center gap-3 flex-1 min-w-0">
-            <div className="w-10 h-10 rounded-xl bg-indigo-900/40 border border-indigo-700/40 flex items-center justify-center shrink-0">
-              <Users className="w-5 h-5 text-indigo-300" />
-            </div>
-            <div>
-              <p className="text-white font-semibold text-sm">Construcción del Glosario de Roles</p>
-              <p className="text-slate-400 text-xs mt-0.5 leading-relaxed">
-                El motor mapea cada rol detectado contra los procesos donde participa y su nivel de responsabilidad, entregando una matriz organizacional accionable — la base para decisiones de gobierno y rediseño operacional.
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── Paso 3: ejecutar ── */}
-      <div className="bg-gradient-to-r from-violet-900/40 via-indigo-900/30 to-slate-900 border border-violet-700/40 rounded-2xl p-6 space-y-4">
+      {/* ── Paso 2: ejecutar + qué obtendrás ── */}
+      <div className={`bg-gradient-to-r from-violet-900/40 via-indigo-900/30 to-slate-900 border rounded-2xl p-6 space-y-5 transition-opacity ${
+        !tieneListos || seleccionados.length === 0 ? 'opacity-40 pointer-events-none' : 'border-violet-700/40'
+      }`}>
         <div className="flex items-start gap-4">
-          <span className="w-7 h-7 rounded-full bg-violet-600 text-white text-xs font-bold flex items-center justify-center shrink-0 mt-1">3</span>
+          <span className="w-7 h-7 rounded-full bg-violet-600 text-white text-xs font-bold flex items-center justify-center shrink-0 mt-1">2</span>
           <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-violet-600 to-indigo-600 flex items-center justify-center shrink-0 shadow-lg shadow-violet-900/60">
             <Brain className="w-6 h-6 text-white" />
           </div>
           <div className="flex-1">
-            <p className="text-white font-bold text-lg">
-              {listos.length === 0 ? 'Activa el motor cuando tengas documentos procesados' : seleccionados.length > 0 ? 'Todo listo para ejecutar el análisis' : 'Define el alcance para continuar'}
-            </p>
+            <p className="text-white font-bold text-lg">Ejecutar Discovery IA</p>
             <p className="text-slate-400 text-sm mt-1">
-              {listos.length === 0 ? (
-                'Procesa tu documentación en Centro Documental para habilitar el motor de inteligencia AICOUNTS.'
-              ) : seleccionados.length > 0 ? (
-                <><span className="text-emerald-400 font-semibold">{seleccionados.length} documento{seleccionados.length !== 1 ? 's' : ''}</span> serán procesados por el motor de inteligencia para construir el inventario de procesos y el Glosario de Roles con estándar AICOUNTS.</>
-              ) : (
-                'Selecciona arriba los documentos que definirán el alcance del análisis.'
-              )}
+              {seleccionados.length > 0
+                ? <><span className="text-emerald-400 font-semibold">{seleccionados.length} documento{seleccionados.length !== 1 ? 's' : ''} seleccionado{seleccionados.length !== 1 ? 's' : ''}</span> · el motor construirá el inventario de procesos, el Glosario de Roles y el roadmap de automatización con estándar AICOUNTS.</>
+                : 'Selecciona al menos un documento en el paso anterior.'}
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-3 pt-1 pl-11">
-          {listos.length === 0 ? (
-            <a href="/documentos" className="inline-flex items-center gap-2 px-4 py-2 bg-amber-600/30 hover:bg-amber-600/40 border border-amber-600/40 text-amber-300 text-sm font-medium rounded-xl transition-colors">
-              <Layers className="w-4 h-4" /> Ir a Centro Documental
-            </a>
-          ) : (
-            <>
-              <DiscoveryAcciones proyectos={proyectosParaAcciones} documentoIds={seleccionados} disabled={seleccionados.length === 0} />
-              <div className="text-xs text-slate-500">Análisis de alta precisión · 1–3 minutos · puedes seguir navegando</div>
-            </>
-          )}
+
+        {/* Lo que obtendrás */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pl-11">
+          {[
+            { icon: Activity, color: 'text-violet-400', bg: 'bg-violet-900/30 border-violet-800/40', title: 'Inventario de procesos', desc: 'Mapa completo de macroprocesos y subprocesos críticos con nivel de riesgo y criticidad' },
+            { icon: Users,    color: 'text-indigo-400', bg: 'bg-indigo-900/30 border-indigo-800/40', title: 'Glosario de Roles',    desc: 'Matriz de roles detectados, procesos donde participan y nivel de responsabilidad' },
+            { icon: Zap,      color: 'text-amber-400',  bg: 'bg-amber-900/20 border-amber-800/30',  title: 'Roadmap de automatización', desc: 'Oportunidades de automatización priorizadas con quick wins en menos de 30 días' },
+          ].map(({ icon: Icon, color, bg, title, desc }) => (
+            <div key={title} className={`rounded-xl border p-3 space-y-1 ${bg}`}>
+              <div className="flex items-center gap-2">
+                <Icon className={`w-4 h-4 ${color} shrink-0`} />
+                <p className={`text-xs font-semibold ${color}`}>{title}</p>
+              </div>
+              <p className="text-slate-500 text-xs leading-relaxed">{desc}</p>
+            </div>
+          ))}
+        </div>
+
+        <div className="flex items-center gap-3 pl-11">
+          <DiscoveryAcciones proyectos={proyectosParaAcciones} documentoIds={seleccionados} disabled={seleccionados.length === 0} />
+          <span className="text-xs text-slate-500">Análisis de alta precisión · 1–3 minutos</span>
         </div>
       </div>
+
+      {/* Bloque ghost cuando no hay listos — explica qué viene */}
+      {!tieneListos && documentos.length > 0 && (
+        <div className="rounded-2xl border border-slate-800/50 bg-slate-900/30 p-6 opacity-40 pointer-events-none">
+          <div className="flex items-center gap-3">
+            <span className="w-7 h-7 rounded-full bg-slate-700 text-slate-400 text-xs font-bold flex items-center justify-center shrink-0">2</span>
+            <p className="text-slate-500 text-sm">Ejecutar Discovery IA — disponible cuando proceses tus documentos</p>
+          </div>
+        </div>
+      )}
+
     </div>
   )
 }
