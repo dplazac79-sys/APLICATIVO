@@ -720,9 +720,13 @@ function PollingScreen({
             </>
           ) : (
             <>
-              <p className="text-white font-semibold text-lg">Procesando documentos...</p>
+              <p className="text-white font-semibold text-lg">
+                {listosCount > 0 ? `${listosCount} de ${totalParaProcesar} completados` : 'AICOUNTS Intelligence Engine activo...'}
+              </p>
               <p className="text-slate-400 text-sm mt-1">
-                {listosCount} de {totalParaProcesar} completado{listosCount !== 1 ? 's' : ''}
+                {listosCount > 0
+                  ? `${totalParaProcesar - listosCount} documento${totalParaProcesar - listosCount !== 1 ? 's' : ''} en análisis`
+                  : 'Analizando tu documentación con precisión diagnóstica'}
               </p>
             </>
           )}
@@ -731,39 +735,45 @@ function PollingScreen({
 
       {/* Doc list with per-doc status */}
       <div className="space-y-2 max-w-lg mx-auto">
-        {procesadosIds.map(id => {
-          const estado = estadosDocs[id] ?? 'pendiente'
+        {procesadosIds.map((id, idx) => {
+          const estadoReal = estadosDocs[id] ?? 'pendiente'
           const nombre = docMap[id] ?? id
+          // Visual state: after enough time, show animated "analizando" even if DB hasn't updated
+          // Each doc gets a staggered threshold so they don't all flip at once
+          const umbralAnalizando = 12 + idx * 8 // doc 0→12s, doc 1→20s, doc 2→28s...
+          const estadoVisual = estadoReal === 'listo' ? 'listo'
+            : estadoReal === 'procesando' ? 'procesando'
+            : elapsed > umbralAnalizando ? 'procesando'  // DB lag — mostrar activo
+            : 'pendiente'
+
           return (
-            <div key={id} className={`flex items-center gap-3 rounded-xl px-4 py-3 border transition-all ${
-              estado === 'listo' ? 'bg-emerald-950/20 border-emerald-800/30' :
-              estado === 'procesando' ? 'bg-violet-950/20 border-violet-800/30' :
+            <div key={id} className={`flex items-center gap-3 rounded-xl px-4 py-3 border transition-all duration-500 ${
+              estadoVisual === 'listo' ? 'bg-emerald-950/20 border-emerald-800/30' :
+              estadoVisual === 'procesando' ? 'bg-violet-950/20 border-violet-800/30' :
               'bg-slate-800/30 border-slate-700/30'
             }`}>
-              {/* Status icon */}
               <div className="shrink-0 w-5 h-5 flex items-center justify-center">
-                {estado === 'listo' ? (
+                {estadoVisual === 'listo' ? (
                   <CheckCircle className="w-5 h-5 text-emerald-400" />
-                ) : estado === 'procesando' ? (
+                ) : estadoVisual === 'procesando' ? (
                   <span className="w-4 h-4 rounded-full border-2 border-violet-500/30 border-t-violet-400 animate-spin block" />
                 ) : (
                   <Clock className="w-4 h-4 text-slate-500" />
                 )}
               </div>
-              <FileText className={`w-4 h-4 shrink-0 ${estado === 'listo' ? 'text-emerald-400' : estado === 'procesando' ? 'text-violet-400' : 'text-slate-500'}`} />
-              <p className={`text-sm font-medium flex-1 truncate ${estado === 'listo' ? 'text-emerald-300' : estado === 'procesando' ? 'text-violet-300' : 'text-slate-400'}`}>
+              <FileText className={`w-4 h-4 shrink-0 ${estadoVisual === 'listo' ? 'text-emerald-400' : estadoVisual === 'procesando' ? 'text-violet-400' : 'text-slate-500'}`} />
+              <p className={`text-sm font-medium flex-1 truncate ${estadoVisual === 'listo' ? 'text-emerald-300' : estadoVisual === 'procesando' ? 'text-violet-300' : 'text-slate-400'}`}>
                 {nombre}
               </p>
-              {/* Status badge */}
-              {estado === 'procesando' ? (
+              {estadoVisual === 'procesando' ? (
                 <div className="shrink-0 h-1.5 w-16 bg-slate-700 rounded-full overflow-hidden">
                   <div className="h-full bg-violet-500 rounded-full animate-pulse w-2/3" />
                 </div>
               ) : (
                 <span className={`text-xs font-medium shrink-0 ${
-                  estado === 'listo' ? 'text-emerald-400' : 'text-slate-600'
+                  estadoVisual === 'listo' ? 'text-emerald-400' : 'text-slate-600'
                 }`}>
-                  {estado === 'listo' ? 'Listo ✓' : 'En cola'}
+                  {estadoVisual === 'listo' ? 'Listo ✓' : 'En cola'}
                 </span>
               )}
             </div>
@@ -821,15 +831,15 @@ function PollingScreen({
 function EstadoVacioDiscovery({
   proyectosParaAcciones,
   documentos,
+  proyectoId,
 }: {
   proyectosParaAcciones: { id: string; nombre: string }[]
   documentos: DocumentoItem[]
+  proyectoId: string
 }) {
   const listos = documentos.filter(d => d.estado_procesamiento === 'listo')
   const noListos = documentos.filter(d => d.estado_procesamiento !== 'listo')
   const tieneListos = listos.length > 0
-
-  const proyectoId = proyectosParaAcciones[0]?.id ?? ''
 
   // Selección para Discovery IA (docs listos)
   const [seleccionados, setSeleccionados] = useState<string[]>(listos.map(d => d.id))
@@ -843,6 +853,19 @@ function EstadoVacioDiscovery({
   const [procesadosIds, setProcesadosIds] = useState<string[]>([])
   const [exitoso, setExitoso] = useState(false)
   const totalParaProcesar = selParaProcesar.length
+
+  // Al montar: si hay docs ya en procesando, entrar directo al polling screen
+  useEffect(() => {
+    const yaEnProceso = documentos.filter(d => d.estado_procesamiento === 'procesando')
+    if (yaEnProceso.length > 0 && procesadosIds.length === 0) {
+      // Incluir también los pendientes que el usuario tenía seleccionados para mostrar la lista completa
+      const todosEnCola = documentos
+        .filter(d => d.estado_procesamiento === 'pendiente' || d.estado_procesamiento === 'procesando')
+        .map(d => d.id)
+      setProcesadosIds(todosEnCola)
+      setExitoso(true)
+    }
+  }, [])
 
   function toggleDoc(id: string) {
     setSeleccionados(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
@@ -861,8 +884,29 @@ function EstadoVacioDiscovery({
     const targets = noListos.filter(d => selParaProcesar.includes(d.id))
     if (procesando || targets.length === 0) return
     setProcesando(true)
+
+    // Verificar estado actual en DB — solo enviar docs que siguen en 'pendiente'
+    // Los que ya están 'procesando' se incluyen en el polling pero no se re-envían
+    let estadosActuales: Record<string, string> = {}
+    try {
+      const r = await fetch(
+        `/api/documentos/estado?proyecto_id=${proyectoId}&ids=${targets.map(d => d.id).join(',')}`
+      )
+      const data = await r.json()
+      if (data.documentos) {
+        for (const d of data.documentos) estadosActuales[d.id] = d.estado_procesamiento
+      }
+    } catch { /* si falla, intentar procesar todos */ }
+
     const ids: string[] = []
     for (const doc of targets) {
+      const estadoActual = estadosActuales[doc.id] ?? 'pendiente'
+      // Si ya está procesando o listo, incluirlo en el seguimiento pero no re-enviar
+      if (estadoActual === 'procesando' || estadoActual === 'listo') {
+        ids.push(doc.id)
+        setProcesadosIds(prev => [...prev, doc.id])
+        continue
+      }
       try {
         await fetch('/api/documentos/procesar', {
           method: 'POST',
@@ -1317,7 +1361,7 @@ export default function DiscoveryExperiencia({
 
       {/* ── Contenido ── */}
       {totalProcesos === 0 ? (
-        <EstadoVacioDiscovery proyectosParaAcciones={proyectosParaAcciones} documentos={documentos} />
+        <EstadoVacioDiscovery proyectosParaAcciones={proyectosParaAcciones} documentos={documentos} proyectoId={proyectoId} />
       ) : tab === 'procesos' ? (
         <div className="space-y-4">
           {resumenDiscovery && (resumenDiscovery.resumen_ejecutivo_discovery as string | undefined) && (
