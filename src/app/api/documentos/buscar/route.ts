@@ -16,14 +16,12 @@ export async function POST(req: NextRequest) {
 
     const admin = createAdminClient()
 
-    // 1. Búsqueda por nombre de archivo (siempre funciona, incluso sin embedding)
-    let nombreQuery = admin
-      .from('documento')
-      .select('id, proyecto_id, nombre_archivo, resumen_ejecutivo, clasificacion, estado_procesamiento')
-      .ilike('nombre_archivo', `%${query}%`)
-      .limit(10)
-    if (proyecto_id) nombreQuery = nombreQuery.eq('proyecto_id', proyecto_id)
-    const { data: resultadosNombre } = await nombreQuery
+    // 1. Búsqueda por nombre — insensible a tildes y mayúsculas via unaccent
+    const { data: resultadosNombre } = await admin.rpc('buscar_documentos_por_nombre', {
+      termino: query,
+      filtro_proyecto_id: proyecto_id ?? null,
+      limite: 10,
+    })
 
     // 2. Búsqueda semántica (solo si los docs tienen embeddings generados)
     type ResultadoSemantico = {
