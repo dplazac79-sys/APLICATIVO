@@ -7,7 +7,6 @@ import type { RolTipo } from '@/types/database'
 import {
   Building2,
   FileText,
-  Network,
   Layers,
   BarChart3,
   Settings2,
@@ -32,15 +31,14 @@ interface NavItem {
 const navItems: NavItem[] = [
   { label: 'Mi Portal', href: '/portal', icon: UserCircle, roles: ['usuario_cliente'] },
   { label: 'Bienvenida', href: '/bienvenida', icon: Sparkles, roles: ['super_admin', 'director_proyecto', 'consultor', 'sponsor_cliente'] },
-  { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, roles: ['super_admin', 'director_proyecto', 'consultor', 'sponsor_cliente'], badge: 'Fase 1' },
-  { label: 'Clientes e Industrias', href: '/clientes', icon: Building2, roles: ['super_admin', 'director_proyecto', 'consultor'], badge: 'Fase 1' },
-  { label: 'Centro Documental', href: '/documentos', icon: FileText, roles: ['super_admin', 'director_proyecto', 'consultor', 'sponsor_cliente'], badge: 'Fase 2' },
-  { label: 'Process Discovery AI', href: '/discovery', icon: BrainCircuit, roles: ['super_admin', 'director_proyecto', 'consultor', 'sponsor_cliente'], badge: 'Fase 2' },
-  { label: 'Process Architect', href: '/procesos', icon: Network, roles: ['super_admin', 'director_proyecto', 'consultor', 'sponsor_cliente'], badge: 'Fase 2' },
-  { label: 'Artefactos', href: '/artefactos', icon: Layers, roles: ['super_admin', 'director_proyecto', 'consultor', 'sponsor_cliente'], badge: 'Fase 3' },
-  { label: 'Project Control Center', href: '/proyectos', icon: Briefcase, roles: ['super_admin', 'director_proyecto', 'consultor', 'sponsor_cliente'], badge: 'Fase 4' },
-  { label: 'Horizonte de Impacto', href: '/impacto', icon: BarChart3, roles: ['super_admin', 'director_proyecto', 'consultor', 'sponsor_cliente'], badge: 'Fase 5' },
-  { label: 'Automation Studio', href: '/automation', icon: Zap, roles: ['super_admin', 'director_proyecto', 'consultor', 'sponsor_cliente'], badge: 'Fase 6' },
+  { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, roles: ['super_admin', 'director_proyecto', 'consultor', 'sponsor_cliente'], badge: 'F1' },
+  { label: 'Clientes e Industrias', href: '/clientes', icon: Building2, roles: ['super_admin', 'director_proyecto', 'consultor'] },
+  { label: 'Centro Documental', href: '/documentos', icon: FileText, roles: ['super_admin', 'director_proyecto', 'consultor', 'sponsor_cliente'], badge: 'F2' },
+  { label: 'Process Discovery IA', href: '/discovery', icon: BrainCircuit, roles: ['super_admin', 'director_proyecto', 'consultor', 'sponsor_cliente'], badge: 'F3' },
+  { label: 'Artefactos', href: '/artefactos', icon: Layers, roles: ['super_admin', 'director_proyecto', 'consultor', 'sponsor_cliente'], badge: 'F4' },
+  { label: 'Project Control Center', href: '/proyectos', icon: Briefcase, roles: ['super_admin', 'director_proyecto', 'consultor', 'sponsor_cliente'], badge: 'F5' },
+  { label: 'Horizonte de Impacto', href: '/impacto', icon: BarChart3, roles: ['super_admin', 'director_proyecto', 'consultor', 'sponsor_cliente'], badge: 'F6' },
+  { label: 'Automation Studio', href: '/automation', icon: Zap, roles: ['super_admin', 'director_proyecto', 'consultor', 'sponsor_cliente'], badge: 'F7' },
 ]
 
 const adminItems: NavItem[] = [

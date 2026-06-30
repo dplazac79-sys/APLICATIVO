@@ -20,8 +20,9 @@ export async function getFasesProyecto(pid: string): Promise<{ proyecto: Record<
   const [
     { data: proyecto },
     { count: docsTotal },
-    { count: docsListos },
     { count: procesos },
+    { count: procesosAprobados },
+    { count: glosarioRoles },
     { count: artefactos },
     { count: entregables },
     { count: reuniones },
@@ -30,8 +31,9 @@ export async function getFasesProyecto(pid: string): Promise<{ proyecto: Record<
   ] = await Promise.all([
     admin.from('proyecto').select('id, nombre, estado_general, cliente_id, discovery_resumen').eq('id', pid).single(),
     admin.from('documento').select('*', { count: 'exact', head: true }).eq('proyecto_id', pid),
-    admin.from('documento').select('*', { count: 'exact', head: true }).eq('proyecto_id', pid).eq('estado_procesamiento', 'listo'),
     admin.from('proceso').select('*', { count: 'exact', head: true }).eq('proyecto_id', pid),
+    admin.from('proceso').select('*', { count: 'exact', head: true }).eq('proyecto_id', pid).eq('estado_oferta', 'aceptado'),
+    admin.from('glosario_roles_analisis').select('*', { count: 'exact', head: true }).eq('proyecto_id', pid).eq('estado', 'completado'),
     admin.from('artefacto').select('*', { count: 'exact', head: true }).eq('proyecto_id', pid),
     admin.from('entregable').select('*', { count: 'exact', head: true }).eq('proyecto_id', pid),
     admin.from('reunion').select('*', { count: 'exact', head: true }).eq('proyecto_id', pid),
@@ -41,104 +43,123 @@ export async function getFasesProyecto(pid: string): Promise<{ proyecto: Record<
 
   const hasDiscovery = !!(proyecto as { discovery_resumen?: unknown } | null)?.discovery_resumen
 
-  const f1Done = !!proyecto
-  const f2Done = (docsListos ?? 0) >= 1 && hasDiscovery
-  const f3Done = (artefactos ?? 0) >= 3
-  const f4Done = (entregables ?? 0) >= 1 || (reuniones ?? 0) >= 1
-  const f5Done = (simulaciones ?? 0) >= 1
-  const f6Done = (recomendaciones ?? 0) >= 1
+  const f1Done = !!proyecto                                          // Fase 1: Dashboard
+  const f2Done = (docsTotal ?? 0) >= 1                              // Fase 2: Centro Documental
+  const f3Done = (procesosAprobados ?? 0) >= 1 && (glosarioRoles ?? 0) >= 1 // Fase 3: Process Discovery
+  const f4Done = (artefactos ?? 0) >= 3                             // Fase 4: Artefactos
+  const f5Done = (entregables ?? 0) >= 1 || (reuniones ?? 0) >= 1  // Fase 5: Control Center
+  const f6Done = (simulaciones ?? 0) >= 1                           // Fase 6: Horizonte de Impacto
+  const f7Done = (recomendaciones ?? 0) >= 1                        // Fase 7: Automation Studio
 
   const fases: Fase[] = [
     {
       id: 1,
-      nombre: 'Fundación & Setup',
-      descripcion: 'Configuración del proyecto, cliente y equipo de trabajo.',
-      icono: '🏗️',
+      nombre: 'Dashboard',
+      descripcion: 'Vista ejecutiva del proyecto: avance, indicadores y próximos hitos.',
+      icono: '📊',
       color: 'emerald',
-      href: '/clientes',
+      href: '/dashboard',
       status: f1Done ? 'completada' : 'activa',
       progreso: f1Done ? 100 : 30,
       items: [
-        { label: 'Proyecto creado', done: !!proyecto },
-        { label: 'Cliente configurado', done: !!proyecto },
-        { label: 'Equipo asignado', done: true },
+        { label: 'Proyecto configurado', done: !!proyecto },
+        { label: 'Equipo asignado', done: !!proyecto },
+        { label: 'Objetivos definidos', done: !!proyecto },
       ],
     },
     {
       id: 2,
-      nombre: 'Discovery AI',
-      descripcion: 'Ingesta y análisis de documentos con inteligencia artificial.',
-      icono: '🔍',
+      nombre: 'Centro Documental',
+      descripcion: 'Repositorio oficial del proyecto: sube, visualiza y organiza documentos.',
+      icono: '📁',
       color: 'blue',
       href: '/documentos',
       status: !f1Done ? 'bloqueada' : f2Done ? 'completada' : 'activa',
-      progreso: !f1Done ? 0 : f2Done ? 100 : Math.min(90, Math.round(((docsListos ?? 0) / Math.max(docsTotal ?? 1, 1)) * 80) + (hasDiscovery ? 20 : 0)),
+      progreso: !f1Done ? 0 : f2Done ? 100 : 0,
       items: [
         { label: `Documentos cargados (${docsTotal ?? 0})`, done: (docsTotal ?? 0) >= 1 },
-        { label: `Documentos procesados (${docsListos ?? 0})`, done: (docsListos ?? 0) >= 1 },
-        { label: 'Discovery AI ejecutado', done: hasDiscovery },
-        { label: `Procesos detectados (${procesos ?? 0})`, done: (procesos ?? 0) >= 1 },
+        { label: 'Repositorio disponible para el equipo', done: (docsTotal ?? 0) >= 1 },
       ],
     },
     {
       id: 3,
-      nombre: 'Artefactos Metodológicos',
-      descripcion: 'Generación de los 12 artefactos: SIPOC, BPMN, RACI y más.',
-      icono: '📐',
+      nombre: 'Process Discovery IA',
+      descripcion: 'Descubrimiento automático de procesos, roles y modelado visual.',
+      icono: '🔍',
       color: 'violet',
-      href: '/artefactos',
+      href: '/discovery',
       status: !f2Done ? 'bloqueada' : f3Done ? 'completada' : 'activa',
-      progreso: !f2Done ? 0 : Math.min(100, Math.round(((artefactos ?? 0) / 12) * 100)),
+      progreso: !f2Done ? 0 : f3Done ? 100 : Math.min(80,
+        (hasDiscovery ? 30 : 0) +
+        ((procesos ?? 0) > 0 ? 20 : 0) +
+        ((procesosAprobados ?? 0) > 0 ? 30 : 0)
+      ),
       items: [
-        { label: `Artefactos generados (${artefactos ?? 0}/12)`, done: (artefactos ?? 0) >= 12 },
-        { label: 'SIPOC completado', done: (artefactos ?? 0) >= 1 },
-        { label: 'BPMN AS-IS creado', done: (artefactos ?? 0) >= 2 },
-        { label: 'RACI Matrix definido', done: (artefactos ?? 0) >= 3 },
+        { label: 'Discovery AI ejecutado', done: hasDiscovery },
+        { label: `Procesos detectados (${procesos ?? 0})`, done: (procesos ?? 0) >= 1 },
+        { label: `Procesos aprobados (${procesosAprobados ?? 0})`, done: (procesosAprobados ?? 0) >= 1 },
+        { label: 'Glosario de Roles completado', done: (glosarioRoles ?? 0) >= 1 },
       ],
     },
     {
       id: 4,
-      nombre: 'Gestión PMI',
-      descripcion: 'Control del proyecto, entregables, reuniones y riesgos.',
-      icono: '📋',
+      nombre: 'Artefactos',
+      descripcion: 'Generación de artefactos metodológicos por proceso aprobado.',
+      icono: '📐',
       color: 'amber',
-      href: '/proyectos',
+      href: '/artefactos',
       status: !f3Done ? 'bloqueada' : f4Done ? 'completada' : 'activa',
-      progreso: !f3Done ? 0 : f4Done ? 80 : 20,
+      progreso: !f3Done ? 0 : Math.min(100, Math.round(((artefactos ?? 0) / Math.max((procesosAprobados ?? 1) * 3, 3)) * 100)),
       items: [
-        { label: `Entregables registrados (${entregables ?? 0})`, done: (entregables ?? 0) >= 1 },
-        { label: `Reuniones documentadas (${reuniones ?? 0})`, done: (reuniones ?? 0) >= 1 },
-        { label: 'Riesgos identificados', done: (entregables ?? 0) >= 1 },
+        { label: `Artefactos generados (${artefactos ?? 0})`, done: (artefactos ?? 0) >= 3 },
+        { label: 'SIPOC completado', done: (artefactos ?? 0) >= 1 },
+        { label: 'Ficha de Proceso', done: (artefactos ?? 0) >= 2 },
+        { label: 'Matriz RACI', done: (artefactos ?? 0) >= 3 },
       ],
     },
     {
       id: 5,
-      nombre: 'Horizonte de Impacto',
-      descripcion: 'Simulación de ROI y modelado de escenarios financieros.',
-      icono: '📈',
+      nombre: 'Project Control Center',
+      descripcion: 'Gestión de entregables, reuniones, hitos y riesgos del proyecto.',
+      icono: '📋',
       color: 'rose',
-      href: '/impacto',
+      href: '/proyectos',
       status: !f4Done ? 'bloqueada' : f5Done ? 'completada' : 'activa',
-      progreso: !f4Done ? 0 : f5Done ? 100 : 10,
+      progreso: !f4Done ? 0 : f5Done ? 80 : 20,
       items: [
-        { label: `Simulaciones ejecutadas (${simulaciones ?? 0})`, done: (simulaciones ?? 0) >= 1 },
-        { label: 'Escenario conservador', done: (simulaciones ?? 0) >= 1 },
-        { label: 'Escenario optimista', done: (simulaciones ?? 0) >= 2 },
+        { label: `Entregables registrados (${entregables ?? 0})`, done: (entregables ?? 0) >= 1 },
+        { label: `Reuniones documentadas (${reuniones ?? 0})`, done: (reuniones ?? 0) >= 1 },
+        { label: 'Cronograma de hitos', done: (entregables ?? 0) >= 1 },
       ],
     },
     {
       id: 6,
-      nombre: 'Automation Studio',
-      descripcion: 'Diseño de automatizaciones y Knowledge Graph corporativo.',
-      icono: '⚡',
+      nombre: 'Horizonte de Impacto',
+      descripcion: 'Simulador ejecutivo: ROI, impacto operacional y organizacional.',
+      icono: '📈',
       color: 'cyan',
-      href: '/automation',
+      href: '/impacto',
       status: !f5Done ? 'bloqueada' : f6Done ? 'completada' : 'activa',
       progreso: !f5Done ? 0 : f6Done ? 100 : 10,
       items: [
+        { label: `Simulaciones ejecutadas (${simulaciones ?? 0})`, done: (simulaciones ?? 0) >= 1 },
+        { label: 'Escenario operacional', done: (simulaciones ?? 0) >= 1 },
+        { label: 'Escenario financiero (ROI)', done: (simulaciones ?? 0) >= 2 },
+      ],
+    },
+    {
+      id: 7,
+      nombre: 'Automation Studio',
+      descripcion: 'Recomendaciones IA de automatización y roadmap de implementación.',
+      icono: '⚡',
+      color: 'indigo',
+      href: '/automation',
+      status: !f6Done ? 'bloqueada' : f7Done ? 'completada' : 'activa',
+      progreso: !f6Done ? 0 : f7Done ? 100 : 10,
+      items: [
         { label: `Recomendaciones IA (${recomendaciones ?? 0})`, done: (recomendaciones ?? 0) >= 1 },
         { label: 'Roadmap de automatización', done: (recomendaciones ?? 0) >= 1 },
-        { label: 'Knowledge Graph generado', done: (recomendaciones ?? 0) >= 3 },
+        { label: 'Quick Wins identificados', done: (recomendaciones ?? 0) >= 3 },
       ],
     },
   ]

@@ -5,7 +5,9 @@ import {
   Zap, Map, AlertTriangle, Award, BarChart3
 } from 'lucide-react'
 import DiscoveryAcciones from '@/components/discovery/DiscoveryAcciones'
+import DiscoveryTabsWrapper from '@/components/discovery/DiscoveryTabsWrapper'
 import ProcesoRevisor from '@/components/discovery/ProcesoRevisor'
+import { GlosarioRoles } from '@/app/(platform)/portal/GlosarioRoles'
 import type { Proceso, Proyecto } from '@/types/database'
 
 export const dynamic = 'force-dynamic'
@@ -59,9 +61,9 @@ export default async function DiscoveryPage() {
         <div>
           <h1 className="text-2xl font-bold text-white flex items-center gap-2">
             <Brain className="w-6 h-6 text-purple-400" />
-            Process Discovery AI
+            Process Discovery IA
           </h1>
-          <p className="text-slate-400 text-sm mt-1">Inventario inteligente de procesos generado por IA</p>
+          <p className="text-slate-400 text-sm mt-1">Descubrimiento de procesos, roles y modelado inteligente</p>
         </div>
         <DiscoveryAcciones proyectos={proyectosNorm} />
       </div>
@@ -84,6 +86,18 @@ export default async function DiscoveryPage() {
         const pendientes = procesosProyecto.filter((p: Proceso) => p.estado_oferta === 'propuesto').length
         const resumen = proyecto.discovery_resumen as Record<string, unknown> | null
 
+        // Extraer roles únicos de procesos aceptados para GlosarioRoles
+        const procesosAceptados = procesosProyecto.filter((p: Proceso) => p.estado_oferta === 'aceptado')
+        const rolesDetectados = Array.from(
+          new Set(procesosAceptados.flatMap((p: Proceso) => p.roles_involucrados ?? []))
+        ).map((rol: string) => ({
+          rol,
+          descripcion: '',
+          procesos: procesosAceptados
+            .filter((p: Proceso) => (p.roles_involucrados ?? []).includes(rol))
+            .map((p: Proceso) => p.nombre),
+        }))
+
         if (totalProcesos === 0 && !resumen) {
           return (
             <Card key={proyecto.id} className="bg-slate-900 border-slate-800">
@@ -97,13 +111,8 @@ export default async function DiscoveryPage() {
           )
         }
 
-        return (
-          <div key={proyecto.id} className="space-y-4">
-            <div className="flex items-center gap-2 pt-2">
-              <h2 className="text-lg font-semibold text-white">{proyecto.nombre}</h2>
-              <span className="text-slate-500 text-sm">· {proyecto.cliente?.razon_social}</span>
-            </div>
-
+        const procesosTabContent = (
+          <div className="space-y-4">
             {/* Stats */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <Card className="bg-slate-900 border-slate-800">
@@ -376,6 +385,26 @@ export default async function DiscoveryPage() {
                 </Card>
               )
             })}
+          </div>
+        )
+
+        return (
+          <div key={proyecto.id} className="space-y-4">
+            <div className="flex items-center gap-2 pt-2">
+              <h2 className="text-lg font-semibold text-white">{proyecto.nombre}</h2>
+              <span className="text-slate-500 text-sm">· {proyecto.cliente?.razon_social}</span>
+            </div>
+
+            <DiscoveryTabsWrapper
+              procesosContent={procesosTabContent}
+              glosarioContent={
+                <GlosarioRoles
+                  proyectoId={proyecto.id}
+                  nombreProyecto={proyecto.nombre}
+                  rolesDetectados={rolesDetectados}
+                />
+              }
+            />
           </div>
         )
       })}
