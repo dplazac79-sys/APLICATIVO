@@ -289,7 +289,7 @@ function ProcesoCard({ proceso, esHijo = false }: { proceso: ProcesoConHijos; es
                 <div className="flex items-center justify-between flex-wrap gap-2">
                   <div className="flex items-center gap-2">
                     <Brain className="w-4 h-4 text-violet-400" />
-                    <span className="text-violet-300 text-xs font-semibold uppercase tracking-widest">Diagnóstico ProcessOS AI</span>
+                    <span className="text-violet-300 text-xs font-semibold uppercase tracking-widest">Diagnóstico AICOUNTS Intelligence</span>
                   </div>
                   <span className={`text-xs font-bold px-3 py-1 rounded-full ${saludCfg.color} bg-slate-900/60 border border-current/20`}>
                     {saludCfg.dot && <span className="inline-block w-1.5 h-1.5 rounded-full mr-1.5 align-middle" style={{ background: 'currentColor' }} />}
@@ -395,21 +395,21 @@ function EstadoVacioDiscovery({
         <div className="relative z-10 max-w-2xl">
           <div className="inline-flex items-center gap-2 bg-violet-900/40 border border-violet-700/50 rounded-full px-4 py-1.5 mb-5">
             <div className="w-2 h-2 bg-violet-400 rounded-full animate-pulse" />
-            <span className="text-violet-300 text-xs font-semibold uppercase tracking-widest">Módulo de Inteligencia Operacional</span>
+            <span className="text-violet-300 text-xs font-semibold uppercase tracking-widest">AICOUNTS Intelligence Engine</span>
           </div>
           <h2 className="text-3xl font-bold text-white mb-3 leading-tight">
-            Descubre el mapa completo<br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-400 to-indigo-300">de procesos de tu organización</span>
+            La metodología AICOUNTS,<br />
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-400 to-indigo-300">potenciada por inteligencia artificial</span>
           </h2>
           <p className="text-slate-300 text-base leading-relaxed mb-6">
-            En minutos, la IA lee tus documentos y entrega el inventario de procesos críticos, el Glosario de Roles de tu organización, riesgos operacionales y oportunidades de automatización — el mismo trabajo que a un equipo de consultoría le tomaría semanas.
+            Nuestro framework propietario de consultoría se ejecuta sobre un motor de IA de última generación que lee tu documentación, mapea la cadena de valor completa y construye el inventario de procesos críticos, el Glosario de Roles y el roadmap de automatización con el rigor analítico de AICOUNTS — a la velocidad de la inteligencia artificial.
           </p>
           <div className="flex items-center gap-3 flex-wrap text-sm text-slate-400">
-            <div className="flex items-center gap-2"><Shield className="w-4 h-4 text-violet-400" /><span>Precisión diagnóstica</span></div>
+            <div className="flex items-center gap-2"><Shield className="w-4 h-4 text-violet-400" /><span>Rigor metodológico AICOUNTS</span></div>
             <div className="w-px h-4 bg-slate-700" />
-            <div className="flex items-center gap-2"><TrendingUp className="w-4 h-4 text-emerald-400" /><span>Valor inmediato</span></div>
+            <div className="flex items-center gap-2"><TrendingUp className="w-4 h-4 text-emerald-400" /><span>Insights accionables desde el día uno</span></div>
             <div className="w-px h-4 bg-slate-700" />
-            <div className="flex items-center gap-2"><Cpu className="w-4 h-4 text-blue-400" /><span>IA de última generación</span></div>
+            <div className="flex items-center gap-2"><Cpu className="w-4 h-4 text-blue-400" /><span>Motor de IA de última generación</span></div>
           </div>
         </div>
       </div>
@@ -420,8 +420,8 @@ function EstadoVacioDiscovery({
           <div className="flex items-center gap-3">
             <span className="w-7 h-7 rounded-full bg-violet-600 text-white text-xs font-bold flex items-center justify-center shrink-0">1</span>
             <div>
-              <p className="text-white font-semibold text-sm">Selecciona los documentos a analizar</p>
-              <p className="text-slate-500 text-xs mt-0.5">Solo documentos procesados pueden entrar al análisis.</p>
+              <p className="text-white font-semibold text-sm">Define el alcance del análisis</p>
+              <p className="text-slate-500 text-xs mt-0.5">Selecciona qué documentos procesados entran al motor de inteligencia.</p>
             </div>
           </div>
           {listos.length > 0 && (
@@ -439,8 +439,8 @@ function EstadoVacioDiscovery({
         {documentos.length === 0 ? (
           <div className="p-8 text-center space-y-3">
             <AlertCircle className="w-8 h-8 text-amber-400 mx-auto" />
-            <p className="text-white font-semibold">Aún no has subido documentos</p>
-            <p className="text-slate-400 text-sm">Carga tus documentos en Centro Documental para que la IA tenga material con qué trabajar.</p>
+            <p className="text-white font-semibold">Aún no hay documentos cargados</p>
+            <p className="text-slate-400 text-sm">Carga tu documentación en Centro Documental para activar el motor de análisis.</p>
             <a href="/documentos" className="inline-flex items-center gap-2 mt-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium rounded-xl transition-colors">
               <Layers className="w-4 h-4" /> Ir a Centro Documental
             </a>
@@ -487,7 +487,7 @@ function EstadoVacioDiscovery({
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-slate-400 text-sm truncate">{doc.nombre_archivo}</p>
-                  <p className="text-slate-600 text-xs">Pendiente de procesamiento — no disponible aún</p>
+                  <p className="text-slate-600 text-xs">En cola de procesamiento — aún no disponible para el análisis</p>
                 </div>
               </div>
             ))}
@@ -504,9 +504,9 @@ function EstadoVacioDiscovery({
               <Users className="w-5 h-5 text-indigo-300" />
             </div>
             <div>
-              <p className="text-white font-semibold text-sm">Impacto en el Glosario de Roles</p>
+              <p className="text-white font-semibold text-sm">Construcción del Glosario de Roles</p>
               <p className="text-slate-400 text-xs mt-0.5 leading-relaxed">
-                Con los documentos seleccionados, la IA detectará los roles involucrados en cada proceso y construirá tu Glosario de Roles inicial — quién participa, en qué procesos y con qué responsabilidad.
+                El motor mapea cada rol detectado contra los procesos donde participa y su nivel de responsabilidad, entregando una matriz organizacional accionable — la base para decisiones de gobierno y rediseño operacional.
               </p>
             </div>
           </div>
@@ -522,15 +522,15 @@ function EstadoVacioDiscovery({
           </div>
           <div className="flex-1">
             <p className="text-white font-bold text-lg">
-              {listos.length === 0 ? 'Sin documentos procesados aún' : seleccionados.length > 0 ? 'Listo para ejecutar' : 'Selecciona al menos un documento'}
+              {listos.length === 0 ? 'Activa el motor cuando tengas documentos procesados' : seleccionados.length > 0 ? 'Todo listo para ejecutar el análisis' : 'Define el alcance para continuar'}
             </p>
             <p className="text-slate-400 text-sm mt-1">
               {listos.length === 0 ? (
-                'Primero procesa tus documentos en Centro Documental para habilitar el análisis.'
+                'Procesa tu documentación en Centro Documental para habilitar el motor de inteligencia AICOUNTS.'
               ) : seleccionados.length > 0 ? (
-                <><span className="text-emerald-400 font-semibold">{seleccionados.length} documento{seleccionados.length !== 1 ? 's' : ''}</span> serán analizados para construir tu inventario de procesos y Glosario de Roles.</>
+                <><span className="text-emerald-400 font-semibold">{seleccionados.length} documento{seleccionados.length !== 1 ? 's' : ''}</span> serán procesados por el motor de inteligencia para construir el inventario de procesos y el Glosario de Roles con estándar AICOUNTS.</>
               ) : (
-                'Marca arriba los documentos que quieres incluir en el análisis.'
+                'Selecciona arriba los documentos que definirán el alcance del análisis.'
               )}
             </p>
           </div>
@@ -543,7 +543,7 @@ function EstadoVacioDiscovery({
           ) : (
             <>
               <DiscoveryAcciones proyectos={proyectosParaAcciones} documentoIds={seleccionados} disabled={seleccionados.length === 0} />
-              <div className="text-xs text-slate-500">Puede tardar 1–3 minutos · puedes seguir navegando</div>
+              <div className="text-xs text-slate-500">Análisis de alta precisión · 1–3 minutos · puedes seguir navegando</div>
             </>
           )}
         </div>
@@ -583,7 +583,7 @@ export default function DiscoveryExperiencia({
               </div>
             </div>
             <p className="text-slate-400 text-sm max-w-lg">
-              Motor de inteligencia artificial que descubre, clasifica y diagnostica los procesos operacionales de tu organización.
+              Inteligencia operacional con metodología AICOUNTS: mapea, diagnostica y prioriza los procesos críticos de tu organización con rigor de consultoría de clase mundial.
             </p>
           </div>
           {totalProcesos > 0 && <DiscoveryAcciones proyectos={proyectosParaAcciones} />}
@@ -685,7 +685,7 @@ export default function DiscoveryExperiencia({
           <div className="flex items-center gap-3 bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3">
             <Sparkles className="w-4 h-4 text-violet-400 shrink-0" />
             <p className="text-slate-400 text-xs">
-              Haz clic en <span className="text-violet-300 font-medium">Diagnosticar con IA</span> en cualquier proceso para obtener un análisis instantáneo de criticidad, impacto y oportunidades de automatización.
+              Activa <span className="text-violet-300 font-medium">Diagnosticar con IA</span> en cualquier proceso para un análisis ejecutivo instantáneo de criticidad, impacto al negocio y oportunidades de automatización.
             </p>
           </div>
 

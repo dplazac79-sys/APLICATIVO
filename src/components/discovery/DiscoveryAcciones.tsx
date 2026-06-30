@@ -170,8 +170,8 @@ export default function DiscoveryAcciones({ proyectos, variant = 'top', document
     <div className="bg-gradient-to-r from-violet-900/30 via-indigo-900/20 to-slate-900 border border-violet-700/40 rounded-2xl p-5">
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div className="space-y-0.5">
-          <p className="text-white font-semibold text-sm">¿Faltan procesos o quieres actualizar el inventario?</p>
-          <p className="text-slate-400 text-xs">Vuelve a ejecutar Discovery IA para re-analizar los documentos y regenerar el inventario completo.</p>
+          <p className="text-white font-semibold text-sm">¿Sumaste nueva documentación al proyecto?</p>
+          <p className="text-slate-400 text-xs">Vuelve a ejecutar Discovery IA para actualizar el inventario completo con el mismo rigor AICOUNTS.</p>
         </div>
         <div className="flex items-center gap-3 flex-wrap">
           {proyectos.length > 1 && (
