@@ -7,9 +7,10 @@ import type { Proceso, Proyecto } from '@/types/database'
 export default async function DiscoveryPage() {
   const admin = createAdminClient()
 
-  const [{ data: proyectosRaw }, { data: procesos }] = await Promise.all([
+  const [{ data: proyectosRaw }, { data: procesos }, { data: documentosRaw }] = await Promise.all([
     admin.from('proyecto').select('*, cliente(razon_social)').eq('estado_general', 'activo'),
     admin.from('proceso').select('*').order('nivel', { ascending: true }).order('orden', { ascending: true }),
+    admin.from('documento').select('id, nombre_archivo, tipo, estado_procesamiento, clasificacion, created_at, proyecto_id').order('created_at', { ascending: false }),
   ])
 
   const proyectos = (proyectosRaw ?? []) as Array<Proyecto & { cliente: { razon_social: string } | null }>
@@ -52,6 +53,9 @@ export default async function DiscoveryPage() {
       .map((p: Proceso) => p.nombre),
   }))
 
+  const documentosProyecto = (documentosRaw ?? [])
+    .filter((d: { proyecto_id: string }) => d.proyecto_id === proyecto.id)
+
   return (
     <DiscoveryExperiencia
       proyectoId={proyecto.id}
@@ -65,6 +69,7 @@ export default async function DiscoveryPage() {
       resumenDiscovery={proyecto.discovery_resumen as Record<string, unknown> | null}
       rolesDetectados={rolesDetectados}
       proyectosParaAcciones={proyectos.map(p => ({ id: p.id, nombre: p.nombre }))}
+      documentos={documentosProyecto as any}
     />
   )
 }
