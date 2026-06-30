@@ -545,7 +545,7 @@ function EstadoVacioDiscovery({
                         {doc.nombre_archivo}
                       </p>
                       <p className="text-xs text-slate-600">
-                        {enProceso ? 'Encolado — procesando contenido...' : 'Pendiente de indexación'}
+                        {enProceso ? 'Procesando...' : 'Listo para procesar'}
                       </p>
                     </div>
                   </button>
