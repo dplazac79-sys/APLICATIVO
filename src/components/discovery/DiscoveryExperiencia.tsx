@@ -1,0 +1,592 @@
+'use client'
+
+import { useState } from 'react'
+import {
+  Brain, Sparkles, ChevronDown, ChevronUp, CheckCircle, XCircle,
+  Clock, Zap, Target, AlertTriangle, TrendingUp, Users, ArrowRight,
+  Activity, Shield, BarChart3, Cpu, Layers, Star
+} from 'lucide-react'
+import { GlosarioRoles } from '@/app/(platform)/portal/GlosarioRoles'
+
+// ─── Types ───────────────────────────────────────────────────────────────────
+
+interface Proceso {
+  id: string
+  nombre: string
+  descripcion: string | null
+  nivel: number
+  estado_oferta: 'propuesto' | 'aceptado' | 'rechazado'
+  origen: string
+  roles_involucrados: string[]
+  riesgos_detectados: string[]
+  metadata_ia: Record<string, unknown> | null
+}
+
+interface ProcesoConHijos extends Proceso {
+  hijos: Proceso[]
+}
+
+interface Resumen {
+  diagnostico: string
+  estado_salud: 'critico' | 'en_riesgo' | 'estable' | 'optimizado'
+  impacto_negocio: string
+  quick_win: string
+  potencial_automatizacion: 'alto' | 'medio' | 'bajo'
+  siguiente_paso: string
+}
+
+interface Props {
+  proyectoId: string
+  nombreProyecto: string
+  clienteNombre: string | null
+  macroprocesos: ProcesoConHijos[]
+  totalProcesos: number
+  aceptados: number
+  pendientes: number
+  rechazados: number
+  resumenDiscovery: Record<string, unknown> | null
+  rolesDetectados: Array<{ rol: string; descripcion: string; procesos: string[] }>
+  proyectosParaAcciones: { id: string; nombre: string }[]
+}
+
+// ─── Config visual ────────────────────────────────────────────────────────────
+
+const SALUD_CONFIG = {
+  critico:    { label: 'Crítico',    color: 'text-red-400',    bg: 'bg-red-950/60',    border: 'border-red-700/60',    bar: 'bg-red-500',    dot: 'bg-red-400' },
+  en_riesgo:  { label: 'En riesgo',  color: 'text-amber-400',  bg: 'bg-amber-950/60',  border: 'border-amber-700/60',  bar: 'bg-amber-500',  dot: 'bg-amber-400' },
+  estable:    { label: 'Estable',    color: 'text-blue-400',   bg: 'bg-blue-950/60',   border: 'border-blue-700/60',   bar: 'bg-blue-500',   dot: 'bg-blue-400' },
+  optimizado: { label: 'Optimizado', color: 'text-emerald-400',bg: 'bg-emerald-950/60',border: 'border-emerald-700/60',bar: 'bg-emerald-500',dot: 'bg-emerald-400' },
+}
+
+const AUTOMATIZACION_CONFIG = {
+  alto:  { label: 'Alto', color: 'text-violet-400', icon: '⚡' },
+  medio: { label: 'Medio', color: 'text-blue-400', icon: '🔧' },
+  bajo:  { label: 'Bajo', color: 'text-slate-400', icon: '📋' },
+}
+
+const CRITICIDAD_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
+  critica: { label: 'Crítica', color: 'text-red-400', bg: 'bg-red-950/40 border-red-800/50' },
+  alta:    { label: 'Alta',    color: 'text-orange-400', bg: 'bg-orange-950/40 border-orange-800/50' },
+  media:   { label: 'Media',   color: 'text-amber-400', bg: 'bg-amber-950/40 border-amber-800/50' },
+  baja:    { label: 'Baja',    color: 'text-slate-400', bg: 'bg-slate-800/40 border-slate-700/50' },
+}
+
+// ─── ProcesoCard ─────────────────────────────────────────────────────────────
+
+function ProcesoCard({ proceso, esHijo = false }: { proceso: ProcesoConHijos; esHijo?: boolean }) {
+  const [expandido, setExpandido] = useState(false)
+  const [analizando, setAnalizando] = useState(false)
+  const [resumen, setResumen] = useState<Resumen | null>(null)
+  const [aprobando, setAprobando] = useState(false)
+  const [estadoLocal, setEstadoLocal] = useState(proceso.estado_oferta)
+
+  const meta = proceso.metadata_ia
+  const criticidad = meta?.criticidad as string | undefined
+  const critCfg = criticidad ? CRITICIDAD_CONFIG[criticidad] : null
+  const saludCfg = resumen ? SALUD_CONFIG[resumen.estado_salud] ?? SALUD_CONFIG.estable : null
+
+  async function analizarConIA() {
+    if (resumen) { setExpandido(true); return }
+    setAnalizando(true)
+    setExpandido(true)
+    try {
+      const res = await fetch('/api/discovery/resumir-proceso', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ proceso_id: proceso.id }),
+      })
+      const data = await res.json()
+      if (data.resumen) setResumen(data.resumen)
+    } catch { /* silent */ }
+    finally { setAnalizando(false) }
+  }
+
+  async function cambiarEstado(nuevoEstado: 'aceptado' | 'rechazado') {
+    setAprobando(true)
+    try {
+      await fetch(`/api/procesos/${proceso.id}/revisar`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ estado_oferta: nuevoEstado }),
+      })
+      setEstadoLocal(nuevoEstado)
+    } catch { /* silent */ }
+    finally { setAprobando(false) }
+  }
+
+  const estadoIcon = estadoLocal === 'aceptado'
+    ? <CheckCircle className="w-4 h-4 text-emerald-400" />
+    : estadoLocal === 'rechazado'
+    ? <XCircle className="w-4 h-4 text-red-400" />
+    : <Clock className="w-4 h-4 text-amber-400" />
+
+  return (
+    <div className={`group relative rounded-2xl border transition-all duration-300 overflow-hidden ${
+      esHijo
+        ? 'bg-slate-900/60 border-slate-700/50 hover:border-slate-600/70'
+        : 'bg-slate-900/80 border-slate-700/60 hover:border-violet-700/50'
+    } ${estadoLocal === 'aceptado' ? 'border-emerald-800/40' : estadoLocal === 'rechazado' ? 'border-red-900/40 opacity-60' : ''}`}>
+
+      {/* Accent top bar por criticidad */}
+      {critCfg && !esHijo && (
+        <div className={`h-0.5 w-full ${
+          criticidad === 'critica' ? 'bg-gradient-to-r from-red-600 to-red-400' :
+          criticidad === 'alta' ? 'bg-gradient-to-r from-orange-600 to-amber-400' :
+          criticidad === 'media' ? 'bg-gradient-to-r from-amber-600 to-yellow-400' :
+          'bg-gradient-to-r from-slate-600 to-slate-500'
+        }`} />
+      )}
+
+      <div className="p-5">
+        {/* Header del proceso */}
+        <div className="flex items-start gap-4">
+          <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
+            estadoLocal === 'aceptado' ? 'bg-emerald-900/60 text-emerald-400' :
+            estadoLocal === 'rechazado' ? 'bg-red-900/40 text-red-400' :
+            'bg-violet-900/40 text-violet-300'
+          }`}>
+            {estadoIcon}
+          </div>
+
+          <div className="flex-1 min-w-0">
+            <div className="flex items-start justify-between gap-3 flex-wrap">
+              <div>
+                <h3 className="text-white font-semibold text-sm leading-snug">{proceso.nombre}</h3>
+                {proceso.descripcion && (
+                  <p className="text-slate-400 text-xs mt-1 leading-relaxed line-clamp-2">{proceso.descripcion}</p>
+                )}
+              </div>
+              <div className="flex items-center gap-2 shrink-0 flex-wrap">
+                {critCfg && (
+                  <span className={`text-xs px-2 py-0.5 rounded-full border font-medium ${critCfg.bg} ${critCfg.color}`}>
+                    {critCfg.label}
+                  </span>
+                )}
+                <span className={`text-xs px-2 py-0.5 rounded-full border ${
+                  proceso.origen === 'detectado' ? 'bg-blue-950/50 text-blue-300 border-blue-800/50' :
+                  proceso.origen === 'propuesta_ia' ? 'bg-violet-950/50 text-violet-300 border-violet-800/50' :
+                  'bg-slate-800 text-slate-400 border-slate-700'
+                }`}>
+                  {proceso.origen === 'detectado' ? '📄 Detectado' : proceso.origen === 'propuesta_ia' ? '🤖 Propuesta IA' : '✏️ Manual'}
+                </span>
+              </div>
+            </div>
+
+            {/* Roles */}
+            {proceso.roles_involucrados?.length > 0 && (
+              <div className="flex gap-1.5 flex-wrap mt-2">
+                <Users className="w-3 h-3 text-slate-500 mt-0.5 shrink-0" />
+                {proceso.roles_involucrados.map(r => (
+                  <span key={r} className="text-xs text-slate-400 bg-slate-800/60 px-1.5 py-0.5 rounded">{r}</span>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Acciones */}
+        <div className="flex items-center gap-2 mt-4 flex-wrap">
+          <button
+            onClick={analizarConIA}
+            disabled={analizando}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all ${
+              resumen
+                ? 'bg-violet-700/30 text-violet-300 border border-violet-700/50 hover:bg-violet-700/40'
+                : 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white hover:from-violet-500 hover:to-indigo-500 shadow-lg shadow-violet-900/40'
+            } disabled:opacity-50`}
+          >
+            {analizando ? (
+              <>
+                <span className="w-3 h-3 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+                Analizando...
+              </>
+            ) : (
+              <>
+                <Sparkles className="w-3.5 h-3.5" />
+                {resumen ? 'Ver diagnóstico IA' : 'Diagnosticar con IA'}
+              </>
+            )}
+          </button>
+
+          {estadoLocal === 'propuesto' && (
+            <>
+              <button
+                onClick={() => cambiarEstado('aceptado')}
+                disabled={aprobando}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium bg-emerald-900/40 text-emerald-300 border border-emerald-800/50 hover:bg-emerald-900/60 transition-all disabled:opacity-50"
+              >
+                <CheckCircle className="w-3.5 h-3.5" /> Aceptar proceso
+              </button>
+              <button
+                onClick={() => cambiarEstado('rechazado')}
+                disabled={aprobando}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium bg-red-950/40 text-red-400 border border-red-900/50 hover:bg-red-950/60 transition-all disabled:opacity-50"
+              >
+                <XCircle className="w-3.5 h-3.5" /> Rechazar
+              </button>
+            </>
+          )}
+
+          {estadoLocal === 'aceptado' && (
+            <span className="flex items-center gap-1.5 text-xs text-emerald-400 font-medium">
+              <CheckCircle className="w-3.5 h-3.5" /> Proceso validado
+            </span>
+          )}
+
+          {(proceso as any).hijos?.length > 0 && (
+            <button
+              onClick={() => setExpandido(v => !v)}
+              className="ml-auto flex items-center gap-1 text-xs text-slate-500 hover:text-slate-300 transition-colors"
+            >
+              {expandido ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+              {(proceso as any).hijos.length} subproceso{(proceso as any).hijos.length !== 1 ? 's' : ''}
+            </button>
+          )}
+        </div>
+
+        {/* Panel IA */}
+        {expandido && (
+          <div className="mt-4 space-y-3">
+            {analizando && (
+              <div className="rounded-xl bg-violet-950/30 border border-violet-800/40 p-5">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="relative">
+                    <div className="w-8 h-8 rounded-full bg-violet-600/20 border border-violet-600/40 flex items-center justify-center">
+                      <Brain className="w-4 h-4 text-violet-400" />
+                    </div>
+                    <div className="absolute inset-0 rounded-full border border-violet-500/30 animate-ping" />
+                  </div>
+                  <div>
+                    <p className="text-violet-300 text-sm font-medium">IA analizando proceso...</p>
+                    <p className="text-slate-500 text-xs">Evaluando criticidad, riesgos y oportunidades</p>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  {['Leyendo contexto del proceso', 'Evaluando riesgos operacionales', 'Identificando quick wins', 'Calculando potencial de automatización'].map((step, i) => (
+                    <div key={i} className="flex items-center gap-2">
+                      <div className="w-1.5 h-1.5 rounded-full bg-violet-500/60 animate-pulse" style={{ animationDelay: `${i * 200}ms` }} />
+                      <span className="text-xs text-slate-500">{step}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {resumen && saludCfg && (
+              <div className={`rounded-xl border p-5 space-y-4 ${saludCfg.bg} ${saludCfg.border}`}>
+                {/* Header diagnóstico */}
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <div className="flex items-center gap-2">
+                    <Brain className="w-4 h-4 text-violet-400" />
+                    <span className="text-violet-300 text-xs font-semibold uppercase tracking-widest">Diagnóstico ProcessOS AI</span>
+                  </div>
+                  <span className={`text-xs font-bold px-3 py-1 rounded-full ${saludCfg.color} bg-slate-900/60 border border-current/20`}>
+                    {saludCfg.dot && <span className="inline-block w-1.5 h-1.5 rounded-full mr-1.5 align-middle" style={{ background: 'currentColor' }} />}
+                    {saludCfg.label}
+                  </span>
+                </div>
+
+                {/* Diagnóstico */}
+                <p className="text-slate-200 text-sm leading-relaxed">{resumen.diagnostico}</p>
+
+                {/* Grid de métricas */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {resumen.impacto_negocio && (
+                    <div className="bg-slate-900/60 rounded-lg p-3 space-y-1">
+                      <div className="flex items-center gap-1.5">
+                        <Target className="w-3.5 h-3.5 text-amber-400" />
+                        <span className="text-xs text-amber-400 font-semibold uppercase tracking-wider">Impacto al negocio</span>
+                      </div>
+                      <p className="text-slate-300 text-xs leading-relaxed">{resumen.impacto_negocio}</p>
+                    </div>
+                  )}
+                  {resumen.quick_win && (
+                    <div className="bg-slate-900/60 rounded-lg p-3 space-y-1">
+                      <div className="flex items-center gap-1.5">
+                        <Zap className="w-3.5 h-3.5 text-yellow-400" />
+                        <span className="text-xs text-yellow-400 font-semibold uppercase tracking-wider">Quick Win · 30 días</span>
+                      </div>
+                      <p className="text-slate-300 text-xs leading-relaxed">{resumen.quick_win}</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Automatización + Siguiente paso */}
+                <div className="flex items-start gap-3 flex-wrap">
+                  {resumen.potencial_automatizacion && (
+                    <div className="flex items-center gap-2 bg-slate-900/60 rounded-lg px-3 py-2">
+                      <Cpu className="w-3.5 h-3.5 text-violet-400" />
+                      <span className="text-xs text-slate-400">Automatización:</span>
+                      <span className={`text-xs font-bold ${AUTOMATIZACION_CONFIG[resumen.potencial_automatizacion]?.color ?? 'text-slate-300'}`}>
+                        {AUTOMATIZACION_CONFIG[resumen.potencial_automatizacion]?.icon} {AUTOMATIZACION_CONFIG[resumen.potencial_automatizacion]?.label}
+                      </span>
+                    </div>
+                  )}
+                  {resumen.siguiente_paso && (
+                    <div className="flex-1 flex items-start gap-2 bg-slate-900/60 rounded-lg px-3 py-2 min-w-[200px]">
+                      <ArrowRight className="w-3.5 h-3.5 text-indigo-400 shrink-0 mt-0.5" />
+                      <p className="text-xs text-slate-300 leading-relaxed"><span className="text-indigo-400 font-medium">Siguiente:</span> {resumen.siguiente_paso}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Subprocesos */}
+            {(proceso as any).hijos?.length > 0 && (
+              <div className="space-y-2 pl-4 border-l border-slate-700/50">
+                {(proceso as any).hijos.map((hijo: ProcesoConHijos) => (
+                  <ProcesoCard key={hijo.id} proceso={hijo} esHijo />
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ─── Estado vacío ─────────────────────────────────────────────────────────────
+
+function EstadoVacioDiscovery({ proyectosParaAcciones }: { proyectosParaAcciones: { id: string; nombre: string }[] }) {
+  const pasos = [
+    { icon: Layers, color: 'from-blue-600 to-indigo-600', label: 'Centro Documental', desc: 'Documentos del proyecto cargados y organizados por bloque metodológico' },
+    { icon: Brain, color: 'from-violet-600 to-purple-600', label: 'IA lee y comprende', desc: 'El motor de IA analiza, clasifica y extrae procesos de cada documento' },
+    { icon: Activity, color: 'from-indigo-600 to-violet-600', label: 'Inventario de procesos', desc: 'Lista priorizada de procesos críticos, roles y oportunidades de valor' },
+    { icon: Zap, color: 'from-amber-500 to-orange-500', label: 'Automatización', desc: 'Recomendaciones concretas de automatización con roadmap de implementación' },
+  ]
+
+  return (
+    <div className="space-y-8">
+      {/* Hero */}
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-violet-950/40 to-slate-900 border border-violet-800/30 p-10">
+        <div className="absolute inset-0 pointer-events-none overflow-hidden">
+          <div className="absolute -top-20 -right-20 w-80 h-80 bg-violet-600/10 rounded-full blur-3xl" />
+          <div className="absolute -bottom-20 -left-20 w-60 h-60 bg-indigo-600/10 rounded-full blur-3xl" />
+          {/* Grid decorativo */}
+          <div className="absolute inset-0 opacity-5"
+            style={{ backgroundImage: 'linear-gradient(#6366f1 1px, transparent 1px), linear-gradient(to right, #6366f1 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
+        </div>
+
+        <div className="relative z-10 max-w-2xl">
+          <div className="inline-flex items-center gap-2 bg-violet-900/40 border border-violet-700/50 rounded-full px-4 py-1.5 mb-6">
+            <div className="w-2 h-2 bg-violet-400 rounded-full animate-pulse" />
+            <span className="text-violet-300 text-xs font-semibold uppercase tracking-widest">Módulo de Inteligencia Operacional</span>
+          </div>
+          <h2 className="text-3xl font-bold text-white mb-4 leading-tight">
+            Descubrimiento inteligente<br />
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-400 to-indigo-300">de procesos con IA</span>
+          </h2>
+          <p className="text-slate-300 text-base leading-relaxed mb-8">
+            Este módulo analiza la documentación del proyecto con inteligencia artificial y extrae automáticamente el inventario completo de procesos, roles involucrados, riesgos operacionales y oportunidades de automatización.
+          </p>
+
+          <div className="flex items-center gap-3 flex-wrap">
+            <div className="flex items-center gap-2 text-sm text-slate-400">
+              <Shield className="w-4 h-4 text-violet-400" />
+              <span>Precisión diagnóstica</span>
+            </div>
+            <div className="w-px h-4 bg-slate-700" />
+            <div className="flex items-center gap-2 text-sm text-slate-400">
+              <TrendingUp className="w-4 h-4 text-emerald-400" />
+              <span>Valor inmediato</span>
+            </div>
+            <div className="w-px h-4 bg-slate-700" />
+            <div className="flex items-center gap-2 text-sm text-slate-400">
+              <Cpu className="w-4 h-4 text-blue-400" />
+              <span>IA de última generación</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Cómo funciona */}
+      <div>
+        <p className="text-xs text-slate-500 uppercase tracking-widest font-medium mb-4">Cómo funciona el motor de discovery</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {pasos.map((paso, i) => {
+            const Icon = paso.icon
+            return (
+              <div key={i} className="relative bg-slate-900/80 border border-slate-800 rounded-2xl p-5 overflow-hidden group hover:border-slate-700 transition-colors">
+                <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${paso.color} flex items-center justify-center mb-4`}>
+                  <Icon className="w-5 h-5 text-white" />
+                </div>
+                <div className="absolute top-3 right-4 text-4xl font-black text-slate-800 select-none">{i + 1}</div>
+                <h4 className="text-white text-sm font-semibold mb-1">{paso.label}</h4>
+                <p className="text-slate-500 text-xs leading-relaxed">{paso.desc}</p>
+                {i < pasos.length - 1 && (
+                  <div className="hidden lg:block absolute -right-3 top-1/2 -translate-y-1/2 z-10">
+                    <ArrowRight className="w-5 h-5 text-slate-600" />
+                  </div>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* CTA */}
+      <div className="bg-gradient-to-r from-violet-900/30 via-indigo-900/20 to-slate-900 border border-violet-800/30 rounded-2xl p-6 flex items-center justify-between gap-6 flex-wrap">
+        <div className="space-y-1">
+          <p className="text-white font-semibold">Listo para ejecutar el análisis</p>
+          <p className="text-slate-400 text-sm">Usa el botón "Ejecutar Discovery AI" en la esquina superior para iniciar el proceso</p>
+        </div>
+        <div className="flex items-center gap-2 text-violet-300 text-sm font-medium">
+          <Star className="w-4 h-4" />
+          <span>Resultado disponible en segundos</span>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── Componente principal ─────────────────────────────────────────────────────
+
+import DiscoveryAcciones from './DiscoveryAcciones'
+
+export default function DiscoveryExperiencia({
+  proyectoId, nombreProyecto, clienteNombre,
+  macroprocesos, totalProcesos, aceptados, pendientes, rechazados,
+  resumenDiscovery, rolesDetectados, proyectosParaAcciones,
+}: Props) {
+  const [tab, setTab] = useState<'procesos' | 'glosario'>('procesos')
+
+  const pctAprobacion = totalProcesos > 0 ? Math.round((aceptados / totalProcesos) * 100) : 0
+
+  return (
+    <div className="space-y-6">
+
+      {/* ── Header del módulo ── */}
+      <div className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-violet-950/20 to-slate-900 border border-violet-800/20 rounded-2xl p-6">
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-violet-600/5 rounded-full blur-3xl" />
+        </div>
+        <div className="relative flex items-start justify-between gap-4 flex-wrap">
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-violet-600 to-indigo-600 flex items-center justify-center">
+                <Brain className="w-4 h-4 text-white" />
+              </div>
+              <div>
+                <h1 className="text-xl font-bold text-white">Process Discovery IA</h1>
+                <p className="text-slate-400 text-xs">{nombreProyecto}{clienteNombre ? ` · ${clienteNombre}` : ''}</p>
+              </div>
+            </div>
+            <p className="text-slate-400 text-sm max-w-lg">
+              Motor de inteligencia artificial que descubre, clasifica y diagnostica los procesos operacionales de tu organización.
+            </p>
+          </div>
+          <DiscoveryAcciones proyectos={proyectosParaAcciones} />
+        </div>
+
+        {/* KPI strip */}
+        {totalProcesos > 0 && (
+          <div className="mt-5 pt-5 border-t border-slate-800 grid grid-cols-2 sm:grid-cols-4 gap-4">
+            {[
+              { label: 'Procesos detectados', value: totalProcesos, color: 'text-white', icon: Activity },
+              { label: 'Validados', value: aceptados, color: 'text-emerald-400', icon: CheckCircle },
+              { label: 'En revisión', value: pendientes, color: 'text-amber-400', icon: Clock },
+              { label: '% aprobación', value: `${pctAprobacion}%`, color: pctAprobacion >= 80 ? 'text-emerald-400' : pctAprobacion >= 50 ? 'text-amber-400' : 'text-red-400', icon: BarChart3 },
+            ].map(({ label, value, color, icon: Icon }) => (
+              <div key={label} className="space-y-1">
+                <div className="flex items-center gap-1.5">
+                  <Icon className={`w-3.5 h-3.5 ${color}`} />
+                  <p className="text-xs text-slate-500 uppercase tracking-wider">{label}</p>
+                </div>
+                <p className={`text-2xl font-bold ${color}`}>{value}</p>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Barra de progreso aprobación */}
+        {totalProcesos > 0 && (
+          <div className="mt-4">
+            <div className="flex justify-between text-xs text-slate-500 mb-1.5">
+              <span>Progreso de validación</span>
+              <span>{aceptados}/{totalProcesos} procesos</span>
+            </div>
+            <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden">
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-violet-500 to-emerald-500 transition-all duration-700"
+                style={{ width: `${pctAprobacion}%` }}
+              />
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ── Tabs ── */}
+      {totalProcesos > 0 && (
+        <div className="flex gap-1 bg-slate-900/80 border border-slate-800 rounded-xl p-1 w-fit">
+          {[
+            { id: 'procesos', label: 'Inventario de Procesos', icon: Activity, count: totalProcesos },
+            { id: 'glosario', label: 'Glosario de Roles', icon: Users, count: rolesDetectados.length },
+          ].map(t => (
+            <button
+              key={t.id}
+              onClick={() => setTab(t.id as 'procesos' | 'glosario')}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${
+                tab === t.id
+                  ? 'bg-violet-600 text-white shadow-lg shadow-violet-900/40'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+              }`}
+            >
+              <t.icon className="w-4 h-4" />
+              {t.label}
+              {t.count > 0 && (
+                <span className={`text-xs px-1.5 py-0.5 rounded-full ${tab === t.id ? 'bg-white/20' : 'bg-slate-700 text-slate-400'}`}>
+                  {t.count}
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* ── Contenido ── */}
+      {totalProcesos === 0 ? (
+        <EstadoVacioDiscovery proyectosParaAcciones={proyectosParaAcciones} />
+      ) : tab === 'procesos' ? (
+        <div className="space-y-4">
+          {resumenDiscovery && (resumenDiscovery.resumen_ejecutivo_discovery as string | undefined) && (
+            <div className="bg-gradient-to-br from-violet-950/40 to-slate-900 border border-violet-800/30 rounded-2xl p-6 space-y-3">
+              <div className="flex items-center gap-2">
+                <Brain className="w-4 h-4 text-violet-400" />
+                <span className="text-violet-300 text-xs font-semibold uppercase tracking-widest">Diagnóstico ejecutivo del proyecto</span>
+              </div>
+              <p className="text-slate-200 text-sm leading-relaxed">{resumenDiscovery.resumen_ejecutivo_discovery as string}</p>
+              <div className="flex flex-wrap gap-4 text-xs text-slate-500 pt-2 border-t border-slate-800/60">
+                {(resumenDiscovery.industria_detectada as string | undefined) && <span>Industria: <span className="text-slate-300">{resumenDiscovery.industria_detectada as string}</span></span>}
+                {(resumenDiscovery.nivel_madurez_operacional as string | undefined) && <span>Madurez: <span className="text-slate-300">{resumenDiscovery.nivel_madurez_operacional as string}</span></span>}
+                {(resumenDiscovery.cobertura_documentacion as string | undefined) && <span>Cobertura: <span className="text-slate-300">{resumenDiscovery.cobertura_documentacion as string}</span></span>}
+              </div>
+            </div>
+          )}
+
+          {/* Cards de procesos */}
+          <div className="space-y-3">
+            {macroprocesos.map(macro => (
+              <ProcesoCard key={macro.id} proceso={macro} />
+            ))}
+          </div>
+
+          {/* Tip inline */}
+          <div className="flex items-center gap-3 bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3">
+            <Sparkles className="w-4 h-4 text-violet-400 shrink-0" />
+            <p className="text-slate-400 text-xs">
+              Haz clic en <span className="text-violet-300 font-medium">Diagnosticar con IA</span> en cualquier proceso para obtener un análisis instantáneo de criticidad, impacto y oportunidades de automatización.
+            </p>
+          </div>
+        </div>
+      ) : (
+        <GlosarioRoles
+          proyectoId={proyectoId}
+          nombreProyecto={nombreProyecto}
+          rolesDetectados={rolesDetectados}
+        />
+      )}
+    </div>
+  )
+}
