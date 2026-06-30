@@ -1,13 +1,12 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { Button } from '@/components/ui/button'
-import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select'
-import { Sparkles, Zap } from 'lucide-react'
+import { Sparkles, Zap, ChevronDown, Check } from 'lucide-react'
 import { toast } from 'sonner'
 
 interface Props {
   proyectos: { id: string; nombre: string }[]
+  variant?: 'top' | 'bottom'  // top = compacto header, bottom = banner ancho
 }
 
 const ETAPAS = [
@@ -20,20 +19,29 @@ const ETAPAS = [
   'Redactando recomendación para el CEO...',
 ]
 
-export default function DiscoveryAcciones({ proyectos }: Props) {
-  const [proyectoId, setProyectoId] = useState('')
-  const [proyectoNombre, setProyectoNombre] = useState('')
+export default function DiscoveryAcciones({ proyectos, variant = 'top' }: Props) {
+  const [proyectoId, setProyectoId] = useState(proyectos[0]?.id ?? '')
+  const [open, setOpen] = useState(false)
   const [cargando, setCargando] = useState(false)
   const [etapaIdx, setEtapaIdx] = useState(0)
   const [segundos, setSegundos] = useState(0)
   const pollRef = useRef<NodeJS.Timeout | null>(null)
   const etapaTimerRef = useRef<NodeJS.Timeout | null>(null)
   const segundosTimerRef = useRef<NodeJS.Timeout | null>(null)
+  const dropdownRef = useRef<HTMLDivElement>(null)
 
-  function handleProyectoChange(id: string) {
-    setProyectoId(id)
-    setProyectoNombre(proyectos.find(p => p.id === id)?.nombre ?? '')
-  }
+  const proyectoSeleccionado = proyectos.find(p => p.id === proyectoId)
+
+  // Cerrar dropdown al hacer clic fuera
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
 
   function limpiarTimers() {
     if (pollRef.current) clearInterval(pollRef.current)
@@ -81,51 +89,126 @@ export default function DiscoveryAcciones({ proyectos }: Props) {
     }
   }
 
+  // Estado cargando — igual para ambas variantes
   if (cargando) {
     const mins = Math.floor(segundos / 60)
     const secs = segundos % 60
     return (
-      <div className="w-full max-w-md space-y-2 py-1">
+      <div className={`space-y-2 py-1 ${variant === 'bottom' ? 'w-full' : 'w-full max-w-md'}`}>
         <div className="flex items-center justify-between">
-          <span className="text-xs text-purple-300 flex items-center gap-1.5">
+          <span className="text-xs text-violet-300 flex items-center gap-1.5">
             <Sparkles className="w-3 h-3 animate-pulse" />
             {ETAPAS[etapaIdx]}
           </span>
-          <span className="text-xs text-slate-500 font-mono">
-            {mins}:{secs.toString().padStart(2, '0')}
-          </span>
+          <span className="text-xs text-slate-500 font-mono">{mins}:{secs.toString().padStart(2, '0')}</span>
         </div>
         <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
-          <div className="h-full w-full bg-gradient-to-r from-purple-600 via-fuchsia-500 to-purple-400 animate-pulse" />
+          <div className="h-full w-full bg-gradient-to-r from-violet-600 via-fuchsia-500 to-violet-400 animate-pulse" />
         </div>
-        <p className="text-slate-600 text-xs">
-          ProcessOS Intelligence Engine · AICOUNTS Consultores · Este análisis es exhaustivo, puede tardar 1-3 minutos. Puedes navegar a otra sección y volver — seguirá trabajando en segundo plano.
-        </p>
+        <p className="text-slate-600 text-xs">Análisis exhaustivo en curso · puede tardar 1-3 minutos · puedes navegar a otra sección y volver</p>
       </div>
     )
   }
 
-  return (
-    <div className="space-y-2">
-      <div className="flex items-center gap-2">
-        <Select onValueChange={(v: string | null) => v && handleProyectoChange(v)}>
-          <SelectTrigger className="w-48 bg-slate-800 border-slate-700 text-slate-200 h-9 text-sm">
-            <span className="truncate">{proyectoNombre || 'Seleccionar proyecto'}</span>
-          </SelectTrigger>
-          <SelectContent className="bg-slate-800 border-slate-700 text-slate-200">
-            {proyectos.map(p => (
-              <SelectItem key={p.id} value={p.id}>{p.nombre}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Button
+  // ── Variante top (compacta, en el header) ──
+  if (variant === 'top') {
+    return (
+      <div className="flex items-center gap-2 shrink-0">
+        {/* Selector de proyecto custom */}
+        {proyectos.length > 1 && (
+          <div className="relative" ref={dropdownRef}>
+            <button
+              onClick={() => setOpen(v => !v)}
+              className="flex items-center gap-2 h-9 px-3 bg-slate-800 hover:bg-slate-700 border border-slate-700 hover:border-slate-600 rounded-xl text-sm text-slate-200 transition-all min-w-[160px] max-w-[220px]"
+            >
+              <span className="flex-1 text-left truncate">{proyectoSeleccionado?.nombre ?? 'Proyecto'}</span>
+              <ChevronDown className={`w-4 h-4 text-slate-400 shrink-0 transition-transform ${open ? 'rotate-180' : ''}`} />
+            </button>
+            {open && (
+              <div className="absolute right-0 top-full mt-2 z-50 min-w-[240px] bg-slate-800 border border-slate-600 rounded-2xl shadow-2xl shadow-black/60 overflow-hidden">
+                <div className="p-1.5 space-y-0.5">
+                  {proyectos.map(p => (
+                    <button
+                      key={p.id}
+                      onClick={() => { setProyectoId(p.id); setOpen(false) }}
+                      className={`w-full flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl text-sm transition-colors text-left ${
+                        p.id === proyectoId
+                          ? 'bg-violet-600/20 text-violet-300 font-medium'
+                          : 'text-slate-300 hover:bg-slate-700 hover:text-white'
+                      }`}
+                    >
+                      <span className="truncate">{p.nombre}</span>
+                      {p.id === proyectoId && <Check className="w-4 h-4 shrink-0" />}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        <button
           onClick={ejecutarDiscovery}
           disabled={!proyectoId}
-          className="bg-purple-600 hover:bg-purple-700 text-white h-9"
+          className="flex items-center gap-2 h-9 px-4 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white text-sm font-semibold rounded-xl transition-all shadow-lg shadow-violet-900/40 disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
         >
-          <Zap className="w-4 h-4 mr-2" />
+          <Zap className="w-4 h-4" />
           Ejecutar Discovery AI
-        </Button>
+        </button>
+      </div>
+    )
+  }
+
+  // ── Variante bottom (banner ancho, al final del listado) ──
+  return (
+    <div className="bg-gradient-to-r from-violet-900/30 via-indigo-900/20 to-slate-900 border border-violet-700/40 rounded-2xl p-5">
+      <div className="flex items-center justify-between gap-4 flex-wrap">
+        <div className="space-y-0.5">
+          <p className="text-white font-semibold text-sm">¿Faltan procesos o quieres actualizar el inventario?</p>
+          <p className="text-slate-400 text-xs">Vuelve a ejecutar Discovery AI para re-analizar los documentos y regenerar el inventario completo.</p>
+        </div>
+        <div className="flex items-center gap-3 flex-wrap">
+          {proyectos.length > 1 && (
+            <div className="relative" ref={dropdownRef}>
+              <button
+                onClick={() => setOpen(v => !v)}
+                className="flex items-center gap-2 h-9 px-3 bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-xl text-sm text-slate-200 transition-all min-w-[150px]"
+              >
+                <span className="flex-1 text-left truncate">{proyectoSeleccionado?.nombre ?? 'Proyecto'}</span>
+                <ChevronDown className={`w-4 h-4 text-slate-400 shrink-0 transition-transform ${open ? 'rotate-180' : ''}`} />
+              </button>
+              {open && (
+                <div className="absolute right-0 bottom-full mb-2 z-50 min-w-[220px] bg-slate-800 border border-slate-600 rounded-2xl shadow-2xl shadow-black/60 overflow-hidden">
+                  <div className="p-1.5 space-y-0.5">
+                    {proyectos.map(p => (
+                      <button
+                        key={p.id}
+                        onClick={() => { setProyectoId(p.id); setOpen(false) }}
+                        className={`w-full flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl text-sm transition-colors text-left ${
+                          p.id === proyectoId
+                            ? 'bg-violet-600/20 text-violet-300 font-medium'
+                            : 'text-slate-300 hover:bg-slate-700 hover:text-white'
+                        }`}
+                      >
+                        <span className="truncate">{p.nombre}</span>
+                        {p.id === proyectoId && <Check className="w-4 h-4 shrink-0" />}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          <button
+            onClick={ejecutarDiscovery}
+            disabled={!proyectoId}
+            className="flex items-center gap-2 h-9 px-5 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white text-sm font-semibold rounded-xl transition-all shadow-lg shadow-violet-900/40 disabled:opacity-40"
+          >
+            <Zap className="w-4 h-4" />
+            Ejecutar Discovery AI
+          </button>
+        </div>
       </div>
     </div>
   )

@@ -579,6 +579,9 @@ export default function DiscoveryExperiencia({
               Haz clic en <span className="text-violet-300 font-medium">Diagnosticar con IA</span> en cualquier proceso para obtener un análisis instantáneo de criticidad, impacto y oportunidades de automatización.
             </p>
           </div>
+
+          {/* Botón Discovery al fondo — para no tener que subir */}
+          <DiscoveryAcciones proyectos={proyectosParaAcciones} variant="bottom" />
         </div>
       ) : (
         <GlosarioRoles
