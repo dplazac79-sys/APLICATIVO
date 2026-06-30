@@ -371,6 +371,17 @@ function EstadoVacioDiscovery({
   const noListos = documentos.filter(d => d.estado_procesamiento !== 'listo')
   const tieneListos = listos.length > 0
 
+  const [seleccionados, setSeleccionados] = useState<string[]>(listos.map(d => d.id))
+  const todosSeleccionados = listos.length > 0 && seleccionados.length === listos.length
+
+  function toggleDoc(id: string) {
+    setSeleccionados(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
+  }
+
+  function toggleTodos() {
+    setSeleccionados(todosSeleccionados ? [] : listos.map(d => d.id))
+  }
+
   const pasos = [
     { icon: Layers, color: 'from-blue-600 to-indigo-600', label: 'Centro Documental', desc: 'Documentos del proyecto cargados y organizados por bloque metodológico' },
     { icon: Brain, color: 'from-violet-600 to-purple-600', label: 'IA lee y comprende', desc: 'El motor de IA analiza, clasifica y extrae procesos de cada documento' },
@@ -413,7 +424,7 @@ function EstadoVacioDiscovery({
             <div className="w-px h-4 bg-slate-700" />
             <div className="flex items-center gap-2 text-sm text-slate-400">
               <Cpu className="w-4 h-4 text-blue-400" />
-              <span>Anthropic Claude · API de IA</span>
+              <span>IA de última generación</span>
             </div>
           </div>
         </div>
@@ -421,42 +432,64 @@ function EstadoVacioDiscovery({
 
       {/* ── Pre-flight: documentos que entran al análisis ── */}
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between flex-wrap gap-2">
           <div>
-            <p className="text-xs text-slate-500 uppercase tracking-widest font-medium">Documentos que entrarán al análisis de IA</p>
+            <p className="text-xs text-slate-500 uppercase tracking-widest font-medium">Tus documentos para el análisis de IA</p>
             <p className="text-slate-400 text-sm mt-1">
-              Solo documentos <span className="text-emerald-400 font-medium">procesados</span> son analizados por Claude — los pendientes no entran hasta que sean procesados en Centro Documental.
+              Selecciona qué documentos quieres incluir. Solo los <span className="text-emerald-400 font-medium">procesados</span> pueden entrar — los procesos y roles detectados se construyen a partir de tu selección.
             </p>
           </div>
-          <div className={`text-right shrink-0 ml-4 ${tieneListos ? 'text-emerald-400' : 'text-amber-400'}`}>
-            <p className="text-2xl font-bold">{listos.length}</p>
-            <p className="text-xs text-slate-500">de {documentos.length} listos</p>
+          <div className={`text-right shrink-0 ${tieneListos ? 'text-emerald-400' : 'text-amber-400'}`}>
+            <p className="text-2xl font-bold">{seleccionados.length}</p>
+            <p className="text-xs text-slate-500">de {listos.length} seleccionados</p>
           </div>
         </div>
 
         {documentos.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-slate-700 bg-slate-900/40 p-8 text-center space-y-3">
             <AlertCircle className="w-8 h-8 text-amber-400 mx-auto" />
-            <p className="text-white font-semibold">Sin documentos en el proyecto</p>
-            <p className="text-slate-400 text-sm">Primero carga documentos en Centro Documental para que la IA tenga material con qué trabajar.</p>
+            <p className="text-white font-semibold">Aún no has subido documentos</p>
+            <p className="text-slate-400 text-sm">Carga tus documentos en Centro Documental para que la IA tenga material con qué trabajar.</p>
             <a href="/documentos" className="inline-flex items-center gap-2 mt-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium rounded-xl transition-colors">
               <Layers className="w-4 h-4" /> Ir a Centro Documental
             </a>
           </div>
         ) : (
           <div className="rounded-2xl border border-slate-800 bg-slate-900/60 overflow-hidden">
-            {/* Listos para Discovery */}
+            {/* Listos para Discovery — seleccionables */}
             {listos.length > 0 && (
               <div className="p-4 space-y-2">
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="w-2 h-2 rounded-full bg-emerald-400" />
-                  <span className="text-xs text-emerald-400 font-semibold uppercase tracking-wider">Entran al análisis ({listos.length})</span>
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-emerald-400" />
+                    <span className="text-xs text-emerald-400 font-semibold uppercase tracking-wider">Disponibles ({listos.length})</span>
+                  </div>
+                  <button
+                    onClick={toggleTodos}
+                    className="text-xs text-violet-300 hover:text-violet-200 font-medium transition-colors"
+                  >
+                    {todosSeleccionados ? 'Quitar todos' : 'Seleccionar todos'}
+                  </button>
                 </div>
                 <div className="space-y-2">
                   {listos.map(doc => {
                     const bloque = (doc.clasificacion as any)?.bloque_metodologico as string | undefined
+                    const elegido = seleccionados.includes(doc.id)
                     return (
-                      <div key={doc.id} className="flex items-center gap-3 bg-emerald-950/20 border border-emerald-800/30 rounded-xl px-4 py-3 group hover:border-emerald-700/50 transition-colors">
+                      <button
+                        key={doc.id}
+                        onClick={() => toggleDoc(doc.id)}
+                        className={`w-full flex items-center gap-3 rounded-xl px-4 py-3 transition-colors text-left ${
+                          elegido
+                            ? 'bg-emerald-950/20 border border-emerald-800/40 hover:border-emerald-700/60'
+                            : 'bg-slate-800/30 border border-slate-700/40 opacity-60 hover:opacity-80'
+                        }`}
+                      >
+                        <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-colors ${
+                          elegido ? 'bg-emerald-500 border-emerald-500' : 'border-slate-600'
+                        }`}>
+                          {elegido && <CheckCircle className="w-3.5 h-3.5 text-slate-950" strokeWidth={3} />}
+                        </div>
                         <div className="w-8 h-8 rounded-lg bg-emerald-900/50 border border-emerald-800/60 flex items-center justify-center shrink-0">
                           <FileText className="w-4 h-4 text-emerald-400" />
                         </div>
@@ -464,11 +497,8 @@ function EstadoVacioDiscovery({
                           <p className="text-white text-sm font-medium truncate">{doc.nombre_archivo}</p>
                           {bloque && <p className="text-slate-500 text-xs truncate">{bloque}</p>}
                         </div>
-                        <div className="flex items-center gap-1.5 shrink-0">
-                          <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
-                          <span className="text-xs text-emerald-400 font-medium">Procesado</span>
-                        </div>
-                      </div>
+                        <span className="text-xs text-emerald-400 font-medium shrink-0">Procesado</span>
+                      </button>
                     )
                   })}
                 </div>
@@ -480,7 +510,7 @@ function EstadoVacioDiscovery({
               <div className={`p-4 space-y-2 ${listos.length > 0 ? 'border-t border-slate-800' : ''}`}>
                 <div className="flex items-center gap-2 mb-3">
                   <div className="w-2 h-2 rounded-full bg-slate-500" />
-                  <span className="text-xs text-slate-500 font-semibold uppercase tracking-wider">No entran aún ({noListos.length})</span>
+                  <span className="text-xs text-slate-500 font-semibold uppercase tracking-wider">No disponibles aún ({noListos.length})</span>
                 </div>
                 <div className="space-y-2">
                   {noListos.map(doc => (
@@ -538,14 +568,20 @@ function EstadoVacioDiscovery({
               <Brain className="w-6 h-6 text-white" />
             </div>
             <div className="flex-1">
-              <p className="text-white font-bold text-lg">Todo listo para el análisis</p>
+              <p className="text-white font-bold text-lg">
+                {seleccionados.length > 0 ? 'Listo para el análisis' : 'Selecciona al menos un documento'}
+              </p>
               <p className="text-slate-400 text-sm mt-1">
-                <span className="text-emerald-400 font-semibold">{listos.length} documento{listos.length !== 1 ? 's' : ''}</span> serán procesados por Claude (Anthropic AI). El motor leerá cada documento, extraerá procesos y construirá el inventario operacional completo.
+                {seleccionados.length > 0 ? (
+                  <><span className="text-emerald-400 font-semibold">{seleccionados.length} documento{seleccionados.length !== 1 ? 's' : ''}</span> serán analizados. La IA leerá cada uno, extraerá procesos, roles involucrados y construirá el inventario operacional completo junto con el Glosario de Roles.</>
+                ) : (
+                  'Marca arriba los documentos que quieres incluir en el análisis.'
+                )}
               </p>
             </div>
           </div>
           <div className="flex items-center gap-3 pt-1">
-            <DiscoveryAcciones proyectos={proyectosParaAcciones} />
+            <DiscoveryAcciones proyectos={proyectosParaAcciones} documentoIds={seleccionados} disabled={seleccionados.length === 0} />
             <div className="text-xs text-slate-500">Puede tardar 1–3 minutos · puedes seguir navegando</div>
           </div>
         </div>

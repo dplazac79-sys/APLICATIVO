@@ -106,7 +106,7 @@ export const discoveryAI = inngest.createFunction(
   },
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async ({ event, step }: any) => {
-    const { proyecto_id, usuario_id } = event.data
+    const { proyecto_id, usuario_id, documento_ids } = event.data
     const admin = createAdminClient()
 
     const { proyecto, documentos } = await step.run('cargar-datos', async () => {
@@ -116,11 +116,15 @@ export const discoveryAI = inngest.createFunction(
       const limite = await verificarLimiteIA(proyecto_id, 'discovery')
       if (!limite.permitido) throw new Error(limite.mensaje)
 
-      const { data: documentos } = await admin
+      let query = admin
         .from('documento')
         .select('id, nombre_archivo, resumen_ejecutivo, clasificacion')
         .eq('proyecto_id', proyecto_id)
         .eq('estado_procesamiento', 'listo')
+      if (Array.isArray(documento_ids) && documento_ids.length > 0) {
+        query = query.in('id', documento_ids)
+      }
+      const { data: documentos } = await query
       if (!documentos?.length) throw new Error('No hay documentos procesados')
       return { proyecto, documentos }
     })

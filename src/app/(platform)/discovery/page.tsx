@@ -10,7 +10,7 @@ export default async function DiscoveryPage() {
   const [{ data: proyectosRaw }, { data: procesos }, { data: documentosRaw }] = await Promise.all([
     admin.from('proyecto').select('*, cliente(razon_social)').eq('estado_general', 'activo'),
     admin.from('proceso').select('*').order('nivel', { ascending: true }).order('orden', { ascending: true }),
-    admin.from('documento').select('id, nombre_archivo, tipo, estado_procesamiento, clasificacion, created_at, proyecto_id').order('created_at', { ascending: false }),
+    admin.from('documento').select('id, nombre_archivo, tipo, estado_procesamiento, clasificacion, created_at, proyecto_id, subido_por(rol)').order('created_at', { ascending: false }),
   ])
 
   const proyectos = (proyectosRaw ?? []) as Array<Proyecto & { cliente: { razon_social: string } | null }>
@@ -53,8 +53,13 @@ export default async function DiscoveryPage() {
       .map((p: Proceso) => p.nombre),
   }))
 
+  const ROL_INTERNO = ['super_admin', 'director_proyecto', 'consultor']
   const documentosProyecto = (documentosRaw ?? [])
     .filter((d: { proyecto_id: string }) => d.proyecto_id === proyecto.id)
+    .filter((d: any) => {
+      const subidoPor = Array.isArray(d.subido_por) ? d.subido_por[0] : d.subido_por
+      return !ROL_INTERNO.includes(subidoPor?.rol ?? '')
+    })
 
   return (
     <DiscoveryExperiencia

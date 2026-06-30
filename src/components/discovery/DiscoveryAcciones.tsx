@@ -7,6 +7,8 @@ import { toast } from 'sonner'
 interface Props {
   proyectos: { id: string; nombre: string }[]
   variant?: 'top' | 'bottom'  // top = compacto header, bottom = banner ancho
+  documentoIds?: string[]    // si se especifica, solo estos documentos entran al análisis
+  disabled?: boolean
 }
 
 const ETAPAS = [
@@ -19,7 +21,7 @@ const ETAPAS = [
   'Redactando recomendación para el CEO...',
 ]
 
-export default function DiscoveryAcciones({ proyectos, variant = 'top' }: Props) {
+export default function DiscoveryAcciones({ proyectos, variant = 'top', documentoIds, disabled = false }: Props) {
   const [proyectoId, setProyectoId] = useState(proyectos[0]?.id ?? '')
   const [open, setOpen] = useState(false)
   const [cargando, setCargando] = useState(false)
@@ -63,7 +65,11 @@ export default function DiscoveryAcciones({ proyectos, variant = 'top' }: Props)
     segundosTimerRef.current = setInterval(() => setSegundos(s => s + 1), 1000)
 
     try {
-      const res = await fetch(`/api/proyectos/${proyectoId}/discovery`, { method: 'POST' })
+      const res = await fetch(`/api/proyectos/${proyectoId}/discovery`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(documentoIds && documentoIds.length > 0 ? { documento_ids: documentoIds } : {}),
+      })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? 'Error al iniciar discovery')
 
@@ -74,7 +80,7 @@ export default function DiscoveryAcciones({ proyectos, variant = 'top' }: Props)
         if (!r.ok) return
         if (d.job.estado === 'listo') {
           limpiarTimers()
-          toast.success('Discovery AI completado — inventario de procesos generado')
+          toast.success('Discovery IA completado — inventario de procesos generado')
           window.location.reload()
         } else if (d.job.estado === 'error') {
           limpiarTimers()
@@ -149,11 +155,11 @@ export default function DiscoveryAcciones({ proyectos, variant = 'top' }: Props)
 
         <button
           onClick={ejecutarDiscovery}
-          disabled={!proyectoId}
+          disabled={!proyectoId || disabled}
           className="flex items-center gap-2 h-9 px-4 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white text-sm font-semibold rounded-xl transition-all shadow-lg shadow-violet-900/40 disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
         >
           <Zap className="w-4 h-4" />
-          Ejecutar Discovery AI
+          Ejecutar Discovery IA
         </button>
       </div>
     )
@@ -165,7 +171,7 @@ export default function DiscoveryAcciones({ proyectos, variant = 'top' }: Props)
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div className="space-y-0.5">
           <p className="text-white font-semibold text-sm">¿Faltan procesos o quieres actualizar el inventario?</p>
-          <p className="text-slate-400 text-xs">Vuelve a ejecutar Discovery AI para re-analizar los documentos y regenerar el inventario completo.</p>
+          <p className="text-slate-400 text-xs">Vuelve a ejecutar Discovery IA para re-analizar los documentos y regenerar el inventario completo.</p>
         </div>
         <div className="flex items-center gap-3 flex-wrap">
           {proyectos.length > 1 && (
@@ -202,11 +208,11 @@ export default function DiscoveryAcciones({ proyectos, variant = 'top' }: Props)
 
           <button
             onClick={ejecutarDiscovery}
-            disabled={!proyectoId}
+            disabled={!proyectoId || disabled}
             className="flex items-center gap-2 h-9 px-5 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white text-sm font-semibold rounded-xl transition-all shadow-lg shadow-violet-900/40 disabled:opacity-40"
           >
             <Zap className="w-4 h-4" />
-            Ejecutar Discovery AI
+            Ejecutar Discovery IA
           </button>
         </div>
       </div>

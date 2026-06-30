@@ -9,7 +9,7 @@ export type ProcesarDocumentoEvent = {
 
 export type DiscoveryEvent = {
   name: 'proyecto/discovery'
-  data: { proyecto_id: string; usuario_id: string }
+  data: { proyecto_id: string; usuario_id: string; documento_ids?: string[] }
 }
 
 export type Events = ProcesarDocumentoEvent | DiscoveryEvent
