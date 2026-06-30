@@ -1,6 +1,6 @@
 import { inngest } from './client'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { clasificarDocumento, resumirDocumento, discoveryProcesos, enriquecerProcesoCliente, analizarGlosarioRoles, RolProceso, PersonaOrg } from '@/lib/ai/claude'
+import { analizarDocumento, discoveryProcesos, enriquecerProcesoCliente, analizarGlosarioRoles, RolProceso, PersonaOrg } from '@/lib/ai/claude'
 import { generarEmbedding } from '@/lib/ai/embeddings'
 import { registrarAudit } from '@/lib/audit'
 import { verificarLimiteIA, registrarUsoIA } from '@/lib/ai/rate-limit'
@@ -55,16 +55,11 @@ export const procesarDocumento = inngest.createFunction(
       throw new Error('No se pudo extraer texto del documento')
     }
 
-    const [clasificacion, resumen] = await Promise.all([
-      step.run('clasificar', () => clasificarDocumento(texto)),
-      step.run('resumir', () => resumirDocumento(texto)),
-    ])
+    // Una sola llamada a Anthropic con prompt caching — reemplaza clasificar + resumir
+    const { clasificacion, analisis: resumen } = await step.run('analizar', () => analizarDocumento(texto))
 
-    await step.run('registrar-uso-clasificar', () =>
-      registrarUsoIA({ proyecto_id: doc.proyecto_id, usuario_id, tipo: 'clasificar', tokens_input: 2048, tokens_output: 512 })
-    )
-    await step.run('registrar-uso-resumir', () =>
-      registrarUsoIA({ proyecto_id: doc.proyecto_id, usuario_id, tipo: 'resumir', tokens_input: 4000, tokens_output: 2000 })
+    await step.run('registrar-uso-analisis', () =>
+      registrarUsoIA({ proyecto_id: doc.proyecto_id, usuario_id, tipo: 'resumir', tokens_input: 4500, tokens_output: 3000 })
     )
 
     const embedding = await step.run('embedding', () =>
