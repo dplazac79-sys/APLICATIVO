@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { Card, CardContent } from '@/components/ui/card'
-import { FileText, FileImage, FileSpreadsheet, File, ExternalLink } from 'lucide-react'
+import { FileText, FileImage, FileSpreadsheet, File, ExternalLink, Download } from 'lucide-react'
 import Link from 'next/link'
 import DocumentUploader from '@/components/documentos/DocumentUploader'
 import DocumentoAcciones from '@/components/documentos/DocumentoAcciones'
@@ -11,10 +11,10 @@ import type { Documento } from '@/types/database'
 export const dynamic = 'force-dynamic'
 
 const ESTADO_CONFIG = {
-  pendiente: { label: 'Pendiente', class: 'bg-amber-950 text-amber-400 border-amber-800' },
-  procesando: { label: 'Procesando...', class: 'bg-blue-950 text-blue-400 border-blue-800' },
-  listo: { label: 'Procesado', class: 'bg-emerald-950 text-emerald-400 border-emerald-800' },
-  error: { label: 'Error', class: 'bg-red-950 text-red-400 border-red-800' },
+  pendiente: { label: 'Pendiente IA', labelCliente: 'Disponible', class: 'bg-amber-950 text-amber-400 border-amber-800', classCliente: 'bg-slate-800 text-slate-400 border-slate-700' },
+  procesando: { label: 'Procesando...', labelCliente: 'Procesando...', class: 'bg-blue-950 text-blue-400 border-blue-800', classCliente: 'bg-blue-950 text-blue-400 border-blue-800' },
+  listo: { label: 'Procesado', labelCliente: 'Disponible', class: 'bg-emerald-950 text-emerald-400 border-emerald-800', classCliente: 'bg-emerald-950 text-emerald-400 border-emerald-800' },
+  error: { label: 'Error', labelCliente: 'Disponible', class: 'bg-red-950 text-red-400 border-red-800', classCliente: 'bg-slate-800 text-slate-400 border-slate-700' },
 } as const
 
 const BLOQUE_LABELS: Record<string, string> = {
@@ -130,7 +130,9 @@ export default async function DocumentosPage({ searchParams }: { searchParams: {
 
         {(documentos as DocConProyecto[] ?? []).map((doc) => {
           const estadoKey = (doc.estado_procesamiento ?? 'pendiente') as keyof typeof ESTADO_CONFIG
-          const estado = ESTADO_CONFIG[estadoKey] ?? ESTADO_CONFIG.pendiente
+          const estadoCfg = ESTADO_CONFIG[estadoKey] ?? ESTADO_CONFIG.pendiente
+          const estadoLabel = esCliente ? estadoCfg.labelCliente : estadoCfg.label
+          const estadoClass = esCliente ? estadoCfg.classCliente : estadoCfg.class
           const clasificacion = doc.clasificacion as Record<string, unknown> | null
           const bloque = clasificacion?.bloque as string | undefined
           const industria = clasificacion?.industria_detectada as string | undefined
@@ -175,8 +177,8 @@ export default async function DocumentosPage({ searchParams }: { searchParams: {
                         {BLOQUE_LABELS[bloque] ?? bloque}
                       </span>
                     )}
-                    <span className={`text-xs px-2 py-0.5 rounded-full border ${estado.class}`}>
-                      {estado.label}
+                    <span className={`text-xs px-2 py-0.5 rounded-full border ${estadoClass}`}>
+                      {estadoLabel}
                     </span>
                   </div>
                 </div>
@@ -215,14 +217,26 @@ export default async function DocumentosPage({ searchParams }: { searchParams: {
                   </div>
                 )}
 
-                <div className="pl-12 flex items-center gap-3">
+                <div className="pl-12 flex items-center gap-3 flex-wrap">
+                  {/* Ver / descargar el archivo original — disponible para todos */}
+                  <a
+                    href={doc.url_storage}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 text-xs text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 border border-slate-700 px-3 py-1.5 rounded-lg transition-colors"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    Ver documento
+                  </a>
+
                   <DocumentoAcciones
                     documentoId={doc.id}
                     estado={estadoKey}
                     puedeEliminar={puedeEliminar}
                     puedeAnalizar={puedeAnalizar}
                   />
-                  {estadoKey === 'listo' && (
+
+                  {estadoKey === 'listo' && !esCliente && (
                     <Link
                       href={`/documentos/${doc.id}`}
                       className="inline-flex items-center gap-1.5 text-xs text-indigo-400 hover:text-indigo-300 transition-colors"
