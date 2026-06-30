@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { Card, CardContent } from '@/components/ui/card'
-import { FileText, FileImage, FileSpreadsheet, File, ExternalLink, Download } from 'lucide-react'
+import { FileText, FileImage, FileSpreadsheet, File, ExternalLink, Download, ShieldCheck, User } from 'lucide-react'
 import Link from 'next/link'
 import DocumentUploader from '@/components/documentos/DocumentUploader'
 import DocumentoAcciones from '@/components/documentos/DocumentoAcciones'
@@ -161,38 +161,61 @@ export default async function DocumentosPage({ searchParams }: { searchParams: {
           const puedeEliminar = esInterno || (!docSubidoPorInterno)
           const puedeAnalizar = esInterno || (!docSubidoPorInterno)
 
+          // Estilo visual según quién subió el documento
+          const cardStyle = docSubidoPorInterno
+            ? 'bg-indigo-950/20 border-indigo-800/50 hover:border-indigo-700/60'
+            : 'bg-emerald-950/15 border-emerald-800/40 hover:border-emerald-700/50'
+          const iconBg = docSubidoPorInterno ? 'bg-indigo-900/50' : 'bg-emerald-900/40'
+          const stripColor = docSubidoPorInterno ? 'bg-indigo-600' : 'bg-emerald-500'
+
           return (
-            <Card key={doc.id} className="bg-slate-900 border-slate-800">
-              <CardContent className="p-4 space-y-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-lg bg-slate-800 flex items-center justify-center shrink-0">
-                    <FileIcon tipo={doc.tipo} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-white text-sm font-medium truncate">{doc.nombre_archivo}</p>
-                    <p className="text-slate-500 text-xs mt-0.5">
-                      {doc.proyecto?.nombre ?? 'Sin proyecto'} · {new Date(doc.created_at).toLocaleDateString('es-CL')}
-                      {docSubidoPorInterno && esCliente && (
-                        <span className="ml-2 text-indigo-400">· Cargado por AICOUNTS</span>
-                      )}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
-                    {industria && (
-                      <span className="text-xs px-2 py-0.5 rounded-full border bg-slate-800 text-slate-300 border-slate-700">
-                        {industria}
-                      </span>
-                    )}
-                    {bloque && (
-                      <span className="text-xs px-2 py-0.5 rounded-full border bg-indigo-950 text-indigo-300 border-indigo-800">
-                        {BLOQUE_LABELS[bloque] ?? bloque}
-                      </span>
-                    )}
-                    <span className={`text-xs px-2 py-0.5 rounded-full border ${estadoClass}`}>
-                      {estadoLabel}
-                    </span>
-                  </div>
-                </div>
+            <Card key={doc.id} className={`border transition-colors overflow-hidden ${cardStyle}`}>
+              <CardContent className="p-0">
+                {/* Franja de color lateral que identifica el origen */}
+                <div className="flex">
+                  <div className={`w-1 shrink-0 ${stripColor}`} />
+                  <div className="flex-1 p-4 space-y-3">
+
+                    <div className="flex items-center gap-3">
+                      <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${iconBg}`}>
+                        <FileIcon tipo={doc.tipo} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-white text-sm font-medium truncate">{doc.nombre_archivo}</p>
+                        <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                          <span className="text-slate-500 text-xs">
+                            {doc.proyecto?.nombre ?? 'Sin proyecto'} · {new Date(doc.created_at).toLocaleDateString('es-CL')}
+                          </span>
+                          {/* Badge de origen — quién subió el doc */}
+                          {docSubidoPorInterno ? (
+                            <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-indigo-900/60 text-indigo-300 border border-indigo-700/50">
+                              <ShieldCheck className="w-3 h-3" />
+                              AICOUNTS Consultores
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-emerald-900/50 text-emerald-300 border border-emerald-700/50">
+                              <User className="w-3 h-3" />
+                              Subido por cliente
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
+                        {industria && (
+                          <span className="text-xs px-2 py-0.5 rounded-full border bg-slate-800 text-slate-300 border-slate-700">
+                            {industria}
+                          </span>
+                        )}
+                        {bloque && (
+                          <span className="text-xs px-2 py-0.5 rounded-full border bg-slate-800/80 text-slate-300 border-slate-700">
+                            {BLOQUE_LABELS[bloque] ?? bloque}
+                          </span>
+                        )}
+                        <span className={`text-xs px-2 py-0.5 rounded-full border ${estadoClass}`}>
+                          {estadoLabel}
+                        </span>
+                      </div>
+                    </div>
 
                 {tipoDoc && (
                   <p className="text-slate-500 text-xs pl-12 italic">{tipoDoc}</p>
@@ -264,6 +287,9 @@ export default async function DocumentosPage({ searchParams }: { searchParams: {
                     </Link>
                   )}
                 </div>
+
+                  </div>{/* fin flex-1 p-4 */}
+                </div>{/* fin flex franja+contenido */}
               </CardContent>
             </Card>
           )
