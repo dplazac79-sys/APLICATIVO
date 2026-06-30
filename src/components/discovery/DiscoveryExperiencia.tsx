@@ -781,15 +781,31 @@ function PollingScreen({
       )}
 
       {timeout3min && !todosListos && (
-        <div className="rounded-xl bg-amber-950/30 border border-amber-800/40 p-4 text-center space-y-3 max-w-lg mx-auto">
-          <AlertTriangle className="w-5 h-5 text-amber-400 mx-auto" />
-          <p className="text-amber-300 text-sm font-semibold">El procesamiento continúa en segundo plano</p>
-          <p className="text-slate-400 text-xs">El motor sigue trabajando. Puedes recargar la página para ver el estado actualizado.</p>
+        <div className="rounded-2xl bg-gradient-to-br from-violet-950/40 to-slate-900/60 border border-violet-700/30 p-6 text-center space-y-4 max-w-lg mx-auto">
+          <div className="w-10 h-10 rounded-xl bg-violet-600/20 border border-violet-500/30 flex items-center justify-center mx-auto">
+            <Cpu className="w-5 h-5 text-violet-400 animate-pulse" />
+          </div>
+          <div className="space-y-1.5">
+            <p className="text-white font-semibold text-sm">AICOUNTS Intelligence Engine en proceso</p>
+            <p className="text-slate-400 text-xs leading-relaxed">
+              Tu documentación está siendo analizada con precisión. Los documentos más densos requieren
+              un procesamiento exhaustivo — esto garantiza que cada insight sea sólido y accionable.
+            </p>
+          </div>
+          <div className="flex items-center justify-center gap-1.5 py-1">
+            {[0,1,2,3,4].map(i => (
+              <div
+                key={i}
+                className="w-1.5 h-1.5 rounded-full bg-violet-500 animate-bounce"
+                style={{ animationDelay: `${i * 0.15}s` }}
+              />
+            ))}
+          </div>
           <button
             onClick={() => window.location.reload()}
-            className="flex items-center gap-2 mx-auto px-4 py-2 bg-amber-900/50 border border-amber-700/50 text-amber-300 text-sm font-medium rounded-xl hover:bg-amber-900/70 transition-all"
+            className="flex items-center gap-2 mx-auto px-5 py-2.5 bg-violet-600/20 border border-violet-500/40 text-violet-300 text-sm font-medium rounded-xl hover:bg-violet-600/30 transition-all"
           >
-            <RefreshCw className="w-3.5 h-3.5" /> Recargar
+            <RefreshCw className="w-3.5 h-3.5" /> Ver estado actualizado
           </button>
         </div>
       )}
