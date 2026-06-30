@@ -83,6 +83,12 @@ export default async function BienvenidaPage() {
   const nombre = usuario?.nombre?.split(' ')[0] ?? 'Equipo'
   const cliente = proyectoMeta?.cliente as { razon_social?: string; industria?: string } | null
 
+  // Cálculo de estado de fases para el carril de bienvenida
+  const faseActiva = fases?.find(f => f.status === 'activa') ?? null
+  const fasesCompletadas = fases?.filter(f => f.status === 'completada') ?? []
+  const fasesBloqueadas = fases?.filter(f => f.status === 'bloqueada') ?? []
+  const pctProgreso = fases ? Math.round((fasesCompletadas.length / fases.length) * 100) : 0
+
   const accionVerbo: Record<string, string> = {
     CREATE: 'Creó', UPDATE: 'Modificó', DELETE: 'Eliminó',
     LOGIN: 'Inició sesión', EXPORT: 'Exportó', UPLOAD: 'Subió archivo',
@@ -133,81 +139,75 @@ export default async function BienvenidaPage() {
               )}
             </div>
           </div>
-          {proyectoMeta && fases && (() => {
-            const faseActiva = fases.find(f => f.status === 'activa')
-            const completadas = fases.filter(f => f.status === 'completada')
-            const bloqueadas = fases.filter(f => f.status === 'bloqueada')
-            const pct = Math.round((completadas.length / fases.length) * 100)
-            return (
-              <div className="mt-6 pt-6 border-t border-slate-800 space-y-4">
-                {/* Barra de progreso global */}
-                <div className="flex items-center gap-3">
-                  <div className="flex-1 h-1.5 bg-slate-800 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-gradient-to-r from-emerald-500 to-indigo-500 rounded-full transition-all"
-                      style={{ width: `${pct}%` }}
-                    />
-                  </div>
-                  <span className="text-xs text-slate-400 shrink-0 font-mono">{completadas.length}/{fases.length} fases · {pct}%</span>
+          {proyectoMeta && fases && (
+            <div className="mt-6 pt-6 border-t border-slate-800 space-y-4">
+              {/* Barra de progreso global */}
+              <div className="flex items-center gap-3">
+                <div className="flex-1 h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-gradient-to-r from-emerald-500 to-indigo-500 rounded-full transition-all"
+                    style={{ width: `${pctProgreso}%` }}
+                  />
                 </div>
-
-                {/* Carril de fases */}
-                <div className="flex items-start gap-1 flex-wrap">
-                  {fases.map((fase, idx) => {
-                    const esActiva = fase.status === 'activa'
-                    const esCompleta = fase.status === 'completada'
-                    const esBloqueada = fase.status === 'bloqueada'
-                    return (
-                      <div key={fase.id} className="flex items-center gap-1">
-                        <Link
-                          href={esBloqueada ? '#' : fase.href}
-                          className={`group flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                            esCompleta
-                              ? 'bg-emerald-950/60 text-emerald-400 border border-emerald-800/50 hover:bg-emerald-950'
-                              : esActiva
-                              ? 'bg-indigo-600/20 text-indigo-300 border border-indigo-500/50 ring-1 ring-indigo-500/30 hover:bg-indigo-600/30'
-                              : 'bg-slate-800/40 text-slate-600 border border-slate-800 cursor-not-allowed'
-                          }`}
-                          onClick={esBloqueada ? (e) => e.preventDefault() : undefined}
-                        >
-                          {esCompleta ? (
-                            <CheckCircle2 className="w-3 h-3 shrink-0" />
-                          ) : esActiva ? (
-                            <ChevronRight className="w-3 h-3 shrink-0 animate-pulse" />
-                          ) : (
-                            <Lock className="w-3 h-3 shrink-0" />
-                          )}
-                          <span>F{fase.id}</span>
-                          {(esCompleta || esActiva) && (
-                            <span className={`hidden sm:inline ${esActiva ? 'text-indigo-400' : 'text-emerald-500'}`}>
-                              · {fase.nombre}
-                            </span>
-                          )}
-                        </Link>
-                        {idx < fases.length - 1 && (
-                          <span className="text-slate-700 text-xs">›</span>
-                        )}
-                      </div>
-                    )
-                  })}
-                </div>
-
-                {/* Próximo paso */}
-                {faseActiva && (
-                  <div className="flex items-center gap-2 bg-indigo-950/30 border border-indigo-800/30 rounded-lg px-3 py-2">
-                    <Circle className="w-3 h-3 text-indigo-400 shrink-0" />
-                    <span className="text-xs text-slate-400">Próximo paso:</span>
-                    <Link href={faseActiva.href} className="text-xs text-indigo-300 font-medium hover:text-indigo-200 transition-colors">
-                      F{faseActiva.id} — {faseActiva.nombre}
-                    </Link>
-                    {bloqueadas.length > 0 && (
-                      <span className="ml-auto text-xs text-slate-600">{bloqueadas.length} fase{bloqueadas.length > 1 ? 's' : ''} bloqueada{bloqueadas.length > 1 ? 's' : ''}</span>
-                    )}
-                  </div>
-                )}
+                <span className="text-xs text-slate-400 shrink-0 font-mono">{fasesCompletadas.length}/{fases.length} fases · {pctProgreso}%</span>
               </div>
-            )
-          })()}
+
+              {/* Carril de fases */}
+              <div className="flex items-start gap-1 flex-wrap">
+                {fases.map((fase, idx) => {
+                  const esActiva = fase.status === 'activa'
+                  const esCompleta = fase.status === 'completada'
+                  const esBloqueada = fase.status === 'bloqueada'
+                  return (
+                    <div key={fase.id} className="flex items-center gap-1">
+                      <Link
+                        href={esBloqueada ? '#' : fase.href}
+                        aria-disabled={esBloqueada}
+                        className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                          esCompleta
+                            ? 'bg-emerald-950/60 text-emerald-400 border border-emerald-800/50 hover:bg-emerald-950'
+                            : esActiva
+                            ? 'bg-indigo-600/20 text-indigo-300 border border-indigo-500/50 ring-1 ring-indigo-500/30 hover:bg-indigo-600/30'
+                            : 'bg-slate-800/40 text-slate-600 border border-slate-800 pointer-events-none'
+                        }`}
+                      >
+                        {esCompleta ? (
+                          <CheckCircle2 className="w-3 h-3 shrink-0" />
+                        ) : esActiva ? (
+                          <ChevronRight className="w-3 h-3 shrink-0 animate-pulse" />
+                        ) : (
+                          <Lock className="w-3 h-3 shrink-0" />
+                        )}
+                        <span>F{fase.id}</span>
+                        {(esCompleta || esActiva) && (
+                          <span className={`hidden sm:inline ${esActiva ? 'text-indigo-400' : 'text-emerald-500'}`}>
+                            · {fase.nombre}
+                          </span>
+                        )}
+                      </Link>
+                      {idx < fases.length - 1 && (
+                        <span className="text-slate-700 text-xs">›</span>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+
+              {/* Próximo paso */}
+              {faseActiva && (
+                <div className="flex items-center gap-2 bg-indigo-950/30 border border-indigo-800/30 rounded-lg px-3 py-2">
+                  <Circle className="w-3 h-3 text-indigo-400 shrink-0" />
+                  <span className="text-xs text-slate-400">Próximo paso:</span>
+                  <Link href={faseActiva.href} className="text-xs text-indigo-300 font-medium hover:text-indigo-200 transition-colors">
+                    F{faseActiva.id} — {faseActiva.nombre}
+                  </Link>
+                  {fasesBloqueadas.length > 0 && (
+                    <span className="ml-auto text-xs text-slate-600">{fasesBloqueadas.length} fase{fasesBloqueadas.length > 1 ? 's' : ''} bloqueada{fasesBloqueadas.length > 1 ? 's' : ''}</span>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
