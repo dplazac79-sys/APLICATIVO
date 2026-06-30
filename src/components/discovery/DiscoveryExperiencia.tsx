@@ -371,8 +371,14 @@ function EstadoVacioDiscovery({
   const noListos = documentos.filter(d => d.estado_procesamiento !== 'listo')
   const tieneListos = listos.length > 0
 
+  // Selección para Discovery IA (docs listos)
   const [seleccionados, setSeleccionados] = useState<string[]>(listos.map(d => d.id))
   const todosSeleccionados = listos.length > 0 && seleccionados.length === listos.length
+
+  // Selección para procesar (docs pendientes)
+  const [selParaProcesar, setSelParaProcesar] = useState<string[]>(noListos.map(d => d.id))
+  const todosParaProcesar = noListos.length > 0 && selParaProcesar.length === noListos.length
+
   const [procesando, setProcesando] = useState(false)
   const [procesadosIds, setProcesadosIds] = useState<string[]>([])
 
@@ -382,11 +388,18 @@ function EstadoVacioDiscovery({
   function toggleTodos() {
     setSeleccionados(todosSeleccionados ? [] : listos.map(d => d.id))
   }
+  function toggleParaProcesar(id: string) {
+    setSelParaProcesar(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
+  }
+  function toggleTodosParaProcesar() {
+    setSelParaProcesar(todosParaProcesar ? [] : noListos.map(d => d.id))
+  }
 
-  async function procesarPendientes() {
-    if (procesando || noListos.length === 0) return
+  async function procesarSeleccionados() {
+    const targets = noListos.filter(d => selParaProcesar.includes(d.id))
+    if (procesando || targets.length === 0) return
     setProcesando(true)
-    for (const doc of noListos) {
+    for (const doc of targets) {
       try {
         await fetch('/api/documentos/procesar', {
           method: 'POST',
@@ -397,37 +410,43 @@ function EstadoVacioDiscovery({
       } catch { /* continúa con el siguiente */ }
     }
     setProcesando(false)
-    setTimeout(() => window.location.reload(), 1200)
+    setTimeout(() => window.location.reload(), 1500)
   }
 
   return (
     <div className="space-y-6">
-      {/* Hero — resumen de valor */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-violet-950/40 to-slate-900 border border-violet-800/30 p-8 sm:p-10">
+
+      {/* ── Hero ── */}
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-violet-950/40 to-indigo-950/20 border border-violet-800/30 p-8 sm:p-10">
         <div className="absolute inset-0 pointer-events-none overflow-hidden">
-          <div className="absolute -top-20 -right-20 w-80 h-80 bg-violet-600/10 rounded-full blur-3xl" />
-          <div className="absolute -bottom-20 -left-20 w-60 h-60 bg-indigo-600/10 rounded-full blur-3xl" />
-          <div className="absolute inset-0 opacity-5"
-            style={{ backgroundImage: 'linear-gradient(#6366f1 1px, transparent 1px), linear-gradient(to right, #6366f1 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
+          <div className="absolute -top-24 -right-24 w-96 h-96 bg-violet-600/10 rounded-full blur-3xl" />
+          <div className="absolute -bottom-16 -left-16 w-72 h-72 bg-indigo-600/10 rounded-full blur-3xl" />
+          <div className="absolute inset-0 opacity-[0.03]"
+            style={{ backgroundImage: 'linear-gradient(#818cf8 1px, transparent 1px), linear-gradient(to right, #818cf8 1px, transparent 1px)', backgroundSize: '48px 48px' }} />
         </div>
-        <div className="relative z-10 max-w-2xl">
-          <div className="inline-flex items-center gap-2 bg-violet-900/40 border border-violet-700/50 rounded-full px-4 py-1.5 mb-5">
-            <div className="w-2 h-2 bg-violet-400 rounded-full animate-pulse" />
-            <span className="text-violet-300 text-xs font-semibold uppercase tracking-widest">AICOUNTS Intelligence Engine</span>
+        <div className="relative z-10">
+          <div className="inline-flex items-center gap-2 bg-violet-900/50 border border-violet-600/40 rounded-full px-4 py-1.5 mb-6">
+            <div className="w-1.5 h-1.5 bg-violet-400 rounded-full animate-pulse" />
+            <span className="text-violet-300 text-xs font-bold uppercase tracking-[0.15em]">AICOUNTS Intelligence Engine</span>
           </div>
-          <h2 className="text-3xl font-bold text-white mb-3 leading-tight">
-            La metodología AICOUNTS,<br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-400 to-indigo-300">potenciada por inteligencia artificial</span>
+          <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4 leading-tight max-w-2xl">
+            Tu documentación contiene el<br />
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-300 via-fuchsia-300 to-indigo-300">mapa completo de tu organización.</span>
           </h2>
-          <p className="text-slate-300 text-base leading-relaxed mb-6">
-            Nuestro framework propietario de consultoría se ejecuta sobre un motor de IA de última generación que lee tu documentación, mapea la cadena de valor completa y construye el inventario de procesos críticos, el Glosario de Roles y el roadmap de automatización con el rigor analítico de AICOUNTS — a la velocidad de la inteligencia artificial.
+          <p className="text-slate-300 text-base leading-relaxed mb-6 max-w-2xl">
+            AICOUNTS Consultores despliega su framework propietario sobre tu documentación para extraer la arquitectura de procesos críticos, los roles de decisión y las brechas operacionales que ningún diagnóstico tradicional detecta con esta velocidad y precisión. El resultado es inteligencia estratégica lista para ser ejecutada por tu directorio.
           </p>
-          <div className="flex items-center gap-3 flex-wrap text-sm text-slate-400">
-            <div className="flex items-center gap-2"><Shield className="w-4 h-4 text-violet-400" /><span>Rigor metodológico AICOUNTS</span></div>
-            <div className="w-px h-4 bg-slate-700" />
-            <div className="flex items-center gap-2"><TrendingUp className="w-4 h-4 text-emerald-400" /><span>Insights accionables desde el día uno</span></div>
-            <div className="w-px h-4 bg-slate-700" />
-            <div className="flex items-center gap-2"><Cpu className="w-4 h-4 text-blue-400" /><span>Motor de IA de última generación</span></div>
+          <div className="flex items-center gap-4 flex-wrap">
+            {[
+              { icon: Shield, color: 'text-violet-400', label: 'Metodología certificada AICOUNTS' },
+              { icon: TrendingUp, color: 'text-emerald-400', label: 'Inteligencia lista para la dirección' },
+              { icon: Cpu, color: 'text-blue-400', label: 'Motor de análisis de última generación' },
+            ].map(({ icon: Icon, color, label }) => (
+              <div key={label} className="flex items-center gap-2 text-sm text-slate-400">
+                <Icon className={`w-4 h-4 ${color}`} />
+                <span>{label}</span>
+              </div>
+            ))}
           </div>
         </div>
       </div>
@@ -440,13 +459,15 @@ function EstadoVacioDiscovery({
           <div className="flex items-center gap-3">
             <span className="w-7 h-7 rounded-full bg-violet-600 text-white text-xs font-bold flex items-center justify-center shrink-0">1</span>
             <div>
-              <p className="text-white font-semibold text-sm">Selecciona los documentos a analizar</p>
+              <p className="text-white font-semibold text-sm">
+                {!tieneListos && documentos.length > 0 ? 'Activa la inteligencia en tus documentos' : 'Selecciona los documentos a analizar'}
+              </p>
               <p className="text-slate-500 text-xs mt-0.5">
                 {documentos.length === 0
-                  ? 'Carga documentación primero en Centro Documental.'
+                  ? 'Carga documentación en Centro Documental para comenzar.'
                   : tieneListos
-                  ? `${listos.length} documento${listos.length !== 1 ? 's' : ''} listo${listos.length !== 1 ? 's' : ''} · elige cuáles entran al análisis`
-                  : `${noListos.length} documento${noListos.length !== 1 ? 's' : ''} pendiente${noListos.length !== 1 ? 's' : ''} de procesamiento`}
+                  ? `${listos.length} documento${listos.length !== 1 ? 's' : ''} listo${listos.length !== 1 ? 's' : ''} · selecciona cuáles entran al análisis`
+                  : `${noListos.length} documento${noListos.length !== 1 ? 's' : ''} cargado${noListos.length !== 1 ? 's' : ''} · activa la inteligencia para habilitarlos`}
               </p>
             </div>
           </div>
@@ -474,53 +495,78 @@ function EstadoVacioDiscovery({
           </div>
 
         ) : !tieneListos ? (
-          /* Todos pendientes — mostrar estado bloqueado + acción */
-          <div className="p-5 space-y-4">
-            <div className="flex items-start gap-3 bg-amber-950/20 border border-amber-700/30 rounded-xl p-4">
-              <AlertCircle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
-              <div>
-                <p className="text-amber-300 font-semibold text-sm">Documentos pendientes de procesamiento</p>
-                <p className="text-slate-400 text-xs mt-1">
-                  Tus documentos están cargados pero aún no han sido procesados. El motor de inteligencia necesita leer y comprender su contenido antes de poder analizarlos. Procésalos ahora con un clic.
-                </p>
+          /* Todos pendientes: selección individual + explicación + botón */
+          <div className="divide-y divide-slate-800">
+            {/* Explicación de qué significa procesar */}
+            <div className="p-5 bg-violet-950/10">
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 rounded-lg bg-violet-900/50 border border-violet-700/50 flex items-center justify-center shrink-0">
+                  <Brain className="w-4 h-4 text-violet-400" />
+                </div>
+                <div>
+                  <p className="text-white font-semibold text-sm">¿Qué significa procesar un documento?</p>
+                  <p className="text-slate-400 text-xs mt-1 leading-relaxed max-w-2xl">
+                    Antes de ejecutar el análisis, el motor lee e indexa el contenido de cada documento — extrae texto, tablas, estructuras y metadatos — construyendo una representación inteligente sobre la que opera el framework AICOUNTS. Es el paso previo que garantiza que el análisis posterior sea profundo, trazable y de alta precisión.
+                  </p>
+                </div>
               </div>
             </div>
 
-            <div className="space-y-2">
+            {/* Lista con checkboxes */}
+            <div className="p-4 space-y-2">
               {noListos.map(doc => {
                 const enProceso = procesadosIds.includes(doc.id)
+                const marcado = selParaProcesar.includes(doc.id)
                 return (
-                  <div key={doc.id} className={`flex items-center gap-3 rounded-xl px-4 py-3 border transition-colors ${
-                    enProceso ? 'bg-violet-950/20 border-violet-800/40' : 'bg-slate-800/30 border-slate-700/30'
-                  }`}>
+                  <button
+                    key={doc.id}
+                    onClick={() => !enProceso && toggleParaProcesar(doc.id)}
+                    disabled={enProceso || procesando}
+                    className={`w-full flex items-center gap-3 rounded-xl px-4 py-3 border transition-colors text-left ${
+                      enProceso
+                        ? 'bg-violet-950/20 border-violet-800/40 cursor-default'
+                        : marcado
+                        ? 'bg-slate-800/60 border-violet-700/40 hover:border-violet-600/60'
+                        : 'bg-slate-800/20 border-slate-700/30 opacity-60 hover:opacity-90'
+                    }`}
+                  >
+                    <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-colors ${
+                      enProceso ? 'bg-violet-500/30 border-violet-500/50' : marcado ? 'bg-violet-600 border-violet-600' : 'border-slate-600'
+                    }`}>
+                      {enProceso
+                        ? <span className="w-2.5 h-2.5 rounded-full border border-violet-400/40 border-t-violet-400 animate-spin" />
+                        : marcado && <CheckCircle className="w-3.5 h-3.5 text-white" strokeWidth={3} />}
+                    </div>
                     <div className="w-8 h-8 rounded-lg bg-slate-800 border border-slate-700 flex items-center justify-center shrink-0">
                       <FileText className={`w-4 h-4 ${enProceso ? 'text-violet-400' : 'text-slate-500'}`} />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className={`text-sm font-medium truncate ${enProceso ? 'text-violet-300' : 'text-slate-300'}`}>{doc.nombre_archivo}</p>
-                      <p className="text-xs text-slate-600">{enProceso ? 'Encolado para procesamiento...' : 'Pendiente'}</p>
+                      <p className={`text-sm font-medium truncate ${enProceso ? 'text-violet-300' : marcado ? 'text-white' : 'text-slate-400'}`}>
+                        {doc.nombre_archivo}
+                      </p>
+                      <p className="text-xs text-slate-600">
+                        {enProceso ? 'Encolado — procesando contenido...' : 'Pendiente de indexación'}
+                      </p>
                     </div>
-                    {enProceso && <span className="w-3 h-3 rounded-full border-2 border-violet-400/30 border-t-violet-400 animate-spin shrink-0" />}
-                  </div>
+                  </button>
                 )
               })}
             </div>
 
-            <div className="flex items-center gap-3 flex-wrap">
+            {/* Acciones */}
+            <div className="p-4 flex items-center gap-3 flex-wrap">
               <button
-                onClick={procesarPendientes}
-                disabled={procesando}
-                className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white text-sm font-semibold rounded-xl transition-all shadow-lg shadow-violet-900/40 disabled:opacity-60 disabled:cursor-not-allowed"
+                onClick={procesarSeleccionados}
+                disabled={procesando || selParaProcesar.length === 0}
+                className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white text-sm font-semibold rounded-xl transition-all shadow-lg shadow-violet-900/40 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {procesando ? (
-                  <><span className="w-3.5 h-3.5 rounded-full border-2 border-white/30 border-t-white animate-spin" />Procesando documentos...</>
-                ) : (
-                  <><Sparkles className="w-4 h-4" />Procesar {noListos.length} documento{noListos.length !== 1 ? 's' : ''}</>
-                )}
+                {procesando
+                  ? <><span className="w-3.5 h-3.5 rounded-full border-2 border-white/30 border-t-white animate-spin" />Activando inteligencia...</>
+                  : <><Sparkles className="w-4 h-4" />Activar inteligencia en {selParaProcesar.length} documento{selParaProcesar.length !== 1 ? 's' : ''}</>}
               </button>
-              <a href="/documentos" className="text-xs text-slate-500 hover:text-slate-300 transition-colors">
-                Gestionar en Centro Documental →
-              </a>
+              <button onClick={toggleTodosParaProcesar} className="text-xs text-slate-500 hover:text-violet-300 transition-colors font-medium">
+                {todosParaProcesar ? 'Quitar todos' : 'Seleccionar todos'}
+              </button>
             </div>
           </div>
 
@@ -577,54 +623,74 @@ function EstadoVacioDiscovery({
         )}
       </div>
 
-      {/* ── Paso 2: ejecutar + qué obtendrás ── */}
-      <div className={`bg-gradient-to-r from-violet-900/40 via-indigo-900/30 to-slate-900 border rounded-2xl p-6 space-y-5 transition-opacity ${
-        !tieneListos || seleccionados.length === 0 ? 'opacity-40 pointer-events-none' : 'border-violet-700/40'
-      }`}>
-        <div className="flex items-start gap-4">
-          <span className="w-7 h-7 rounded-full bg-violet-600 text-white text-xs font-bold flex items-center justify-center shrink-0 mt-1">2</span>
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-violet-600 to-indigo-600 flex items-center justify-center shrink-0 shadow-lg shadow-violet-900/60">
-            <Brain className="w-6 h-6 text-white" />
-          </div>
-          <div className="flex-1">
-            <p className="text-white font-bold text-lg">Ejecutar Discovery IA</p>
-            <p className="text-slate-400 text-sm mt-1">
-              {seleccionados.length > 0
-                ? <><span className="text-emerald-400 font-semibold">{seleccionados.length} documento{seleccionados.length !== 1 ? 's' : ''} seleccionado{seleccionados.length !== 1 ? 's' : ''}</span> · el motor construirá el inventario de procesos, el Glosario de Roles y el roadmap de automatización con estándar AICOUNTS.</>
-                : 'Selecciona al menos un documento en el paso anterior.'}
-            </p>
-          </div>
-        </div>
-
-        {/* Lo que obtendrás */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pl-11">
-          {[
-            { icon: Activity, color: 'text-violet-400', bg: 'bg-violet-900/30 border-violet-800/40', title: 'Inventario de procesos', desc: 'Mapa completo de macroprocesos y subprocesos críticos con nivel de riesgo y criticidad' },
-            { icon: Users,    color: 'text-indigo-400', bg: 'bg-indigo-900/30 border-indigo-800/40', title: 'Glosario de Roles',    desc: 'Matriz de roles detectados, procesos donde participan y nivel de responsabilidad' },
-            { icon: Zap,      color: 'text-amber-400',  bg: 'bg-amber-900/20 border-amber-800/30',  title: 'Roadmap de automatización', desc: 'Oportunidades de automatización priorizadas con quick wins en menos de 30 días' },
-          ].map(({ icon: Icon, color, bg, title, desc }) => (
-            <div key={title} className={`rounded-xl border p-3 space-y-1 ${bg}`}>
-              <div className="flex items-center gap-2">
-                <Icon className={`w-4 h-4 ${color} shrink-0`} />
-                <p className={`text-xs font-semibold ${color}`}>{title}</p>
+      {/* ── Paso 2: Ejecutar Discovery IA ── */}
+      {tieneListos ? (
+        <div className="bg-gradient-to-br from-violet-950/50 via-indigo-950/30 to-slate-900 border border-violet-700/40 rounded-2xl overflow-hidden">
+          {/* Header del paso */}
+          <div className="p-6 border-b border-violet-800/20">
+            <div className="flex items-start gap-4">
+              <span className="w-7 h-7 rounded-full bg-violet-600 text-white text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">2</span>
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-violet-600 to-indigo-600 flex items-center justify-center shrink-0 shadow-lg shadow-violet-900/60">
+                <Brain className="w-6 h-6 text-white" />
               </div>
-              <p className="text-slate-500 text-xs leading-relaxed">{desc}</p>
+              <div className="flex-1">
+                <p className="text-white font-bold text-xl">Ejecutar Discovery IA</p>
+                <p className="text-slate-400 text-sm mt-1">
+                  {seleccionados.length > 0
+                    ? <><span className="text-emerald-400 font-semibold">{seleccionados.length} documento{seleccionados.length !== 1 ? 's' : ''} seleccionado{seleccionados.length !== 1 ? 's' : ''}</span> · el framework AICOUNTS analizará cada uno y construirá el diagnóstico completo de tu organización.</>
+                    : <span className="text-amber-400">Selecciona al menos un documento en el paso anterior para continuar.</span>}
+                </p>
+              </div>
             </div>
-          ))}
-        </div>
+          </div>
 
-        <div className="flex items-center gap-3 pl-11">
-          <DiscoveryAcciones proyectos={proyectosParaAcciones} documentoIds={seleccionados} disabled={seleccionados.length === 0} />
-          <span className="text-xs text-slate-500">Análisis de alta precisión · 1–3 minutos</span>
-        </div>
-      </div>
+          {/* Entregables */}
+          <div className="p-6 grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {[
+              {
+                icon: Activity, color: 'text-violet-400', border: 'border-violet-800/40',
+                title: 'Inventario de Procesos',
+                desc: 'Mapa completo de macroprocesos y subprocesos críticos. Cada uno con nivel de criticidad, estado operacional, riesgos detectados y oportunidades de mejora.',
+              },
+              {
+                icon: Users, color: 'text-indigo-400', border: 'border-indigo-800/40',
+                title: 'Glosario de Roles',
+                desc: 'Matriz de todos los roles detectados en la organización: en qué procesos participan, qué nivel de responsabilidad tienen y qué brechas existen en la cobertura.',
+              },
+              {
+                icon: Zap, color: 'text-amber-400', border: 'border-amber-800/30',
+                title: 'Roadmap de Transformación',
+                desc: 'Oportunidades de automatización y mejora priorizadas por impacto. Incluye quick wins ejecutables en menos de 30 días y recomendaciones estratégicas para el directorio.',
+              },
+            ].map(({ icon: Icon, color, border, title, desc }) => (
+              <div key={title} className={`rounded-xl border bg-slate-900/60 p-4 space-y-2 ${border}`}>
+                <div className="flex items-center gap-2">
+                  <Icon className={`w-4 h-4 ${color}`} />
+                  <p className={`text-sm font-semibold ${color}`}>{title}</p>
+                </div>
+                <p className="text-slate-500 text-xs leading-relaxed">{desc}</p>
+              </div>
+            ))}
+          </div>
 
-      {/* Bloque ghost cuando no hay listos — explica qué viene */}
-      {!tieneListos && documentos.length > 0 && (
-        <div className="rounded-2xl border border-slate-800/50 bg-slate-900/30 p-6 opacity-40 pointer-events-none">
-          <div className="flex items-center gap-3">
+          {/* CTA */}
+          <div className="px-6 pb-6 flex items-center gap-4">
+            <DiscoveryAcciones proyectos={proyectosParaAcciones} documentoIds={seleccionados} disabled={seleccionados.length === 0} />
+            <span className="text-xs text-slate-500">Diagnóstico de alta precisión · 1–3 minutos · puedes seguir navegando</span>
+          </div>
+        </div>
+      ) : (
+        /* Bloque fantasma: visible pero desactivado cuando no hay docs listos */
+        <div className="rounded-2xl border border-slate-800/40 bg-slate-900/20 p-6 opacity-40 pointer-events-none select-none">
+          <div className="flex items-center gap-4">
             <span className="w-7 h-7 rounded-full bg-slate-700 text-slate-400 text-xs font-bold flex items-center justify-center shrink-0">2</span>
-            <p className="text-slate-500 text-sm">Ejecutar Discovery IA — disponible cuando proceses tus documentos</p>
+            <div className="w-10 h-10 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center shrink-0">
+              <Brain className="w-5 h-5 text-slate-600" />
+            </div>
+            <div>
+              <p className="text-slate-500 font-semibold text-sm">Ejecutar Discovery IA</p>
+              <p className="text-slate-600 text-xs">Se habilitará cuando tus documentos hayan sido indexados en el Paso 1</p>
+            </div>
           </div>
         </div>
       )}
