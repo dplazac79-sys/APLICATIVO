@@ -562,7 +562,7 @@ function EstadoVacioDiscovery({
               >
                 {procesando
                   ? <><span className="w-3.5 h-3.5 rounded-full border-2 border-white/30 border-t-white animate-spin" />Activando inteligencia...</>
-                  : <><Sparkles className="w-4 h-4" />Activar inteligencia en {selParaProcesar.length} documento{selParaProcesar.length !== 1 ? 's' : ''}</>}
+                  : <><Sparkles className="w-4 h-4" />Procesar {selParaProcesar.length} documento{selParaProcesar.length !== 1 ? 's' : ''} para el análisis</>}
               </button>
               <button onClick={toggleTodosParaProcesar} className="text-xs text-slate-500 hover:text-violet-300 transition-colors font-medium">
                 {todosParaProcesar ? 'Quitar todos' : 'Seleccionar todos'}
