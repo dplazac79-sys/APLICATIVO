@@ -34,9 +34,8 @@ const nextConfig = {
   outputFileTracingIncludes: {
     '/api/**': ['./src/lib/prompts/**'],
   },
-  experimental: {
-    serverComponentsExternalPackages: ['@xenova/transformers', 'onnxruntime-node', '@react-pdf/renderer'],
-  },
+  // Paquetes que NO deben bundlearse — se cargan como módulos nativos de Node en runtime
+  serverExternalPackages: ['pdf-parse', 'mammoth', '@xenova/transformers', 'onnxruntime-node', '@react-pdf/renderer'],
   async headers() {
     return [
       {
