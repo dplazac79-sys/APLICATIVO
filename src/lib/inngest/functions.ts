@@ -170,7 +170,7 @@ export const discoveryAI = inngest.createFunction(
 
     const resultado = await step.run('ejecutar-discovery', async () => {
       try {
-        return await discoveryProcesos(datos.ctx.empresa, datos.ctx.documentos_filtrados)
+        return await discoveryProcesos(datos.ctx.empresa, datos.documentos_filtrados)
       } catch (err) {
         const msg = err instanceof Error ? err.message : 'Error en análisis IA'
         await marcarError(msg)
