@@ -1572,55 +1572,102 @@ export default function DiscoveryExperiencia({
           <div className="absolute top-0 right-0 w-64 h-64 bg-violet-600/5 rounded-full blur-3xl" />
         </div>
         <div className="relative flex items-start justify-between gap-4 flex-wrap">
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-violet-600 to-indigo-600 flex items-center justify-center">
-                <Brain className="w-4 h-4 text-white" />
-              </div>
-              <div>
-                <h1 className="text-xl font-bold text-white">Process Discovery IA</h1>
-                <p className="text-slate-400 text-xs">{nombreProyecto}{clienteNombre ? ` · ${clienteNombre}` : ''}</p>
-              </div>
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-violet-600 to-indigo-600 flex items-center justify-center shrink-0">
+              <Brain className="w-5 h-5 text-white" />
             </div>
-            <p className="text-slate-400 text-sm max-w-lg">
-              Inteligencia operacional con metodología AICOUNTS: mapea, diagnostica y prioriza los procesos críticos de tu organización con rigor de consultoría de clase mundial.
-            </p>
+            <div>
+              <h1 className="text-xl font-bold text-white">Process Discovery IA</h1>
+              <p className="text-slate-400 text-xs">{nombreProyecto}{clienteNombre ? ` · ${clienteNombre}` : ''}</p>
+            </div>
           </div>
           {totalProcesos > 0 && <DiscoveryAcciones proyectos={proyectosParaAcciones} />}
         </div>
 
-        {/* KPI strip */}
+        {/* Panel de resultados post-discovery */}
         {totalProcesos > 0 && (
-          <div className="mt-5 pt-5 border-t border-slate-800 grid grid-cols-2 sm:grid-cols-4 gap-4">
-            {[
-              { label: 'Procesos detectados', value: totalProcesos, color: 'text-white', icon: Activity },
-              { label: 'Validados', value: aceptados, color: 'text-emerald-400', icon: CheckCircle },
-              { label: 'En revisión', value: pendientes, color: 'text-amber-400', icon: Clock },
-              { label: '% aprobación', value: `${pctAprobacion}%`, color: pctAprobacion >= 80 ? 'text-emerald-400' : pctAprobacion >= 50 ? 'text-amber-400' : 'text-red-400', icon: BarChart3 },
-            ].map(({ label, value, color, icon: Icon }) => (
-              <div key={label} className="space-y-1">
-                <div className="flex items-center gap-1.5">
-                  <Icon className={`w-3.5 h-3.5 ${color}`} />
-                  <p className="text-xs text-slate-500 uppercase tracking-wider">{label}</p>
-                </div>
-                <p className={`text-2xl font-bold ${color}`}>{value}</p>
-              </div>
-            ))}
-          </div>
-        )}
+          <div className="mt-5 pt-5 border-t border-slate-800 space-y-4">
 
-        {/* Barra de progreso aprobación */}
-        {totalProcesos > 0 && (
-          <div className="mt-4">
-            <div className="flex justify-between text-xs text-slate-500 mb-1.5">
-              <span>Progreso de validación</span>
-              <span>{aceptados}/{totalProcesos} procesos</span>
+            {/* Explicación del origen de los resultados */}
+            <div className="flex items-start gap-3 bg-violet-950/30 border border-violet-800/30 rounded-xl px-4 py-3">
+              <Sparkles className="w-4 h-4 text-violet-400 shrink-0 mt-0.5" />
+              <p className="text-sm text-slate-300 leading-relaxed">
+                El análisis de tus documentos identificó{' '}
+                <span className="text-white font-semibold">{macroprocesos.length} macroproceso{macroprocesos.length !== 1 ? 's' : ''}</span>
+                {' '}y{' '}
+                <span className="text-white font-semibold">{totalProcesos} proceso{totalProcesos !== 1 ? 's' : ''}</span>
+                {' '}en tu organización. Un <span className="text-violet-300 font-medium">macroproceso</span> es un área de negocio (ej. Cadena de Suministro), y cada <span className="text-violet-300 font-medium">proceso</span> es una actividad específica dentro de él. Revisa cada uno y decide cuáles son correctos para tu organización.
+              </p>
             </div>
-            <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden">
-              <div
-                className="h-full rounded-full bg-gradient-to-r from-violet-500 to-emerald-500 transition-all duration-700"
-                style={{ width: `${pctAprobacion}%` }}
-              />
+
+            {/* Workflow de revisión: 3 pasos */}
+            <div className="grid grid-cols-3 gap-3">
+              {[
+                {
+                  step: '1',
+                  icon: Target,
+                  label: 'Revisar',
+                  desc: 'Lee cada macroproceso y sus procesos detectados',
+                  color: 'text-violet-400',
+                  bg: 'bg-violet-950/30 border-violet-800/30',
+                },
+                {
+                  step: '2',
+                  icon: CheckCircle,
+                  label: 'Validar',
+                  desc: 'Acepta los correctos, rechaza los que no aplican',
+                  color: 'text-emerald-400',
+                  bg: 'bg-emerald-950/30 border-emerald-800/30',
+                },
+                {
+                  step: '3',
+                  icon: TrendingUp,
+                  label: 'Analizar',
+                  desc: 'Usa "Analizar con IA" para profundizar en cada proceso',
+                  color: 'text-blue-400',
+                  bg: 'bg-blue-950/30 border-blue-800/30',
+                },
+              ].map(({ step, icon: Icon, label, desc, color, bg }) => (
+                <div key={step} className={`rounded-xl border px-3 py-2.5 ${bg}`}>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-xs font-bold text-slate-500">PASO {step}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <Icon className={`w-3.5 h-3.5 ${color}`} />
+                    <span className={`text-sm font-semibold ${color}`}>{label}</span>
+                  </div>
+                  <p className="text-xs text-slate-500 leading-relaxed">{desc}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* Barra de progreso de validación */}
+            <div>
+              <div className="flex items-center justify-between text-xs mb-2">
+                <div className="flex items-center gap-4">
+                  <span className="flex items-center gap-1.5 text-slate-400">
+                    <Clock className="w-3.5 h-3.5 text-amber-400" />
+                    <span className="text-amber-400 font-semibold">{pendientes}</span> pendientes de revisión
+                  </span>
+                  <span className="flex items-center gap-1.5 text-slate-400">
+                    <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
+                    <span className="text-emerald-400 font-semibold">{aceptados}</span> aceptados
+                  </span>
+                  {rechazados > 0 && (
+                    <span className="flex items-center gap-1.5 text-slate-400">
+                      <XCircle className="w-3.5 h-3.5 text-red-400" />
+                      <span className="text-red-400 font-semibold">{rechazados}</span> rechazados
+                    </span>
+                  )}
+                </div>
+                <span className="text-slate-500">{pctAprobacion}% validado</span>
+              </div>
+              <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-gradient-to-r from-violet-500 to-emerald-500 transition-all duration-700"
+                  style={{ width: `${pctAprobacion}%` }}
+                />
+              </div>
             </div>
           </div>
         )}
@@ -1630,7 +1677,7 @@ export default function DiscoveryExperiencia({
       {totalProcesos > 0 && (
         <div className="flex gap-1 bg-slate-900/80 border border-slate-800 rounded-xl p-1 w-fit">
           {[
-            { id: 'procesos', label: 'Inventario de Procesos', icon: Activity, count: totalProcesos },
+            { id: 'procesos', label: 'Macroprocesos y Procesos', icon: Activity, count: macroprocesos.length },
             { id: 'glosario', label: 'Glosario de Roles', icon: Users, count: rolesDetectados.length },
           ].map(t => (
             <button
@@ -1673,6 +1720,16 @@ export default function DiscoveryExperiencia({
               </div>
             </div>
           )}
+
+          {/* Encabezado de la lista */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Layers className="w-4 h-4 text-slate-400" />
+              <span className="text-sm font-semibold text-slate-300">Macroprocesos detectados</span>
+              <span className="text-xs text-slate-500 bg-slate-800 border border-slate-700 rounded-full px-2 py-0.5">{macroprocesos.length}</span>
+            </div>
+            <p className="text-xs text-slate-500">Expande cada macroproceso para ver sus procesos</p>
+          </div>
 
           <div className="space-y-3">
             {macroprocesos.map(macro => (
