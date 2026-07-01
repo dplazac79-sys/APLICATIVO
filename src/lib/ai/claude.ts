@@ -264,7 +264,7 @@ export interface DiscoveryResult {
 // Máximo de caracteres por resumen de documento para evitar que context window
 // explote con muchos docs largos. Los resúmenes suelen ser ~1500 chars; este
 // límite sólo aplica si el cliente sube algo excepcionalmente grande.
-const MAX_CHARS_POR_DOC = 2500
+const MAX_CHARS_POR_DOC = 800
 
 async function discoveryProcesosGroq(prompt: string, systemPrompt: string): Promise<string> {
   if (!groqClient) throw new Error('GROQ_API_KEY no configurada')
