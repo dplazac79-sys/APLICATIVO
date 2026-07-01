@@ -1,11 +1,11 @@
 import Anthropic from '@anthropic-ai/sdk'
-import { GoogleGenerativeAI } from '@google/generative-ai'
+import { GoogleGenAI } from '@google/genai'
 import fs from 'fs'
 import path from 'path'
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 const geminiClient = process.env.GEMINI_API_KEY
-  ? new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
+  ? new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY })
   : null
 
 const promptCache = new Map<string, string>()
@@ -268,15 +268,15 @@ const MAX_CHARS_POR_DOC = 2500
 
 async function discoveryProcesosGemini(prompt: string, systemPrompt: string): Promise<string> {
   if (!geminiClient) throw new Error('GEMINI_API_KEY no configurada')
-  const model = geminiClient.getGenerativeModel(
-    {
-      model: 'gemini-1.5-flash-latest',
-      generationConfig: { maxOutputTokens: 8192 },
+  const response = await geminiClient.models.generateContent({
+    model: 'gemini-2.0-flash',
+    contents: prompt,
+    config: {
       systemInstruction: systemPrompt,
+      maxOutputTokens: 8192,
     },
-  )
-  const result = await model.generateContent(prompt)
-  return result.response.text()
+  })
+  return response.text ?? ''
 }
 
 export async function discoveryProcesos(contextoCliente: string, documentosResumidos: string[]) {
