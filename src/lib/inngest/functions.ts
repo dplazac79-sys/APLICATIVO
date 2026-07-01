@@ -6,6 +6,7 @@ import { generarEmbedding, generarEmbeddingsBatch } from '@/lib/ai/embeddings'
 import { chunkearTexto } from '@/lib/ai/chunker'
 import { registrarAudit } from '@/lib/audit'
 import { verificarLimiteIA, registrarUsoIA } from '@/lib/ai/rate-limit'
+import { extraerTextoPDF, extraerTextoDOCX } from '@/lib/extract-text'
 
 // ─── Job 1: Procesar documento ────────────────────────────────────────────────
 export const procesarDocumento = inngest.createFunction(
@@ -39,15 +40,11 @@ export const procesarDocumento = inngest.createFunction(
       const { data: fileData } = await admin.storage.from('documentos').download(doc.url_storage)
       if (!fileData) throw new Error('No se pudo descargar el archivo')
       const nombre = doc.nombre_archivo.toLowerCase()
+      const buffer = Buffer.from(await fileData.arrayBuffer())
       if (nombre.endsWith('.docx') || nombre.endsWith('.doc')) {
-        const mammoth = (await import('mammoth')).default
-        const buffer = Buffer.from(await fileData.arrayBuffer())
-        return (await mammoth.extractRawText({ buffer })).value
+        return await extraerTextoDOCX(buffer)
       } else if (nombre.endsWith('.pdf')) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const pdfParse = ((await import('pdf-parse')) as any).default ?? (await import('pdf-parse'))
-        const buffer = Buffer.from(await fileData.arrayBuffer())
-        return (await pdfParse(buffer)).text
+        return await extraerTextoPDF(buffer)
       }
       return await fileData.text()
     })
@@ -244,15 +241,11 @@ export const enriquecerDocumentoCliente = inngest.createFunction(
       if (!fileData) throw new Error('No se pudo descargar el archivo del cliente')
 
       const nombre = doc.nombre_archivo.toLowerCase()
+      const buffer = Buffer.from(await fileData.arrayBuffer())
       if (nombre.endsWith('.docx') || nombre.endsWith('.doc')) {
-        const mammoth = (await import('mammoth')).default
-        const buffer = Buffer.from(await fileData.arrayBuffer())
-        return (await mammoth.extractRawText({ buffer })).value
+        return await extraerTextoDOCX(buffer)
       } else if (nombre.endsWith('.pdf')) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const pdfParse = ((await import('pdf-parse')) as any).default ?? (await import('pdf-parse'))
-        const buffer = Buffer.from(await fileData.arrayBuffer())
-        return (await pdfParse(buffer)).text
+        return await extraerTextoPDF(buffer)
       }
       return await fileData.text()
     })
