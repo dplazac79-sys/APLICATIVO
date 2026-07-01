@@ -36,6 +36,18 @@ const nextConfig = {
   },
   // Paquetes que NO deben bundlearse — se cargan como módulos nativos de Node en runtime
   serverExternalPackages: ['pdf-parse', 'mammoth', '@xenova/transformers', 'onnxruntime-node', '@react-pdf/renderer'],
+  webpack: (config, { isServer }) => {
+    if (isServer) {
+      // Forzar externalización a nivel webpack — pdf-parse y mammoth son CJS nativos
+      // que no se pueden bundlear correctamente en Next.js standalone
+      config.externals = [
+        ...(Array.isArray(config.externals) ? config.externals : [config.externals].filter(Boolean)),
+        'pdf-parse',
+        'mammoth',
+      ]
+    }
+    return config
+  },
   async headers() {
     return [
       {
