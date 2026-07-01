@@ -781,6 +781,31 @@ function PollingScreen({
         })}
       </div>
 
+      {/* ── Por qué procesamos primero ── */}
+      {!todosListos && (
+        <div className="max-w-lg mx-auto border border-slate-700/40 rounded-2xl overflow-hidden">
+          <div className="bg-slate-800/40 px-4 py-2.5 flex items-center gap-2 border-b border-slate-700/40">
+            <div className="w-1.5 h-1.5 rounded-full bg-violet-400 animate-pulse" />
+            <span className="text-xs font-semibold text-slate-300 uppercase tracking-wider">¿Por qué indexamos antes del análisis?</span>
+          </div>
+          <div className="p-4 space-y-3">
+            {[
+              { icon: '⚡', title: 'Vectorización semántica', desc: 'Cada documento se convierte en embeddings multidimensionales que el motor puede razonar, no solo leer.' },
+              { icon: '🔬', title: 'Diagnóstico de calidad', desc: 'Clasificamos el tipo, madurez y relevancia de cada fuente antes de cruzarla con el framework AICOUNTS.' },
+              { icon: '🧠', title: 'Contexto enriquecido para Discovery', desc: 'Sin este paso, el análisis trabaja sobre texto plano. Con él, trabaja sobre inteligencia estructurada.' },
+            ].map(item => (
+              <div key={item.title} className="flex items-start gap-3">
+                <span className="text-base shrink-0 mt-0.5">{item.icon}</span>
+                <div>
+                  <p className="text-xs font-semibold text-slate-200">{item.title}</p>
+                  <p className="text-xs text-slate-500 leading-relaxed">{item.desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Bottom CTA */}
       {todosListos && (
         <div className="rounded-2xl bg-emerald-950/40 border border-emerald-700/40 p-6 text-center space-y-4 max-w-lg mx-auto">
