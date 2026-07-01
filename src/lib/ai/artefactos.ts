@@ -58,20 +58,50 @@ Riesgos detectados: ${ctx.riesgos_detectados?.join(', ') ?? 'N/A'}
 }
 
 function construirResumenDocumentos(docs: DocumentoResumen[]): string {
-  if (!docs.length) return 'Sin documentos de origen disponibles. Basar el análisis en el contexto del proceso provisto.'
+  if (!docs.length) return 'Sin documentos de origen disponibles.'
   return docs.map(d =>
-    `### ${d.nombre_archivo}\n${d.resumen_ejecutivo ?? 'Sin resumen disponible.'}`
-  ).join('\n\n')
+    `### ${d.nombre_archivo}\n${d.resumen_ejecutivo ?? 'Sin resumen.'}`
+  ).join('\n\n').slice(0, 3000)
 }
 
-async function llamarClaude(promptFinal: string): Promise<Record<string, unknown>> {
-  const msg = await client.messages.create({
+/**
+ * Llama a Claude usando tool_use para JSON estructurado garantizado.
+ * - Prompt caching en system prompt (mismo para todos los artefactos del mismo tipo)
+ * - tool_use en vez de extractJson: no puede fallar el parsing
+ */
+async function llamarClaudeConCache(
+  systemPrompt: string,
+  userPrompt: string
+): Promise<Record<string, unknown>> {
+  const msg = await (client as any).beta.messages.create({
     model: 'claude-sonnet-4-6',
     max_tokens: 4096,
-    messages: [{ role: 'user', content: promptFinal }],
+    betas: ['prompt-caching-2024-07-31'],
+    system: [
+      {
+        type: 'text',
+        text: systemPrompt,
+        cache_control: { type: 'ephemeral' }, // cacheado entre artefactos del mismo tipo
+      },
+    ],
+    tools: [
+      {
+        name: 'generar_artefacto',
+        description: 'Genera el artefacto solicitado en formato JSON estructurado',
+        input_schema: {
+          type: 'object',
+          properties: { resultado: { type: 'object', description: 'El artefacto completo' } },
+          required: ['resultado'],
+        },
+      },
+    ],
+    tool_choice: { type: 'tool', name: 'generar_artefacto' },
+    messages: [{ role: 'user', content: userPrompt }],
   })
-  const texto = msg.content[0].type === 'text' ? msg.content[0].text : ''
-  return extractJson(texto) as Record<string, unknown>
+
+  const toolBlock = msg.content.find((b: any) => b.type === 'tool_use')
+  if (!toolBlock) throw new Error('Claude no retornó herramienta — respuesta inesperada')
+  return (toolBlock as any).input.resultado as Record<string, unknown>
 }
 
 export async function generarArtefacto(
@@ -84,25 +114,25 @@ export async function generarArtefacto(
   const ctxStr = construirContextoProceso(proceso)
   const docsStr = construirResumenDocumentos(documentos)
 
-  let prompt = plantilla
-    .replace('{{CONTEXTO_PROCESO}}', ctxStr)
-    .replace('{{DOCUMENTOS}}', docsStr)
+  // System prompt = plantilla del tipo (cacheado por Anthropic entre calls del mismo tipo)
+  // User prompt = contexto específico del proceso (varía por call)
+  let userPrompt = [
+    '## Contexto del proceso\n' + ctxStr,
+    '## Inteligencia documental\n' + docsStr,
+  ].join('\n\n')
 
   if (tipo === 'to_be') {
-    prompt = prompt
-      .replace('{{ASIS}}', JSON.stringify(existentes.as_is ?? {}, null, 2))
-      .replace('{{DIAGNOSTICO}}', JSON.stringify(existentes.diagnostico ?? {}, null, 2))
+    userPrompt += '\n\n## AS-IS\n' + JSON.stringify(existentes.as_is ?? {}, null, 2)
+    userPrompt += '\n\n## Diagnóstico\n' + JSON.stringify(existentes.diagnostico ?? {}, null, 2)
   }
   if (tipo === 'dashboard_brechas') {
-    prompt = prompt
-      .replace('{{ASIS}}', JSON.stringify(existentes.as_is ?? {}, null, 2))
-      .replace('{{TOBE}}', JSON.stringify(existentes.to_be ?? {}, null, 2))
+    userPrompt += '\n\n## AS-IS\n' + JSON.stringify(existentes.as_is ?? {}, null, 2)
+    userPrompt += '\n\n## TO-BE\n' + JSON.stringify(existentes.to_be ?? {}, null, 2)
   }
   if (tipo === 'cierre_ejecutivo') {
-    prompt = prompt
-      .replace('{{DIAGNOSTICO}}', JSON.stringify(existentes.diagnostico ?? {}, null, 2))
-      .replace('{{DASHBOARD_BRECHAS}}', JSON.stringify(existentes.dashboard_brechas ?? {}, null, 2))
+    userPrompt += '\n\n## Diagnóstico\n' + JSON.stringify(existentes.diagnostico ?? {}, null, 2)
+    userPrompt += '\n\n## Dashboard brechas\n' + JSON.stringify(existentes.dashboard_brechas ?? {}, null, 2)
   }
 
-  return llamarClaude(prompt)
+  return llamarClaudeConCache(plantilla, userPrompt)
 }

@@ -361,3 +361,94 @@ Retorna este JSON exacto:
     score_cobertura_organizacional: number
   }
 }
+
+// ── Proyecciones e Inteligencia Avanzada ─────────────────────────────────────
+// Usa tool_use para JSON garantizado. Lee desde contexto DB, no texto crudo.
+
+export interface ProyeccionProceso {
+  estado_actual: {
+    diagnostico: string
+    nivel_madurez: number
+    principales_fricciones: string[]
+    costo_ineficiencia_estimado: string
+  }
+  mejoras_propuestas: Array<{
+    id: string
+    titulo: string
+    descripcion: string
+    impacto: 'alto' | 'medio' | 'bajo'
+    esfuerzo: 'alto' | 'medio' | 'bajo'
+    tipo: 'quick_win' | 'proyecto_corto' | 'transformacion'
+    plazo_semanas: number
+    roles_impactados: string[]
+    kpi_impactado: string
+    valor_estimado: string
+  }>
+  escenarios: {
+    conservador: { descripcion: string; ahorro_estimado: string; probabilidad: number; plazo_meses: number }
+    base:         { descripcion: string; ahorro_estimado: string; probabilidad: number; plazo_meses: number }
+    optimista:    { descripcion: string; ahorro_estimado: string; probabilidad: number; plazo_meses: number }
+  }
+  riesgos_implementacion: Array<{
+    riesgo: string
+    probabilidad: 'alta' | 'media' | 'baja'
+    mitigacion: string
+  }>
+  roadmap_90_dias: Array<{
+    semana: string
+    accion: string
+    responsable: string
+    entregable: string
+  }>
+  proyeccion_kpis: Array<{
+    kpi: string
+    valor_actual: string
+    valor_6_meses: string
+    valor_12_meses: string
+    unidad: string
+  }>
+  recomendacion_ejecutiva: string
+  nivel_confianza: number
+}
+
+export async function proyectarProceso(
+  procesoCx: string,    // proceso_contexto del context manager
+  proyectoCx: string,   // proyecto_contexto del context manager
+  opciones?: { incluir_automatizacion?: boolean }
+): Promise<ProyeccionProceso> {
+  const sistemaPrompt = `Eres el motor de proyecciones estratégicas de ProcessOS, desarrollado por AICOUNTS Consultores.
+Tu misión: convertir el diagnóstico de un proceso en inteligencia accionable de clase mundial.
+Operas con el rigor de un consultor senior McKinsey + la precisión de un Data Scientist.
+Produces proyecciones realistas, no optimismo vacío. Cada número tiene fundamento.`
+
+  const msg = await (client as any).beta.messages.create({
+    model: 'claude-sonnet-4-6',
+    max_tokens: 6000,
+    betas: ['prompt-caching-2024-07-31'],
+    system: [{ type: 'text', text: sistemaPrompt, cache_control: { type: 'ephemeral' } }],
+    tools: [
+      {
+        name: 'generar_proyeccion',
+        description: 'Genera la proyección completa del proceso con escenarios, mejoras y roadmap',
+        input_schema: {
+          type: 'object',
+          properties: { proyeccion: { type: 'object', description: 'Proyección completa' } },
+          required: ['proyeccion'],
+        },
+      },
+    ],
+    tool_choice: { type: 'tool', name: 'generar_proyeccion' },
+    messages: [
+      {
+        role: 'user',
+        content: `## Contexto del proyecto\n${proyectoCx}\n\n## Proceso a proyectar\n${procesoCx}${
+          opciones?.incluir_automatizacion ? '\n\n## Nota: incluir análisis de automatización con IA/RPA en las mejoras propuestas.' : ''
+        }`,
+      },
+    ],
+  })
+
+  const toolBlock = msg.content.find((b: any) => b.type === 'tool_use')
+  if (!toolBlock) throw new Error('Sin respuesta de proyección')
+  return (toolBlock as any).input.proyeccion as ProyeccionProceso
+}

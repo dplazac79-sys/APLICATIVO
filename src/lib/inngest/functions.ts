@@ -1,6 +1,7 @@
 import { inngest } from './client'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { analizarDocumento, discoveryProcesos, enriquecerProcesoCliente, analizarGlosarioRoles, RolProceso, PersonaOrg } from '@/lib/ai/claude'
+import { buildProyectoContext } from '@/lib/ai/context'
 import { generarEmbedding } from '@/lib/ai/embeddings'
 import { registrarAudit } from '@/lib/audit'
 import { verificarLimiteIA, registrarUsoIA } from '@/lib/ai/rate-limit'
@@ -104,16 +105,23 @@ export const discoveryAI = inngest.createFunction(
     const { proyecto_id, usuario_id, documento_ids } = event.data
     const admin = createAdminClient()
 
-    const { proyecto, documentos } = await step.run('cargar-datos', async () => {
-      const { data: proyecto } = await admin.from('proyecto').select('*, cliente(*)').eq('id', proyecto_id).single()
-      if (!proyecto) throw new Error('Proyecto no encontrado')
-
+    const datos = await step.run('cargar-datos', async () => {
       const limite = await verificarLimiteIA(proyecto_id, 'discovery')
       if (!limite.permitido) throw new Error(limite.mensaje)
 
+      // Context manager: lee resúmenes y analisis_ia desde DB — no re-procesa archivos
+      const ctx = await buildProyectoContext(proyecto_id)
+      if (!ctx.documentos_resumenes.length) throw new Error('No hay documentos procesados')
+
+      // Filtrar por documento_ids si se especificaron
+      const documentos_filtrados = Array.isArray(documento_ids) && documento_ids.length > 0
+        ? ctx.documentos_resumenes.slice(0, documento_ids.length) // aproximación — ya están en DB
+        : ctx.documentos_resumenes
+
+      // Obtener doc IDs para guardar referencias
       let query = admin
         .from('documento')
-        .select('id, nombre_archivo, resumen_ejecutivo, clasificacion')
+        .select('id, nombre_archivo')
         .eq('proyecto_id', proyecto_id)
         .eq('estado_procesamiento', 'listo')
       if (Array.isArray(documento_ids) && documento_ids.length > 0) {
@@ -121,22 +129,19 @@ export const discoveryAI = inngest.createFunction(
       }
       const { data: documentos } = await query
       if (!documentos?.length) throw new Error('No hay documentos procesados')
-      return { proyecto, documentos }
+
+      return { ctx, documentos_filtrados, documentos }
     })
 
     const resultado = await step.run('ejecutar-discovery', async () => {
-      const cliente = proyecto.cliente as Record<string, unknown>
-      const contexto = `Empresa: ${cliente?.razon_social ?? 'N/A'}\nIndustria: ${cliente?.industria ?? 'N/A'}\nTamaño: ${cliente?.tamano ?? 'N/A'}\nObjetivos: ${cliente?.objetivos_estrategicos ?? 'N/A'}`
-      const resumenes = documentos.map((d: { nombre_archivo: string; resumen_ejecutivo: string | null }) =>
-        `${d.nombre_archivo}\nResumen: ${d.resumen_ejecutivo ?? 'Sin resumen'}`
-      )
-      return await discoveryProcesos(contexto, resumenes)
+      return await discoveryProcesos(datos.ctx.empresa, datos.ctx.documentos_filtrados)
     })
 
     await step.run('guardar-procesos', async () => {
       await admin.from('proceso').delete().eq('proyecto_id', proyecto_id).in('origen', ['detectado', 'propuesta_ia'])
       for (const macro of resultado.macroprocesos) {
-        const docOrigen = documentos.find((d: { nombre_archivo: string }) => d.nombre_archivo === macro.documento_referencia)
+        const docs = datos.documentos
+        const docOrigen = docs.find((d: { nombre_archivo: string }) => d.nombre_archivo === macro.documento_referencia)
         const { data: macroRow } = await admin.from('proceso').insert({
           proyecto_id, nombre: macro.nombre, descripcion: macro.descripcion,
           nivel: 0, tipo: 'macroproceso', origen: macro.origen, estado_oferta: 'propuesto',
@@ -148,7 +153,7 @@ export const discoveryAI = inngest.createFunction(
           macro.procesos.map((p: Record<string, unknown>, i: number) => ({
             proyecto_id, padre_id: macroRow.id, nombre: p.nombre, descripcion: p.descripcion,
             nivel: 1, tipo: 'proceso', origen: p.origen, estado_oferta: 'propuesto',
-            documento_origen_id: documentos.find((d: { nombre_archivo: string }) => d.nombre_archivo === p.documento_referencia)?.id ?? null,
+            documento_origen_id: docs.find((d: { nombre_archivo: string }) => d.nombre_archivo === p.documento_referencia)?.id ?? null,
             roles_involucrados: p.roles_involucrados, riesgos_detectados: p.riesgos_si_no_existe_o_falla,
             metadata_ia: { criticidad: p.criticidad, justificacion_ia: p.justificacion_ia },
             orden: i,
