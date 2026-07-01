@@ -131,7 +131,7 @@ export const discoveryAI = inngest.createFunction(
   },
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async ({ event, step }: any) => {
-    const { proyecto_id, usuario_id, documento_ids } = event.data
+    const { proyecto_id, usuario_id, documento_ids, job_id } = event.data
     const admin = createAdminClient()
 
     const datos = await step.run('cargar-datos', async () => {
@@ -202,6 +202,11 @@ export const discoveryAI = inngest.createFunction(
         detalle: { accion_detalle: 'discovery_ai_generado', total_macroprocesos: resultado.macroprocesos.length },
         usuarioId: usuario_id,
       })
+    })
+
+    await step.run('marcar-job-listo', async () => {
+      if (!job_id) return
+      await admin.from('jobs').update({ estado: 'listo' }).eq('id', job_id)
     })
 
     return { ok: true, macroprocesos: resultado.macroprocesos.length }

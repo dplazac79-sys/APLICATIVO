@@ -33,7 +33,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   // Disparar job async — Inngest garantiza ejecución aunque la request termine
   await inngest.send({
     name: 'proyecto/discovery',
-    data: { proyecto_id, usuario_id: user.id, documento_ids },
+    data: { proyecto_id, usuario_id: user.id, documento_ids, job_id: job.id },
   })
 
   await registrarAudit({
