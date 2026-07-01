@@ -1492,6 +1492,12 @@ function EstadoVacioDiscovery({
                 Selecciona al menos un documento para ejecutar el análisis
               </p>
             )}
+            {seleccionados.length > 5 && (
+              <p className="text-xs text-amber-400/80 mt-2.5 flex items-center gap-1.5">
+                <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
+                Más de 5 documentos puede aumentar el tiempo de análisis. Se recomienda analizar por bloques temáticos.
+              </p>
+            )}
           </div>
 
           <div className="p-6 grid grid-cols-1 sm:grid-cols-3 gap-4">

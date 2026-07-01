@@ -144,28 +144,24 @@ export const discoveryAI = inngest.createFunction(
       const limite = await verificarLimiteIA(proyecto_id, 'discovery')
       if (!limite.permitido) throw new Error(limite.mensaje)
 
-      // Context manager: lee resúmenes y analisis_ia desde DB — no re-procesa archivos
-      const ctx = await buildProyectoContext(proyecto_id)
+      // Context manager: filtra por documento_ids si se especificaron, con límite de 10
+      const ctx = await buildProyectoContext(proyecto_id, documento_ids)
       if (!ctx.documentos_resumenes.length) throw new Error('No hay documentos procesados')
 
-      // Filtrar por documento_ids si se especificaron
-      const documentos_filtrados = Array.isArray(documento_ids) && documento_ids.length > 0
-        ? ctx.documentos_resumenes.slice(0, documento_ids.length) // aproximación — ya están en DB
-        : ctx.documentos_resumenes
-
-      // Obtener doc IDs para guardar referencias
+      // Obtener doc IDs para guardar referencias (misma lógica de filtro)
       let query = admin
         .from('documento')
         .select('id, nombre_archivo')
         .eq('proyecto_id', proyecto_id)
         .eq('estado_procesamiento', 'listo')
+        .limit(10)
       if (Array.isArray(documento_ids) && documento_ids.length > 0) {
         query = query.in('id', documento_ids)
       }
       const { data: documentos } = await query
       if (!documentos?.length) throw new Error('No hay documentos procesados')
 
-      return { ctx, documentos_filtrados, documentos }
+      return { ctx, documentos_filtrados: ctx.documentos_resumenes, documentos }
     })
 
     const resultado = await step.run('ejecutar-discovery', async () => {

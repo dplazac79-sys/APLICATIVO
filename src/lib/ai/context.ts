@@ -139,21 +139,35 @@ function buildInsightsFromAnalisis(analisis: Record<string, unknown>): string {
  * Construye contexto de proyecto para Discovery.
  * Usa resúmenes almacenados — no re-procesa archivos.
  */
-export async function buildProyectoContext(proyectoId: string): Promise<{
+// Límite de documentos por llamada de discovery para garantizar respuesta completa.
+// El backend trunca adicionalmente en claude.ts si los resúmenes son muy largos.
+const MAX_DOCS_DISCOVERY = 10
+
+export async function buildProyectoContext(
+  proyectoId: string,
+  documentoIds?: string[],
+): Promise<{
   empresa: string
   documentos_resumenes: string[]
 }> {
   const admin = createAdminClient()
+
+  let docsQuery = admin.from('documento')
+    .select('nombre_archivo, resumen_ejecutivo, analisis_ia, clasificacion')
+    .eq('proyecto_id', proyectoId)
+    .eq('estado_procesamiento', 'listo')
+    .limit(MAX_DOCS_DISCOVERY)
+
+  if (Array.isArray(documentoIds) && documentoIds.length > 0) {
+    docsQuery = docsQuery.in('id', documentoIds)
+  }
 
   const [{ data: proyecto }, { data: docs }] = await Promise.all([
     admin.from('proyecto')
       .select('nombre, alcance, cliente:cliente_id(razon_social, industria, tamano, objetivos_estrategicos)')
       .eq('id', proyectoId)
       .single(),
-    admin.from('documento')
-      .select('nombre_archivo, resumen_ejecutivo, analisis_ia, clasificacion')
-      .eq('proyecto_id', proyectoId)
-      .eq('estado_procesamiento', 'listo'),
+    docsQuery,
   ])
 
   const cliente = (proyecto as any)?.cliente as any

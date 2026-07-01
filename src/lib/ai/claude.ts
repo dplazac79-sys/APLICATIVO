@@ -218,14 +218,26 @@ Devuelve SOLO un objeto JSON válido con esta estructura exacta:
   }
 }
 
+// Máximo de caracteres por resumen de documento para evitar que context window
+// explote con muchos docs largos. Los resúmenes suelen ser ~1500 chars; este
+// límite sólo aplica si el cliente sube algo excepcionalmente grande.
+const MAX_CHARS_POR_DOC = 2500
+
 export async function discoveryProcesos(contextoCliente: string, documentosResumidos: string[]) {
   const system = loadPrompt('discovery-procesos')
+
+  // Truncar cada resumen defensivamente — nunca dejar que el input explote
+  const resumenesTruncados = documentosResumidos.map((d, i) => {
+    if (d.length <= MAX_CHARS_POR_DOC) return d
+    return d.slice(0, MAX_CHARS_POR_DOC) + `\n[resumen truncado — ${Math.round(d.length / 1000)}k chars totales]`
+  })
+
   const contenido = `
 Contexto del cliente:
 ${contextoCliente}
 
 Documentos analizados:
-${documentosResumidos.map((d, i) => `--- Documento ${i + 1} ---\n${d}`).join('\n\n')}
+${resumenesTruncados.map((d, i) => `--- Documento ${i + 1} ---\n${d}`).join('\n\n')}
 `
   const msg = await client.messages.create({
     model: 'claude-sonnet-4-6',
@@ -233,10 +245,23 @@ ${documentosResumidos.map((d, i) => `--- Documento ${i + 1} ---\n${d}`).join('\n
     system,
     messages: [{ role: 'user', content: contenido }],
   })
+
+  const rawText = (msg.content[0] as { text: string }).text
+
+  // Si la respuesta se cortó, intentar recuperar el JSON parcial antes de fallar.
+  // Esto cubre el caso extremo de >10 docs donde incluso 8000 tokens no alcanza.
   if (msg.stop_reason === 'max_tokens') {
-    throw new Error('La respuesta de la IA fue demasiado extensa y se cortó antes de completarse. Intenta con menos documentos a la vez.')
+    try {
+      return extractJson(rawText) as ReturnType<typeof discoveryProcesos> extends Promise<infer T> ? T : never
+    } catch {
+      throw new Error(
+        `El análisis se generó pero quedó incompleto (demasiados documentos para una sola llamada). ` +
+        `Selecciona máximo 5 documentos a la vez.`
+      )
+    }
   }
-  return extractJson((msg.content[0] as { text: string }).text) as {
+
+  return extractJson(rawText) as {
     macroprocesos: Array<{
       nombre: string
       descripcion: string
