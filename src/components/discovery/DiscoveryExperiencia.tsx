@@ -1218,26 +1218,21 @@ function EstadoVacioDiscovery({
             <span className="w-7 h-7 rounded-full bg-violet-600 text-white text-xs font-bold flex items-center justify-center shrink-0">1</span>
             <div>
               <p className="text-white font-semibold text-sm">
-                {!tieneListos && documentos.length > 0 ? 'Activa la inteligencia en tus documentos' : 'Selecciona los documentos a analizar'}
+                {!tieneListos && documentos.length > 0 ? 'Activa la inteligencia en tus documentos' : 'Documentos indexados y listos'}
               </p>
               <p className="text-slate-500 text-xs mt-0.5">
                 {documentos.length === 0
                   ? 'Carga documentación en Centro Documental para comenzar.'
                   : tieneListos
-                  ? `${listos.length} documento${listos.length !== 1 ? 's' : ''} listo${listos.length !== 1 ? 's' : ''} · selecciona cuáles entran al análisis`
+                  ? `${listos.length} documento${listos.length !== 1 ? 's' : ''} indexado${listos.length !== 1 ? 's' : ''} · elige cuáles entran al análisis en el Paso 2`
                   : `${noListos.length} documento${noListos.length !== 1 ? 's' : ''} cargado${noListos.length !== 1 ? 's' : ''} · activa la inteligencia para habilitarlos`}
               </p>
             </div>
           </div>
           {tieneListos && (
-            <div className="flex items-center gap-3 shrink-0">
-              <button onClick={toggleTodos} className="text-xs text-violet-300 hover:text-violet-200 font-medium transition-colors">
-                {todosSeleccionados ? 'Quitar todos' : 'Seleccionar todos'}
-              </button>
-              <span className="text-xs font-bold text-emerald-400 bg-emerald-950/40 border border-emerald-800/40 rounded-full px-2.5 py-1">
-                {seleccionados.length}/{listos.length}
-              </span>
-            </div>
+            <span className="text-xs font-bold text-emerald-400 bg-emerald-950/40 border border-emerald-800/40 rounded-full px-2.5 py-1 shrink-0">
+              {listos.length} listo{listos.length !== 1 ? 's' : ''}
+            </span>
           )}
         </div>
 
@@ -1387,26 +1382,16 @@ function EstadoVacioDiscovery({
           </div>
 
         ) : (
-          /* Hay listos — mostrar checkboxes seleccionables + pendientes al fondo */
+          /* Hay listos — mostrar solo estado, la selección va en Paso 2 */
           <div className="p-4 space-y-2">
             {listos.map(doc => {
               const bloque = (doc.clasificacion as any)?.bloque_metodologico as string | undefined
-              const elegido = seleccionados.includes(doc.id)
               return (
-                <button
+                <div
                   key={doc.id}
-                  onClick={() => toggleDoc(doc.id)}
-                  className={`w-full flex items-center gap-3 rounded-xl px-4 py-3 transition-colors text-left ${
-                    elegido
-                      ? 'bg-emerald-950/20 border border-emerald-800/40 hover:border-emerald-700/60'
-                      : 'bg-slate-800/30 border border-slate-700/40 opacity-60 hover:opacity-90'
-                  }`}
+                  className="w-full flex items-center gap-3 rounded-xl px-4 py-3 bg-emerald-950/20 border border-emerald-800/40"
                 >
-                  <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-colors ${
-                    elegido ? 'bg-emerald-500 border-emerald-500' : 'border-slate-600'
-                  }`}>
-                    {elegido && <CheckCircle className="w-3.5 h-3.5 text-slate-950" strokeWidth={3} />}
-                  </div>
+                  <CheckCircle className="w-5 h-5 text-emerald-400 shrink-0" />
                   <div className="w-8 h-8 rounded-lg bg-emerald-900/50 border border-emerald-800/60 flex items-center justify-center shrink-0">
                     <FileText className="w-4 h-4 text-emerald-400" />
                   </div>
@@ -1414,14 +1399,14 @@ function EstadoVacioDiscovery({
                     <p className="text-white text-sm font-medium truncate">{doc.nombre_archivo}</p>
                     {bloque && <p className="text-slate-500 text-xs truncate">{bloque}</p>}
                   </div>
-                  <span className="text-xs text-emerald-400 font-medium shrink-0">Listo</span>
-                </button>
+                  <span className="text-xs text-emerald-400 font-medium shrink-0">Listo ✓</span>
+                </div>
               )
             })}
 
             {noListos.length > 0 && (
               <div className="pt-2 border-t border-slate-800 space-y-2">
-                <p className="text-xs text-slate-600 px-1">Pendientes de procesamiento (no seleccionables)</p>
+                <p className="text-xs text-slate-600 px-1">Pendientes de procesamiento</p>
                 {noListos.map(doc => (
                   <div key={doc.id} className="flex items-center gap-3 bg-slate-800/20 border border-slate-700/20 rounded-xl px-4 py-3 opacity-40">
                     <div className="w-5 h-5 rounded-md border-2 border-slate-700 flex items-center justify-center shrink-0">
@@ -1453,10 +1438,60 @@ function EstadoVacioDiscovery({
                 <p className="text-slate-400 text-sm mt-1">
                   {seleccionados.length > 0
                     ? <><span className="text-emerald-400 font-semibold">{seleccionados.length} documento{seleccionados.length !== 1 ? 's' : ''} seleccionado{seleccionados.length !== 1 ? 's' : ''}</span> · el framework AICOUNTS analizará cada uno y construirá el diagnóstico completo de tu organización.</>
-                    : <span className="text-amber-400">Selecciona al menos un documento en el paso anterior para continuar.</span>}
+                    : <span className="text-amber-400">Selecciona al menos un documento para continuar.</span>}
                 </p>
               </div>
             </div>
+          </div>
+
+          {/* ── Selector de documentos para Discovery ── */}
+          <div className="px-6 pt-5 pb-1">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <FileText className="w-3.5 h-3.5 text-slate-400" />
+                <span className="text-xs font-semibold text-slate-400 uppercase tracking-widest">Documentos a analizar</span>
+              </div>
+              <button
+                onClick={toggleTodos}
+                className="text-xs text-violet-300 hover:text-violet-100 font-medium transition-colors"
+              >
+                {todosSeleccionados ? 'Quitar todos' : 'Seleccionar todos'}
+              </button>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {listos.map(doc => {
+                const elegido = seleccionados.includes(doc.id)
+                return (
+                  <button
+                    key={doc.id}
+                    onClick={() => toggleDoc(doc.id)}
+                    className={`group flex items-center gap-2 pl-2.5 pr-3 py-1.5 rounded-full border text-xs font-medium transition-all duration-200 ${
+                      elegido
+                        ? 'bg-emerald-900/40 border-emerald-600/60 text-emerald-300 hover:bg-emerald-900/60 hover:border-emerald-500/70 shadow-sm shadow-emerald-900/30'
+                        : 'bg-slate-800/60 border-slate-700/50 text-slate-500 hover:border-slate-500/70 hover:text-slate-300'
+                    }`}
+                  >
+                    <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 transition-colors ${
+                      elegido ? 'bg-emerald-400' : 'bg-slate-600 group-hover:bg-slate-400'
+                    }`} />
+                    <span className="max-w-[140px] truncate">{doc.nombre_archivo}</span>
+                    <div className={`w-3.5 h-3.5 rounded-full flex items-center justify-center flex-shrink-0 transition-all ${
+                      elegido ? 'bg-emerald-500/30' : 'bg-slate-700/60'
+                    }`}>
+                      {elegido
+                        ? <CheckCircle className="w-2.5 h-2.5 text-emerald-300" strokeWidth={3} />
+                        : <X className="w-2.5 h-2.5 text-slate-600 group-hover:text-slate-400" strokeWidth={2.5} />}
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
+            {seleccionados.length === 0 && (
+              <p className="text-xs text-amber-400/80 mt-2.5 flex items-center gap-1.5">
+                <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
+                Selecciona al menos un documento para ejecutar el análisis
+              </p>
+            )}
           </div>
 
           <div className="p-6 grid grid-cols-1 sm:grid-cols-3 gap-4">
