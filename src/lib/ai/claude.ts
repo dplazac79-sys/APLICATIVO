@@ -229,7 +229,7 @@ ${documentosResumidos.map((d, i) => `--- Documento ${i + 1} ---\n${d}`).join('\n
 `
   const msg = await client.messages.create({
     model: 'claude-sonnet-4-6',
-    max_tokens: 5000,
+    max_tokens: 8000,
     system,
     messages: [{ role: 'user', content: contenido }],
   })
