@@ -8,10 +8,24 @@ const promptCache = new Map<string, string>()
 
 function loadPrompt(name: string): string {
   if (promptCache.has(name)) return promptCache.get(name)!
-  const filePath = path.join(process.cwd(), 'src/lib/prompts', `${name}.md`)
-  const content = fs.readFileSync(filePath, 'utf-8')
-  promptCache.set(name, content)
-  return content
+  // Buscar en varias rutas posibles (standalone build puede tener distinto cwd)
+  const basePaths = [
+    path.join(process.cwd(), 'src/lib/prompts'),
+    path.join(process.cwd(), '.next/server/src/lib/prompts'),
+    path.join(__dirname, '../prompts'),
+    path.join(__dirname, '../../lib/prompts'),
+  ]
+  for (const base of basePaths) {
+    const filePath = path.join(base, `${name}.md`)
+    try {
+      const content = fs.readFileSync(filePath, 'utf-8')
+      promptCache.set(name, content)
+      return content
+    } catch {
+      // intentar siguiente ruta
+    }
+  }
+  throw new Error(`Prompt "${name}" no encontrado. Rutas buscadas: ${basePaths.join(', ')}`)
 }
 
 export function extractJson(text: string): unknown {
@@ -62,7 +76,6 @@ export type ResumenDoc = {
 
 export async function analizarDocumento(texto: string): Promise<{ clasificacion: ClasificacionDoc; analisis: ResumenDoc }> {
   const systemPrompt = loadPrompt('analisis-documento')
-  // Texto truncado inteligente: primeros 10k chars contienen el 90% del valor informativo
   const textoTruncado = texto.slice(0, 10000)
 
   const msg = await (client as any).beta.messages.create({
@@ -73,27 +86,37 @@ export async function analizarDocumento(texto: string): Promise<{ clasificacion:
       {
         type: 'text',
         text: systemPrompt,
-        cache_control: { type: 'ephemeral' }, // Anthropic cachea este bloque entre llamadas
+        cache_control: { type: 'ephemeral' },
       },
     ],
+    tools: [
+      {
+        name: 'entregar_analisis',
+        description: 'Entrega el análisis completo del documento con clasificación y diagnóstico ejecutivo',
+        input_schema: {
+          type: 'object',
+          properties: {
+            clasificacion: { type: 'object' },
+            analisis: { type: 'object' },
+          },
+          required: ['clasificacion', 'analisis'],
+        },
+      },
+    ],
+    tool_choice: { type: 'tool', name: 'entregar_analisis' },
     messages: [
       {
         role: 'user',
-        content: `Analiza este documento organizacional y devuelve el JSON completo con "clasificacion" y "analisis":\n\n${textoTruncado}`,
+        content: `Analiza este documento organizacional:\n\n${textoTruncado}`,
       },
     ],
   })
 
-  if (msg.stop_reason === 'max_tokens') {
-    throw new Error('Respuesta de análisis truncada — documento demasiado denso')
-  }
+  // tool_use garantiza JSON válido — no hay parsing frágil
+  const toolBlock = msg.content.find((b: { type: string }) => b.type === 'tool_use')
+  if (!toolBlock) throw new Error('No se recibió resultado de análisis del motor de inteligencia')
 
-  const result = extractJson((msg.content[0] as { text: string }).text) as {
-    clasificacion: ClasificacionDoc
-    analisis: ResumenDoc
-  }
-
-  return result
+  return toolBlock.input as { clasificacion: ClasificacionDoc; analisis: ResumenDoc }
 }
 
 // Mantener exports individuales como alias para compatibilidad con otros módulos

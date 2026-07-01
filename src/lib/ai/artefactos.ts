@@ -12,10 +12,23 @@ const promptCache = new Map<string, string>()
 
 function leerPrompt(tipo: TipoArtefacto): string {
   if (promptCache.has(tipo)) return promptCache.get(tipo)!
-  const archivo = path.join(process.cwd(), 'src/lib/prompts/artefactos', `${tipo}.md`)
-  const content = fs.readFileSync(archivo, 'utf-8')
-  promptCache.set(tipo, content)
-  return content
+  const basePaths = [
+    path.join(process.cwd(), 'src/lib/prompts/artefactos'),
+    path.join(process.cwd(), '.next/server/src/lib/prompts/artefactos'),
+    path.join(__dirname, '../prompts/artefactos'),
+    path.join(__dirname, '../../lib/prompts/artefactos'),
+  ]
+  for (const base of basePaths) {
+    const archivo = path.join(base, `${tipo}.md`)
+    try {
+      const content = fs.readFileSync(archivo, 'utf-8')
+      promptCache.set(tipo, content)
+      return content
+    } catch {
+      // intentar siguiente ruta
+    }
+  }
+  throw new Error(`Prompt de artefacto "${tipo}" no encontrado`)
 }
 
 export interface ContextoProceso {

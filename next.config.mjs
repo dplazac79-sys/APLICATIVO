@@ -30,6 +30,10 @@ const nextConfig = {
   output: 'standalone',
   eslint: { ignoreDuringBuilds: true },
   typescript: { ignoreBuildErrors: false },
+  // Incluir archivos de prompts .md en el standalone build (no son detectados automáticamente)
+  outputFileTracingIncludes: {
+    '/api/**': ['./src/lib/prompts/**'],
+  },
   experimental: {
     serverComponentsExternalPackages: ['@xenova/transformers', 'onnxruntime-node', '@react-pdf/renderer'],
   },
