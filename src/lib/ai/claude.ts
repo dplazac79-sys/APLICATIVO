@@ -1,11 +1,11 @@
 import Anthropic from '@anthropic-ai/sdk'
-import Groq from 'groq-sdk'
+import { GoogleGenAI } from '@google/genai'
 import fs from 'fs'
 import path from 'path'
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
-const groqClient = process.env.GROQ_API_KEY
-  ? new Groq({ apiKey: process.env.GROQ_API_KEY })
+const geminiClient = process.env.GEMINI_API_KEY
+  ? new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY })
   : null
 
 const promptCache = new Map<string, string>()
@@ -266,17 +266,14 @@ export interface DiscoveryResult {
 // límite sólo aplica si el cliente sube algo excepcionalmente grande.
 const MAX_CHARS_POR_DOC = 2500
 
-async function discoveryProcesosGroq(prompt: string, systemPrompt: string): Promise<string> {
-  if (!groqClient) throw new Error('GROQ_API_KEY no configurada')
-  const completion = await groqClient.chat.completions.create({
-    model: 'llama-3.3-70b-versatile',
-    max_tokens: 8192,
-    messages: [
-      { role: 'system', content: systemPrompt },
-      { role: 'user', content: prompt },
-    ],
+async function discoveryProcesosGemini(prompt: string, systemPrompt: string): Promise<string> {
+  if (!geminiClient) throw new Error('GEMINI_API_KEY no configurada')
+  const response = await geminiClient.models.generateContent({
+    model: 'gemini-2.0-flash',
+    contents: prompt,
+    config: { systemInstruction: systemPrompt, maxOutputTokens: 8192 },
   })
-  return completion.choices[0]?.message?.content ?? ''
+  return response.text ?? ''
 }
 
 export async function discoveryProcesos(contextoCliente: string, documentosResumidos: string[]) {
@@ -298,9 +295,9 @@ ${resumenesTruncados.map((d, i) => `--- Documento ${i + 1} ---\n${d}`).join('\n\
 
   let rawText: string
 
-  if (groqClient) {
-    // Usar Groq cuando está configurado (free tier — Llama 3.3 70B)
-    rawText = await discoveryProcesosGroq(contenido, system)
+  if (geminiClient) {
+    // Usar Gemini cuando está configurado (free tier)
+    rawText = await discoveryProcesosGemini(contenido, system)
   } else {
     // Fallback a Anthropic cuando tiene créditos
     const msg = await client.messages.create({
