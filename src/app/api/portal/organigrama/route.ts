@@ -41,7 +41,8 @@ export async function POST(req: NextRequest) {
   let textoExtraido: string | null = null
   if (file.type === 'application/pdf') {
     try {
-      const pdfParse = ((await import('pdf-parse')) as any).default ?? (await import('pdf-parse'))
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const pdfParse = require('pdf-parse') as (buf: Buffer) => Promise<{ text: string }>
       textoExtraido = (await pdfParse(buf)).text
     } catch { /* imagen u otro formato */ }
   }
