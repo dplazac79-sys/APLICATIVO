@@ -134,6 +134,12 @@ export const discoveryAI = inngest.createFunction(
     const { proyecto_id, usuario_id, documento_ids, job_id } = event.data
     const admin = createAdminClient()
 
+    // Si la función falla en cualquier paso, marcar el job como error
+    const marcarError = async (mensaje: string) => {
+      if (!job_id) return
+      await admin.from('jobs').update({ estado: 'error', error_mensaje: mensaje }).eq('id', job_id)
+    }
+
     const datos = await step.run('cargar-datos', async () => {
       const limite = await verificarLimiteIA(proyecto_id, 'discovery')
       if (!limite.permitido) throw new Error(limite.mensaje)
@@ -163,7 +169,13 @@ export const discoveryAI = inngest.createFunction(
     })
 
     const resultado = await step.run('ejecutar-discovery', async () => {
-      return await discoveryProcesos(datos.ctx.empresa, datos.ctx.documentos_filtrados)
+      try {
+        return await discoveryProcesos(datos.ctx.empresa, datos.ctx.documentos_filtrados)
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : 'Error en análisis IA'
+        await marcarError(msg)
+        throw err
+      }
     })
 
     await step.run('guardar-procesos', async () => {
