@@ -268,10 +268,11 @@ const MAX_CHARS_POR_DOC = 2500
 
 async function discoveryProcesosGemini(prompt: string, systemPrompt: string): Promise<string> {
   if (!geminiClient) throw new Error('GEMINI_API_KEY no configurada')
+  // v1 no soporta systemInstruction — se inyecta en el contenido del mensaje
   const response = await geminiClient.models.generateContent({
     model: 'gemini-1.5-flash',
-    contents: prompt,
-    config: { systemInstruction: systemPrompt, maxOutputTokens: 8192 },
+    contents: `${systemPrompt}\n\n---\n\n${prompt}`,
+    config: { maxOutputTokens: 8192 },
   })
   return response.text ?? ''
 }
