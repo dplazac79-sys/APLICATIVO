@@ -2,7 +2,8 @@ import { inngest } from './client'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { analizarDocumento, discoveryProcesos, enriquecerProcesoCliente, analizarGlosarioRoles, RolProceso, PersonaOrg } from '@/lib/ai/claude'
 import { buildProyectoContext } from '@/lib/ai/context'
-import { generarEmbedding } from '@/lib/ai/embeddings'
+import { generarEmbedding, generarEmbeddingsBatch } from '@/lib/ai/embeddings'
+import { chunkearTexto } from '@/lib/ai/chunker'
 import { registrarAudit } from '@/lib/audit'
 import { verificarLimiteIA, registrarUsoIA } from '@/lib/ai/rate-limit'
 
@@ -63,14 +64,18 @@ export const procesarDocumento = inngest.createFunction(
       registrarUsoIA({ proyecto_id: doc.proyecto_id, usuario_id, tipo: 'resumir', tokens_input: 4500, tokens_output: 3000 })
     )
 
-    const embedding = await step.run('embedding', () =>
-      generarEmbedding(texto, 'document').catch(() => null)
-    )
-    await step.run('registrar-uso-embedding', () =>
-      registrarUsoIA({ proyecto_id: doc.proyecto_id, usuario_id, tipo: 'embedding' })
-    )
+    // Embedding del documento completo (para búsqueda por doc) + chunking para RAG preciso
+    const { embedding, chunks } = await step.run('embedding-y-chunks', async () => {
+      const chunks = chunkearTexto(texto)
+      // Embedding del documento completo = sobre el resumen ejecutivo (más semántico que texto crudo)
+      const textoParaEmbedding = resumen.resumen_ejecutivo
+        ? `${resumen.resumen_ejecutivo}\n\n${resumen.diagnostico_operacional ?? ''}\n\n${(resumen.hallazgos_criticos ?? []).join(' ')}`
+        : texto.slice(0, 4000)
+      const embedding = await generarEmbedding(textoParaEmbedding, 'document').catch(() => null)
+      return { embedding, chunks }
+    })
 
-    await step.run('guardar', async () => {
+    await step.run('guardar-documento', async () => {
       await admin.from('documento').update({
         clasificacion,
         resumen_ejecutivo: resumen.resumen_ejecutivo ?? null,
@@ -87,7 +92,34 @@ export const procesarDocumento = inngest.createFunction(
       })
     })
 
-    return { ok: true, clasificacion, resumen: resumen.resumen_ejecutivo }
+    // Guardar chunks con embeddings en batch (voyage-3 acepta hasta 128 a la vez)
+    await step.run('guardar-chunks', async () => {
+      if (!chunks.length) return
+      // Borrar chunks previos del documento (si se re-procesa)
+      await admin.from('documento_chunk').delete().eq('documento_id', documento_id)
+      // Generar embeddings en batch para todos los chunks
+      const textos = chunks.map((c: { texto: string }) => c.texto)
+      const embeddings = await generarEmbeddingsBatch(textos, 'document').catch(() => null)
+      const rows = chunks.map((c: { indice: number; titulo: string | null; texto: string; tokens_est: number }, i: number) => ({
+        documento_id,
+        proyecto_id: doc.proyecto_id,
+        indice: c.indice,
+        titulo: c.titulo,
+        texto: c.texto,
+        tokens_est: c.tokens_est,
+        embedding: embeddings?.[i] ?? null,
+      }))
+      // Insertar en lotes de 50 para no exceder el límite de Supabase
+      for (let i = 0; i < rows.length; i += 50) {
+        await admin.from('documento_chunk').insert(rows.slice(i, i + 50))
+      }
+    })
+
+    await step.run('registrar-uso-embedding', () =>
+      registrarUsoIA({ proyecto_id: doc.proyecto_id, usuario_id, tipo: 'embedding' })
+    )
+
+    return { ok: true, clasificacion, resumen: resumen.resumen_ejecutivo, total_chunks: chunks.length }
   }
 )
 
