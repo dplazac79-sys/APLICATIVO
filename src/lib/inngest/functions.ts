@@ -189,9 +189,10 @@ export const discoveryAI = inngest.createFunction(
           documento_origen_id: docOrigen?.id ?? null,
           metadata_ia: { criticidad: macro.criticidad, estado_actual: macro.estado_actual },
         }).select().single()
-        if (!macroRow || !macro.procesos.length) continue
+        const procesosHijos = Array.isArray(macro.procesos) ? macro.procesos : []
+        if (!macroRow || !procesosHijos.length) continue
         await admin.from('proceso').insert(
-          macro.procesos.map((p: Record<string, unknown>, i: number) => ({
+          procesosHijos.map((p: Record<string, unknown>, i: number) => ({
             proyecto_id, padre_id: macroRow.id, nombre: p.nombre, descripcion: p.descripcion,
             nivel: 1, tipo: 'proceso', origen: p.origen, estado_oferta: 'propuesto',
             documento_origen_id: docs.find((d: { nombre_archivo: string }) => d.nombre_archivo === p.documento_referencia)?.id ?? null,
