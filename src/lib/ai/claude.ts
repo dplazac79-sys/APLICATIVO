@@ -1,8 +1,12 @@
 import Anthropic from '@anthropic-ai/sdk'
+import { GoogleGenerativeAI } from '@google/generative-ai'
 import fs from 'fs'
 import path from 'path'
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+const geminiClient = process.env.GEMINI_API_KEY
+  ? new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
+  : null
 
 const promptCache = new Map<string, string>()
 
@@ -218,16 +222,66 @@ Devuelve SOLO un objeto JSON válido con esta estructura exacta:
   }
 }
 
+export interface DiscoveryResult {
+  macroprocesos: Array<{
+    nombre: string
+    descripcion: string
+    nivel: number
+    tipo: string
+    origen: string
+    documento_referencia: string | null
+    criticidad: string
+    estado_actual: string
+    procesos: Array<{
+      nombre: string
+      descripcion: string
+      nivel: number
+      tipo: string
+      origen: string
+      documento_referencia: string | null
+      justificacion_ia?: string
+      evidencia_documento?: string
+      criticidad: string
+      roles_involucrados: string[]
+      riesgos_si_no_existe_o_falla: string[]
+      oportunidades_mejora: string[]
+      oportunidades_automatizacion: string[]
+      kpis_recomendados: string[]
+      benchmark_industria: string
+    }>
+  }>
+  resumen_ejecutivo_discovery: string
+  industria_detectada: string
+  nivel_madurez_operacional: string
+  cobertura_documentacion: string
+  top_3_brechas_criticas: Array<{ brecha: string; impacto_negocio: string; urgencia: string }>
+  top_3_oportunidades_valor: Array<{ oportunidad: string; valor_potencial: string; complejidad: string; tiempo_implementacion: string }>
+  quick_wins_90_dias: string[]
+  roadmap_transformacion: { fase_1_0_3_meses: string; fase_2_3_6_meses: string; fase_3_6_12_meses: string }
+  recomendacion_ceo: string
+}
+
 // Máximo de caracteres por resumen de documento para evitar que context window
 // explote con muchos docs largos. Los resúmenes suelen ser ~1500 chars; este
 // límite sólo aplica si el cliente sube algo excepcionalmente grande.
 const MAX_CHARS_POR_DOC = 2500
 
+async function discoveryProcesosGemini(prompt: string, systemPrompt: string): Promise<string> {
+  if (!geminiClient) throw new Error('GEMINI_API_KEY no configurada')
+  const model = geminiClient.getGenerativeModel({
+    model: 'gemini-1.5-flash',
+    generationConfig: { responseMimeType: 'application/json', maxOutputTokens: 8192 },
+    systemInstruction: systemPrompt,
+  })
+  const result = await model.generateContent(prompt)
+  return result.response.text()
+}
+
 export async function discoveryProcesos(contextoCliente: string, documentosResumidos: string[]) {
   const system = loadPrompt('discovery-procesos')
 
   // Truncar cada resumen defensivamente — nunca dejar que el input explote
-  const resumenesTruncados = documentosResumidos.map((d, i) => {
+  const resumenesTruncados = documentosResumidos.map((d) => {
     if (d.length <= MAX_CHARS_POR_DOC) return d
     return d.slice(0, MAX_CHARS_POR_DOC) + `\n[resumen truncado — ${Math.round(d.length / 1000)}k chars totales]`
   })
@@ -239,66 +293,35 @@ ${contextoCliente}
 Documentos analizados:
 ${resumenesTruncados.map((d, i) => `--- Documento ${i + 1} ---\n${d}`).join('\n\n')}
 `
-  const msg = await client.messages.create({
-    model: 'claude-sonnet-4-6',
-    max_tokens: 8000,
-    system,
-    messages: [{ role: 'user', content: contenido }],
-  })
 
-  const rawText = (msg.content[0] as { text: string }).text
+  let rawText: string
 
-  // Si la respuesta se cortó, intentar recuperar el JSON parcial antes de fallar.
-  // Esto cubre el caso extremo de >10 docs donde incluso 8000 tokens no alcanza.
-  if (msg.stop_reason === 'max_tokens') {
-    try {
-      return extractJson(rawText) as ReturnType<typeof discoveryProcesos> extends Promise<infer T> ? T : never
-    } catch {
-      throw new Error(
-        `El análisis se generó pero quedó incompleto (demasiados documentos para una sola llamada). ` +
-        `Selecciona máximo 5 documentos a la vez.`
-      )
+  if (geminiClient) {
+    // Usar Gemini cuando está configurado (free tier)
+    rawText = await discoveryProcesosGemini(contenido, system)
+  } else {
+    // Fallback a Anthropic cuando tiene créditos
+    const msg = await client.messages.create({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 8000,
+      system,
+      messages: [{ role: 'user', content: contenido }],
+    })
+    rawText = (msg.content[0] as { text: string }).text
+    // Si la respuesta se cortó, intentar recuperar el JSON parcial antes de fallar
+    if (msg.stop_reason === 'max_tokens') {
+      try {
+        return extractJson(rawText) as DiscoveryResult
+      } catch {
+        throw new Error(
+          `El análisis se generó pero quedó incompleto (demasiados documentos para una sola llamada). ` +
+          `Selecciona máximo 5 documentos a la vez.`
+        )
+      }
     }
   }
 
-  return extractJson(rawText) as {
-    macroprocesos: Array<{
-      nombre: string
-      descripcion: string
-      nivel: number
-      tipo: string
-      origen: string
-      documento_referencia: string | null
-      criticidad: string
-      estado_actual: string
-      procesos: Array<{
-        nombre: string
-        descripcion: string
-        nivel: number
-        tipo: string
-        origen: string
-        documento_referencia: string | null
-        justificacion_ia?: string
-        evidencia_documento?: string
-        criticidad: string
-        roles_involucrados: string[]
-        riesgos_si_no_existe_o_falla: string[]
-        oportunidades_mejora: string[]
-        oportunidades_automatizacion: string[]
-        kpis_recomendados: string[]
-        benchmark_industria: string
-      }>
-    }>
-    resumen_ejecutivo_discovery: string
-    industria_detectada: string
-    nivel_madurez_operacional: string
-    cobertura_documentacion: string
-    top_3_brechas_criticas: Array<{ brecha: string; impacto_negocio: string; urgencia: string }>
-    top_3_oportunidades_valor: Array<{ oportunidad: string; valor_potencial: string; complejidad: string; tiempo_implementacion: string }>
-    quick_wins_90_dias: string[]
-    roadmap_transformacion: { fase_1_0_3_meses: string; fase_2_3_6_meses: string; fase_3_6_12_meses: string }
-    recomendacion_ceo: string
-  }
+  return extractJson(rawText) as DiscoveryResult
 }
 
 // ── Glosario de Roles ─────────────────────────────────────────────────────────
