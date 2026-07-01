@@ -789,12 +789,14 @@ function PollingScreen({
   totalParaProcesar,
   documentos,
   proyectosParaAcciones,
+  onCancelar,
 }: {
   proyectoId: string
   procesadosIds: string[]
   totalParaProcesar: number
   documentos: DocumentoItem[]
   proyectosParaAcciones: { id: string; nombre: string }[]
+  onCancelar: () => void
 }) {
   const [estadosDocs, setEstadosDocs] = useState<Record<string, string>>(() => {
     const init: Record<string, string> = {}
@@ -803,6 +805,7 @@ function PollingScreen({
   })
   const [todosListos, setTodosListos] = useState(false)
   const [timeout3min, setTimeout3min] = useState(false)
+  const [cancelando, setCancelando] = useState(false)
   // Elapsed seconds — drives asymptotic curve, always moving
   const [elapsed, setElapsed] = useState(0)
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -854,6 +857,21 @@ function PollingScreen({
     intervalRef.current = setInterval(poll, 4000)
     return () => { if (intervalRef.current) clearInterval(intervalRef.current) }
   }, [proyectoId, procesadosIds])
+
+  async function detenerYReiniciar() {
+    if (cancelando) return
+    setCancelando(true)
+    if (intervalRef.current) clearInterval(intervalRef.current)
+    if (tickRef.current) clearInterval(tickRef.current)
+    try {
+      await fetch('/api/documentos/resetear', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: procesadosIds }),
+      })
+    } catch { /* si falla igual volvemos a selección */ }
+    onCancelar()
+  }
 
   const listosCount = procesadosIds.filter(id => estadosDocs[id] === 'listo').length
   const procesandoCount = procesadosIds.filter(id => estadosDocs[id] === 'procesando').length
@@ -972,6 +990,21 @@ function PollingScreen({
           )
         })}
       </div>
+
+      {/* ── Botón detener ── */}
+      {!todosListos && (
+        <div className="flex justify-center">
+          <button
+            onClick={detenerYReiniciar}
+            disabled={cancelando}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-medium text-slate-400 border border-slate-700/60 hover:border-red-700/60 hover:text-red-400 hover:bg-red-950/20 transition-all disabled:opacity-50"
+          >
+            {cancelando
+              ? <><span className="w-3 h-3 rounded-full border-2 border-slate-400/30 border-t-slate-400 animate-spin" />Deteniendo...</>
+              : <><X className="w-3.5 h-3.5" />Detener y volver a elegir documentos</>}
+          </button>
+        </div>
+      )}
 
       {/* ── Por qué procesamos primero ── */}
       {!todosListos && (
@@ -1217,6 +1250,10 @@ function EstadoVacioDiscovery({
             totalParaProcesar={totalParaProcesar}
             documentos={documentos}
             proyectosParaAcciones={proyectosParaAcciones}
+            onCancelar={() => {
+              setProcesadosIds([])
+              setExitoso(false)
+            }}
           />
 
         ) : procesando ? (
