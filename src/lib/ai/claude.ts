@@ -270,7 +270,7 @@ async function discoveryProcesosGroq(prompt: string, systemPrompt: string): Prom
   if (!groqClient) throw new Error('GROQ_API_KEY no configurada')
   const completion = await groqClient.chat.completions.create({
     model: 'llama-3.3-70b-versatile',
-    max_tokens: 8192,
+    max_tokens: 32768,
     messages: [
       { role: 'system', content: systemPrompt },
       { role: 'user', content: prompt },
