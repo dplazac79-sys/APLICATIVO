@@ -777,74 +777,84 @@ function ProcesoCard({ proceso, esHijo = false }: { proceso: ProcesoConHijos; es
                               const abierto = expandCorr[key]
                               const nivel = r.impacto === 'alto' ? 3 : r.impacto === 'medio' ? 2 : 1
                               return (
-                                <div key={i} className={`relative rounded-2xl border overflow-hidden transition-all duration-300 ${
-                                  atendido ? 'border-emerald-800/25 bg-emerald-950/5 opacity-60' :
-                                  r.impacto === 'alto' ? 'border-red-900/50 bg-gradient-to-r from-red-950/20 to-transparent' :
-                                  r.impacto === 'medio' ? 'border-amber-900/40 bg-gradient-to-r from-amber-950/15 to-transparent' :
-                                  'border-slate-700/40 bg-slate-800/15'
-                                }`}>
-                                  {/* Left severity bar */}
-                                  <div className={`absolute left-0 top-0 bottom-0 w-[3px] ${
-                                    atendido ? 'bg-emerald-500' :
-                                    r.impacto === 'alto' ? 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)]' :
-                                    r.impacto === 'medio' ? 'bg-amber-400' : 'bg-slate-500'
-                                  }`} />
+                                <div key={i}>
+                                  {/* Card — overflow-hidden NO va aquí para no cortar el form */}
+                                  <div className={`flex gap-0 rounded-2xl border ${
+                                    atendido ? 'border-emerald-800/25 bg-emerald-950/5 opacity-60' :
+                                    r.impacto === 'alto' ? 'border-red-900/50 bg-gradient-to-r from-red-950/20 to-transparent' :
+                                    r.impacto === 'medio' ? 'border-amber-900/40 bg-gradient-to-r from-amber-950/15 to-transparent' :
+                                    'border-slate-700/40 bg-slate-800/15'
+                                  }`}>
+                                    {/* Left severity bar */}
+                                    <div className={`w-[3px] rounded-l-2xl shrink-0 ${
+                                      atendido ? 'bg-emerald-500' :
+                                      r.impacto === 'alto' ? 'bg-red-500' :
+                                      r.impacto === 'medio' ? 'bg-amber-400' : 'bg-slate-500'
+                                    }`} />
 
-                                  <div className="pl-5 pr-4 py-3.5">
-                                    <div className="flex items-start gap-3">
-                                      <p className={`text-sm font-semibold leading-snug flex-1 ${atendido ? 'line-through text-slate-500' : 'text-white'}`}>{r.riesgo}</p>
-                                      {/* Severity dots */}
-                                      <div className="flex items-center gap-1 shrink-0 pt-0.5">
-                                        {[1, 2, 3].map(n => (
-                                          <div key={n} className={`w-2 h-2 rounded-full transition-colors ${
-                                            n <= nivel
-                                              ? atendido ? 'bg-emerald-500' : r.impacto === 'alto' ? 'bg-red-500' : r.impacto === 'medio' ? 'bg-amber-400' : 'bg-slate-400'
-                                              : 'bg-slate-700'
-                                          }`} />
-                                        ))}
-                                        <span className={`text-xs font-bold ml-1.5 uppercase ${
-                                          atendido ? 'text-emerald-400' : r.impacto === 'alto' ? 'text-red-400' : r.impacto === 'medio' ? 'text-amber-400' : 'text-slate-400'
-                                        }`}>{atendido ? 'OK' : r.impacto}</span>
+                                    <div className="flex-1 px-4 py-3.5">
+                                      <div className="flex items-start gap-3">
+                                        <p className={`text-sm font-semibold leading-snug flex-1 ${atendido ? 'line-through text-slate-500' : 'text-white'}`}>{r.riesgo}</p>
+                                        <div className="flex items-center gap-1 shrink-0 pt-0.5">
+                                          {[1, 2, 3].map(n => (
+                                            <div key={n} className={`w-2 h-2 rounded-full ${
+                                              n <= nivel
+                                                ? atendido ? 'bg-emerald-500' : r.impacto === 'alto' ? 'bg-red-500' : r.impacto === 'medio' ? 'bg-amber-400' : 'bg-slate-400'
+                                                : 'bg-slate-700'
+                                            }`} />
+                                          ))}
+                                          <span className={`text-xs font-bold ml-1.5 uppercase ${
+                                            atendido ? 'text-emerald-400' : r.impacto === 'alto' ? 'text-red-400' : r.impacto === 'medio' ? 'text-amber-400' : 'text-slate-400'
+                                          }`}>{atendido ? 'OK' : r.impacto}</span>
+                                        </div>
                                       </div>
-                                    </div>
 
-                                    {r.evidencia && !atendido && (
-                                      <p className="text-slate-500 text-xs mt-2 pl-0 leading-relaxed">
-                                        <span className="text-red-400/70 font-medium">Evidencia · </span>{r.evidencia}
-                                      </p>
-                                    )}
-
-                                    <div className="flex items-center gap-4 mt-3 pt-2.5 border-t border-white/5">
-                                      {!atendido ? (
-                                        <button onClick={() => setExpandCorr(p => ({ ...p, [key]: !p[key] }))}
-                                          className="text-xs text-slate-500 hover:text-emerald-400 flex items-center gap-1.5 transition-colors group">
-                                          <CheckCircle className="w-3.5 h-3.5 group-hover:text-emerald-400" />
-                                          {abierto ? 'Cerrar' : 'Marcar como mitigado'}
-                                        </button>
-                                      ) : (
-                                        <button onClick={() => desmarcarAtendido('riesgo', i)}
-                                          className="text-xs text-slate-600 hover:text-red-400 transition-colors flex items-center gap-1">
-                                          Reactivar riesgo
-                                        </button>
+                                      {r.evidencia && !atendido && (
+                                        <p className="text-slate-500 text-xs mt-2 leading-relaxed">
+                                          <span className="text-red-400/70 font-medium">Evidencia · </span>{r.evidencia}
+                                        </p>
                                       )}
-                                    </div>
 
-                                    {abierto && !atendido && (
-                                      <div className="mt-3 space-y-2 ">
-                                        <textarea
-                                          value={textoCorr[key] ?? ''}
-                                          onChange={e => setTextoCorr(p => ({ ...p, [key]: e.target.value }))}
-                                          placeholder="Ej: ya implementamos un control dual desde enero 2025..."
-                                          rows={2}
-                                          className="w-full text-xs text-slate-200 bg-slate-800/60 border border-slate-600/50 rounded-xl px-3 py-2 resize-none focus:outline-none focus:border-emerald-500/50 placeholder:text-slate-600"
-                                        />
+                                      <div className="flex items-center gap-4 mt-3 pt-2.5 border-t border-white/5">
+                                        {!atendido ? (
+                                          <button onClick={() => setExpandCorr(p => ({ ...p, [key]: !p[key] }))}
+                                            className="text-xs text-slate-400 hover:text-emerald-400 flex items-center gap-1.5 transition-colors">
+                                            <Edit2 className="w-3 h-3" />
+                                            {abierto ? 'Cerrar' : 'Registrar corrección del cliente →'}
+                                          </button>
+                                        ) : (
+                                          <button onClick={() => desmarcarAtendido('riesgo', i)}
+                                            className="text-xs text-slate-600 hover:text-red-400 transition-colors">
+                                            Reactivar
+                                          </button>
+                                        )}
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  {/* Formulario de corrección — FUERA del card para no ser cortado */}
+                                  {abierto && !atendido && (
+                                    <div className="mt-2 ml-3 p-4 rounded-2xl border border-emerald-700/30 bg-emerald-950/10 space-y-3">
+                                      <p className="text-xs text-emerald-400 font-semibold">¿Cómo está siendo gestionado este riesgo en tu organización?</p>
+                                      <textarea
+                                        value={textoCorr[key] ?? ''}
+                                        onChange={e => setTextoCorr(p => ({ ...p, [key]: e.target.value }))}
+                                        placeholder="Ej: ya implementamos un control dual desde enero 2025, la segregación de funciones está documentada en el procedimiento P-042..."
+                                        rows={3}
+                                        className="w-full text-sm text-slate-200 bg-slate-800/60 border border-slate-600/50 rounded-xl px-3 py-2.5 resize-none focus:outline-none focus:border-emerald-500/50 placeholder:text-slate-600"
+                                      />
+                                      <div className="flex items-center gap-3">
                                         <button onClick={() => marcarAtendido('riesgo', i)} disabled={guardandoCorr}
-                                          className="flex items-center gap-1.5 text-xs font-bold bg-emerald-700 hover:bg-emerald-600 text-white px-4 py-1.5 rounded-xl transition-colors disabled:opacity-50">
-                                          <CheckCircle className="w-3.5 h-3.5" /> Confirmar mitigación
+                                          className="flex items-center gap-1.5 text-sm font-bold bg-emerald-700 hover:bg-emerald-600 text-white px-4 py-2 rounded-xl transition-colors disabled:opacity-50">
+                                          <CheckCircle className="w-4 h-4" /> Marcar como mitigado
+                                        </button>
+                                        <button onClick={() => setExpandCorr(p => ({ ...p, [key]: false }))}
+                                          className="text-xs text-slate-500 hover:text-slate-300 transition-colors">
+                                          Cancelar
                                         </button>
                                       </div>
-                                    )}
-                                  </div>
+                                    </div>
+                                  )}
                                 </div>
                               )
                             })}
@@ -875,54 +885,61 @@ function ProcesoCard({ proceso, esHijo = false }: { proceso: ProcesoConHijos; es
                                 const key = claveCorr('hallazgo', i)
                                 const abierto = expandCorr[key]
                                 return (
-                                  <div key={i} className="flex items-start gap-3">
-                                    {/* Node */}
-                                    <div className={`relative z-10 w-10 h-10 rounded-full flex items-center justify-center shrink-0 border-2 transition-all duration-300 ${
-                                      atendido
-                                        ? 'border-emerald-600/60 bg-emerald-900/50'
-                                        : 'border-amber-600/50 bg-amber-950/40'
-                                    }`}>
-                                      {atendido
-                                        ? <CheckCircle className="w-4 h-4 text-emerald-400" />
-                                        : <span className="text-amber-300 text-sm font-black">{i + 1}</span>
-                                      }
-                                    </div>
-
-                                    <div className={`flex-1 rounded-2xl border p-3.5 transition-all duration-300 ${
-                                      atendido ? 'border-emerald-800/20 bg-emerald-950/5' : 'border-slate-700/30 bg-slate-800/20 hover:border-slate-600/50'
-                                    }`}>
-                                      <p className={`text-sm leading-relaxed ${atendido ? 'line-through text-slate-500' : 'text-slate-200'}`}>{h}</p>
-
-                                      <div className="flex items-center gap-3 mt-2.5">
-                                        {!atendido ? (
-                                          <button onClick={() => setExpandCorr(p => ({ ...p, [key]: !p[key] }))}
-                                            className="text-xs text-slate-600 hover:text-emerald-400 flex items-center gap-1.5 transition-colors">
-                                            <CheckCircle className="w-3 h-3" /> {abierto ? 'Cerrar' : 'Marcar como resuelto'}
-                                          </button>
-                                        ) : (
-                                          <span className="flex items-center gap-2 text-xs">
-                                            <span className="text-emerald-400 font-semibold flex items-center gap-1"><CheckCircle className="w-3 h-3" /> Resuelto</span>
-                                            <button onClick={() => desmarcarAtendido('hallazgo', i)} className="text-slate-600 hover:text-slate-400 transition-colors">· desmarcar</button>
-                                          </span>
-                                        )}
+                                  <div key={i}>
+                                    <div className="flex items-start gap-3">
+                                      {/* Node */}
+                                      <div className={`relative z-10 w-10 h-10 rounded-full flex items-center justify-center shrink-0 border-2 ${
+                                        atendido ? 'border-emerald-600/60 bg-emerald-900/50' : 'border-amber-600/50 bg-amber-950/40'
+                                      }`}>
+                                        {atendido
+                                          ? <CheckCircle className="w-4 h-4 text-emerald-400" />
+                                          : <span className="text-amber-300 text-sm font-black">{i + 1}</span>
+                                        }
                                       </div>
 
-                                      {abierto && !atendido && (
-                                        <div className="mt-3 pt-3 border-t border-slate-700/30 space-y-2 ">
-                                          <textarea
-                                            value={textoCorr[key] ?? ''}
-                                            onChange={e => setTextoCorr(p => ({ ...p, [key]: e.target.value }))}
-                                            placeholder="Ej: ya incorporado en nuestro proceso desde Q1..."
-                                            rows={2}
-                                            className="w-full text-xs text-slate-200 bg-slate-800/60 border border-slate-600/50 rounded-xl px-3 py-2 resize-none focus:outline-none focus:border-emerald-500/50 placeholder:text-slate-600"
-                                          />
+                                      <div className={`flex-1 rounded-2xl border p-3.5 ${
+                                        atendido ? 'border-emerald-800/20 bg-emerald-950/5' : 'border-slate-700/30 bg-slate-800/20'
+                                      }`}>
+                                        <p className={`text-sm leading-relaxed ${atendido ? 'line-through text-slate-500' : 'text-slate-200'}`}>{h}</p>
+                                        <div className="flex items-center gap-3 mt-2.5">
+                                          {!atendido ? (
+                                            <button onClick={() => setExpandCorr(p => ({ ...p, [key]: !p[key] }))}
+                                              className="text-xs text-slate-400 hover:text-emerald-400 flex items-center gap-1.5 transition-colors">
+                                              <Edit2 className="w-3 h-3" /> {abierto ? 'Cerrar' : 'Registrar corrección del cliente →'}
+                                            </button>
+                                          ) : (
+                                            <span className="flex items-center gap-2 text-xs">
+                                              <span className="text-emerald-400 font-semibold flex items-center gap-1"><CheckCircle className="w-3 h-3" /> Resuelto</span>
+                                              <button onClick={() => desmarcarAtendido('hallazgo', i)} className="text-slate-600 hover:text-slate-400 transition-colors">· desmarcar</button>
+                                            </span>
+                                          )}
+                                        </div>
+                                      </div>
+                                    </div>
+
+                                    {/* Formulario FUERA del flex-row para no ser cortado */}
+                                    {abierto && !atendido && (
+                                      <div className="mt-2 ml-14 p-4 rounded-2xl border border-emerald-700/30 bg-emerald-950/10 space-y-3">
+                                        <p className="text-xs text-emerald-400 font-semibold">¿Cómo está siendo gestionado o resuelto en tu organización?</p>
+                                        <textarea
+                                          value={textoCorr[key] ?? ''}
+                                          onChange={e => setTextoCorr(p => ({ ...p, [key]: e.target.value }))}
+                                          placeholder="Ej: ya incorporado en nuestro proceso desde Q1, tenemos procedimiento P-021 vigente..."
+                                          rows={3}
+                                          className="w-full text-sm text-slate-200 bg-slate-800/60 border border-slate-600/50 rounded-xl px-3 py-2.5 resize-none focus:outline-none focus:border-emerald-500/50 placeholder:text-slate-600"
+                                        />
+                                        <div className="flex items-center gap-3">
                                           <button onClick={() => marcarAtendido('hallazgo', i)}
-                                            className="flex items-center gap-1.5 text-xs font-bold bg-emerald-700 hover:bg-emerald-600 text-white px-4 py-1.5 rounded-xl transition-colors">
-                                            <CheckCircle className="w-3 h-3" /> Confirmar resolución
+                                            className="flex items-center gap-1.5 text-sm font-bold bg-emerald-700 hover:bg-emerald-600 text-white px-4 py-2 rounded-xl transition-colors">
+                                            <CheckCircle className="w-4 h-4" /> Marcar como resuelto
+                                          </button>
+                                          <button onClick={() => setExpandCorr(p => ({ ...p, [key]: false }))}
+                                            className="text-xs text-slate-500 hover:text-slate-300 transition-colors">
+                                            Cancelar
                                           </button>
                                         </div>
-                                      )}
-                                    </div>
+                                      </div>
+                                    )}
                                   </div>
                                 )
                               })}
@@ -931,7 +948,7 @@ function ProcesoCard({ proceso, esHijo = false }: { proceso: ProcesoConHijos; es
                         </div>
                       )}
 
-                      {/* ── Brechas — pill chips ── */}
+                      {/* ── Brechas ── */}
                       {brechasList.length > 0 && (
                         <div>
                           <div className="flex items-center gap-2 mb-3">
@@ -940,56 +957,66 @@ function ProcesoCard({ proceso, esHijo = false }: { proceso: ProcesoConHijos; es
                             </div>
                             <div>
                               <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Oportunidades de formalización</p>
-                              <p className="text-xs text-slate-600">Haz clic para marcar cada área como ya formalizada</p>
+                              <p className="text-xs text-slate-600">Áreas sin definición formal detectadas · indica cuáles ya están documentadas</p>
                             </div>
                           </div>
 
-                          <div className="flex flex-wrap gap-2">
+                          <div className="space-y-2">
                             {(brechasList as string[]).map((b, i) => {
                               const atendido = esAtendido('brecha', i)
                               const key = claveCorr('brecha', i)
+                              const abierto = expandCorr[key]
                               return (
-                                <button key={i}
-                                  onClick={() => atendido ? desmarcarAtendido('brecha', i) : setExpandCorr(p => ({ ...p, [key]: !p[key] }))}
-                                  className={`flex items-center gap-2 px-3 py-2 rounded-full text-xs border transition-all duration-200 text-left ${
+                                <div key={i}>
+                                  <div className={`flex items-start gap-3 rounded-2xl border px-4 py-3 ${
                                     atendido
-                                      ? 'border-emerald-700/50 bg-emerald-950/25 text-emerald-400'
-                                      : 'border-slate-600/40 bg-slate-800/40 text-slate-300 hover:border-violet-600/50 hover:bg-violet-950/20 hover:text-violet-200'
+                                      ? 'border-emerald-800/25 bg-emerald-950/5 opacity-70'
+                                      : 'border-slate-700/30 bg-slate-800/15'
                                   }`}>
-                                  {atendido
-                                    ? <CheckCircle className="w-3 h-3 shrink-0 text-emerald-400" />
-                                    : <div className="w-1.5 h-1.5 rounded-full bg-slate-500 shrink-0" />
-                                  }
-                                  <span className={atendido ? 'line-through' : ''}>{b}</span>
-                                </button>
+                                    <div className={`w-2 h-2 rounded-full mt-2 shrink-0 ${atendido ? 'bg-emerald-500' : 'bg-slate-500'}`} />
+                                    <p className={`flex-1 text-sm leading-relaxed ${atendido ? 'line-through text-slate-500' : 'text-slate-300'}`}>{b}</p>
+                                    <div className="shrink-0 flex items-center gap-3">
+                                      {!atendido ? (
+                                        <button onClick={() => setExpandCorr(p => ({ ...p, [key]: !p[key] }))}
+                                          className="text-xs text-slate-400 hover:text-emerald-400 flex items-center gap-1.5 transition-colors whitespace-nowrap">
+                                          <Edit2 className="w-3 h-3" /> {abierto ? 'Cerrar' : 'Registrar corrección →'}
+                                        </button>
+                                      ) : (
+                                        <div className="flex items-center gap-2">
+                                          <span className="text-xs text-emerald-400 flex items-center gap-1 font-semibold"><CheckCircle className="w-3 h-3" /> Formalizado</span>
+                                          <button onClick={() => desmarcarAtendido('brecha', i)} className="text-xs text-slate-600 hover:text-slate-400 transition-colors">· desmarcar</button>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+
+                                  {/* Formulario FUERA del card */}
+                                  {abierto && !atendido && (
+                                    <div className="mt-2 ml-5 p-4 rounded-2xl border border-emerald-700/30 bg-emerald-950/10 space-y-3">
+                                      <p className="text-xs text-emerald-400 font-semibold">¿Está esto ya documentado internamente?</p>
+                                      <textarea
+                                        value={textoCorr[key] ?? ''}
+                                        onChange={e => setTextoCorr(p => ({ ...p, [key]: e.target.value }))}
+                                        placeholder="Ej: tenemos procedimiento escrito P-014 vigente desde 2024, disponible en SharePoint..."
+                                        rows={3}
+                                        className="w-full text-sm text-slate-200 bg-slate-800/60 border border-slate-600/50 rounded-xl px-3 py-2.5 resize-none focus:outline-none focus:border-emerald-500/50 placeholder:text-slate-600"
+                                      />
+                                      <div className="flex items-center gap-3">
+                                        <button onClick={() => marcarAtendido('brecha', i)}
+                                          className="flex items-center gap-1.5 text-sm font-bold bg-emerald-700 hover:bg-emerald-600 text-white px-4 py-2 rounded-xl transition-colors">
+                                          <CheckCircle className="w-4 h-4" /> Marcar como formalizado
+                                        </button>
+                                        <button onClick={() => setExpandCorr(p => ({ ...p, [key]: false }))}
+                                          className="text-xs text-slate-500 hover:text-slate-300 transition-colors">
+                                          Cancelar
+                                        </button>
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
                               )
                             })}
                           </div>
-
-                          {/* Inline confirm for brechas */}
-                          {(brechasList as string[]).map((b, i) => {
-                            const key = claveCorr('brecha', i)
-                            if (!expandCorr[key] || esAtendido('brecha', i)) return null
-                            return (
-                              <div key={i} className="mt-3 p-3 rounded-2xl border border-violet-700/30 bg-violet-950/10 space-y-2 ">
-                                <p className="text-xs text-violet-300 font-medium">"{b}"</p>
-                                <textarea
-                                  value={textoCorr[key] ?? ''}
-                                  onChange={e => setTextoCorr(p => ({ ...p, [key]: e.target.value }))}
-                                  placeholder="Ej: tenemos procedimiento escrito para esto desde 2024..."
-                                  rows={2}
-                                  className="w-full text-xs text-slate-200 bg-slate-800/60 border border-slate-600/50 rounded-xl px-3 py-2 resize-none focus:outline-none focus:border-emerald-500/50 placeholder:text-slate-600"
-                                />
-                                <div className="flex items-center gap-2">
-                                  <button onClick={() => marcarAtendido('brecha', i)}
-                                    className="flex items-center gap-1.5 text-xs font-bold bg-emerald-700 hover:bg-emerald-600 text-white px-4 py-1.5 rounded-xl transition-colors">
-                                    <CheckCircle className="w-3 h-3" /> Marcar como formalizado
-                                  </button>
-                                  <button onClick={() => setExpandCorr(p => ({ ...p, [key]: false }))} className="text-xs text-slate-600 hover:text-slate-400">Cancelar</button>
-                                </div>
-                              </div>
-                            )
-                          })}
                         </div>
                       )}
 
