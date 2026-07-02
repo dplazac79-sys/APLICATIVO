@@ -88,7 +88,7 @@ const CRITICIDAD_CONFIG: Record<string, { label: string; color: string; bg: stri
 // ─── ProcesoCard ─────────────────────────────────────────────────────────────
 
 function ProcesoCard({ proceso, esHijo = false }: { proceso: ProcesoConHijos; esHijo?: boolean }) {
-  const [expandido, setExpandido] = useState(!esHijo)
+  const [expandido, setExpandido] = useState(false)
   const [analizando, setAnalizando] = useState(false)
   const [resumen, setResumen] = useState<Resumen | null>(null)
   const [aprobando, setAprobando] = useState(false)
