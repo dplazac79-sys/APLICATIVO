@@ -88,7 +88,7 @@ const CRITICIDAD_CONFIG: Record<string, { label: string; color: string; bg: stri
 // ─── ProcesoCard ─────────────────────────────────────────────────────────────
 
 function ProcesoCard({ proceso, esHijo = false }: { proceso: ProcesoConHijos; esHijo?: boolean }) {
-  const [expandido, setExpandido] = useState(false)
+  const [expandido, setExpandido] = useState(!esHijo)
   const [analizando, setAnalizando] = useState(false)
   const [resumen, setResumen] = useState<Resumen | null>(null)
   const [aprobando, setAprobando] = useState(false)
@@ -217,9 +217,25 @@ function ProcesoCard({ proceso, esHijo = false }: { proceso: ProcesoConHijos; es
               {estadoIcon}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-white text-sm font-medium leading-snug">{editando ? editNombre : proceso.nombre}</p>
+              <div className="flex items-start justify-between gap-2 flex-wrap">
+                <p className="text-white text-sm font-medium leading-snug">{editando ? editNombre : proceso.nombre}</p>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  {proceso.origen === 'propuesta_ia' ? (
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-violet-950/60 text-violet-300 border border-violet-700/50 font-medium">
+                      ✨ Propuesto por IA
+                    </span>
+                  ) : (
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-blue-950/50 text-blue-300 border border-blue-800/40 font-medium">
+                      📄 {(proceso as any).documento_referencia ?? 'Detectado'}
+                    </span>
+                  )}
+                </div>
+              </div>
               {proceso.descripcion && !editando && (
-                <p className="text-slate-400 text-xs mt-0.5 leading-relaxed line-clamp-2">{proceso.descripcion}</p>
+                <p className="text-slate-400 text-xs mt-1 leading-relaxed">{proceso.descripcion}</p>
+              )}
+              {proceso.origen === 'propuesta_ia' && (proceso as any).justificacion_ia && !editando && (
+                <p className="text-violet-400/80 text-xs mt-1 italic">💡 {(proceso as any).justificacion_ia}</p>
               )}
               {proceso.roles_involucrados?.length > 0 && (
                 <div className="flex gap-1 flex-wrap mt-1.5">
@@ -282,13 +298,9 @@ function ProcesoCard({ proceso, esHijo = false }: { proceso: ProcesoConHijos; es
     )
   }
 
-  // ── Full enterprise card ──
+  // ── Full enterprise card (macroproceso container) ──
   return (
-    <div className={`group relative rounded-2xl border transition-all duration-300 overflow-hidden ${
-      estadoLocal === 'aceptado' ? 'bg-slate-900/80 border-emerald-800/40' :
-      estadoLocal === 'rechazado' ? 'bg-slate-900/50 border-red-900/40 opacity-60' :
-      'bg-slate-900/80 border-slate-700/60 hover:border-violet-700/50'
-    }`}>
+    <div className="group relative rounded-2xl border transition-all duration-300 overflow-hidden bg-slate-900/80 border-violet-800/40 hover:border-violet-700/60">
 
       {/* Left accent bar by criticidad */}
       {critCfg && (
@@ -302,43 +314,25 @@ function ProcesoCard({ proceso, esHijo = false }: { proceso: ProcesoConHijos; es
           onClick={() => !editando && setExpandido(v => !v)}
         >
           <div className="flex items-start gap-4">
-            <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
-              estadoLocal === 'aceptado' ? 'bg-emerald-900/60 text-emerald-400' :
-              estadoLocal === 'rechazado' ? 'bg-red-900/40 text-red-400' :
-              'bg-violet-900/40 text-violet-300'
-            }`}>
-              {estadoIcon}
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-violet-900/40 text-violet-300">
+              <Layers className="w-5 h-5" />
             </div>
 
             <div className="flex-1 min-w-0">
               <div className="flex items-start justify-between gap-3 flex-wrap">
                 <div className="flex-1 min-w-0">
-                  <h3 className="text-white font-semibold text-sm leading-snug">{editNombre || proceso.nombre}</h3>
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <span className="text-xs text-violet-400 font-semibold uppercase tracking-widest">Macroproceso</span>
+                    {critCfg && (
+                      <span className={`text-xs px-2 py-0.5 rounded-full border font-medium ${critCfg.bg} ${critCfg.color}`}>
+                        {critCfg.label}
+                      </span>
+                    )}
+                  </div>
+                  <h3 className="text-white font-semibold text-base leading-snug">{editNombre || proceso.nombre}</h3>
                   {proceso.descripcion && (
-                    <p className="text-slate-400 text-xs mt-1 leading-relaxed line-clamp-2">{editDesc || proceso.descripcion}</p>
+                    <p className="text-slate-400 text-xs mt-1 leading-relaxed">{editDesc || proceso.descripcion}</p>
                   )}
-                </div>
-                {/* Badges row */}
-                <div className="flex items-center gap-2 shrink-0 flex-wrap">
-                  {critCfg && (
-                    <span className={`text-xs px-2 py-0.5 rounded-full border font-medium ${critCfg.bg} ${critCfg.color}`}>
-                      {critCfg.label}
-                    </span>
-                  )}
-                  <span className={`text-xs px-2 py-0.5 rounded-full border ${
-                    proceso.origen === 'detectado' ? 'bg-blue-950/50 text-blue-300 border-blue-800/50' :
-                    proceso.origen === 'propuesta_ia' ? 'bg-violet-950/50 text-violet-300 border-violet-800/50' :
-                    'bg-slate-800 text-slate-400 border-slate-700'
-                  }`}>
-                    {proceso.origen === 'detectado' ? '📄 Detectado' : proceso.origen === 'propuesta_ia' ? '🤖 Propuesta IA' : '✏️ Manual'}
-                  </span>
-                  <span className={`text-xs px-2 py-0.5 rounded-full border font-medium ${
-                    estadoLocal === 'aceptado' ? 'bg-emerald-950/40 text-emerald-400 border-emerald-800/50' :
-                    estadoLocal === 'rechazado' ? 'bg-red-950/40 text-red-400 border-red-900/50' :
-                    'bg-amber-950/40 text-amber-400 border-amber-800/50'
-                  }`}>
-                    {estadoLocal === 'aceptado' ? 'Aceptado' : estadoLocal === 'rechazado' ? 'Rechazado' : 'Propuesto'}
-                  </span>
                 </div>
               </div>
 
@@ -380,30 +374,6 @@ function ProcesoCard({ proceso, esHijo = false }: { proceso: ProcesoConHijos; es
               )}
             </button>
 
-            {estadoLocal === 'propuesto' && (
-              <>
-                <button
-                  onClick={() => cambiarEstado('aceptado')}
-                  disabled={aprobando}
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium bg-emerald-900/40 text-emerald-300 border border-emerald-800/50 hover:bg-emerald-900/60 transition-all disabled:opacity-50"
-                >
-                  <CheckCircle className="w-3.5 h-3.5" /> Aceptar proceso
-                </button>
-                <button
-                  onClick={() => cambiarEstado('rechazado')}
-                  disabled={aprobando}
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium bg-red-950/40 text-red-400 border border-red-900/50 hover:bg-red-950/60 transition-all disabled:opacity-50"
-                >
-                  <XCircle className="w-3.5 h-3.5" /> Rechazar
-                </button>
-              </>
-            )}
-
-            {estadoLocal === 'aceptado' && (
-              <span className="flex items-center gap-1.5 text-xs text-emerald-400 font-medium">
-                <CheckCircle className="w-3.5 h-3.5" /> Proceso validado
-              </span>
-            )}
 
             {/* Edit toggle */}
             <button
@@ -414,13 +384,10 @@ function ProcesoCard({ proceso, esHijo = false }: { proceso: ProcesoConHijos; es
             </button>
 
             {tieneHijos && (
-              <button
-                onClick={() => setExpandido(v => !v)}
-                className="flex items-center gap-1 text-xs text-slate-500 hover:text-slate-300 transition-colors"
-              >
-                {expandido ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-                {proceso.hijos.length} subproceso{proceso.hijos.length !== 1 ? 's' : ''}
-              </button>
+              <span className="flex items-center gap-1 text-xs text-slate-500">
+                <Layers className="w-3.5 h-3.5" />
+                {proceso.hijos.length} proceso{proceso.hijos.length !== 1 ? 's' : ''}
+              </span>
             )}
           </div>
         </div>
@@ -596,12 +563,13 @@ function ProcesoCard({ proceso, esHijo = false }: { proceso: ProcesoConHijos; es
               </div>
             )}
 
-            {/* Section D: Subprocesos */}
+            {/* Section D: Procesos dentro del macroproceso */}
             {tieneHijos && (
               <div>
                 <div className="flex items-center gap-2 mb-3">
                   <Layers className="w-3.5 h-3.5 text-slate-400" />
-                  <span className="text-slate-400 text-xs font-semibold uppercase tracking-widest">Subprocesos ({proceso.hijos.length})</span>
+                  <span className="text-slate-400 text-xs font-semibold uppercase tracking-widest">Procesos ({proceso.hijos.length})</span>
+                  <span className="text-slate-600 text-xs">— Acepta o rechaza cada uno</span>
                 </div>
                 <div className="space-y-2 pl-4 border-l border-slate-700/50">
                   {proceso.hijos.map((hijo) => (
