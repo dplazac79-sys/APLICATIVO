@@ -3,26 +3,16 @@
 import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-} from '@/components/ui/select'
-import { Upload, X, CheckCircle2, Loader2 } from 'lucide-react'
+import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select'
+import { Upload, X, CheckCircle2, Loader2, RefreshCw, FileText, AlertTriangle } from 'lucide-react'
 import { toast } from 'sonner'
 
-interface Proyecto {
-  id: string
-  nombre: string
-  cliente: { razon_social: string } | null
-}
-
+interface Proyecto { id: string; nombre: string; cliente: { razon_social: string } | null }
+interface DocExistente { id: string; nombre_archivo: string }
 interface Props {
   proyectos: Proyecto[]
   proyectoPreseleccionado?: string | null
+  documentosExistentes?: DocExistente[]
 }
 
 function detectTipo(file: File): string {
@@ -34,163 +24,210 @@ function detectTipo(file: File): string {
   return 'otro'
 }
 
-export default function DocumentUploader({ proyectos, proyectoPreseleccionado }: Props) {
+interface FileEntry {
+  file: File
+  padreId: string | null   // null = documento nuevo, id = nueva versión de ese doc
+  padreNombre: string | null
+}
+
+export default function DocumentUploader({ proyectos, proyectoPreseleccionado, documentosExistentes = [] }: Props) {
   const router = useRouter()
   const supabase = createClient()
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const proyectoIdRef = useRef(proyectoPreseleccionado ?? '')
 
   const preNombre = proyectoPreseleccionado ? (proyectos.find(p => p.id === proyectoPreseleccionado)?.nombre ?? '') : ''
   const [proyectoId, setProyectoId] = useState(proyectoPreseleccionado ?? '')
   const [proyectoNombre, setProyectoNombre] = useState(preNombre)
-  const [files, setFiles] = useState<File[]>([])
+  const proyectoIdRef = useRef(proyectoPreseleccionado ?? '')
+  const [entries, setEntries] = useState<FileEntry[]>([])
   const [uploading, setUploading] = useState(false)
   const [done, setDone] = useState(0)
 
   function handleProyectoChange(v: string) {
     setProyectoId(v)
     proyectoIdRef.current = v
-    const p = proyectos.find(p => p.id === v)
-    setProyectoNombre(p?.nombre ?? v)
+    setProyectoNombre(proyectos.find(p => p.id === v)?.nombre ?? v)
+  }
+
+  function resolveEntries(files: File[]): FileEntry[] {
+    return files.map(file => {
+      const match = documentosExistentes.find(d =>
+        d.nombre_archivo.toLowerCase() === file.name.toLowerCase()
+      )
+      return { file, padreId: match?.id ?? null, padreNombre: match?.nombre_archivo ?? null }
+    })
+  }
+
+  function addFiles(files: File[]) {
+    const nuevas = resolveEntries(files)
+    setEntries(prev => {
+      const existentes = prev.map(e => e.file.name)
+      return [...prev, ...nuevas.filter(n => !existentes.includes(n.file.name))]
+    })
   }
 
   function handleDrop(e: React.DragEvent) {
     e.preventDefault()
-    const dropped = Array.from(e.dataTransfer.files)
-    setFiles(prev => [...prev, ...dropped])
+    addFiles(Array.from(e.dataTransfer.files))
   }
 
   function handleFileInput(e: React.ChangeEvent<HTMLInputElement>) {
-    const selected = Array.from(e.target.files ?? [])
-    if (selected.length === 0) return
-    setFiles(prev => [...prev, ...selected])
+    addFiles(Array.from(e.target.files ?? []))
     e.target.value = ''
   }
 
-  function removeFile(index: number) {
-    setFiles(prev => prev.filter((_, i) => i !== index))
+  function toggleVersionMode(idx: number) {
+    setEntries(prev => prev.map((e, i) => {
+      if (i !== idx) return e
+      // Si ya era versión → volver a nuevo; si era nuevo y hay padre → activar versión
+      if (e.padreId) return { ...e, padreId: null, padreNombre: null }
+      const match = documentosExistentes.find(d => d.nombre_archivo.toLowerCase() === e.file.name.toLowerCase())
+      return match ? { ...e, padreId: match.id, padreNombre: match.nombre_archivo } : e
+    }))
   }
 
   async function handleUpload() {
     const pid = proyectoIdRef.current || proyectoId
     if (!pid) { toast.error('Selecciona un proyecto primero'); return }
-    if (files.length === 0) { toast.error('Selecciona al menos un archivo'); return }
+    if (entries.length === 0) { toast.error('Selecciona al menos un archivo'); return }
     setUploading(true)
     setDone(0)
 
-    for (const file of files) {
-      const safeName = file.name
-        .normalize('NFD').replace(/[̀-ͯ]/g, '') // quitar tildes
-        .replace(/[^a-zA-Z0-9._-]/g, '_')                // reemplazar caracteres especiales
+    for (const entry of entries) {
+      const safeName = entry.file.name
+        .normalize('NFD').replace(/[̀-ͯ]/g, '')
+        .replace(/[^a-zA-Z0-9._-]/g, '_')
       const path = `${pid}/${Date.now()}-${safeName}`
 
-      const { error: storageError } = await supabase.storage
-        .from('documentos')
-        .upload(path, file)
-
-      if (storageError) {
-        toast.error(`Error al subir ${file.name}: ${storageError.message}`)
-        continue
-      }
+      const { error: storageError } = await supabase.storage.from('documentos').upload(path, entry.file)
+      if (storageError) { toast.error(`Error al subir ${entry.file.name}: ${storageError.message}`); continue }
 
       const res = await fetch('/api/documentos', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           proyecto_id: pid,
-          nombre_archivo: file.name,
-          tipo: detectTipo(file),
+          nombre_archivo: entry.file.name,
+          tipo: detectTipo(entry.file),
           url_storage: path,
+          documento_padre_id: entry.padreId ?? undefined,
         }),
       })
 
       if (!res.ok) {
         const data = await res.json().catch(() => ({}))
-        toast.error(`Error al registrar ${file.name}: ${data.error ?? 'error desconocido'}`)
+        toast.error(`Error al registrar ${entry.file.name}: ${data.error ?? 'error desconocido'}`)
         continue
       }
 
       setDone(prev => prev + 1)
-      toast.success(`${file.name} cargado — procesando con IA en segundo plano`)
+      toast.success(entry.padreId
+        ? `Nueva versión de ${entry.file.name} registrada`
+        : `${entry.file.name} cargado — procesando con IA`)
     }
 
-    setFiles([])
+    setEntries([])
     setUploading(false)
     router.refresh()
   }
 
+  const tieneVersiones = entries.some(e => e.padreId)
+
   return (
-    <Card className="bg-slate-900 border-slate-800">
-      <CardContent className="p-5 space-y-4">
-        <Select value={proyectoId} onValueChange={(v: string | null) => v && handleProyectoChange(v)}>
-          <SelectTrigger className="bg-slate-800 border-slate-700 text-white">
-            <span className={proyectoId ? 'text-white' : 'text-slate-500'}>
-              {proyectoId ? proyectoNombre : 'Seleccionar proyecto...'}
-            </span>
-          </SelectTrigger>
-          <SelectContent className="bg-slate-800 border-slate-700">
-            {proyectos.map(p => (
-              <SelectItem key={p.id} value={p.id} className="text-slate-200 focus:bg-slate-700">
-                {p.nombre}
-                {p.cliente && <span className="text-slate-500 ml-1">— {p.cliente.razon_social}</span>}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+    <div className="space-y-3">
+      {/* Selector de proyecto */}
+      <Select value={proyectoId} onValueChange={(v: string | null) => v && handleProyectoChange(v)}>
+        <SelectTrigger className="bg-slate-800 border-slate-700 text-white">
+          <span className={proyectoId ? 'text-white' : 'text-slate-500'}>
+            {proyectoId ? proyectoNombre : 'Seleccionar proyecto...'}
+          </span>
+        </SelectTrigger>
+        <SelectContent className="bg-slate-800 border-slate-700">
+          {proyectos.map(p => (
+            <SelectItem key={p.id} value={p.id} className="text-slate-200 focus:bg-slate-700">
+              {p.nombre}
+              {p.cliente && <span className="text-slate-500 ml-1">— {p.cliente.razon_social}</span>}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
 
-        <div
-          onDrop={handleDrop}
-          onDragOver={e => e.preventDefault()}
-          onClick={() => fileInputRef.current?.click()}
-          className="border-2 border-dashed border-slate-700 rounded-xl p-8 text-center cursor-pointer hover:border-indigo-600 hover:bg-indigo-950/10 transition-colors"
-        >
-          <Upload className="w-8 h-8 text-slate-600 mx-auto mb-2" />
-          <p className="text-slate-400 text-sm">
-            Arrastra archivos aquí o <span className="text-indigo-400">haz clic para seleccionar</span>
-          </p>
-          <p className="text-slate-600 text-xs mt-1">PDF, DOCX, XLSX, imágenes</p>
-          <input
-            ref={fileInputRef}
-            type="file"
-            multiple
-            className="hidden"
-            onChange={handleFileInput}
-            accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.gif,.webp"
-          />
-        </div>
+      {/* Zona de drop */}
+      <div
+        onDrop={handleDrop}
+        onDragOver={e => e.preventDefault()}
+        onClick={() => fileInputRef.current?.click()}
+        className="border-2 border-dashed border-slate-700 rounded-xl p-6 text-center cursor-pointer hover:border-violet-600/60 hover:bg-violet-950/10 transition-colors"
+      >
+        <Upload className="w-7 h-7 text-slate-600 mx-auto mb-2" />
+        <p className="text-slate-400 text-sm">Arrastra archivos aquí o <span className="text-violet-400">haz clic para seleccionar</span></p>
+        <p className="text-slate-600 text-xs mt-1">PDF, DOCX, XLSX, imágenes · Si el nombre coincide con uno existente, se detecta automáticamente como nueva versión</p>
+        <input ref={fileInputRef} type="file" multiple className="hidden" onChange={handleFileInput}
+          accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.gif,.webp" />
+      </div>
 
-        {files.length > 0 && (
-          <div className="space-y-2">
-            {files.map((file, i) => (
-              <div key={i} className="flex items-center gap-2 bg-slate-800 rounded-lg px-3 py-2">
-                <span className="text-sm text-slate-300 flex-1 truncate">{file.name}</span>
-                <span className="text-xs text-slate-500">{(file.size / 1024 / 1024).toFixed(1)} MB</span>
-                <button onClick={() => removeFile(i)} className="text-slate-600 hover:text-red-400">
+      {/* Lista de archivos seleccionados */}
+      {entries.length > 0 && (
+        <div className="space-y-1.5">
+          {entries.map((entry, i) => {
+            const esVersion = !!entry.padreId
+            const puedeSerVersion = documentosExistentes.some(d =>
+              d.nombre_archivo.toLowerCase() === entry.file.name.toLowerCase()
+            )
+            return (
+              <div key={i} className={`flex items-center gap-3 rounded-xl border px-3 py-2.5 ${esVersion ? 'bg-violet-950/20 border-violet-800/40' : 'bg-slate-800/40 border-slate-700/40'}`}>
+                <FileText className={`w-4 h-4 shrink-0 ${esVersion ? 'text-violet-400' : 'text-slate-400'}`} />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm text-white truncate">{entry.file.name}</p>
+                  <p className="text-xs text-slate-500">{(entry.file.size / 1024 / 1024).toFixed(1)} MB</p>
+                </div>
+                {esVersion ? (
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="text-xs bg-violet-900/60 text-violet-300 border border-violet-700/40 px-2 py-0.5 rounded-full font-medium flex items-center gap-1">
+                      <RefreshCw className="w-3 h-3" /> Nueva versión
+                    </span>
+                    <button onClick={() => toggleVersionMode(i)} title="Subir como documento nuevo en su lugar"
+                      className="text-xs text-slate-600 hover:text-slate-400 transition-colors">Subir como nuevo</button>
+                  </div>
+                ) : puedeSerVersion ? (
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="flex items-center gap-1 text-xs text-amber-400">
+                      <AlertTriangle className="w-3 h-3" /> Nombre existente
+                    </span>
+                    <button onClick={() => toggleVersionMode(i)}
+                      className="text-xs bg-violet-800/60 hover:bg-violet-700/60 text-violet-300 border border-violet-700/40 px-2 py-0.5 rounded-full transition-colors flex items-center gap-1">
+                      <RefreshCw className="w-3 h-3" /> Marcar como versión
+                    </button>
+                  </div>
+                ) : (
+                  <span className="text-xs text-slate-600 shrink-0">Nuevo</span>
+                )}
+                <button onClick={() => setEntries(prev => prev.filter((_, j) => j !== i))}
+                  className="text-slate-600 hover:text-red-400 shrink-0 transition-colors">
                   <X className="w-4 h-4" />
                 </button>
               </div>
-            ))}
-          </div>
-        )}
+            )
+          })}
+        </div>
+      )}
 
-        {done > 0 && !uploading && (
-          <div className="flex items-center gap-2 text-emerald-400 text-sm">
-            <CheckCircle2 className="w-4 h-4" />
-            {done} archivo{done !== 1 ? 's' : ''} cargado{done !== 1 ? 's' : ''} correctamente
-          </div>
-        )}
+      {done > 0 && !uploading && (
+        <div className="flex items-center gap-2 text-emerald-400 text-sm">
+          <CheckCircle2 className="w-4 h-4" />
+          {done} archivo{done !== 1 ? 's' : ''} cargado{done !== 1 ? 's' : ''} correctamente
+        </div>
+      )}
 
-        <Button
-          onClick={handleUpload}
-          disabled={uploading}
-          className="bg-indigo-600 hover:bg-indigo-700 text-white gap-2 w-full"
-        >
-          {uploading
-            ? <><Loader2 className="w-4 h-4 animate-spin" />Subiendo...</>
-            : <><Upload className="w-4 h-4" />Cargar {files.length > 0 ? `${files.length} archivo${files.length !== 1 ? 's' : ''}` : 'archivos'}</>
-          }
-        </Button>
-      </CardContent>
-    </Card>
+      <button onClick={handleUpload} disabled={uploading || entries.length === 0}
+        className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold text-sm py-2.5 rounded-xl transition-all">
+        {uploading
+          ? <><Loader2 className="w-4 h-4 animate-spin" />Subiendo...</>
+          : entries.length > 0
+            ? <><Upload className="w-4 h-4" />Cargar {entries.length} archivo{entries.length !== 1 ? 's' : ''}{tieneVersiones ? ' (incluye versiones)' : ''}</>
+            : <><Upload className="w-4 h-4" />Cargar archivos</>
+        }
+      </button>
+    </div>
   )
 }

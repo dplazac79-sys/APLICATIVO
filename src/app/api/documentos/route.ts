@@ -8,10 +8,24 @@ export async function POST(req: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
-    const { proyecto_id, nombre_archivo, tipo, url_storage } = await req.json()
+    const { proyecto_id, nombre_archivo, tipo, url_storage, documento_padre_id } = await req.json()
     if (!proyecto_id || !nombre_archivo || !url_storage) {
       return NextResponse.json({ error: 'Faltan campos requeridos' }, { status: 400 })
     }
+
+    // Calcular versión si es una actualización de documento existente
+    let version_numero = 1
+    if (documento_padre_id) {
+      const { data: versiones } = await supabase
+        .from('documento')
+        .select('clasificacion')
+        .or(`id.eq.${documento_padre_id},clasificacion->>documento_padre_id.eq.${documento_padre_id}`)
+      version_numero = (versiones?.length ?? 0) + 1
+    }
+
+    const clasificacionBase = documento_padre_id
+      ? { version_numero, documento_padre_id, es_version: true }
+      : {}
 
     const { data: documento, error } = await supabase.from('documento').insert({
       proyecto_id,
@@ -20,6 +34,7 @@ export async function POST(req: NextRequest) {
       url_storage,
       estado_procesamiento: 'pendiente',
       subido_por: user.id,
+      clasificacion: clasificacionBase,
     }).select().single()
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })

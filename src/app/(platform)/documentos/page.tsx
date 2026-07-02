@@ -80,7 +80,11 @@ export default async function DocumentosPage({ searchParams }: { searchParams: {
       </div>
 
       {(esInterno || rolActual === 'sponsor_cliente') && (
-        <DocumentUploader proyectos={proyectos} proyectoPreseleccionado={proyectoFiltro} />
+        <DocumentUploader
+          proyectos={proyectos}
+          proyectoPreseleccionado={proyectoFiltro}
+          documentosExistentes={documentos.map(d => ({ id: d.id, nombre_archivo: d.nombre_archivo }))}
+        />
       )}
 
       <DocumentosFiltroWrapper
