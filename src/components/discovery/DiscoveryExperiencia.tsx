@@ -444,7 +444,7 @@ function ProcesoCard({ proceso, esHijo = false }: { proceso: ProcesoConHijos; es
 
               {!analizando && !resumen && (
                 <div className="rounded-xl bg-slate-800/30 border border-slate-700/30 p-4 text-center">
-                  <p className="text-slate-500 text-xs">Presiona "Analizar con IA" para obtener el diagnóstico completo de este proceso.</p>
+                  <p className="text-slate-500 text-xs">Presiona "Analizar con IA" para obtener el diagnóstico completo de este {esHijo ? 'proceso' : 'macroproceso'}.</p>
                 </div>
               )}
 
