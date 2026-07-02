@@ -854,7 +854,7 @@ function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: Proceso
                                           <button onClick={() => setExpandCorr(p => ({ ...p, [key]: !p[key] }))}
                                             className="text-xs text-slate-400 hover:text-emerald-400 flex items-center gap-1.5 transition-colors">
                                             <Edit2 className="w-3 h-3" />
-                                            {abierto ? 'Cerrar' : 'Registrar corrección del cliente →'}
+                                            {abierto ? 'Cerrar' : 'Registrar modificación y/o observación →'}
                                           </button>
                                         ) : (
                                           <button onClick={() => desmarcarAtendido('riesgo', i)}
@@ -939,7 +939,7 @@ function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: Proceso
                                           {!atendido ? (
                                             <button onClick={() => setExpandCorr(p => ({ ...p, [key]: !p[key] }))}
                                               className="text-xs text-slate-400 hover:text-emerald-400 flex items-center gap-1.5 transition-colors">
-                                              <Edit2 className="w-3 h-3" /> {abierto ? 'Cerrar' : 'Registrar corrección del cliente →'}
+                                              <Edit2 className="w-3 h-3" /> {abierto ? 'Cerrar' : 'Registrar modificación y/o observación →'}
                                             </button>
                                           ) : (
                                             <span className="flex items-center gap-2 text-xs">
