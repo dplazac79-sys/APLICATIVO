@@ -176,16 +176,31 @@ function ProcesoTabContent({ proceso, docAnalisis, critCfg, accentColor, justifi
           <div className="w-1 h-4 rounded-full bg-violet-500" />
           <p className="text-xs font-bold text-slate-300 uppercase tracking-widest">Por qué este proceso importa ahora</p>
         </div>
-        {plan?.contexto_estrategico ? (
-          <p className="text-slate-200 text-sm leading-relaxed">{plan.contexto_estrategico}</p>
-        ) : (ia?.resumen_ejecutivo || docAnalisis?.resumen_ejecutivo) ? (
-          <p className="text-slate-200 text-sm leading-relaxed">
-            {ia?.resumen_ejecutivo ?? docAnalisis?.resumen_ejecutivo}
-          </p>
+
+        {/* Capa 1: resumen ejecutivo del documento (siempre primero, siempre trazable) */}
+        {(ia?.resumen_ejecutivo || docAnalisis?.resumen_ejecutivo) ? (
+          <div className="space-y-1">
+            <p className="text-slate-200 text-sm leading-relaxed">
+              {ia?.resumen_ejecutivo ?? (docAnalisis?.resumen_ejecutivo as string)}
+            </p>
+            <p className="text-xs text-slate-600 flex items-center gap-1">
+              <FileText className="w-3 h-3" /> Extraído del documento formal
+            </p>
+          </div>
         ) : proceso.origen === 'propuesta_ia' && justificacion ? (
           <p className="text-slate-200 text-sm leading-relaxed">{justificacion}</p>
         ) : (
-          <p className="text-slate-500 text-sm italic">Sin resumen disponible.</p>
+          <p className="text-slate-500 text-sm italic">Sin resumen disponible — procesa el documento para ver este análisis.</p>
+        )}
+
+        {/* Capa 2: perspectiva estratégica IA (solo si hay plan, como enriquecimiento adicional) */}
+        {plan?.contexto_estrategico && (
+          <div className="rounded-xl border border-violet-800/25 bg-violet-950/15 p-3 space-y-1">
+            <p className="text-xs text-violet-400 font-semibold uppercase tracking-widest flex items-center gap-1.5">
+              <Sparkles className="w-3 h-3" /> Perspectiva estratégica IA
+            </p>
+            <p className="text-slate-300 text-sm leading-relaxed">{plan.contexto_estrategico}</p>
+          </div>
         )}
       </div>
 
@@ -245,11 +260,26 @@ function ProcesoTabContent({ proceso, docAnalisis, critCfg, accentColor, justifi
           </div>
         </div>
 
-        {/* Diagnóstico operacional */}
-        {(plan?.situacion_actual || ia?.diagnostico_operacional) && (
+        {/* Diagnóstico operacional — documento primero, IA como capa adicional */}
+        {ia?.diagnostico_operacional && (
+          <div className="rounded-xl border border-amber-800/20 bg-amber-950/10 p-4 space-y-2">
+            <div className="flex items-center justify-between">
+              <p className="text-xs text-amber-400 uppercase tracking-widest font-semibold">Diagnóstico operacional hoy</p>
+              <p className="text-xs text-slate-600 flex items-center gap-1"><FileText className="w-3 h-3" /> Del documento</p>
+            </div>
+            <p className="text-slate-300 text-sm leading-relaxed">{ia.diagnostico_operacional}</p>
+            {plan?.situacion_actual && plan.situacion_actual !== ia.diagnostico_operacional && (
+              <div className="border-t border-amber-800/20 pt-2 space-y-1">
+                <p className="text-xs text-violet-400 flex items-center gap-1"><Sparkles className="w-3 h-3" /> Interpretación IA</p>
+                <p className="text-slate-400 text-xs leading-relaxed">{plan.situacion_actual}</p>
+              </div>
+            )}
+          </div>
+        )}
+        {!ia?.diagnostico_operacional && plan?.situacion_actual && (
           <div className="rounded-xl border border-amber-800/20 bg-amber-950/10 p-4">
             <p className="text-xs text-amber-400 uppercase tracking-widest font-semibold mb-2">Diagnóstico operacional hoy</p>
-            <p className="text-slate-300 text-sm leading-relaxed">{plan?.situacion_actual ?? ia?.diagnostico_operacional}</p>
+            <p className="text-slate-300 text-sm leading-relaxed">{plan.situacion_actual}</p>
           </div>
         )}
       </div>
