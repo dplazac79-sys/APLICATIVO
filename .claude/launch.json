@@ -4,7 +4,8 @@
     {
       "name": "processos-dev",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev", "--prefix", "/Users/danielplaza/Desktop/APIP/app"],
+      "runtimeArgs": ["run", "dev"],
+      "cwd": "../../Desktop/APIP/app",
       "port": 3001
     }
   ]

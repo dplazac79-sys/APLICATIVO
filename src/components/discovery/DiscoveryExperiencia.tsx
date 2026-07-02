@@ -85,14 +85,378 @@ const CRITICIDAD_CONFIG: Record<string, { label: string; color: string; bg: stri
   baja:    { label: 'Baja',    color: 'text-slate-400',  bg: 'bg-slate-800/40 border-slate-700/50',  accent: 'bg-slate-500' },
 }
 
+// ─── ProcesoTabContent ───────────────────────────────────────────────────────
+
+type PlanImplementacion = {
+  contexto_estrategico: string
+  situacion_actual: string
+  antes: Array<{ categoria: string; accion: string; responsable: string; urgencia: string }>
+  durante: Array<{ categoria: string; accion: string; responsable: string; urgencia: string }>
+  despues: Array<{ categoria: string; accion: string; responsable: string; urgencia: string }>
+  factores_criticos_exito: string[]
+  riesgos_implementacion: string[]
+}
+
+type DocAnalisis = {
+  nombre_archivo: string
+  resumen_ejecutivo: string | null
+  analisis_ia: {
+    resumen_ejecutivo?: string
+    diagnostico_operacional?: string
+    nivel_madurez_amo?: number
+    nivel_madurez_nombre?: string
+    nivel_madurez_evidencia?: string
+    hallazgos_criticos?: string[]
+    riesgos_criticos?: Array<{ riesgo: string; impacto: string; evidencia: string }>
+    oportunidades_valor?: Array<{ oportunidad: string; impacto_estimado: string; complejidad_implementacion: string }>
+    brechas_documentacion?: string[]
+    quick_wins?: string[]
+    proximos_pasos_sugeridos?: string[]
+    roles_y_responsabilidades?: { brechas_de_rol?: string[] }
+    recomendacion_ejecutiva?: string
+  } | null
+}
+
+const MADUREZ_LABELS: Record<number, { label: string; color: string; ring: string }> = {
+  1: { label: 'Reactivo',     color: 'text-red-400',    ring: 'ring-red-500' },
+  2: { label: 'Definido',     color: 'text-orange-400', ring: 'ring-orange-500' },
+  3: { label: 'Gestionado',   color: 'text-amber-400',  ring: 'ring-amber-500' },
+  4: { label: 'Optimizado',   color: 'text-emerald-400',ring: 'ring-emerald-500' },
+  5: { label: 'Innovador',    color: 'text-violet-400', ring: 'ring-violet-500' },
+}
+
+const URGENCIA_STYLE: Record<string, string> = {
+  critica: 'bg-red-950/60 text-red-300 border-red-800/50',
+  alta:    'bg-orange-950/60 text-orange-300 border-orange-800/50',
+  media:   'bg-slate-800/60 text-slate-400 border-slate-700/50',
+}
+
+function ProcesoTabContent({ proceso, docAnalisis, critCfg, accentColor, justificacion }: {
+  proceso: ProcesoConHijos
+  docAnalisis: DocAnalisis | null
+  critCfg: { label: string; color: string; bg: string; accent: string } | null
+  accentColor: string
+  justificacion: string | null | undefined
+}) {
+  const ia = docAnalisis?.analisis_ia
+  const planGuardado = (proceso.metadata_ia as any)?.plan_implementacion as PlanImplementacion | undefined
+  const [plan, setPlan] = useState<PlanImplementacion | null>(planGuardado ?? null)
+  const [generandoPlan, setGenerandoPlan] = useState(false)
+  const [faseActiva, setFaseActiva] = useState<'antes' | 'durante' | 'despues'>('antes')
+
+  async function generarPlan() {
+    if (generandoPlan) return
+    setGenerandoPlan(true)
+    try {
+      const res = await fetch(`/api/procesos/${proceso.id}/recomendacion-implementacion`, { method: 'POST' })
+      const data = await res.json()
+      if (data.plan) setPlan(data.plan)
+    } catch { /* silent */ }
+    finally { setGenerandoPlan(false) }
+  }
+
+  const madurezN = ia?.nivel_madurez_amo
+  const madurezCfg = madurezN != null ? MADUREZ_LABELS[madurezN] : null
+  const madurezDots = [1, 2, 3, 4, 5]
+
+  return (
+    <div className="divide-y divide-slate-700/30">
+
+      {/* ── 1. Contexto estratégico ── */}
+      <div className="p-5 space-y-3">
+        <div className="flex items-center gap-2 mb-1">
+          <div className="w-1 h-4 rounded-full bg-violet-500" />
+          <p className="text-xs font-bold text-slate-300 uppercase tracking-widest">Por qué este proceso importa ahora</p>
+        </div>
+        {plan?.contexto_estrategico ? (
+          <p className="text-slate-200 text-sm leading-relaxed">{plan.contexto_estrategico}</p>
+        ) : (ia?.resumen_ejecutivo || docAnalisis?.resumen_ejecutivo) ? (
+          <p className="text-slate-200 text-sm leading-relaxed">
+            {ia?.resumen_ejecutivo ?? docAnalisis?.resumen_ejecutivo}
+          </p>
+        ) : proceso.origen === 'propuesta_ia' && justificacion ? (
+          <p className="text-slate-200 text-sm leading-relaxed">{justificacion}</p>
+        ) : (
+          <p className="text-slate-500 text-sm italic">Sin resumen disponible.</p>
+        )}
+      </div>
+
+      {/* ── 2. Foto actual: Madurez + Criticidad + Diagnóstico ── */}
+      <div className="p-5 space-y-3">
+        <div className="flex items-center gap-2 mb-1">
+          <div className="w-1 h-4 rounded-full bg-amber-500" />
+          <p className="text-xs font-bold text-slate-300 uppercase tracking-widest">Estado actual del proceso</p>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          {/* Madurez visual */}
+          {madurezN != null && madurezCfg && (
+            <div className="rounded-xl border border-slate-700/40 bg-slate-800/30 p-4 space-y-3">
+              <p className="text-xs text-slate-500 uppercase tracking-widest font-semibold">Madurez AMO</p>
+              <div className="flex items-center gap-1.5">
+                {madurezDots.map(n => (
+                  <div key={n} className={`flex-1 h-2 rounded-full transition-all ${n <= madurezN ? accentColor : 'bg-slate-700/60'}`} />
+                ))}
+              </div>
+              <div className="flex items-center justify-between">
+                <span className={`text-xl font-black ${madurezCfg.color}`}>{madurezN}<span className="text-slate-600 text-sm font-normal">/5</span></span>
+                <span className={`text-xs font-bold px-2 py-0.5 rounded-full border ${
+                  madurezN <= 1 ? 'bg-red-950/60 text-red-300 border-red-800/40' :
+                  madurezN <= 2 ? 'bg-orange-950/60 text-orange-300 border-orange-800/40' :
+                  madurezN <= 3 ? 'bg-amber-950/60 text-amber-300 border-amber-800/40' :
+                  'bg-emerald-950/60 text-emerald-300 border-emerald-800/40'
+                }`}>{ia?.nivel_madurez_nombre ?? madurezCfg.label}</span>
+              </div>
+              {ia?.nivel_madurez_evidencia && (
+                <p className="text-xs text-slate-500 leading-relaxed line-clamp-3">{ia.nivel_madurez_evidencia}</p>
+              )}
+            </div>
+          )}
+
+          {/* Criticidad + Roles */}
+          <div className="space-y-2">
+            {critCfg && (
+              <div className={`rounded-xl border p-3 ${critCfg.bg}`}>
+                <p className="text-xs text-slate-500 uppercase tracking-widest font-semibold mb-2">Criticidad</p>
+                <div className="flex items-center gap-2">
+                  <AlertTriangle className={`w-4 h-4 ${critCfg.color}`} />
+                  <span className={`text-sm font-bold ${critCfg.color}`}>{critCfg.label}</span>
+                </div>
+              </div>
+            )}
+            {proceso.roles_involucrados && proceso.roles_involucrados.length > 0 && (
+              <div className="rounded-xl border border-slate-700/40 bg-slate-800/30 p-3">
+                <p className="text-xs text-slate-500 uppercase tracking-widest font-semibold mb-2">Roles</p>
+                <div className="flex flex-wrap gap-1">
+                  {proceso.roles_involucrados.map(r => (
+                    <span key={r} className="text-xs bg-slate-700/60 text-slate-300 border border-slate-600/40 px-2 py-0.5 rounded-full">{r}</span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Diagnóstico operacional */}
+        {(plan?.situacion_actual || ia?.diagnostico_operacional) && (
+          <div className="rounded-xl border border-amber-800/20 bg-amber-950/10 p-4">
+            <p className="text-xs text-amber-400 uppercase tracking-widest font-semibold mb-2">Diagnóstico operacional hoy</p>
+            <p className="text-slate-300 text-sm leading-relaxed">{plan?.situacion_actual ?? ia?.diagnostico_operacional}</p>
+          </div>
+        )}
+      </div>
+
+      {/* ── 3. Plan de implementación ── */}
+      <div className="p-5 space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-1 h-4 rounded-full bg-emerald-500" />
+            <p className="text-xs font-bold text-slate-300 uppercase tracking-widest">Hoja de ruta de implementación</p>
+          </div>
+          {!plan && (
+            <button
+              onClick={generarPlan}
+              disabled={generandoPlan}
+              className="flex items-center gap-1.5 text-xs font-bold bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white px-3 py-1.5 rounded-lg transition-all disabled:opacity-60"
+            >
+              {generandoPlan
+                ? <><span className="w-3 h-3 border border-white/30 border-t-white rounded-full animate-spin" /> Analizando...</>
+                : <><Sparkles className="w-3 h-3" /> Generar plan</>
+              }
+            </button>
+          )}
+        </div>
+
+        {!plan && !generandoPlan && (
+          <div className="rounded-xl border border-slate-700/30 bg-slate-800/20 p-6 text-center space-y-2">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-600/20 to-indigo-600/20 border border-violet-700/30 flex items-center justify-center mx-auto">
+              <Sparkles className="w-5 h-5 text-violet-400" />
+            </div>
+            <p className="text-slate-400 text-sm font-medium">Plan de implementación no generado</p>
+            <p className="text-slate-600 text-xs">Genera un roadmap estructurado con fases, responsables y factores críticos de éxito.</p>
+          </div>
+        )}
+
+        {generandoPlan && (
+          <div className="rounded-xl border border-violet-700/30 bg-violet-950/20 p-6 flex items-center justify-center gap-3">
+            <span className="w-5 h-5 border-2 border-violet-400/30 border-t-violet-400 rounded-full animate-spin" />
+            <p className="text-violet-300 text-sm">Construyendo hoja de ruta...</p>
+          </div>
+        )}
+
+        {plan && (
+          <div className="space-y-4">
+            {/* Tabs de fase */}
+            <div className="flex gap-1 bg-slate-800/60 rounded-xl p-1">
+              {([
+                { id: 'antes',   label: 'Antes', emoji: '⚙️', desc: 'Preparación' },
+                { id: 'durante', label: 'Durante', emoji: '🚀', desc: 'Ejecución' },
+                { id: 'despues', label: 'Después', emoji: '📈', desc: 'Sostenibilidad' },
+              ] as const).map(f => (
+                <button
+                  key={f.id}
+                  onClick={() => setFaseActiva(f.id)}
+                  className={`flex-1 flex flex-col items-center py-2 px-3 rounded-lg text-xs font-semibold transition-all ${
+                    faseActiva === f.id
+                      ? 'bg-slate-700 text-white'
+                      : 'text-slate-500 hover:text-slate-300'
+                  }`}
+                >
+                  <span className="text-base">{f.emoji}</span>
+                  <span>{f.label}</span>
+                  <span className={`text-xs font-normal ${faseActiva === f.id ? 'text-slate-400' : 'text-slate-600'}`}>{f.desc}</span>
+                </button>
+              ))}
+            </div>
+
+            {/* Acciones de la fase */}
+            <div className="space-y-2">
+              {(faseActiva === 'antes' ? plan.antes : faseActiva === 'durante' ? plan.durante : plan.despues).map((item, i) => (
+                <div key={i} className="flex items-start gap-3 rounded-xl border border-slate-700/30 bg-slate-800/20 p-3">
+                  <div className="w-7 h-7 rounded-lg bg-slate-700/60 flex items-center justify-center shrink-0 mt-0.5">
+                    <span className="text-slate-300 text-xs font-bold">{i + 1}</span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap mb-0.5">
+                      <span className="text-xs font-bold text-slate-400 uppercase tracking-wide">{item.categoria}</span>
+                      <span className={`text-xs px-1.5 py-0.5 rounded border font-medium ${URGENCIA_STYLE[item.urgencia] ?? URGENCIA_STYLE.media}`}>
+                        {item.urgencia}
+                      </span>
+                    </div>
+                    <p className="text-sm text-slate-200 leading-snug">{item.accion}</p>
+                    <p className="text-xs text-slate-500 mt-0.5">→ {item.responsable}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Factores críticos + Riesgos */}
+            <div className="grid grid-cols-2 gap-3">
+              {plan.factores_criticos_exito.length > 0 && (
+                <div className="rounded-xl border border-emerald-800/30 bg-emerald-950/10 p-3 space-y-2">
+                  <p className="text-xs font-bold text-emerald-400 uppercase tracking-widest">Claves de éxito</p>
+                  {plan.factores_criticos_exito.map((f, i) => (
+                    <div key={i} className="flex items-start gap-1.5">
+                      <CheckCircle className="w-3 h-3 text-emerald-500 mt-0.5 shrink-0" />
+                      <p className="text-xs text-slate-300 leading-snug">{f}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {plan.riesgos_implementacion.length > 0 && (
+                <div className="rounded-xl border border-red-900/30 bg-red-950/10 p-3 space-y-2">
+                  <p className="text-xs font-bold text-red-400 uppercase tracking-widest">Riesgos</p>
+                  {plan.riesgos_implementacion.map((r, i) => (
+                    <div key={i} className="flex items-start gap-1.5">
+                      <AlertTriangle className="w-3 h-3 text-red-400 mt-0.5 shrink-0" />
+                      <p className="text-xs text-slate-300 leading-snug">{r}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <button
+              onClick={generarPlan}
+              disabled={generandoPlan}
+              className="text-xs text-slate-600 hover:text-slate-400 transition-colors flex items-center gap-1"
+            >
+              <RefreshCw className="w-3 h-3" /> Regenerar plan
+            </button>
+          </div>
+        )}
+      </div>
+
+    </div>
+  )
+}
+
 // ─── ProcesoCard ─────────────────────────────────────────────────────────────
+
+type Correccion = {
+  tipo: 'riesgo' | 'hallazgo' | 'brecha' | 'rol'
+  indice: number
+  observacion: string
+  estado: 'atendido' | 'archivado'
+  fecha: string
+}
+type VersionDoc = {
+  numero: number
+  fecha: string
+  descripcion: string
+  correcciones_aplicadas: number
+}
 
 function ProcesoCard({ proceso, esHijo = false }: { proceso: ProcesoConHijos; esHijo?: boolean }) {
   const [expandido, setExpandido] = useState(false)
+  const [tabDoc, setTabDoc] = useState<'proceso' | 'hallazgos' | 'oportunidades' | 'roles' | 'versiones'>('proceso')
+  const [docAnalisis, setDocAnalisis] = useState<DocAnalisis | null>(null)
+  const [cargandoDoc, setCargandoDoc] = useState(false)
   const [analizando, setAnalizando] = useState(false)
   const [resumen, setResumen] = useState<Resumen | null>(null)
   const [aprobando, setAprobando] = useState(false)
   const [estadoLocal, setEstadoLocal] = useState(proceso.estado_oferta)
+
+  // Correcciones y versiones
+  const metaInit = (proceso.metadata_ia ?? {}) as Record<string, unknown>
+  const [correcciones, setCorrecciones] = useState<Correccion[]>((metaInit.correcciones ?? []) as Correccion[])
+  const [versiones, setVersiones] = useState<VersionDoc[]>((metaInit.versiones ?? []) as VersionDoc[])
+  const [textoCorr, setTextoCorr] = useState<Record<string, string>>({})
+  const [expandCorr, setExpandCorr] = useState<Record<string, boolean>>({})
+  const [guardandoCorr, setGuardandoCorr] = useState(false)
+  const [generandoVersion, setGenerandoVersion] = useState(false)
+
+  function claveCorr(tipo: string, indice: number) { return `${tipo}-${indice}` }
+  function getCorr(tipo: string, indice: number) {
+    return correcciones.find(c => c.tipo === (tipo as Correccion['tipo']) && c.indice === indice)
+  }
+  function esAtendido(tipo: string, indice: number) {
+    return correcciones.some(c => c.tipo === (tipo as Correccion['tipo']) && c.indice === indice && (c.estado === 'atendido' || c.estado === 'archivado'))
+  }
+
+  async function marcarAtendido(tipo: Correccion['tipo'], indice: number) {
+    const obs = textoCorr[claveCorr(tipo, indice)] ?? ''
+    const nuevas = correcciones.filter(c => !(c.tipo === tipo && c.indice === indice))
+    const nueva: Correccion = { tipo, indice, observacion: obs, estado: 'atendido', fecha: new Date().toISOString() }
+    const updated = [...nuevas, nueva]
+    setCorrecciones(updated)
+    setExpandCorr(prev => ({ ...prev, [claveCorr(tipo, indice)]: false }))
+    setGuardandoCorr(true)
+    try {
+      await fetch(`/api/procesos/${proceso.id}/correcciones`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ correcciones: updated }),
+      })
+    } catch { /* silent */ }
+    finally { setGuardandoCorr(false) }
+  }
+
+  async function desmarcarAtendido(tipo: Correccion['tipo'], indice: number) {
+    const updated = correcciones.filter(c => !(c.tipo === tipo && c.indice === indice))
+    setCorrecciones(updated)
+    await fetch(`/api/procesos/${proceso.id}/correcciones`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ correcciones: updated }),
+    })
+  }
+
+  async function generarNuevaVersion() {
+    setGenerandoVersion(true)
+    try {
+      const res = await fetch(`/api/procesos/${proceso.id}/nueva-version`, { method: 'POST' })
+      const data = await res.json()
+      if (data.ok) {
+        setVersiones(data.versiones)
+        setCorrecciones(prev => prev.map(c => c.estado === 'atendido' ? { ...c, estado: 'archivado' as const } : c))
+        setTabDoc('versiones')
+      }
+    } catch { /* silent */ }
+    finally { setGenerandoVersion(false) }
+  }
+
+  const atendidasActivas = correcciones.filter(c => c.estado === 'atendido').length
 
   // Inline edit state
   const [editando, setEditando] = useState(false)
@@ -124,6 +488,16 @@ function ProcesoCard({ proceso, esHijo = false }: { proceso: ProcesoConHijos; es
       if (data.proyeccion) setProyeccion(data.proyeccion)
     } catch { /* silent */ }
     finally { setProyectando(false) }
+  }
+
+  async function cargarDocAnalisis() {
+    if (docAnalisis || cargandoDoc) return
+    setCargandoDoc(true)
+    try {
+      const res = await fetch(`/api/procesos/${proceso.id}/documento-analisis`)
+      if (res.ok) setDocAnalisis(await res.json())
+    } catch { /* silent */ }
+    finally { setCargandoDoc(false) }
   }
 
   const meta = proceso.metadata_ia
@@ -224,7 +598,7 @@ function ProcesoCard({ proceso, esHijo = false }: { proceso: ProcesoConHijos; es
         className={`relative rounded-xl border transition-all duration-300 overflow-hidden ${borderColor} ${
           estadoLocal === 'rechazado' ? 'opacity-50' : ''
         } ${expandido ? 'bg-slate-900/70' : 'bg-slate-900/40 hover:bg-slate-900/60 cursor-pointer'}`}
-        onClick={() => !expandido && setExpandido(true)}
+        onClick={() => { if (!expandido) { setExpandido(true); cargarDocAnalisis() } }}
       >
         {/* Accent left bar */}
         <div className={`absolute left-0 top-0 bottom-0 w-0.5 ${accentBar}`} />
@@ -267,255 +641,550 @@ function ProcesoCard({ proceso, esHijo = false }: { proceso: ProcesoConHijos; es
         {expandido && (
           <div className="border-t border-slate-700/40" onClick={e => e.stopPropagation()}>
 
-            {/* ── Sección 1: Qué es este proceso ── */}
-            <div className="px-5 pt-5 pb-4 space-y-3">
-              <div className="flex items-center gap-2">
-                <FileText className="w-3.5 h-3.5 text-slate-400" />
-                <span className="text-xs font-semibold text-slate-400 uppercase tracking-widest">¿Qué es este proceso?</span>
+            {/* Loading skeleton */}
+            {cargandoDoc && (
+              <div className="p-6 flex items-center gap-3">
+                <span className="w-5 h-5 rounded-full border-2 border-violet-400/30 border-t-violet-400 animate-spin shrink-0" />
+                <span className="text-sm text-slate-400">Cargando análisis del documento...</span>
               </div>
-              <p className="text-slate-200 text-sm leading-relaxed">{proceso.descripcion}</p>
+            )}
 
-              {/* Evidencia o justificación */}
-              {evidencia && (
-                <div className="rounded-lg bg-blue-950/30 border border-blue-800/30 p-3 flex items-start gap-2">
-                  <FileText className="w-3.5 h-3.5 text-blue-400 mt-0.5 shrink-0" />
-                  <div>
-                    <p className="text-blue-300 text-xs font-semibold mb-0.5">Evidencia en documento {docCode}</p>
-                    <p className="text-slate-300 text-xs leading-relaxed">{evidencia}</p>
-                  </div>
-                </div>
-              )}
-              {proceso.origen === 'propuesta_ia' && justificacion && (
-                <div className="rounded-lg bg-violet-950/30 border border-violet-800/30 p-3 flex items-start gap-2">
-                  <Sparkles className="w-3.5 h-3.5 text-violet-400 mt-0.5 shrink-0" />
-                  <div>
-                    <p className="text-violet-300 text-xs font-semibold mb-0.5">¿Por qué debería existir?</p>
-                    <p className="text-slate-300 text-xs leading-relaxed">{justificacion}</p>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* ── Sección 2: Criticidad + Roles ── */}
-            <div className="px-5 pb-4 grid grid-cols-2 gap-3">
-              {/* Criticidad */}
-              {critCfg && (
-                <div className={`rounded-xl border p-3 space-y-1 ${critCfg.bg}`}>
-                  <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest">Criticidad</p>
-                  <div className="flex items-center gap-2">
-                    <AlertTriangle className={`w-4 h-4 ${critCfg.color}`} />
-                    <span className={`text-sm font-bold ${critCfg.color}`}>{critCfg.label}</span>
-                  </div>
-                  <p className="text-xs text-slate-500">
-                    {critCfg.label === 'Crítica' ? 'Su falla detiene o daña el negocio' :
-                     critCfg.label === 'Alta' ? 'Genera costos o riesgos significativos' :
-                     critCfg.label === 'Media' ? 'Oportunidad relevante no urgente' :
-                     'Mejora deseable a largo plazo'}
-                  </p>
-                </div>
-              )}
-              {/* Roles */}
-              {proceso.roles_involucrados && proceso.roles_involucrados.length > 0 && (
-                <div className="rounded-xl border border-slate-700/40 bg-slate-800/30 p-3 space-y-2">
-                  <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest">Roles involucrados</p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {proceso.roles_involucrados.map(r => (
-                      <span key={r} className="flex items-center gap-1 text-xs bg-slate-700/60 text-slate-300 border border-slate-600/40 px-2 py-0.5 rounded-full">
-                        <Users className="w-3 h-3" />{r}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* ── Sección 3: Riesgos ── */}
-            {riesgos.length > 0 && (
-              <div className="px-5 pb-4">
-                <div className="rounded-xl border border-red-900/30 bg-red-950/10 p-4 space-y-2">
-                  <div className="flex items-center gap-2 mb-1">
-                    <Shield className="w-3.5 h-3.5 text-red-400" />
-                    <span className="text-xs font-semibold text-red-400 uppercase tracking-widest">Riesgos si falla o no existe</span>
-                  </div>
-                  {riesgos.map((r, i) => (
-                    <div key={i} className="flex items-start gap-2">
-                      <div className="w-1.5 h-1.5 rounded-full bg-red-500 mt-1.5 shrink-0" />
-                      <p className="text-sm text-slate-300 leading-snug">{r}</p>
-                    </div>
+            {!cargandoDoc && (
+              <>
+                {/* ── Tabs ── */}
+                <div className="flex gap-0 border-b border-slate-700/50 bg-slate-900/40 px-4">
+                  {([
+                    { id: 'proceso', label: 'El Proceso', icon: FileText },
+                    { id: 'hallazgos', label: 'Hallazgos', icon: AlertTriangle },
+                    { id: 'oportunidades', label: 'Oportunidades', icon: TrendingUp },
+                    { id: 'roles', label: 'Roles', icon: Users },
+                    { id: 'versiones', label: 'Versiones', icon: Clock, badge: versiones.length },
+                  ] as const).map(t => (
+                    <button
+                      key={t.id}
+                      onClick={() => setTabDoc(t.id as typeof tabDoc)}
+                      className={`flex items-center gap-1.5 px-3 py-3 text-xs font-semibold border-b-2 transition-all ${
+                        tabDoc === t.id
+                          ? 'border-violet-500 text-violet-300'
+                          : 'border-transparent text-slate-500 hover:text-slate-300'
+                      }`}
+                    >
+                      <t.icon className="w-3.5 h-3.5" />{t.label}
+                      {'badge' in t && t.badge > 0 && (
+                        <span className="bg-violet-600 text-white text-xs font-bold px-1.5 py-0.5 rounded-full leading-none">{t.badge}</span>
+                      )}
+                    </button>
                   ))}
                 </div>
-              </div>
-            )}
 
-            {/* ── Sección 4: Oportunidades + Automatización en grid ── */}
-            {(oportunidades.length > 0 || automatizacion.length > 0) && (
-              <div className="px-5 pb-4 grid grid-cols-2 gap-3">
-                {oportunidades.length > 0 && (
-                  <div className="rounded-xl border border-emerald-800/30 bg-emerald-950/10 p-3 space-y-2">
-                    <div className="flex items-center gap-1.5 mb-1">
-                      <TrendingUp className="w-3.5 h-3.5 text-emerald-400" />
-                      <span className="text-xs font-semibold text-emerald-400 uppercase tracking-widest">Mejoras</span>
-                    </div>
-                    {oportunidades.map((o, i) => (
-                      <div key={i} className="flex items-start gap-1.5">
-                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 mt-1.5 shrink-0" />
-                        <p className="text-xs text-slate-300 leading-snug">{o}</p>
+                {/* ── TAB: El Proceso ── */}
+                {tabDoc === 'proceso' && (
+                  <ProcesoTabContent
+                    proceso={proceso}
+                    docAnalisis={docAnalisis}
+                    critCfg={critCfg}
+                    accentColor={accentColor}
+                    justificacion={justificacion}
+                  />
+                )}
+
+                {/* ── TAB: Hallazgos ── */}
+                {tabDoc === 'hallazgos' && (
+                  <div className="p-5 space-y-5">
+
+                    {/* Riesgos críticos */}
+                    {docAnalisis?.analisis_ia?.riesgos_criticos && docAnalisis.analisis_ia.riesgos_criticos.length > 0 && (
+                      <div className="space-y-2">
+                        <p className="text-xs font-semibold text-red-400 uppercase tracking-widest flex items-center gap-2">
+                          <Shield className="w-3.5 h-3.5" /> Riesgos críticos identificados
+                        </p>
+                        {docAnalisis.analisis_ia.riesgos_criticos.map((r, i) => {
+                          const atendido = esAtendido('riesgo', i)
+                          const key = claveCorr('riesgo', i)
+                          const abierto = expandCorr[key]
+                          const corr = getCorr('riesgo', i)
+                          return (
+                            <div key={i} className={`rounded-xl border p-4 space-y-2 transition-all ${atendido ? 'border-emerald-800/30 bg-emerald-950/10 opacity-70' : 'border-red-900/30 bg-red-950/10'}`}>
+                              <div className="flex items-start justify-between gap-3">
+                                <p className={`text-sm font-semibold leading-snug ${atendido ? 'line-through text-slate-500' : 'text-white'}`}>{r.riesgo}</p>
+                                <span className={`shrink-0 text-xs px-2 py-0.5 rounded-full font-bold border ${atendido ? 'bg-emerald-950/60 text-emerald-400 border-emerald-800/40' : r.impacto === 'alto' ? 'bg-red-950/60 text-red-300 border-red-800/50' : r.impacto === 'medio' ? 'bg-amber-950/60 text-amber-300 border-amber-800/50' : 'bg-slate-800 text-slate-400 border-slate-700'}`}>
+                                  {atendido ? '✓ Resuelto' : r.impacto}
+                                </span>
+                              </div>
+                              {r.evidencia && !atendido && (
+                                <p className="text-slate-400 text-xs leading-relaxed border-t border-red-900/20 pt-2">
+                                  <span className="text-red-400 font-medium">Evidencia: </span>{r.evidencia}
+                                </p>
+                              )}
+                              {/* Acciones */}
+                              <div className="flex items-center gap-3 pt-1 border-t border-slate-700/20">
+                                {!atendido ? (
+                                  <button onClick={() => setExpandCorr(p => ({ ...p, [key]: !p[key] }))}
+                                    className="text-xs text-slate-500 hover:text-slate-200 flex items-center gap-1 transition-colors">
+                                    <Edit2 className="w-3 h-3" /> {abierto ? 'Cerrar' : 'Comentar y resolver'}
+                                  </button>
+                                ) : (
+                                  <button onClick={() => desmarcarAtendido('riesgo', i)}
+                                    className="text-xs text-slate-500 hover:text-slate-300 transition-colors">
+                                    Desmarcar
+                                  </button>
+                                )}
+                              </div>
+                              {abierto && !atendido && (
+                                <div className="space-y-2 pt-1">
+                                  <textarea
+                                    value={textoCorr[key] ?? ''}
+                                    onChange={e => setTextoCorr(p => ({ ...p, [key]: e.target.value }))}
+                                    placeholder="Ej: ya implementamos un control dual desde enero 2025..."
+                                    rows={2}
+                                    className="w-full text-xs text-slate-200 bg-slate-800/60 border border-slate-600/50 rounded-lg px-3 py-2 resize-none focus:outline-none focus:border-emerald-500/50 placeholder:text-slate-600"
+                                  />
+                                  <button onClick={() => marcarAtendido('riesgo', i)} disabled={guardandoCorr}
+                                    className="flex items-center gap-1.5 text-xs font-semibold bg-emerald-700 hover:bg-emerald-600 text-white px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50">
+                                    <CheckCircle className="w-3 h-3" /> Marcar como resuelto
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          )
+                        })}
                       </div>
-                    ))}
-                  </div>
-                )}
-                {automatizacion.length > 0 && (
-                  <div className="rounded-xl border border-indigo-800/30 bg-indigo-950/10 p-3 space-y-2">
-                    <div className="flex items-center gap-1.5 mb-1">
-                      <Cpu className="w-3.5 h-3.5 text-indigo-400" />
-                      <span className="text-xs font-semibold text-indigo-400 uppercase tracking-widest">Automatización</span>
-                    </div>
-                    {automatizacion.map((a, i) => (
-                      <div key={i} className="flex items-start gap-1.5">
-                        <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 mt-1.5 shrink-0" />
-                        <p className="text-xs text-slate-300 leading-snug">{a}</p>
+                    )}
+
+                    {/* Hallazgos críticos */}
+                    {docAnalisis?.analisis_ia?.hallazgos_criticos && docAnalisis.analisis_ia.hallazgos_criticos.length > 0 && (
+                      <div className="space-y-2">
+                        <p className="text-xs font-semibold text-amber-400 uppercase tracking-widest flex items-center gap-2">
+                          <AlertTriangle className="w-3.5 h-3.5" /> Hallazgos críticos del documento
+                        </p>
+                        <div className="rounded-xl border border-amber-800/30 bg-amber-950/10 p-4 space-y-3">
+                          {docAnalisis.analisis_ia.hallazgos_criticos.map((h, i) => {
+                            const atendido = esAtendido('hallazgo', i)
+                            const key = claveCorr('hallazgo', i)
+                            const abierto = expandCorr[key]
+                            const corr = getCorr('hallazgo', i)
+                            return (
+                              <div key={i} className={`pb-3 ${i < (docAnalisis.analisis_ia?.hallazgos_criticos?.length ?? 0) - 1 ? 'border-b border-amber-800/20' : ''}`}>
+                                <div className="flex items-start gap-2.5">
+                                  <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${atendido ? 'bg-emerald-900/50 border border-emerald-700/40' : 'bg-amber-900/50 border border-amber-700/40'}`}>
+                                    {atendido ? <CheckCircle className="w-3 h-3 text-emerald-400" /> : <span className="text-amber-400 text-xs font-bold">{i + 1}</span>}
+                                  </div>
+                                  <p className={`text-sm leading-relaxed flex-1 ${atendido ? 'line-through text-slate-500' : 'text-slate-300'}`}>{h}</p>
+                                </div>
+                                <div className="flex items-center gap-3 pl-7 mt-2">
+                                  {!atendido ? (
+                                    <button onClick={() => setExpandCorr(p => ({ ...p, [key]: !p[key] }))}
+                                      className="text-xs text-slate-600 hover:text-slate-300 flex items-center gap-1 transition-colors">
+                                      <Edit2 className="w-3 h-3" /> {abierto ? 'Cerrar' : 'Comentar y resolver'}
+                                    </button>
+                                  ) : (
+                                    <div className="flex items-center gap-3">
+                                      <span className="flex items-center gap-1 text-xs font-semibold text-emerald-400">
+                                        <CheckCircle className="w-3 h-3" /> Ya resuelto
+                                      </span>
+                                      <button onClick={() => desmarcarAtendido('hallazgo', i)}
+                                        className="text-xs text-slate-600 hover:text-slate-400 transition-colors">
+                                        · Desmarcar
+                                      </button>
+                                    </div>
+                                  )}
+                                </div>
+                                {abierto && !atendido && (
+                                  <div className="pl-7 pt-2 space-y-1.5">
+                                    <textarea
+                                      value={textoCorr[key] ?? ''}
+                                      onChange={e => setTextoCorr(p => ({ ...p, [key]: e.target.value }))}
+                                      placeholder="Ej: este hallazgo ya está incorporado en nuestro proceso desde Q1..."
+                                      rows={2}
+                                      className="w-full text-xs text-slate-200 bg-slate-800/60 border border-slate-600/50 rounded-lg px-3 py-2 resize-none focus:outline-none focus:border-emerald-500/50 placeholder:text-slate-600"
+                                    />
+                                    <button onClick={() => marcarAtendido('hallazgo', i)}
+                                      className="flex items-center gap-1.5 text-xs font-semibold bg-emerald-700 hover:bg-emerald-600 text-white px-3 py-1.5 rounded-lg transition-colors">
+                                      <CheckCircle className="w-3 h-3" /> Marcar como resuelto
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                            )
+                          })}
+                        </div>
                       </div>
-                    ))}
+                    )}
+
+                    {/* Brechas de documentación */}
+                    {docAnalisis?.analisis_ia?.brechas_documentacion && docAnalisis.analisis_ia.brechas_documentacion.length > 0 && (
+                      <div className="space-y-2">
+                        <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                          <FileText className="w-3.5 h-3.5" /> Brechas de documentación
+                        </p>
+                        <div className="rounded-xl border border-slate-700/40 bg-slate-800/20 p-4 space-y-3">
+                          {docAnalisis.analisis_ia.brechas_documentacion.map((b, i) => {
+                            const atendido = esAtendido('brecha', i)
+                            const key = claveCorr('brecha', i)
+                            const abierto = expandCorr[key]
+                            const corr = getCorr('brecha', i)
+                            return (
+                              <div key={i} className={`pb-3 ${i < (docAnalisis.analisis_ia?.brechas_documentacion?.length ?? 0) - 1 ? 'border-b border-slate-700/20' : ''}`}>
+                                <div className="flex items-start gap-2">
+                                  <div className={`w-3 h-3 rounded-full mt-1.5 shrink-0 ${atendido ? 'bg-emerald-500' : 'bg-slate-500'}`} />
+                                  <p className={`text-xs leading-relaxed flex-1 ${atendido ? 'line-through text-slate-600' : 'text-slate-400'}`}>{b}</p>
+                                </div>
+                                <div className="flex items-center gap-3 pl-5 mt-1.5">
+                                  {!atendido ? (
+                                    <button onClick={() => setExpandCorr(p => ({ ...p, [key]: !p[key] }))}
+                                      className="text-xs text-slate-600 hover:text-slate-300 flex items-center gap-1 transition-colors">
+                                      <Edit2 className="w-3 h-3" /> {abierto ? 'Cerrar' : 'Comentar y resolver'}
+                                    </button>
+                                  ) : (
+                                    <div className="flex items-center gap-3">
+                                      <span className="flex items-center gap-1 text-xs font-semibold text-emerald-400">
+                                        <CheckCircle className="w-3 h-3" /> Ya resuelto
+                                      </span>
+                                      <button onClick={() => desmarcarAtendido('brecha', i)}
+                                        className="text-xs text-slate-600 hover:text-slate-400 transition-colors">
+                                        · Desmarcar
+                                      </button>
+                                    </div>
+                                  )}
+                                </div>
+                                {abierto && !atendido && (
+                                  <div className="pl-5 pt-2 space-y-1.5">
+                                    <textarea
+                                      value={textoCorr[key] ?? ''}
+                                      onChange={e => setTextoCorr(p => ({ ...p, [key]: e.target.value }))}
+                                      placeholder="Ej: tenemos procedimiento escrito para esto desde 2024..."
+                                      rows={2}
+                                      className="w-full text-xs text-slate-200 bg-slate-800/60 border border-slate-600/50 rounded-lg px-3 py-2 resize-none focus:outline-none focus:border-emerald-500/50 placeholder:text-slate-600"
+                                    />
+                                    <button onClick={() => marcarAtendido('brecha', i)}
+                                      className="flex items-center gap-1.5 text-xs font-semibold bg-emerald-700 hover:bg-emerald-600 text-white px-3 py-1.5 rounded-lg transition-colors">
+                                      <CheckCircle className="w-3 h-3" /> Marcar como resuelto
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* CTA nueva versión inline si hay correcciones pendientes */}
+                    {atendidasActivas > 0 && (
+                      <div className="rounded-xl border border-emerald-700/40 bg-emerald-950/20 p-4 flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-semibold text-emerald-300">{atendidasActivas} hallazgo{atendidasActivas > 1 ? 's' : ''} marcado{atendidasActivas > 1 ? 's' : ''} como resuelto{atendidasActivas > 1 ? 's' : ''}</p>
+                          <p className="text-xs text-slate-400 mt-0.5">Consolida la v{versiones.length + 1} del documento excluyendo los hallazgos ya resueltos en tu organización.</p>
+                        </div>
+                        <button onClick={generarNuevaVersion} disabled={generandoVersion}
+                          className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold bg-emerald-700 hover:bg-emerald-600 text-white transition-all disabled:opacity-50 shrink-0">
+                          {generandoVersion ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Generando...</> : <><Zap className="w-4 h-4" /> Consolidar en v{versiones.length + 1}</>}
+                        </button>
+                      </div>
+                    )}
+
                   </div>
                 )}
-              </div>
-            )}
 
-            {/* ── Sección 5: KPIs ── */}
-            {kpis.length > 0 && (
-              <div className="px-5 pb-4">
-                <div className="rounded-xl border border-amber-800/30 bg-amber-950/10 p-3 space-y-2">
-                  <div className="flex items-center gap-1.5 mb-1">
-                    <BarChart3 className="w-3.5 h-3.5 text-amber-400" />
-                    <span className="text-xs font-semibold text-amber-400 uppercase tracking-widest">KPIs recomendados</span>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {kpis.map((k, i) => (
-                      <span key={i} className="text-xs bg-amber-950/40 text-amber-300 border border-amber-800/40 px-2 py-1 rounded-lg">{k}</span>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
+                {/* ── TAB: Oportunidades ── */}
+                {tabDoc === 'oportunidades' && (
+                  <div className="p-5 space-y-4">
+                    {/* Quick wins */}
+                    {docAnalisis?.analisis_ia?.quick_wins && docAnalisis.analisis_ia.quick_wins.length > 0 && (
+                      <div className="space-y-2">
+                        <p className="text-xs font-semibold text-emerald-400 uppercase tracking-widest flex items-center gap-2">
+                          <Zap className="w-3.5 h-3.5" /> Quick wins — acciones inmediatas
+                        </p>
+                        <div className="space-y-2">
+                          {docAnalisis.analisis_ia.quick_wins.map((q, i) => (
+                            <div key={i} className="flex items-start gap-3 rounded-xl border border-emerald-800/30 bg-emerald-950/10 p-3">
+                              <div className="w-6 h-6 rounded-full bg-emerald-700/40 flex items-center justify-center shrink-0 mt-0.5">
+                                <span className="text-emerald-300 text-xs font-bold">{i + 1}</span>
+                              </div>
+                              <p className="text-slate-200 text-sm leading-relaxed">{q}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
 
-            {/* ── Sección 6: Benchmark ── */}
-            {benchmark && (
-              <div className="px-5 pb-4">
-                <div className="rounded-xl border border-slate-600/30 bg-slate-800/20 p-3 flex items-start gap-2">
-                  <Target className="w-3.5 h-3.5 text-slate-400 mt-0.5 shrink-0" />
-                  <div>
-                    <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-1">Benchmark industria</p>
-                    <p className="text-xs text-slate-300 leading-relaxed">{benchmark}</p>
-                  </div>
-                </div>
-              </div>
-            )}
+                    {/* Oportunidades de valor */}
+                    {docAnalisis?.analisis_ia?.oportunidades_valor && docAnalisis.analisis_ia.oportunidades_valor.length > 0 && (
+                      <div className="space-y-2">
+                        <p className="text-xs font-semibold text-indigo-400 uppercase tracking-widest flex items-center gap-2">
+                          <TrendingUp className="w-3.5 h-3.5" /> Oportunidades de valor
+                        </p>
+                        {docAnalisis.analisis_ia.oportunidades_valor.map((o, i) => (
+                          <div key={i} className="rounded-xl border border-indigo-800/30 bg-indigo-950/10 p-4 space-y-2">
+                            <div className="flex items-start justify-between gap-3">
+                              <p className="text-white text-sm font-semibold">{o.oportunidad}</p>
+                              <span className={`shrink-0 text-xs px-2 py-0.5 rounded-full border font-medium ${
+                                o.complejidad_implementacion === 'baja' ? 'bg-emerald-950/60 text-emerald-300 border-emerald-800/50' :
+                                o.complejidad_implementacion === 'media' ? 'bg-amber-950/60 text-amber-300 border-amber-800/50' :
+                                'bg-red-950/60 text-red-300 border-red-800/50'
+                              }`}>
+                                {o.complejidad_implementacion === 'baja' ? '⚡ Baja complejidad' : o.complejidad_implementacion === 'media' ? '🔧 Media' : '🏗️ Alta'}
+                              </span>
+                            </div>
+                            {o.impacto_estimado && (
+                              <p className="text-slate-400 text-xs leading-relaxed">{o.impacto_estimado}</p>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
 
-            {/* ── Sección 7: Análisis IA ── */}
-            <div className="px-5 pb-4">
-              <div className="rounded-xl border border-violet-800/30 bg-violet-950/10 p-4 space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Brain className="w-3.5 h-3.5 text-violet-400" />
-                    <span className="text-xs font-semibold text-violet-300 uppercase tracking-widest">Diagnóstico IA</span>
-                  </div>
-                  {resumen && (
-                    <button onClick={reanalizarConIA} disabled={analizando} className="flex items-center gap-1 text-xs text-slate-500 hover:text-violet-300 transition-colors">
-                      <RefreshCw className="w-3 h-3" /> Re-analizar
-                    </button>
-                  )}
-                </div>
-                {analizando && (
-                  <div className="flex items-center gap-3 py-2">
-                    <span className="w-4 h-4 rounded-full border-2 border-violet-400/30 border-t-violet-400 animate-spin shrink-0" />
-                    <span className="text-violet-300 text-xs">Analizando en profundidad...</span>
-                  </div>
-                )}
-                {!analizando && !resumen && (
-                  <div className="text-center py-2 space-y-2">
-                    <p className="text-slate-500 text-xs">Obtén un diagnóstico ejecutivo con criticidad, estado actual y próximo paso recomendado.</p>
-                    <button onClick={analizarConIA} className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold bg-gradient-to-r from-violet-600 to-indigo-600 text-white hover:from-violet-500 hover:to-indigo-500 mx-auto transition-all">
-                      <Sparkles className="w-3.5 h-3.5" /> Analizar con IA
-                    </button>
-                  </div>
-                )}
-                {resumen && saludCfg && (
-                  <div className={`rounded-lg border p-3 space-y-2 ${saludCfg.bg} ${saludCfg.border}`}>
-                    <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${saludCfg.color} bg-slate-900/60 border border-current/20`}>{saludCfg.label}</span>
-                    <p className="text-slate-200 text-sm leading-relaxed">{resumen.diagnostico}</p>
-                    {resumen.siguiente_paso && (
-                      <div className="flex items-start gap-2 pt-1 border-t border-slate-700/40">
-                        <ArrowRight className="w-3.5 h-3.5 text-indigo-400 mt-0.5 shrink-0" />
-                        <p className="text-xs text-indigo-300"><span className="font-semibold">Siguiente paso:</span> {resumen.siguiente_paso}</p>
+                    {/* Próximos pasos */}
+                    {docAnalisis?.analisis_ia?.proximos_pasos_sugeridos && docAnalisis.analisis_ia.proximos_pasos_sugeridos.length > 0 && (
+                      <div className="space-y-2">
+                        <p className="text-xs font-semibold text-amber-400 uppercase tracking-widest flex items-center gap-2">
+                          <ArrowRight className="w-3.5 h-3.5" /> Próximos pasos sugeridos
+                        </p>
+                        <div className="space-y-2">
+                          {docAnalisis.analisis_ia.proximos_pasos_sugeridos.map((p, i) => (
+                            <div key={i} className="flex items-start gap-3 rounded-xl border border-amber-800/20 bg-amber-950/10 p-3">
+                              <div className="w-6 h-6 rounded-full bg-amber-800/40 border border-amber-700/40 flex items-center justify-center shrink-0 mt-0.5">
+                                <span className="text-amber-300 text-xs font-bold">{i + 1}</span>
+                              </div>
+                              <p className="text-slate-300 text-sm leading-relaxed">{p}</p>
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     )}
                   </div>
                 )}
-              </div>
-            </div>
 
-            {/* ── Sección 8: Decisión ── */}
-            <div className="px-5 pb-5">
-              <div className={`rounded-xl border p-4 space-y-3 ${
-                estadoLocal === 'aceptado' ? 'bg-emerald-950/20 border-emerald-700/40' :
-                estadoLocal === 'rechazado' ? 'bg-red-950/20 border-red-800/40' :
-                'bg-slate-800/30 border-slate-700/40'
-              }`}>
-                <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest">Tu decisión sobre este proceso</p>
+                {/* ── TAB: Roles ── */}
+                {tabDoc === 'roles' && (
+                  <div className="p-5 space-y-4">
+                    {proceso.roles_involucrados && proceso.roles_involucrados.length > 0 && (
+                      <div className="space-y-2">
+                        <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest">Roles activos en este proceso</p>
+                        <div className="flex flex-wrap gap-2">
+                          {proceso.roles_involucrados.map(r => (
+                            <div key={r} className="group flex items-center gap-2 bg-slate-800/60 border border-slate-700/50 px-3 py-2 rounded-xl hover:border-violet-600/40 transition-colors">
+                              <div className="w-7 h-7 rounded-full bg-slate-700 flex items-center justify-center">
+                                <Users className="w-3.5 h-3.5 text-slate-300" />
+                              </div>
+                              <span className="text-sm text-slate-200 font-medium">{r}</span>
+                              <a
+                                href="#glosario-roles"
+                                onClick={e => { e.preventDefault(); document.getElementById('glosario-roles')?.scrollIntoView({ behavior: 'smooth', block: 'start' }) }}
+                                className="opacity-0 group-hover:opacity-100 transition-opacity text-xs text-violet-400 hover:text-violet-300 flex items-center gap-0.5 ml-1"
+                                title="Ver en Glosario de Roles"
+                              >
+                                <ArrowRight className="w-3 h-3 -rotate-45" />
+                              </a>
+                            </div>
+                          ))}
+                        </div>
+                        <p className="text-xs text-slate-600 flex items-center gap-1 mt-1">
+                          <ArrowRight className="w-3 h-3 -rotate-45" /> Pasa el cursor sobre un rol para ir al Glosario de Roles
+                        </p>
+                      </div>
+                    )}
 
-                {estadoLocal === 'propuesto' && (
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      onClick={() => cambiarEstado('aceptado')}
-                      disabled={aprobando}
-                      className="flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold bg-emerald-700 hover:bg-emerald-600 text-white transition-all disabled:opacity-50 shadow-lg shadow-emerald-900/40"
-                    >
-                      <CheckCircle className="w-4 h-4" /> Aceptar proceso
-                    </button>
-                    <button
-                      onClick={() => cambiarEstado('rechazado')}
-                      disabled={aprobando}
-                      className="flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold bg-red-900/60 hover:bg-red-900/80 text-red-300 border border-red-800/50 transition-all disabled:opacity-50"
-                    >
-                      <XCircle className="w-4 h-4" /> Rechazar
-                    </button>
+                    {docAnalisis?.analisis_ia?.roles_y_responsabilidades?.brechas_de_rol && docAnalisis.analisis_ia.roles_y_responsabilidades.brechas_de_rol.length > 0 && (
+                      <div className="space-y-2">
+                        <p className="text-xs font-semibold text-amber-400 uppercase tracking-widest flex items-center gap-2">
+                          <AlertTriangle className="w-3.5 h-3.5" /> Brechas de roles identificadas
+                        </p>
+                        <div className="rounded-xl border border-amber-800/30 bg-amber-950/10 p-4 space-y-3">
+                          {docAnalisis.analisis_ia.roles_y_responsabilidades.brechas_de_rol.map((b, i) => {
+                            const atendido = esAtendido('rol', i)
+                            const key = claveCorr('rol', i)
+                            const abierto = expandCorr[key]
+                            const corr = getCorr('rol', i)
+                            return (
+                              <div key={i} className={`pb-3 ${i < (docAnalisis.analisis_ia?.roles_y_responsabilidades?.brechas_de_rol?.length ?? 0) - 1 ? 'border-b border-amber-800/20' : ''}`}>
+                                <div className="flex items-start gap-2.5">
+                                  <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${atendido ? 'bg-emerald-900/50 border border-emerald-700/40' : 'bg-amber-900/50 border border-amber-700/40'}`}>
+                                    {atendido ? <CheckCircle className="w-3 h-3 text-emerald-400" /> : <span className="text-amber-400 text-xs font-bold">{i + 1}</span>}
+                                  </div>
+                                  <p className={`text-sm leading-relaxed flex-1 ${atendido ? 'line-through text-slate-500' : 'text-slate-300'}`}>{b}</p>
+                                </div>
+                                <div className="flex items-center gap-3 pl-7 mt-2">
+                                  {!atendido ? (
+                                    <>
+                                      <a
+                                        href="#glosario-roles"
+                                        onClick={e => { e.preventDefault(); document.getElementById('glosario-roles')?.scrollIntoView({ behavior: 'smooth', block: 'start' }) }}
+                                        className="text-xs text-violet-400 hover:text-violet-300 flex items-center gap-1 transition-colors"
+                                      >
+                                        <Users className="w-3 h-3" /> Documentar en Glosario
+                                      </a>
+                                      <button onClick={() => setExpandCorr(p => ({ ...p, [key]: !p[key] }))}
+                                        className="text-xs text-slate-600 hover:text-slate-300 flex items-center gap-1 transition-colors">
+                                        <Edit2 className="w-3 h-3" /> {abierto ? 'Cerrar' : 'Comentar y resolver'}
+                                      </button>
+                                    </>
+                                  ) : (
+                                    <div className="flex items-center gap-3">
+                                      <span className="flex items-center gap-1 text-xs font-semibold text-emerald-400">
+                                        <CheckCircle className="w-3 h-3" /> Ya resuelto
+                                      </span>
+                                      <button onClick={() => desmarcarAtendido('rol', i)}
+                                        className="text-xs text-slate-600 hover:text-slate-400 transition-colors">
+                                        · Desmarcar
+                                      </button>
+                                    </div>
+                                  )}
+                                </div>
+                                {abierto && !atendido && (
+                                  <div className="pl-7 pt-2 space-y-1.5">
+                                    <textarea
+                                      value={textoCorr[key] ?? ''}
+                                      onChange={e => setTextoCorr(p => ({ ...p, [key]: e.target.value }))}
+                                      placeholder="Ej: el rol de Coordinador de Inventario cubre esta función..."
+                                      rows={2}
+                                      className="w-full text-xs text-slate-200 bg-slate-800/60 border border-slate-600/50 rounded-lg px-3 py-2 resize-none focus:outline-none focus:border-emerald-500/50 placeholder:text-slate-600"
+                                    />
+                                    <button onClick={() => marcarAtendido('rol', i)}
+                                      className="flex items-center gap-1.5 text-xs font-semibold bg-emerald-700 hover:bg-emerald-600 text-white px-3 py-1.5 rounded-lg transition-colors">
+                                      <CheckCircle className="w-3 h-3" /> Marcar como resuelto
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
 
-                {estadoLocal === 'aceptado' && (
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2 text-emerald-400">
-                      <CheckCircle className="w-5 h-5" />
-                      <span className="text-sm font-bold">Proceso aceptado — forma parte del inventario oficial</span>
-                    </div>
-                    <button
-                      onClick={() => cambiarEstado('rechazado')}
-                      disabled={aprobando}
-                      className="text-xs text-slate-500 hover:text-red-400 transition-colors"
-                    >
-                      Deshacer y rechazar
-                    </button>
+                {/* ── TAB: Versiones ── */}
+                {tabDoc === 'versiones' && (
+                  <div className="p-5 space-y-4">
+                    {/* Estado actual sin versiones consolidadas */}
+                    {versiones.length === 0 && atendidasActivas === 0 && (
+                      <div className="text-center py-10 space-y-3">
+                        <div className="w-12 h-12 rounded-2xl bg-slate-800/60 border border-slate-700/40 flex items-center justify-center mx-auto">
+                          <Clock className="w-6 h-6 text-slate-500" />
+                        </div>
+                        <p className="text-slate-400 text-sm font-medium">Sin versiones consolidadas</p>
+                        <p className="text-slate-600 text-xs max-w-xs mx-auto">
+                          Cuando marques hallazgos como resueltos y consolides, cada versión quedará disponible aquí para descarga.
+                        </p>
+                      </div>
+                    )}
+
+                    {/* CTA cuando hay hallazgos resueltos pero no se ha consolidado */}
+                    {atendidasActivas > 0 && (
+                      <div className="rounded-xl border border-emerald-700/40 bg-emerald-950/20 p-4 flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-semibold text-emerald-300">
+                            {atendidasActivas} hallazgo{atendidasActivas > 1 ? 's' : ''} resuelto{atendidasActivas > 1 ? 's' : ''} sin consolidar
+                          </p>
+                          <p className="text-xs text-slate-400 mt-0.5">
+                            La v{versiones.length + 1} se generará con estos hallazgos excluidos.
+                          </p>
+                        </div>
+                        <button
+                          onClick={generarNuevaVersion}
+                          disabled={generandoVersion}
+                          className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold bg-emerald-700 hover:bg-emerald-600 text-white transition-all disabled:opacity-50 shrink-0"
+                        >
+                          {generandoVersion
+                            ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Generando...</>
+                            : <><Zap className="w-4 h-4" /> Crear v{versiones.length + 1}</>
+                          }
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Lista de versiones consolidadas */}
+                    {versiones.length > 0 && (
+                      <div className="space-y-2">
+                        <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest">Versiones consolidadas</p>
+                        <div className="space-y-2">
+                          {[...versiones].reverse().map((v, i) => {
+                            const esUltima = i === 0
+                            return (
+                              <div key={v.numero} className={`rounded-xl border p-4 flex items-center justify-between gap-4 ${esUltima ? 'border-violet-700/40 bg-violet-950/20' : 'border-slate-700/40 bg-slate-800/20'}`}>
+                                <div className="flex items-center gap-3 min-w-0">
+                                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 font-black text-sm ${esUltima ? 'bg-violet-600 text-white' : 'bg-slate-700 text-slate-300'}`}>
+                                    v{v.numero}
+                                  </div>
+                                  <div className="min-w-0">
+                                    <div className="flex items-center gap-2">
+                                      <p className={`text-sm font-semibold truncate ${esUltima ? 'text-violet-200' : 'text-slate-300'}`}>
+                                        Versión {v.numero}
+                                        {esUltima && <span className="ml-2 text-xs font-normal text-violet-400 bg-violet-950/60 border border-violet-800/40 px-2 py-0.5 rounded-full">Última</span>}
+                                      </p>
+                                    </div>
+                                    <p className="text-xs text-slate-500 mt-0.5">{v.descripcion}</p>
+                                    <p className="text-xs text-slate-600 mt-0.5">
+                                      {new Date(v.fecha).toLocaleDateString('es-CL', { day: '2-digit', month: 'long', year: 'numeric' })}
+                                      {v.correcciones_aplicadas > 0 && ` · ${v.correcciones_aplicadas} hallazgo${v.correcciones_aplicadas > 1 ? 's' : ''} resuelto${v.correcciones_aplicadas > 1 ? 's' : ''}`}
+                                    </p>
+                                  </div>
+                                </div>
+                                <a
+                                  href={`/api/procesos/${proceso.id}/exportar?v=${v.numero}`}
+                                  download={`${proceso.nombre.replace(/[^a-z0-9]/gi,'_')}_v${v.numero}.html`}
+                                  className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-lg transition-all shrink-0 ${
+                                    esUltima
+                                      ? 'bg-violet-600 hover:bg-violet-500 text-white'
+                                      : 'bg-slate-700/60 hover:bg-slate-700 text-slate-300 border border-slate-600/40'
+                                  }`}
+                                >
+                                  <ArrowRight className="w-3.5 h-3.5 -rotate-45" />
+                                  Descargar
+                                </a>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
 
-                {estadoLocal === 'rechazado' && (
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2 text-red-400">
-                      <XCircle className="w-5 h-5" />
-                      <span className="text-sm font-bold">Proceso rechazado — la consultora revisará</span>
-                    </div>
-                    <button
-                      onClick={() => setEstadoLocal('propuesto' as any)}
-                      disabled={aprobando}
-                      className="text-xs text-slate-500 hover:text-emerald-400 transition-colors"
-                    >
-                      Deshacer y volver a propuesto
-                    </button>
+                {/* ── Decisión (siempre visible al fondo) ── */}
+                <div className="px-5 pb-5 pt-2 border-t border-slate-700/40">
+                  <div className={`rounded-xl border p-4 space-y-3 ${
+                    estadoLocal === 'aceptado' ? 'bg-emerald-950/20 border-emerald-700/40' :
+                    estadoLocal === 'rechazado' ? 'bg-red-950/20 border-red-800/40' :
+                    'bg-slate-800/30 border-slate-700/40'
+                  }`}>
+                    <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest">Tu decisión sobre este proceso</p>
+                    {estadoLocal === 'propuesto' && (
+                      <div className="grid grid-cols-2 gap-2">
+                        <button onClick={() => cambiarEstado('aceptado')} disabled={aprobando}
+                          className="flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold bg-emerald-700 hover:bg-emerald-600 text-white transition-all disabled:opacity-50 shadow-lg shadow-emerald-900/40">
+                          <CheckCircle className="w-4 h-4" /> Aceptar proceso
+                        </button>
+                        <button onClick={() => cambiarEstado('rechazado')} disabled={aprobando}
+                          className="flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold bg-red-900/60 hover:bg-red-900/80 text-red-300 border border-red-800/50 transition-all disabled:opacity-50">
+                          <XCircle className="w-4 h-4" /> Rechazar
+                        </button>
+                      </div>
+                    )}
+                    {estadoLocal === 'aceptado' && (
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-emerald-400">
+                          <CheckCircle className="w-5 h-5" />
+                          <span className="text-sm font-bold">Proceso aceptado — inventario oficial</span>
+                        </div>
+                        <button onClick={() => cambiarEstado('rechazado')} disabled={aprobando} className="text-xs text-slate-500 hover:text-red-400 transition-colors">Rechazar</button>
+                      </div>
+                    )}
+                    {estadoLocal === 'rechazado' && (
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-red-400">
+                          <XCircle className="w-5 h-5" />
+                          <span className="text-sm font-bold">Proceso rechazado — la consultora revisará</span>
+                        </div>
+                        <button onClick={() => setEstadoLocal('propuesto' as any)} disabled={aprobando} className="text-xs text-slate-500 hover:text-emerald-400 transition-colors">Deshacer</button>
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
-            </div>
-
+                </div>
+              </>
+            )}
           </div>
         )}
       </div>
@@ -2009,11 +2678,13 @@ export default function DiscoveryExperiencia({
             </button>
           </div>
         ) : (
-          <GlosarioRoles
-            proyectoId={proyectoId}
-            nombreProyecto={nombreProyecto}
-            rolesDetectados={rolesDetectados}
-          />
+          <div id="glosario-roles">
+            <GlosarioRoles
+              proyectoId={proyectoId}
+              nombreProyecto={nombreProyecto}
+              rolesDetectados={rolesDetectados}
+            />
+          </div>
         )
       )}
     </div>

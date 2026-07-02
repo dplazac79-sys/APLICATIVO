@@ -34,9 +34,18 @@ export default async function DiscoveryPage() {
   const macroprocesosRaw = procesosProyecto.filter((p: Proceso) => p.nivel === 0)
   const subprocesos = procesosProyecto.filter((p: Proceso) => p.nivel === 1)
 
+  function codigoOrden(p: Proceso): number {
+    const ref = (p.metadata_ia as any)?.documento_referencia as string | undefined
+    if (!ref) return 9999
+    const match = ref.match(/(\d+)/)
+    return match ? parseInt(match[1], 10) : 9999
+  }
+
   const macroprocesos = macroprocesosRaw.map((macro: Proceso) => ({
     ...macro,
-    hijos: subprocesos.filter((p: Proceso) => p.padre_id === macro.id),
+    hijos: subprocesos
+      .filter((p: Proceso) => p.padre_id === macro.id)
+      .sort((a: Proceso, b: Proceso) => codigoOrden(a) - codigoOrden(b)),
   }))
 
   const aceptados = procesosProyecto.filter((p: Proceso) => p.estado_oferta === 'aceptado' && p.nivel === 1)
