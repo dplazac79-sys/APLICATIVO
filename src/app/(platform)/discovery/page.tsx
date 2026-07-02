@@ -39,8 +39,8 @@ export default async function DiscoveryPage() {
     hijos: subprocesos.filter((p: Proceso) => p.padre_id === macro.id),
   }))
 
-  const aceptados = procesosProyecto.filter((p: Proceso) => p.estado_oferta === 'aceptado')
-  const pendientes = procesosProyecto.filter((p: Proceso) => p.estado_oferta === 'propuesto')
+  const aceptados = procesosProyecto.filter((p: Proceso) => p.estado_oferta === 'aceptado' && p.nivel === 1)
+  const pendientes = procesosProyecto.filter((p: Proceso) => p.estado_oferta === 'propuesto' && p.nivel === 1)
   // Solo nivel 1 (procesos hijos) para los contadores de origen
   const procesosNivel1 = procesosProyecto.filter((p: Proceso) => p.nivel === 1)
   const procesosDetectados = procesosNivel1.filter((p: Proceso) => p.origen === 'detectado').length
