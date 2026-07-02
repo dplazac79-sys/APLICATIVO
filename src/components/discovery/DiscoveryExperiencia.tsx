@@ -727,280 +727,432 @@ function ProcesoCard({ proceso, esHijo = false }: { proceso: ProcesoConHijos; es
                 )}
 
                 {/* ── TAB: Hallazgos ── */}
-                {tabDoc === 'hallazgos' && (
-                  <div className="p-5 space-y-5">
+                {tabDoc === 'hallazgos' && (() => {
+                  const riesgosList = docAnalisis?.analisis_ia?.riesgos_criticos ?? []
+                  const hallazgosList = docAnalisis?.analisis_ia?.hallazgos_criticos ?? []
+                  const brechasList = docAnalisis?.analisis_ia?.brechas_documentacion ?? []
+                  const totalItems = riesgosList.length + hallazgosList.length + brechasList.length
+                  const resueltos = atendidasActivas
+                  const pct = totalItems > 0 ? Math.round((resueltos / totalItems) * 100) : 0
+                  return (
+                    <div className="p-5 space-y-7">
 
-                    {/* Riesgos del proceso */}
-                    {docAnalisis?.analisis_ia?.riesgos_criticos && docAnalisis.analisis_ia.riesgos_criticos.length > 0 && (
-                      <div className="space-y-2">
-                        <div>
-                          <p className="text-xs font-semibold text-red-400 uppercase tracking-widest flex items-center gap-2">
-                            <Shield className="w-3.5 h-3.5" /> Exposiciones operacionales del proceso
-                          </p>
-                          <p className="text-xs text-slate-600 mt-0.5 ml-5">Riesgos activos que la IA identificó en el estado actual — el cliente puede confirmar cuáles ya están mitigados.</p>
+                      {/* ── Progress header ── */}
+                      {totalItems > 0 && (
+                        <div className="rounded-2xl border border-slate-700/40 bg-slate-800/20 p-4">
+                          <div className="flex items-center justify-between mb-2">
+                            <p className="text-xs font-bold text-slate-300 uppercase tracking-widest">Estado de resolución</p>
+                            <span className="text-lg font-black tabular-nums" style={{ color: pct === 100 ? '#34d399' : pct > 50 ? '#fbbf24' : '#f87171' }}>{pct}%</span>
+                          </div>
+                          <div className="h-2 rounded-full bg-slate-700/60 overflow-hidden">
+                            <div className="h-full rounded-full transition-all duration-500"
+                              style={{ width: `${pct}%`, background: pct === 100 ? 'linear-gradient(90deg,#059669,#34d399)' : pct > 50 ? 'linear-gradient(90deg,#d97706,#fbbf24)' : 'linear-gradient(90deg,#dc2626,#f87171)' }} />
+                          </div>
+                          <p className="text-xs text-slate-500 mt-1.5">{resueltos} de {totalItems} puntos resueltos</p>
                         </div>
-                        {docAnalisis.analisis_ia.riesgos_criticos.map((r, i) => {
-                          const atendido = esAtendido('riesgo', i)
-                          const key = claveCorr('riesgo', i)
-                          const abierto = expandCorr[key]
-                          const corr = getCorr('riesgo', i)
-                          return (
-                            <div key={i} className={`rounded-xl border p-4 space-y-2 transition-all ${atendido ? 'border-emerald-800/30 bg-emerald-950/10 opacity-70' : 'border-red-900/30 bg-red-950/10'}`}>
-                              <div className="flex items-start justify-between gap-3">
-                                <p className={`text-sm font-semibold leading-snug ${atendido ? 'line-through text-slate-500' : 'text-white'}`}>{r.riesgo}</p>
-                                <span className={`shrink-0 text-xs px-2 py-0.5 rounded-full font-bold border ${atendido ? 'bg-emerald-950/60 text-emerald-400 border-emerald-800/40' : r.impacto === 'alto' ? 'bg-red-950/60 text-red-300 border-red-800/50' : r.impacto === 'medio' ? 'bg-amber-950/60 text-amber-300 border-amber-800/50' : 'bg-slate-800 text-slate-400 border-slate-700'}`}>
-                                  {atendido ? '✓ Resuelto' : r.impacto}
-                                </span>
+                      )}
+
+                      {/* ── Exposiciones operacionales ── */}
+                      {riesgosList.length > 0 && (
+                        <div>
+                          <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center gap-2">
+                              <div className="w-6 h-6 rounded-lg bg-red-950/60 border border-red-800/50 flex items-center justify-center">
+                                <Shield className="w-3.5 h-3.5 text-red-400" />
                               </div>
-                              {r.evidencia && !atendido && (
-                                <p className="text-slate-400 text-xs leading-relaxed border-t border-red-900/20 pt-2">
-                                  <span className="text-red-400 font-medium">Evidencia: </span>{r.evidencia}
-                                </p>
-                              )}
-                              {/* Acciones */}
-                              <div className="flex items-center gap-3 pt-1 border-t border-slate-700/20">
-                                {!atendido ? (
-                                  <button onClick={() => setExpandCorr(p => ({ ...p, [key]: !p[key] }))}
-                                    className="text-xs text-slate-500 hover:text-slate-200 flex items-center gap-1 transition-colors">
-                                    <Edit2 className="w-3 h-3" /> {abierto ? 'Cerrar' : 'Comentar y resolver'}
-                                  </button>
-                                ) : (
-                                  <button onClick={() => desmarcarAtendido('riesgo', i)}
-                                    className="text-xs text-slate-500 hover:text-slate-300 transition-colors">
-                                    Desmarcar
-                                  </button>
-                                )}
+                              <div>
+                                <p className="text-xs font-bold text-red-400 uppercase tracking-widest">Exposiciones operacionales</p>
+                                <p className="text-xs text-slate-600">Riesgos activos identificados en el documento</p>
                               </div>
-                              {abierto && !atendido && (
-                                <div className="space-y-2 pt-1">
-                                  <textarea
-                                    value={textoCorr[key] ?? ''}
-                                    onChange={e => setTextoCorr(p => ({ ...p, [key]: e.target.value }))}
-                                    placeholder="Ej: ya implementamos un control dual desde enero 2025..."
-                                    rows={2}
-                                    className="w-full text-xs text-slate-200 bg-slate-800/60 border border-slate-600/50 rounded-lg px-3 py-2 resize-none focus:outline-none focus:border-emerald-500/50 placeholder:text-slate-600"
-                                  />
-                                  <button onClick={() => marcarAtendido('riesgo', i)} disabled={guardandoCorr}
-                                    className="flex items-center gap-1.5 text-xs font-semibold bg-emerald-700 hover:bg-emerald-600 text-white px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50">
-                                    <CheckCircle className="w-3 h-3" /> Marcar como resuelto
-                                  </button>
-                                </div>
-                              )}
                             </div>
-                          )
-                        })}
-                      </div>
-                    )}
+                            <span className="text-xs font-bold px-2 py-1 rounded-full bg-red-950/60 border border-red-800/40 text-red-300">
+                              {riesgosList.filter((_: unknown, i: number) => !esAtendido('riesgo', i)).length} activos
+                            </span>
+                          </div>
 
-                    {/* Puntos de atención del proceso */}
-                    {docAnalisis?.analisis_ia?.hallazgos_criticos && docAnalisis.analisis_ia.hallazgos_criticos.length > 0 && (
-                      <div className="space-y-2">
-                        <div>
-                          <p className="text-xs font-semibold text-amber-400 uppercase tracking-widest flex items-center gap-2">
-                            <AlertTriangle className="w-3.5 h-3.5" /> Puntos de atención del proceso
-                          </p>
-                          <p className="text-xs text-slate-600 mt-0.5 ml-5">Aspectos críticos del estado actual que la IA extrajo del análisis — el cliente decide cuáles ya están resueltos en su organización.</p>
-                        </div>
-                        <div className="rounded-xl border border-amber-800/30 bg-amber-950/10 p-4 space-y-3">
-                          {docAnalisis.analisis_ia.hallazgos_criticos.map((h, i) => {
-                            const atendido = esAtendido('hallazgo', i)
-                            const key = claveCorr('hallazgo', i)
-                            const abierto = expandCorr[key]
-                            const corr = getCorr('hallazgo', i)
-                            return (
-                              <div key={i} className={`pb-3 ${i < (docAnalisis.analisis_ia?.hallazgos_criticos?.length ?? 0) - 1 ? 'border-b border-amber-800/20' : ''}`}>
-                                <div className="flex items-start gap-2.5">
-                                  <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${atendido ? 'bg-emerald-900/50 border border-emerald-700/40' : 'bg-amber-900/50 border border-amber-700/40'}`}>
-                                    {atendido ? <CheckCircle className="w-3 h-3 text-emerald-400" /> : <span className="text-amber-400 text-xs font-bold">{i + 1}</span>}
-                                  </div>
-                                  <p className={`text-sm leading-relaxed flex-1 ${atendido ? 'line-through text-slate-500' : 'text-slate-300'}`}>{h}</p>
-                                </div>
-                                <div className="flex items-center gap-3 pl-7 mt-2">
-                                  {!atendido ? (
-                                    <button onClick={() => setExpandCorr(p => ({ ...p, [key]: !p[key] }))}
-                                      className="text-xs text-slate-600 hover:text-slate-300 flex items-center gap-1 transition-colors">
-                                      <Edit2 className="w-3 h-3" /> {abierto ? 'Cerrar' : 'Comentar y resolver'}
-                                    </button>
-                                  ) : (
-                                    <div className="flex items-center gap-3">
-                                      <span className="flex items-center gap-1 text-xs font-semibold text-emerald-400">
-                                        <CheckCircle className="w-3 h-3" /> Ya resuelto
-                                      </span>
-                                      <button onClick={() => desmarcarAtendido('hallazgo', i)}
-                                        className="text-xs text-slate-600 hover:text-slate-400 transition-colors">
-                                        · Desmarcar
-                                      </button>
+                          <div className="space-y-2">
+                            {(riesgosList as Array<{ riesgo: string; impacto: string; evidencia?: string }>).map((r, i) => {
+                              const atendido = esAtendido('riesgo', i)
+                              const key = claveCorr('riesgo', i)
+                              const abierto = expandCorr[key]
+                              const nivel = r.impacto === 'alto' ? 3 : r.impacto === 'medio' ? 2 : 1
+                              return (
+                                <div key={i} className={`relative rounded-2xl border overflow-hidden transition-all duration-300 ${
+                                  atendido ? 'border-emerald-800/25 bg-emerald-950/5 opacity-60' :
+                                  r.impacto === 'alto' ? 'border-red-900/50 bg-gradient-to-r from-red-950/20 to-transparent' :
+                                  r.impacto === 'medio' ? 'border-amber-900/40 bg-gradient-to-r from-amber-950/15 to-transparent' :
+                                  'border-slate-700/40 bg-slate-800/15'
+                                }`}>
+                                  {/* Left severity bar */}
+                                  <div className={`absolute left-0 top-0 bottom-0 w-[3px] ${
+                                    atendido ? 'bg-emerald-500' :
+                                    r.impacto === 'alto' ? 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)]' :
+                                    r.impacto === 'medio' ? 'bg-amber-400' : 'bg-slate-500'
+                                  }`} />
+
+                                  <div className="pl-5 pr-4 py-3.5">
+                                    <div className="flex items-start gap-3">
+                                      <p className={`text-sm font-semibold leading-snug flex-1 ${atendido ? 'line-through text-slate-500' : 'text-white'}`}>{r.riesgo}</p>
+                                      {/* Severity dots */}
+                                      <div className="flex items-center gap-1 shrink-0 pt-0.5">
+                                        {[1, 2, 3].map(n => (
+                                          <div key={n} className={`w-2 h-2 rounded-full transition-colors ${
+                                            n <= nivel
+                                              ? atendido ? 'bg-emerald-500' : r.impacto === 'alto' ? 'bg-red-500' : r.impacto === 'medio' ? 'bg-amber-400' : 'bg-slate-400'
+                                              : 'bg-slate-700'
+                                          }`} />
+                                        ))}
+                                        <span className={`text-xs font-bold ml-1.5 uppercase ${
+                                          atendido ? 'text-emerald-400' : r.impacto === 'alto' ? 'text-red-400' : r.impacto === 'medio' ? 'text-amber-400' : 'text-slate-400'
+                                        }`}>{atendido ? 'OK' : r.impacto}</span>
+                                      </div>
                                     </div>
-                                  )}
-                                </div>
-                                {abierto && !atendido && (
-                                  <div className="pl-7 pt-2 space-y-1.5">
-                                    <textarea
-                                      value={textoCorr[key] ?? ''}
-                                      onChange={e => setTextoCorr(p => ({ ...p, [key]: e.target.value }))}
-                                      placeholder="Ej: este hallazgo ya está incorporado en nuestro proceso desde Q1..."
-                                      rows={2}
-                                      className="w-full text-xs text-slate-200 bg-slate-800/60 border border-slate-600/50 rounded-lg px-3 py-2 resize-none focus:outline-none focus:border-emerald-500/50 placeholder:text-slate-600"
-                                    />
-                                    <button onClick={() => marcarAtendido('hallazgo', i)}
-                                      className="flex items-center gap-1.5 text-xs font-semibold bg-emerald-700 hover:bg-emerald-600 text-white px-3 py-1.5 rounded-lg transition-colors">
-                                      <CheckCircle className="w-3 h-3" /> Marcar como resuelto
-                                    </button>
-                                  </div>
-                                )}
-                              </div>
-                            )
-                          })}
-                        </div>
-                      </div>
-                    )}
 
-                    {/* Oportunidades de formalización */}
-                    {docAnalisis?.analisis_ia?.brechas_documentacion && docAnalisis.analisis_ia.brechas_documentacion.length > 0 && (
-                      <div className="space-y-2">
-                        <div>
-                          <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                            <FileText className="w-3.5 h-3.5" /> Oportunidades de formalización
-                          </p>
-                          <p className="text-xs text-slate-600 mt-0.5 ml-5">Áreas del proceso sin definición formal detectadas por la IA — el cliente puede confirmar cuáles ya están documentadas internamente.</p>
+                                    {r.evidencia && !atendido && (
+                                      <p className="text-slate-500 text-xs mt-2 pl-0 leading-relaxed">
+                                        <span className="text-red-400/70 font-medium">Evidencia · </span>{r.evidencia}
+                                      </p>
+                                    )}
+
+                                    <div className="flex items-center gap-4 mt-3 pt-2.5 border-t border-white/5">
+                                      {!atendido ? (
+                                        <button onClick={() => setExpandCorr(p => ({ ...p, [key]: !p[key] }))}
+                                          className="text-xs text-slate-500 hover:text-emerald-400 flex items-center gap-1.5 transition-colors group">
+                                          <CheckCircle className="w-3.5 h-3.5 group-hover:text-emerald-400" />
+                                          {abierto ? 'Cerrar' : 'Marcar como mitigado'}
+                                        </button>
+                                      ) : (
+                                        <button onClick={() => desmarcarAtendido('riesgo', i)}
+                                          className="text-xs text-slate-600 hover:text-red-400 transition-colors flex items-center gap-1">
+                                          Reactivar riesgo
+                                        </button>
+                                      )}
+                                    </div>
+
+                                    {abierto && !atendido && (
+                                      <div className="mt-3 space-y-2 animate-in fade-in slide-in-from-top-1 duration-200">
+                                        <textarea
+                                          value={textoCorr[key] ?? ''}
+                                          onChange={e => setTextoCorr(p => ({ ...p, [key]: e.target.value }))}
+                                          placeholder="Ej: ya implementamos un control dual desde enero 2025..."
+                                          rows={2}
+                                          className="w-full text-xs text-slate-200 bg-slate-800/60 border border-slate-600/50 rounded-xl px-3 py-2 resize-none focus:outline-none focus:border-emerald-500/50 placeholder:text-slate-600"
+                                        />
+                                        <button onClick={() => marcarAtendido('riesgo', i)} disabled={guardandoCorr}
+                                          className="flex items-center gap-1.5 text-xs font-bold bg-emerald-700 hover:bg-emerald-600 text-white px-4 py-1.5 rounded-xl transition-colors disabled:opacity-50">
+                                          <CheckCircle className="w-3.5 h-3.5" /> Confirmar mitigación
+                                        </button>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              )
+                            })}
+                          </div>
                         </div>
-                        <div className="rounded-xl border border-slate-700/40 bg-slate-800/20 p-4 space-y-3">
-                          {docAnalisis.analisis_ia.brechas_documentacion.map((b, i) => {
-                            const atendido = esAtendido('brecha', i)
+                      )}
+
+                      {/* ── Puntos de atención — timeline ── */}
+                      {hallazgosList.length > 0 && (
+                        <div>
+                          <div className="flex items-center gap-2 mb-4">
+                            <div className="w-6 h-6 rounded-lg bg-amber-950/60 border border-amber-800/50 flex items-center justify-center">
+                              <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
+                            </div>
+                            <div>
+                              <p className="text-xs font-bold text-amber-400 uppercase tracking-widest">Puntos de atención</p>
+                              <p className="text-xs text-slate-600">Aspectos críticos del estado actual · confirma cuáles ya están resueltos</p>
+                            </div>
+                          </div>
+
+                          <div className="relative">
+                            {/* Vertical line */}
+                            <div className="absolute left-[19px] top-5 bottom-5 w-px bg-gradient-to-b from-amber-700/40 via-amber-800/20 to-transparent" />
+
+                            <div className="space-y-3">
+                              {(hallazgosList as string[]).map((h, i) => {
+                                const atendido = esAtendido('hallazgo', i)
+                                const key = claveCorr('hallazgo', i)
+                                const abierto = expandCorr[key]
+                                return (
+                                  <div key={i} className="flex items-start gap-3">
+                                    {/* Node */}
+                                    <div className={`relative z-10 w-10 h-10 rounded-full flex items-center justify-center shrink-0 border-2 transition-all duration-300 ${
+                                      atendido
+                                        ? 'border-emerald-600/60 bg-emerald-900/50'
+                                        : 'border-amber-600/50 bg-amber-950/40'
+                                    }`}>
+                                      {atendido
+                                        ? <CheckCircle className="w-4 h-4 text-emerald-400" />
+                                        : <span className="text-amber-300 text-sm font-black">{i + 1}</span>
+                                      }
+                                    </div>
+
+                                    <div className={`flex-1 rounded-2xl border p-3.5 transition-all duration-300 ${
+                                      atendido ? 'border-emerald-800/20 bg-emerald-950/5' : 'border-slate-700/30 bg-slate-800/20 hover:border-slate-600/50'
+                                    }`}>
+                                      <p className={`text-sm leading-relaxed ${atendido ? 'line-through text-slate-500' : 'text-slate-200'}`}>{h}</p>
+
+                                      <div className="flex items-center gap-3 mt-2.5">
+                                        {!atendido ? (
+                                          <button onClick={() => setExpandCorr(p => ({ ...p, [key]: !p[key] }))}
+                                            className="text-xs text-slate-600 hover:text-emerald-400 flex items-center gap-1.5 transition-colors">
+                                            <CheckCircle className="w-3 h-3" /> {abierto ? 'Cerrar' : 'Marcar como resuelto'}
+                                          </button>
+                                        ) : (
+                                          <span className="flex items-center gap-2 text-xs">
+                                            <span className="text-emerald-400 font-semibold flex items-center gap-1"><CheckCircle className="w-3 h-3" /> Resuelto</span>
+                                            <button onClick={() => desmarcarAtendido('hallazgo', i)} className="text-slate-600 hover:text-slate-400 transition-colors">· desmarcar</button>
+                                          </span>
+                                        )}
+                                      </div>
+
+                                      {abierto && !atendido && (
+                                        <div className="mt-3 pt-3 border-t border-slate-700/30 space-y-2 animate-in fade-in slide-in-from-top-1 duration-200">
+                                          <textarea
+                                            value={textoCorr[key] ?? ''}
+                                            onChange={e => setTextoCorr(p => ({ ...p, [key]: e.target.value }))}
+                                            placeholder="Ej: ya incorporado en nuestro proceso desde Q1..."
+                                            rows={2}
+                                            className="w-full text-xs text-slate-200 bg-slate-800/60 border border-slate-600/50 rounded-xl px-3 py-2 resize-none focus:outline-none focus:border-emerald-500/50 placeholder:text-slate-600"
+                                          />
+                                          <button onClick={() => marcarAtendido('hallazgo', i)}
+                                            className="flex items-center gap-1.5 text-xs font-bold bg-emerald-700 hover:bg-emerald-600 text-white px-4 py-1.5 rounded-xl transition-colors">
+                                            <CheckCircle className="w-3 h-3" /> Confirmar resolución
+                                          </button>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                )
+                              })}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* ── Brechas — pill chips ── */}
+                      {brechasList.length > 0 && (
+                        <div>
+                          <div className="flex items-center gap-2 mb-3">
+                            <div className="w-6 h-6 rounded-lg bg-slate-800/80 border border-slate-700/50 flex items-center justify-center">
+                              <FileText className="w-3.5 h-3.5 text-slate-400" />
+                            </div>
+                            <div>
+                              <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Oportunidades de formalización</p>
+                              <p className="text-xs text-slate-600">Haz clic para marcar cada área como ya formalizada</p>
+                            </div>
+                          </div>
+
+                          <div className="flex flex-wrap gap-2">
+                            {(brechasList as string[]).map((b, i) => {
+                              const atendido = esAtendido('brecha', i)
+                              const key = claveCorr('brecha', i)
+                              return (
+                                <button key={i}
+                                  onClick={() => atendido ? desmarcarAtendido('brecha', i) : setExpandCorr(p => ({ ...p, [key]: !p[key] }))}
+                                  className={`flex items-center gap-2 px-3 py-2 rounded-full text-xs border transition-all duration-200 text-left ${
+                                    atendido
+                                      ? 'border-emerald-700/50 bg-emerald-950/25 text-emerald-400'
+                                      : 'border-slate-600/40 bg-slate-800/40 text-slate-300 hover:border-violet-600/50 hover:bg-violet-950/20 hover:text-violet-200'
+                                  }`}>
+                                  {atendido
+                                    ? <CheckCircle className="w-3 h-3 shrink-0 text-emerald-400" />
+                                    : <div className="w-1.5 h-1.5 rounded-full bg-slate-500 shrink-0" />
+                                  }
+                                  <span className={atendido ? 'line-through' : ''}>{b}</span>
+                                </button>
+                              )
+                            })}
+                          </div>
+
+                          {/* Inline confirm for brechas */}
+                          {(brechasList as string[]).map((b, i) => {
                             const key = claveCorr('brecha', i)
-                            const abierto = expandCorr[key]
-                            const corr = getCorr('brecha', i)
+                            if (!expandCorr[key] || esAtendido('brecha', i)) return null
                             return (
-                              <div key={i} className={`pb-3 ${i < (docAnalisis.analisis_ia?.brechas_documentacion?.length ?? 0) - 1 ? 'border-b border-slate-700/20' : ''}`}>
-                                <div className="flex items-start gap-2">
-                                  <div className={`w-3 h-3 rounded-full mt-1.5 shrink-0 ${atendido ? 'bg-emerald-500' : 'bg-slate-500'}`} />
-                                  <p className={`text-xs leading-relaxed flex-1 ${atendido ? 'line-through text-slate-600' : 'text-slate-400'}`}>{b}</p>
+                              <div key={i} className="mt-3 p-3 rounded-2xl border border-violet-700/30 bg-violet-950/10 space-y-2 animate-in fade-in slide-in-from-top-1 duration-200">
+                                <p className="text-xs text-violet-300 font-medium">"{b}"</p>
+                                <textarea
+                                  value={textoCorr[key] ?? ''}
+                                  onChange={e => setTextoCorr(p => ({ ...p, [key]: e.target.value }))}
+                                  placeholder="Ej: tenemos procedimiento escrito para esto desde 2024..."
+                                  rows={2}
+                                  className="w-full text-xs text-slate-200 bg-slate-800/60 border border-slate-600/50 rounded-xl px-3 py-2 resize-none focus:outline-none focus:border-emerald-500/50 placeholder:text-slate-600"
+                                />
+                                <div className="flex items-center gap-2">
+                                  <button onClick={() => marcarAtendido('brecha', i)}
+                                    className="flex items-center gap-1.5 text-xs font-bold bg-emerald-700 hover:bg-emerald-600 text-white px-4 py-1.5 rounded-xl transition-colors">
+                                    <CheckCircle className="w-3 h-3" /> Marcar como formalizado
+                                  </button>
+                                  <button onClick={() => setExpandCorr(p => ({ ...p, [key]: false }))} className="text-xs text-slate-600 hover:text-slate-400">Cancelar</button>
                                 </div>
-                                <div className="flex items-center gap-3 pl-5 mt-1.5">
-                                  {!atendido ? (
-                                    <button onClick={() => setExpandCorr(p => ({ ...p, [key]: !p[key] }))}
-                                      className="text-xs text-slate-600 hover:text-slate-300 flex items-center gap-1 transition-colors">
-                                      <Edit2 className="w-3 h-3" /> {abierto ? 'Cerrar' : 'Comentar y resolver'}
-                                    </button>
-                                  ) : (
-                                    <div className="flex items-center gap-3">
-                                      <span className="flex items-center gap-1 text-xs font-semibold text-emerald-400">
-                                        <CheckCircle className="w-3 h-3" /> Ya resuelto
-                                      </span>
-                                      <button onClick={() => desmarcarAtendido('brecha', i)}
-                                        className="text-xs text-slate-600 hover:text-slate-400 transition-colors">
-                                        · Desmarcar
-                                      </button>
-                                    </div>
-                                  )}
-                                </div>
-                                {abierto && !atendido && (
-                                  <div className="pl-5 pt-2 space-y-1.5">
-                                    <textarea
-                                      value={textoCorr[key] ?? ''}
-                                      onChange={e => setTextoCorr(p => ({ ...p, [key]: e.target.value }))}
-                                      placeholder="Ej: tenemos procedimiento escrito para esto desde 2024..."
-                                      rows={2}
-                                      className="w-full text-xs text-slate-200 bg-slate-800/60 border border-slate-600/50 rounded-lg px-3 py-2 resize-none focus:outline-none focus:border-emerald-500/50 placeholder:text-slate-600"
-                                    />
-                                    <button onClick={() => marcarAtendido('brecha', i)}
-                                      className="flex items-center gap-1.5 text-xs font-semibold bg-emerald-700 hover:bg-emerald-600 text-white px-3 py-1.5 rounded-lg transition-colors">
-                                      <CheckCircle className="w-3 h-3" /> Marcar como resuelto
-                                    </button>
-                                  </div>
-                                )}
                               </div>
                             )
                           })}
                         </div>
-                      </div>
-                    )}
+                      )}
 
-                    {/* CTA nueva versión inline si hay correcciones pendientes */}
-                    {atendidasActivas > 0 && (
-                      <div className="rounded-xl border border-emerald-700/40 bg-emerald-950/20 p-4 flex items-center justify-between">
-                        <div>
-                          <p className="text-sm font-semibold text-emerald-300">{atendidasActivas} hallazgo{atendidasActivas > 1 ? 's' : ''} marcado{atendidasActivas > 1 ? 's' : ''} como resuelto{atendidasActivas > 1 ? 's' : ''}</p>
-                          <p className="text-xs text-slate-400 mt-0.5">Consolida la v{versiones.length + 1} del documento excluyendo los hallazgos ya resueltos en tu organización.</p>
+                      {/* ── CTA nueva versión ── */}
+                      {atendidasActivas > 0 && (
+                        <div className="rounded-2xl border border-emerald-700/40 bg-gradient-to-r from-emerald-950/30 to-transparent p-4 flex items-center justify-between gap-4">
+                          <div>
+                            <p className="text-sm font-bold text-emerald-300">{atendidasActivas} punto{atendidasActivas > 1 ? 's' : ''} resuelto{atendidasActivas > 1 ? 's' : ''}</p>
+                            <p className="text-xs text-slate-400 mt-0.5">Genera la v{versiones.length + 1} del documento excluyendo los hallazgos ya incorporados en tu organización.</p>
+                          </div>
+                          <button onClick={generarNuevaVersion} disabled={generandoVersion}
+                            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-black bg-emerald-700 hover:bg-emerald-600 text-white transition-all disabled:opacity-50 shrink-0 shadow-lg shadow-emerald-900/50">
+                            {generandoVersion
+                              ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Generando...</>
+                              : <><Zap className="w-4 h-4" /> Consolidar v{versiones.length + 1}</>}
+                          </button>
                         </div>
-                        <button onClick={generarNuevaVersion} disabled={generandoVersion}
-                          className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold bg-emerald-700 hover:bg-emerald-600 text-white transition-all disabled:opacity-50 shrink-0">
-                          {generandoVersion ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Generando...</> : <><Zap className="w-4 h-4" /> Consolidar en v{versiones.length + 1}</>}
-                        </button>
-                      </div>
-                    )}
+                      )}
 
-                  </div>
-                )}
+                    </div>
+                  )
+                })()}
 
                 {/* ── TAB: Oportunidades ── */}
-                {tabDoc === 'oportunidades' && (
-                  <div className="p-5 space-y-4">
-                    {/* Quick wins */}
-                    {docAnalisis?.analisis_ia?.quick_wins && docAnalisis.analisis_ia.quick_wins.length > 0 && (
-                      <div className="space-y-2">
-                        <p className="text-xs font-semibold text-emerald-400 uppercase tracking-widest flex items-center gap-2">
-                          <Zap className="w-3.5 h-3.5" /> Quick wins — acciones inmediatas
-                        </p>
-                        <div className="space-y-2">
-                          {docAnalisis.analisis_ia.quick_wins.map((q, i) => (
-                            <div key={i} className="flex items-start gap-3 rounded-xl border border-emerald-800/30 bg-emerald-950/10 p-3">
-                              <div className="w-6 h-6 rounded-full bg-emerald-700/40 flex items-center justify-center shrink-0 mt-0.5">
-                                <span className="text-emerald-300 text-xs font-bold">{i + 1}</span>
-                              </div>
-                              <p className="text-slate-200 text-sm leading-relaxed">{q}</p>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
+                {tabDoc === 'oportunidades' && (() => {
+                  const quickWins = (docAnalisis?.analisis_ia?.quick_wins ?? []) as string[]
+                  const oportunidades = (docAnalisis?.analisis_ia?.oportunidades_valor ?? []) as Array<{ oportunidad: string; impacto_estimado: string; complejidad_implementacion: string }>
+                  const pasos = (docAnalisis?.analisis_ia?.proximos_pasos_sugeridos ?? []) as string[]
+                  return (
+                    <div className="p-5 space-y-7">
 
-                    {/* Oportunidades de valor */}
-                    {docAnalisis?.analisis_ia?.oportunidades_valor && docAnalisis.analisis_ia.oportunidades_valor.length > 0 && (
-                      <div className="space-y-2">
-                        <p className="text-xs font-semibold text-indigo-400 uppercase tracking-widest flex items-center gap-2">
-                          <TrendingUp className="w-3.5 h-3.5" /> Oportunidades de valor
-                        </p>
-                        {docAnalisis.analisis_ia.oportunidades_valor.map((o, i) => (
-                          <div key={i} className="rounded-xl border border-indigo-800/30 bg-indigo-950/10 p-4 space-y-2">
-                            <div className="flex items-start justify-between gap-3">
-                              <p className="text-white text-sm font-semibold">{o.oportunidad}</p>
-                              <span className={`shrink-0 text-xs px-2 py-0.5 rounded-full border font-medium ${
-                                o.complejidad_implementacion === 'baja' ? 'bg-emerald-950/60 text-emerald-300 border-emerald-800/50' :
-                                o.complejidad_implementacion === 'media' ? 'bg-amber-950/60 text-amber-300 border-amber-800/50' :
-                                'bg-red-950/60 text-red-300 border-red-800/50'
-                              }`}>
-                                {o.complejidad_implementacion === 'baja' ? '⚡ Baja complejidad' : o.complejidad_implementacion === 'media' ? '🔧 Media' : '🏗️ Alta'}
-                              </span>
+                      {/* ── Quick wins ── */}
+                      {quickWins.length > 0 && (
+                        <div>
+                          <div className="flex items-center gap-2 mb-3">
+                            <div className="w-6 h-6 rounded-lg bg-emerald-950/70 border border-emerald-800/50 flex items-center justify-center">
+                              <Zap className="w-3.5 h-3.5 text-emerald-400" />
                             </div>
-                            {o.impacto_estimado && (
-                              <p className="text-slate-400 text-xs leading-relaxed">{o.impacto_estimado}</p>
-                            )}
+                            <div>
+                              <p className="text-xs font-bold text-emerald-400 uppercase tracking-widest">Quick wins</p>
+                              <p className="text-xs text-slate-600">Acciones ejecutables en menos de 30 días</p>
+                            </div>
                           </div>
-                        ))}
-                      </div>
-                    )}
 
-                    {/* Próximos pasos */}
-                    {docAnalisis?.analisis_ia?.proximos_pasos_sugeridos && docAnalisis.analisis_ia.proximos_pasos_sugeridos.length > 0 && (
-                      <div className="space-y-2">
-                        <p className="text-xs font-semibold text-amber-400 uppercase tracking-widest flex items-center gap-2">
-                          <ArrowRight className="w-3.5 h-3.5" /> Próximos pasos sugeridos
-                        </p>
-                        <div className="space-y-2">
-                          {docAnalisis.analisis_ia.proximos_pasos_sugeridos.map((p, i) => (
-                            <div key={i} className="flex items-start gap-3 rounded-xl border border-amber-800/20 bg-amber-950/10 p-3">
-                              <div className="w-6 h-6 rounded-full bg-amber-800/40 border border-amber-700/40 flex items-center justify-center shrink-0 mt-0.5">
-                                <span className="text-amber-300 text-xs font-bold">{i + 1}</span>
+                          <div className="grid gap-2">
+                            {quickWins.map((q, i) => (
+                              <div key={i} className="group flex items-start gap-3 rounded-2xl border border-emerald-800/25 bg-gradient-to-r from-emerald-950/20 to-transparent p-4 hover:border-emerald-700/40 transition-all duration-200">
+                                <div className="w-8 h-8 rounded-xl bg-emerald-900/60 border border-emerald-700/40 flex items-center justify-center shrink-0">
+                                  <span className="text-emerald-300 text-sm font-black">{i + 1}</span>
+                                </div>
+                                <div className="flex-1">
+                                  <p className="text-slate-100 text-sm leading-relaxed font-medium">{q}</p>
+                                </div>
+                                <span className="shrink-0 text-xs px-2 py-1 rounded-full bg-emerald-950/60 border border-emerald-800/40 text-emerald-400 font-semibold whitespace-nowrap">
+                                  ≤ 30 días
+                                </span>
                               </div>
-                              <p className="text-slate-300 text-sm leading-relaxed">{p}</p>
-                            </div>
-                          ))}
+                            ))}
+                          </div>
                         </div>
-                      </div>
-                    )}
-                  </div>
-                )}
+                      )}
+
+                      {/* ── Oportunidades de valor ── */}
+                      {oportunidades.length > 0 && (
+                        <div>
+                          <div className="flex items-center gap-2 mb-3">
+                            <div className="w-6 h-6 rounded-lg bg-indigo-950/70 border border-indigo-800/50 flex items-center justify-center">
+                              <TrendingUp className="w-3.5 h-3.5 text-indigo-400" />
+                            </div>
+                            <div>
+                              <p className="text-xs font-bold text-indigo-400 uppercase tracking-widest">Oportunidades de valor</p>
+                              <p className="text-xs text-slate-600">Iniciativas de mayor alcance ordenadas por complejidad</p>
+                            </div>
+                          </div>
+
+                          <div className="space-y-2">
+                            {oportunidades.map((o, i) => {
+                              const nivel = o.complejidad_implementacion === 'alta' ? 3 : o.complejidad_implementacion === 'media' ? 2 : 1
+                              const color = o.complejidad_implementacion === 'alta' ? 'text-red-400' : o.complejidad_implementacion === 'media' ? 'text-amber-400' : 'text-emerald-400'
+                              const dotColor = o.complejidad_implementacion === 'alta' ? 'bg-red-500' : o.complejidad_implementacion === 'media' ? 'bg-amber-400' : 'bg-emerald-500'
+                              return (
+                                <div key={i} className="rounded-2xl border border-indigo-800/20 bg-gradient-to-br from-indigo-950/15 to-slate-900/20 p-4">
+                                  <div className="flex items-start gap-3">
+                                    <div className="w-8 h-8 rounded-xl bg-indigo-900/40 border border-indigo-700/30 flex items-center justify-center shrink-0 text-indigo-300 font-black text-sm">
+                                      {i + 1}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                      <p className="text-white text-sm font-semibold leading-snug">{o.oportunidad}</p>
+                                      {o.impacto_estimado && (
+                                        <p className="text-slate-400 text-xs leading-relaxed mt-1.5">{o.impacto_estimado}</p>
+                                      )}
+                                    </div>
+                                    {/* Complexity meter */}
+                                    <div className="flex flex-col items-end gap-1 shrink-0">
+                                      <div className="flex gap-1">
+                                        {[1, 2, 3].map(n => (
+                                          <div key={n} className={`w-2.5 h-2.5 rounded-full ${n <= nivel ? dotColor : 'bg-slate-700'}`} />
+                                        ))}
+                                      </div>
+                                      <span className={`text-xs font-bold uppercase ${color}`}>
+                                        {o.complejidad_implementacion === 'baja' ? 'Rápida' : o.complejidad_implementacion === 'media' ? 'Media' : 'Compleja'}
+                                      </span>
+                                    </div>
+                                  </div>
+                                </div>
+                              )
+                            })}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* ── Próximos pasos — roadmap ── */}
+                      {pasos.length > 0 && (
+                        <div>
+                          <div className="flex items-center gap-2 mb-4">
+                            <div className="w-6 h-6 rounded-lg bg-amber-950/60 border border-amber-800/50 flex items-center justify-center">
+                              <ArrowRight className="w-3.5 h-3.5 text-amber-400" />
+                            </div>
+                            <div>
+                              <p className="text-xs font-bold text-amber-400 uppercase tracking-widest">Próximos pasos</p>
+                              <p className="text-xs text-slate-600">Secuencia recomendada por el análisis</p>
+                            </div>
+                          </div>
+
+                          {/* Horizontal roadmap */}
+                          <div className="relative">
+                            {pasos.map((paso, i) => (
+                              <div key={i} className="flex gap-4 mb-3 last:mb-0">
+                                {/* Step indicator + connector */}
+                                <div className="flex flex-col items-center shrink-0">
+                                  <div className="w-8 h-8 rounded-full border-2 border-amber-600/50 bg-amber-950/40 flex items-center justify-center">
+                                    <span className="text-amber-300 text-xs font-black">{i + 1}</span>
+                                  </div>
+                                  {i < pasos.length - 1 && (
+                                    <div className="w-px flex-1 min-h-[12px] bg-gradient-to-b from-amber-700/40 to-transparent mt-1" />
+                                  )}
+                                </div>
+                                <div className={`flex-1 rounded-2xl border p-3.5 mb-1 ${
+                                  i === 0
+                                    ? 'border-amber-700/40 bg-amber-950/15'
+                                    : 'border-slate-700/30 bg-slate-800/15'
+                                }`}>
+                                  {i === 0 && (
+                                    <p className="text-xs font-bold text-amber-400 mb-1 uppercase tracking-wider">Primero</p>
+                                  )}
+                                  <p className="text-sm text-slate-200 leading-relaxed">{paso}</p>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {quickWins.length === 0 && oportunidades.length === 0 && pasos.length === 0 && (
+                        <div className="py-12 text-center">
+                          <TrendingUp className="w-8 h-8 text-slate-700 mx-auto mb-3" />
+                          <p className="text-slate-500 text-sm">El análisis del documento no detectó oportunidades de valor aún.</p>
+                        </div>
+                      )}
+
+                    </div>
+                  )
+                })()}
 
                 {/* ── TAB: Roles ── */}
                 {tabDoc === 'roles' && (
