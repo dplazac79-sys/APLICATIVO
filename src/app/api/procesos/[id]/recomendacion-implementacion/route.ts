@@ -5,6 +5,14 @@ import Groq from 'groq-sdk'
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY! })
 const MAX_CHARS = 1200
 
+export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
+  const admin = createAdminClient()
+  const { data: proceso } = await admin.from('proceso').select('metadata_ia').eq('id', params.id).single()
+  if (!proceso) return NextResponse.json({ plan: null })
+  const plan = (proceso.metadata_ia as any)?.plan_implementacion ?? null
+  return NextResponse.json({ plan })
+}
+
 export async function POST(_req: NextRequest, { params }: { params: { id: string } }) {
   const admin = createAdminClient()
 

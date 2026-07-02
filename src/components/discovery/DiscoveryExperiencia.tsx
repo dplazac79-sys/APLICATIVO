@@ -144,6 +144,14 @@ function ProcesoTabContent({ proceso, docAnalisis, critCfg, accentColor, justifi
   const [generandoPlan, setGenerandoPlan] = useState(false)
   const [faseActiva, setFaseActiva] = useState<'antes' | 'durante' | 'despues'>('antes')
 
+  useEffect(() => {
+    if (plan) return
+    fetch(`/api/procesos/${proceso.id}/recomendacion-implementacion`)
+      .then(r => r.json())
+      .then(d => { if (d.plan) setPlan(d.plan) })
+      .catch(() => {})
+  }, [proceso.id])
+
   async function generarPlan() {
     if (generandoPlan) return
     setGenerandoPlan(true)
@@ -692,12 +700,15 @@ function ProcesoCard({ proceso, esHijo = false }: { proceso: ProcesoConHijos; es
                 {tabDoc === 'hallazgos' && (
                   <div className="p-5 space-y-5">
 
-                    {/* Riesgos críticos */}
+                    {/* Riesgos del proceso */}
                     {docAnalisis?.analisis_ia?.riesgos_criticos && docAnalisis.analisis_ia.riesgos_criticos.length > 0 && (
                       <div className="space-y-2">
-                        <p className="text-xs font-semibold text-red-400 uppercase tracking-widest flex items-center gap-2">
-                          <Shield className="w-3.5 h-3.5" /> Riesgos críticos identificados
-                        </p>
+                        <div>
+                          <p className="text-xs font-semibold text-red-400 uppercase tracking-widest flex items-center gap-2">
+                            <Shield className="w-3.5 h-3.5" /> Exposiciones operacionales del proceso
+                          </p>
+                          <p className="text-xs text-slate-600 mt-0.5 ml-5">Riesgos activos que la IA identificó en el estado actual — el cliente puede confirmar cuáles ya están mitigados.</p>
+                        </div>
                         {docAnalisis.analisis_ia.riesgos_criticos.map((r, i) => {
                           const atendido = esAtendido('riesgo', i)
                           const key = claveCorr('riesgo', i)
@@ -751,12 +762,15 @@ function ProcesoCard({ proceso, esHijo = false }: { proceso: ProcesoConHijos; es
                       </div>
                     )}
 
-                    {/* Hallazgos críticos */}
+                    {/* Puntos de atención del proceso */}
                     {docAnalisis?.analisis_ia?.hallazgos_criticos && docAnalisis.analisis_ia.hallazgos_criticos.length > 0 && (
                       <div className="space-y-2">
-                        <p className="text-xs font-semibold text-amber-400 uppercase tracking-widest flex items-center gap-2">
-                          <AlertTriangle className="w-3.5 h-3.5" /> Hallazgos críticos del documento
-                        </p>
+                        <div>
+                          <p className="text-xs font-semibold text-amber-400 uppercase tracking-widest flex items-center gap-2">
+                            <AlertTriangle className="w-3.5 h-3.5" /> Puntos de atención del proceso
+                          </p>
+                          <p className="text-xs text-slate-600 mt-0.5 ml-5">Aspectos críticos del estado actual que la IA extrajo del análisis — el cliente decide cuáles ya están resueltos en su organización.</p>
+                        </div>
                         <div className="rounded-xl border border-amber-800/30 bg-amber-950/10 p-4 space-y-3">
                           {docAnalisis.analisis_ia.hallazgos_criticos.map((h, i) => {
                             const atendido = esAtendido('hallazgo', i)
@@ -811,12 +825,15 @@ function ProcesoCard({ proceso, esHijo = false }: { proceso: ProcesoConHijos; es
                       </div>
                     )}
 
-                    {/* Brechas de documentación */}
+                    {/* Oportunidades de formalización */}
                     {docAnalisis?.analisis_ia?.brechas_documentacion && docAnalisis.analisis_ia.brechas_documentacion.length > 0 && (
                       <div className="space-y-2">
-                        <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                          <FileText className="w-3.5 h-3.5" /> Brechas de documentación
-                        </p>
+                        <div>
+                          <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                            <FileText className="w-3.5 h-3.5" /> Oportunidades de formalización
+                          </p>
+                          <p className="text-xs text-slate-600 mt-0.5 ml-5">Áreas del proceso sin definición formal detectadas por la IA — el cliente puede confirmar cuáles ya están documentadas internamente.</p>
+                        </div>
                         <div className="rounded-xl border border-slate-700/40 bg-slate-800/20 p-4 space-y-3">
                           {docAnalisis.analisis_ia.brechas_documentacion.map((b, i) => {
                             const atendido = esAtendido('brecha', i)
@@ -988,7 +1005,7 @@ function ProcesoCard({ proceso, esHijo = false }: { proceso: ProcesoConHijos; es
                     {docAnalisis?.analisis_ia?.roles_y_responsabilidades?.brechas_de_rol && docAnalisis.analisis_ia.roles_y_responsabilidades.brechas_de_rol.length > 0 && (
                       <div className="space-y-2">
                         <p className="text-xs font-semibold text-amber-400 uppercase tracking-widest flex items-center gap-2">
-                          <AlertTriangle className="w-3.5 h-3.5" /> Brechas de roles identificadas
+                          <AlertTriangle className="w-3.5 h-3.5" /> Roles sin cobertura formal detectados
                         </p>
                         <div className="rounded-xl border border-amber-800/30 bg-amber-950/10 p-4 space-y-3">
                           {docAnalisis.analisis_ia.roles_y_responsabilidades.brechas_de_rol.map((b, i) => {
