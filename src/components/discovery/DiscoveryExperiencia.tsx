@@ -425,7 +425,7 @@ type VersionDoc = {
   correcciones_aplicadas: number
 }
 
-function ProcesoCard({ proceso, esHijo = false }: { proceso: ProcesoConHijos; esHijo?: boolean }) {
+function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: ProcesoConHijos; esHijo?: boolean; proyectoId: string }) {
   const [expandido, setExpandido] = useState(false)
   const [tabDoc, setTabDoc] = useState<'proceso' | 'hallazgos' | 'oportunidades' | 'roles' | 'versiones'>('proceso')
   const [docAnalisis, setDocAnalisis] = useState<DocAnalisis | null>(null)
@@ -495,6 +495,40 @@ function ProcesoCard({ proceso, esHijo = false }: { proceso: ProcesoConHijos; es
   }
 
   const atendidasActivas = correcciones.filter(c => c.estado === 'atendido').length
+
+  // Glosario de roles (análisis organigrama cross-reference)
+  type MapeoRol = {
+    tipo: 'mapeo_directo' | 'equivalencia' | 'crear_cargo'
+    rol_proceso: string
+    cargo_sugerido?: string
+    persona_sugerida?: string
+    confianza: number
+    justificacion: string
+    gap_detectado?: string
+    accion_recomendada: string
+    skills_requeridos?: string[]
+  }
+  type GlosarioAnalisis = {
+    id: string
+    score_cobertura_organizacional: number
+    resumen_ejecutivo: string
+    mapeos: MapeoRol[]
+    estado: string
+  }
+  const [glosarioData, setGlosarioData] = useState<GlosarioAnalisis | null>(null)
+  const [cargandoGlosario, setCargandoGlosario] = useState(false)
+  const [glosarioCargado, setGlosarioCargado] = useState(false)
+
+  useEffect(() => {
+    if (tabDoc === 'roles' && !glosarioCargado && !cargandoGlosario) {
+      setCargandoGlosario(true)
+      fetch(`/api/portal/glosario-roles?proyecto_id=${proyectoId}`)
+        .then(r => r.json())
+        .then(d => { if (d.analisis) setGlosarioData(d.analisis) })
+        .catch(() => {})
+        .finally(() => { setCargandoGlosario(false); setGlosarioCargado(true) })
+    }
+  }, [tabDoc, glosarioCargado, cargandoGlosario, proyectoId])
 
   // Inline edit state
   const [editando, setEditando] = useState(false)
@@ -1182,104 +1216,284 @@ function ProcesoCard({ proceso, esHijo = false }: { proceso: ProcesoConHijos; es
                 })()}
 
                 {/* ── TAB: Roles ── */}
-                {tabDoc === 'roles' && (
-                  <div className="p-5 space-y-4">
-                    {proceso.roles_involucrados && proceso.roles_involucrados.length > 0 && (
-                      <div className="space-y-2">
-                        <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest">Roles activos en este proceso</p>
-                        <div className="flex flex-wrap gap-2">
-                          {proceso.roles_involucrados.map(r => (
-                            <div key={r} className="group flex items-center gap-2 bg-slate-800/60 border border-slate-700/50 px-3 py-2 rounded-xl hover:border-violet-600/40 transition-colors">
-                              <div className="w-7 h-7 rounded-full bg-slate-700 flex items-center justify-center">
-                                <Users className="w-3.5 h-3.5 text-slate-300" />
+                {tabDoc === 'roles' && (() => {
+                  const mapeos: MapeoRol[] = glosarioData?.mapeos ?? []
+                  // Filter mapeos relevant to this process's roles
+                  const rolesDelProceso = new Set((proceso.roles_involucrados ?? []).map(r => r.toLowerCase()))
+                  const mapeosRelevantes = mapeos.filter(m =>
+                    rolesDelProceso.size === 0 || rolesDelProceso.has(m.rol_proceso.toLowerCase())
+                  )
+                  const directos   = mapeosRelevantes.filter(m => m.tipo === 'mapeo_directo')
+                  const equivalencias = mapeosRelevantes.filter(m => m.tipo === 'equivalencia')
+                  const sinCobertura  = mapeosRelevantes.filter(m => m.tipo === 'crear_cargo')
+
+                  const score = glosarioData?.score_cobertura_organizacional ?? null
+
+                  function ConfianzaMeter({ valor }: { valor: number }) {
+                    const pct = Math.max(0, Math.min(100, valor))
+                    const color = pct >= 75 ? 'bg-emerald-500' : pct >= 45 ? 'bg-amber-500' : 'bg-red-500'
+                    return (
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1 h-1.5 rounded-full bg-slate-700 overflow-hidden">
+                          <div className={`h-full rounded-full ${color}`} style={{ width: `${pct}%` }} />
+                        </div>
+                        <span className="text-[10px] text-slate-500 tabular-nums w-6 text-right">{pct}%</span>
+                      </div>
+                    )
+                  }
+
+                  return (
+                    <div className="p-5 space-y-5">
+
+                      {/* Loading state */}
+                      {cargandoGlosario && (
+                        <div className="flex items-center gap-2 text-xs text-slate-500 py-4">
+                          <RefreshCw className="w-3.5 h-3.5 text-violet-400 animate-spin" />
+                          Cruzando roles del proceso con tu organigrama…
+                        </div>
+                      )}
+
+                      {/* No glosario yet */}
+                      {!cargandoGlosario && glosarioCargado && !glosarioData && (
+                        <div className="rounded-2xl border border-slate-700/40 bg-slate-800/30 p-5 space-y-3">
+                          <div className="flex items-center gap-2.5">
+                            <div className="w-9 h-9 rounded-xl bg-violet-900/30 border border-violet-700/30 flex items-center justify-center shrink-0">
+                              <Users className="w-4 h-4 text-violet-400" />
+                            </div>
+                            <div>
+                              <p className="text-sm font-semibold text-slate-200">Análisis de organigrama pendiente</p>
+                              <p className="text-xs text-slate-500 mt-0.5">Sube tu organigrama en Centro Documental para que AICOUNTS cruce los roles del proceso con tu estructura real.</p>
+                            </div>
+                          </div>
+                          {proceso.roles_involucrados && proceso.roles_involucrados.length > 0 && (
+                            <div className="pt-2 border-t border-slate-700/30 space-y-1.5">
+                              <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-widest">Roles identificados en el proceso</p>
+                              <div className="flex flex-wrap gap-1.5">
+                                {proceso.roles_involucrados.map(r => (
+                                  <span key={r} className="text-xs bg-slate-700/60 text-slate-300 px-2.5 py-1 rounded-lg border border-slate-600/40">{r}</span>
+                                ))}
                               </div>
-                              <span className="text-sm text-slate-200 font-medium">{r}</span>
-                              <a
-                                href="#glosario-roles"
-                                onClick={e => { e.preventDefault(); document.getElementById('glosario-roles')?.scrollIntoView({ behavior: 'smooth', block: 'start' }) }}
-                                className="opacity-0 group-hover:opacity-100 transition-opacity text-xs text-violet-400 hover:text-violet-300 flex items-center gap-0.5 ml-1"
-                                title="Ver en Glosario de Roles"
-                              >
-                                <ArrowRight className="w-3 h-3 -rotate-45" />
-                              </a>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Glosario header + coverage score */}
+                      {glosarioData && mapeosRelevantes.length > 0 && (
+                        <div className="rounded-2xl border border-slate-700/40 bg-gradient-to-br from-slate-800/60 to-slate-900/40 p-4 space-y-3">
+                          <div className="flex items-start justify-between gap-4">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-1">
+                                <Brain className="w-3.5 h-3.5 text-violet-400 shrink-0" />
+                                <span className="text-[10px] font-semibold text-violet-400 uppercase tracking-widest">Inteligencia Organizacional · AICOUNTS</span>
+                              </div>
+                              <p className="text-xs text-slate-400 leading-relaxed">{glosarioData.resumen_ejecutivo}</p>
+                            </div>
+                            {score !== null && (
+                              <div className="shrink-0 flex flex-col items-center gap-1">
+                                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center border-2 font-bold text-lg
+                                  ${score >= 70 ? 'border-emerald-600/50 bg-emerald-950/40 text-emerald-400' : score >= 40 ? 'border-amber-600/50 bg-amber-950/40 text-amber-400' : 'border-red-600/50 bg-red-950/40 text-red-400'}`}>
+                                  {score}
+                                </div>
+                                <span className="text-[9px] text-slate-600 text-center leading-tight">cobertura<br/>org.</span>
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-4 pt-1 border-t border-slate-700/30">
+                            {directos.length > 0 && <span className="flex items-center gap-1 text-[10px] text-emerald-400"><span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block" />{directos.length} match directo{directos.length > 1 ? 's' : ''}</span>}
+                            {equivalencias.length > 0 && <span className="flex items-center gap-1 text-[10px] text-amber-400"><span className="w-1.5 h-1.5 rounded-full bg-amber-400 inline-block" />{equivalencias.length} equivalencia{equivalencias.length > 1 ? 's' : ''}</span>}
+                            {sinCobertura.length > 0 && <span className="flex items-center gap-1 text-[10px] text-red-400"><span className="w-1.5 h-1.5 rounded-full bg-red-400 inline-block" />{sinCobertura.length} sin cobertura</span>}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Match directo cards */}
+                      {directos.length > 0 && (
+                        <div className="space-y-2">
+                          <p className="text-[10px] font-semibold text-emerald-400 uppercase tracking-widest flex items-center gap-1.5">
+                            <CheckCircle className="w-3 h-3" /> Match directo en tu organigrama
+                          </p>
+                          {directos.map((m, i) => (
+                            <div key={i} className="flex gap-0 rounded-2xl border border-emerald-800/30 overflow-hidden">
+                              <div className="w-[3px] shrink-0 bg-emerald-500 rounded-l-2xl" />
+                              <div className="flex-1 px-4 py-3 space-y-2">
+                                <div className="flex items-start justify-between gap-2">
+                                  <div>
+                                    <p className="text-xs text-slate-500">Rol en el proceso</p>
+                                    <p className="text-sm font-semibold text-slate-200">{m.rol_proceso}</p>
+                                  </div>
+                                  <div className="shrink-0 text-right">
+                                    <p className="text-[10px] text-slate-500">Asignar a</p>
+                                    <p className="text-sm font-semibold text-emerald-300">{m.persona_sugerida ?? m.cargo_sugerido ?? '—'}</p>
+                                    {m.persona_sugerida && m.cargo_sugerido && (
+                                      <p className="text-[10px] text-slate-500">{m.cargo_sugerido}</p>
+                                    )}
+                                  </div>
+                                </div>
+                                <ConfianzaMeter valor={m.confianza} />
+                                <p className="text-[11px] text-slate-400 leading-relaxed">{m.justificacion}</p>
+                                <div className="flex items-start gap-1.5 bg-emerald-950/30 rounded-xl px-3 py-2">
+                                  <Zap className="w-3 h-3 text-emerald-400 shrink-0 mt-0.5" />
+                                  <p className="text-[11px] text-emerald-300 leading-relaxed">{m.accion_recomendada}</p>
+                                </div>
+                              </div>
                             </div>
                           ))}
                         </div>
-                        <p className="text-xs text-slate-600 flex items-center gap-1 mt-1">
-                          <ArrowRight className="w-3 h-3 -rotate-45" /> Pasa el cursor sobre un rol para ir al Glosario de Roles
-                        </p>
-                      </div>
-                    )}
+                      )}
 
-                    {docAnalisis?.analisis_ia?.roles_y_responsabilidades?.brechas_de_rol && docAnalisis.analisis_ia.roles_y_responsabilidades.brechas_de_rol.length > 0 && (
-                      <div className="space-y-2">
-                        <p className="text-xs font-semibold text-amber-400 uppercase tracking-widest flex items-center gap-2">
-                          <AlertTriangle className="w-3.5 h-3.5" /> Roles sin cobertura formal detectados
-                        </p>
-                        <div className="rounded-xl border border-amber-800/30 bg-amber-950/10 p-4 space-y-3">
-                          {docAnalisis.analisis_ia.roles_y_responsabilidades.brechas_de_rol.map((b, i) => {
-                            const atendido = esAtendido('rol', i)
-                            const key = claveCorr('rol', i)
-                            const abierto = expandCorr[key]
-                            const corr = getCorr('rol', i)
-                            return (
-                              <div key={i} className={`pb-3 ${i < (docAnalisis.analisis_ia?.roles_y_responsabilidades?.brechas_de_rol?.length ?? 0) - 1 ? 'border-b border-amber-800/20' : ''}`}>
-                                <div className="flex items-start gap-2.5">
-                                  <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${atendido ? 'bg-emerald-900/50 border border-emerald-700/40' : 'bg-amber-900/50 border border-amber-700/40'}`}>
-                                    {atendido ? <CheckCircle className="w-3 h-3 text-emerald-400" /> : <span className="text-amber-400 text-xs font-bold">{i + 1}</span>}
+                      {/* Equivalencia cards */}
+                      {equivalencias.length > 0 && (
+                        <div className="space-y-2">
+                          <p className="text-[10px] font-semibold text-amber-400 uppercase tracking-widest flex items-center gap-1.5">
+                            <Activity className="w-3 h-3" /> Equivalencia posible — requiere ajuste
+                          </p>
+                          {equivalencias.map((m, i) => (
+                            <div key={i} className="flex gap-0 rounded-2xl border border-amber-800/30 overflow-hidden">
+                              <div className="w-[3px] shrink-0 bg-amber-500 rounded-l-2xl" />
+                              <div className="flex-1 px-4 py-3 space-y-2">
+                                <div className="flex items-start justify-between gap-2">
+                                  <div>
+                                    <p className="text-xs text-slate-500">Rol en el proceso</p>
+                                    <p className="text-sm font-semibold text-slate-200">{m.rol_proceso}</p>
                                   </div>
-                                  <p className={`text-sm leading-relaxed flex-1 ${atendido ? 'line-through text-slate-500' : 'text-slate-300'}`}>{b}</p>
+                                  <div className="shrink-0 text-right">
+                                    <p className="text-[10px] text-slate-500">Cargo equivalente</p>
+                                    <p className="text-sm font-semibold text-amber-300">{m.cargo_sugerido ?? '—'}</p>
+                                  </div>
                                 </div>
-                                <div className="flex items-center gap-3 pl-7 mt-2">
-                                  {!atendido ? (
-                                    <>
-                                      <a
-                                        href="#glosario-roles"
-                                        onClick={e => { e.preventDefault(); document.getElementById('glosario-roles')?.scrollIntoView({ behavior: 'smooth', block: 'start' }) }}
-                                        className="text-xs text-violet-400 hover:text-violet-300 flex items-center gap-1 transition-colors"
-                                      >
-                                        <Users className="w-3 h-3" /> Documentar en Glosario
-                                      </a>
-                                      <button onClick={() => setExpandCorr(p => ({ ...p, [key]: !p[key] }))}
-                                        className="text-xs text-slate-600 hover:text-slate-300 flex items-center gap-1 transition-colors">
-                                        <Edit2 className="w-3 h-3" /> {abierto ? 'Cerrar' : 'Comentar y resolver'}
-                                      </button>
-                                    </>
-                                  ) : (
-                                    <div className="flex items-center gap-3">
-                                      <span className="flex items-center gap-1 text-xs font-semibold text-emerald-400">
-                                        <CheckCircle className="w-3 h-3" /> Ya resuelto
-                                      </span>
-                                      <button onClick={() => desmarcarAtendido('rol', i)}
-                                        className="text-xs text-slate-600 hover:text-slate-400 transition-colors">
-                                        · Desmarcar
-                                      </button>
+                                <ConfianzaMeter valor={m.confianza} />
+                                {m.gap_detectado && (
+                                  <div className="flex items-start gap-1.5 bg-amber-950/20 rounded-xl px-3 py-2">
+                                    <AlertTriangle className="w-3 h-3 text-amber-400 shrink-0 mt-0.5" />
+                                    <p className="text-[11px] text-amber-300 leading-relaxed"><span className="font-semibold">Gap:</span> {m.gap_detectado}</p>
+                                  </div>
+                                )}
+                                <p className="text-[11px] text-slate-400 leading-relaxed">{m.justificacion}</p>
+                                <div className="flex items-start gap-1.5 bg-slate-800/50 rounded-xl px-3 py-2">
+                                  <Target className="w-3 h-3 text-amber-400 shrink-0 mt-0.5" />
+                                  <p className="text-[11px] text-slate-300 leading-relaxed">{m.accion_recomendada}</p>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Sin cobertura cards */}
+                      {sinCobertura.length > 0 && (
+                        <div className="space-y-2">
+                          <p className="text-[10px] font-semibold text-red-400 uppercase tracking-widest flex items-center gap-1.5">
+                            <AlertCircle className="w-3 h-3" /> Sin cobertura — considerar contratación externa
+                          </p>
+                          {sinCobertura.map((m, i) => (
+                            <div key={i} className="flex gap-0 rounded-2xl border border-red-800/30 overflow-hidden">
+                              <div className="w-[3px] shrink-0 bg-red-500 rounded-l-2xl" />
+                              <div className="flex-1 px-4 py-3 space-y-2">
+                                <div>
+                                  <p className="text-xs text-slate-500">Rol en el proceso</p>
+                                  <p className="text-sm font-semibold text-slate-200">{m.rol_proceso}</p>
+                                </div>
+                                {m.skills_requeridos && m.skills_requeridos.length > 0 && (
+                                  <div className="flex flex-wrap gap-1">
+                                    {m.skills_requeridos.map((s, si) => (
+                                      <span key={si} className="text-[10px] bg-red-950/40 text-red-300 border border-red-800/30 px-2 py-0.5 rounded-lg">{s}</span>
+                                    ))}
+                                  </div>
+                                )}
+                                <p className="text-[11px] text-slate-400 leading-relaxed">{m.justificacion}</p>
+                                <div className="flex items-start gap-1.5 bg-red-950/20 rounded-xl px-3 py-2">
+                                  <Shield className="w-3 h-3 text-red-400 shrink-0 mt-0.5" />
+                                  <p className="text-[11px] text-red-300 leading-relaxed">{m.accion_recomendada}</p>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Glosario loaded but no mapeos for this process → show roles pills fallback */}
+                      {!cargandoGlosario && glosarioCargado && glosarioData && mapeosRelevantes.length === 0 && proceso.roles_involucrados && proceso.roles_involucrados.length > 0 && (
+                        <div className="space-y-2">
+                          <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest">Roles en este proceso</p>
+                          <div className="flex flex-wrap gap-2">
+                            {proceso.roles_involucrados.map(r => (
+                              <span key={r} className="text-xs bg-slate-800/60 border border-slate-700/50 text-slate-300 px-3 py-1.5 rounded-xl">{r}</span>
+                            ))}
+                          </div>
+                          <p className="text-[10px] text-slate-600">El análisis de glosario existe pero no incluyó roles específicos de este proceso.</p>
+                        </div>
+                      )}
+
+                      {/* Brechas de rol (documental) */}
+                      {docAnalisis?.analisis_ia?.roles_y_responsabilidades?.brechas_de_rol && docAnalisis.analisis_ia.roles_y_responsabilidades.brechas_de_rol.length > 0 && (
+                        <div className="space-y-2">
+                          <p className="text-[10px] font-semibold text-amber-400 uppercase tracking-widest flex items-center gap-2">
+                            <AlertTriangle className="w-3 h-3" /> Brechas documentales de rol
+                          </p>
+                          <div className="rounded-xl border border-amber-800/30 bg-amber-950/10 p-4 space-y-3">
+                            {docAnalisis.analisis_ia.roles_y_responsabilidades.brechas_de_rol.map((b, i) => {
+                              const atendido = esAtendido('rol', i)
+                              const key = claveCorr('rol', i)
+                              const abierto = expandCorr[key]
+                              return (
+                                <div key={i}>
+                                  <div className={`pb-3 ${i < (docAnalisis.analisis_ia?.roles_y_responsabilidades?.brechas_de_rol?.length ?? 0) - 1 ? 'border-b border-amber-800/20' : ''}`}>
+                                    <div className="flex items-start gap-2.5">
+                                      <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${atendido ? 'bg-emerald-900/50 border border-emerald-700/40' : 'bg-amber-900/50 border border-amber-700/40'}`}>
+                                        {atendido ? <CheckCircle className="w-3 h-3 text-emerald-400" /> : <span className="text-amber-400 text-xs font-bold">{i + 1}</span>}
+                                      </div>
+                                      <p className={`text-sm leading-relaxed flex-1 ${atendido ? 'line-through text-slate-500' : 'text-slate-300'}`}>{b}</p>
+                                    </div>
+                                    <div className="flex items-center gap-3 pl-7 mt-2">
+                                      {!atendido ? (
+                                        <button onClick={() => setExpandCorr(p => ({ ...p, [key]: !p[key] }))}
+                                          className="text-xs text-slate-500 hover:text-slate-300 flex items-center gap-1 transition-colors">
+                                          <Edit2 className="w-3 h-3" /> {abierto ? 'Cerrar' : 'Comentar y resolver'}
+                                        </button>
+                                      ) : (
+                                        <div className="flex items-center gap-3">
+                                          <span className="flex items-center gap-1 text-xs font-semibold text-emerald-400">
+                                            <CheckCircle className="w-3 h-3" /> Resuelto
+                                          </span>
+                                          <button onClick={() => desmarcarAtendido('rol', i)}
+                                            className="text-xs text-slate-600 hover:text-slate-400 transition-colors">
+                                            · Desmarcar
+                                          </button>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                  {abierto && !atendido && (
+                                    <div className="mt-2 ml-3 p-3 rounded-xl border border-emerald-700/30 bg-emerald-950/10 space-y-2">
+                                      <textarea
+                                        value={textoCorr[key] ?? ''}
+                                        onChange={e => setTextoCorr(p => ({ ...p, [key]: e.target.value }))}
+                                        placeholder="Ej: el rol de Coordinador de Inventario cubre esta función..."
+                                        rows={2}
+                                        className="w-full text-xs text-slate-200 bg-slate-800/60 border border-slate-600/50 rounded-lg px-3 py-2 resize-none focus:outline-none focus:border-emerald-500/50 placeholder:text-slate-600"
+                                      />
+                                      <div className="flex items-center gap-2">
+                                        <button onClick={() => marcarAtendido('rol', i)}
+                                          className="flex items-center gap-1.5 text-xs font-semibold bg-emerald-700 hover:bg-emerald-600 text-white px-3 py-1.5 rounded-lg transition-colors">
+                                          <CheckCircle className="w-3 h-3" /> Marcar como resuelto
+                                        </button>
+                                        <button onClick={() => setExpandCorr(p => ({ ...p, [key]: false }))}
+                                          className="text-xs text-slate-600 hover:text-slate-400 transition-colors">
+                                          Cancelar
+                                        </button>
+                                      </div>
                                     </div>
                                   )}
                                 </div>
-                                {abierto && !atendido && (
-                                  <div className="pl-7 pt-2 space-y-1.5">
-                                    <textarea
-                                      value={textoCorr[key] ?? ''}
-                                      onChange={e => setTextoCorr(p => ({ ...p, [key]: e.target.value }))}
-                                      placeholder="Ej: el rol de Coordinador de Inventario cubre esta función..."
-                                      rows={2}
-                                      className="w-full text-xs text-slate-200 bg-slate-800/60 border border-slate-600/50 rounded-lg px-3 py-2 resize-none focus:outline-none focus:border-emerald-500/50 placeholder:text-slate-600"
-                                    />
-                                    <button onClick={() => marcarAtendido('rol', i)}
-                                      className="flex items-center gap-1.5 text-xs font-semibold bg-emerald-700 hover:bg-emerald-600 text-white px-3 py-1.5 rounded-lg transition-colors">
-                                      <CheckCircle className="w-3 h-3" /> Marcar como resuelto
-                                    </button>
-                                  </div>
-                                )}
-                              </div>
-                            )
-                          })}
+                              )
+                            })}
+                          </div>
                         </div>
-                      </div>
-                    )}
-                  </div>
-                )}
+                      )}
+                    </div>
+                  )
+                })()}
 
                 {/* ── TAB: Versiones ── */}
                 {tabDoc === 'versiones' && (
@@ -1692,7 +1906,7 @@ function ProcesoCard({ proceso, esHijo = false }: { proceso: ProcesoConHijos; es
                 </div>
                 <div className="space-y-2 pl-4 border-l border-slate-700/50">
                   {proceso.hijos.map((hijo) => (
-                    <ProcesoCard key={hijo.id} proceso={hijo as ProcesoConHijos} esHijo />
+                    <ProcesoCard key={hijo.id} proceso={hijo as ProcesoConHijos} esHijo proyectoId={proyectoId} />
                   ))}
                 </div>
               </div>
@@ -2882,7 +3096,7 @@ export default function DiscoveryExperiencia({
 
           <div className="space-y-3">
             {macroprocesos.map(macro => (
-              <ProcesoCard key={macro.id} proceso={macro} />
+              <ProcesoCard key={macro.id} proceso={macro} proyectoId={proyectoId} />
             ))}
           </div>
 
