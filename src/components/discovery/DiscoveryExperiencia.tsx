@@ -830,7 +830,7 @@ function ProcesoCard({ proceso, esHijo = false }: { proceso: ProcesoConHijos; es
                                     </div>
 
                                     {abierto && !atendido && (
-                                      <div className="mt-3 space-y-2 animate-in fade-in slide-in-from-top-1 duration-200">
+                                      <div className="mt-3 space-y-2 ">
                                         <textarea
                                           value={textoCorr[key] ?? ''}
                                           onChange={e => setTextoCorr(p => ({ ...p, [key]: e.target.value }))}
@@ -908,7 +908,7 @@ function ProcesoCard({ proceso, esHijo = false }: { proceso: ProcesoConHijos; es
                                       </div>
 
                                       {abierto && !atendido && (
-                                        <div className="mt-3 pt-3 border-t border-slate-700/30 space-y-2 animate-in fade-in slide-in-from-top-1 duration-200">
+                                        <div className="mt-3 pt-3 border-t border-slate-700/30 space-y-2 ">
                                           <textarea
                                             value={textoCorr[key] ?? ''}
                                             onChange={e => setTextoCorr(p => ({ ...p, [key]: e.target.value }))}
@@ -971,7 +971,7 @@ function ProcesoCard({ proceso, esHijo = false }: { proceso: ProcesoConHijos; es
                             const key = claveCorr('brecha', i)
                             if (!expandCorr[key] || esAtendido('brecha', i)) return null
                             return (
-                              <div key={i} className="mt-3 p-3 rounded-2xl border border-violet-700/30 bg-violet-950/10 space-y-2 animate-in fade-in slide-in-from-top-1 duration-200">
+                              <div key={i} className="mt-3 p-3 rounded-2xl border border-violet-700/30 bg-violet-950/10 space-y-2 ">
                                 <p className="text-xs text-violet-300 font-medium">"{b}"</p>
                                 <textarea
                                   value={textoCorr[key] ?? ''}
