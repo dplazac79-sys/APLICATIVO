@@ -221,7 +221,14 @@ function ProcesoCard({ proceso, esHijo = false }: { proceso: ProcesoConHijos; es
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-start justify-between gap-2 flex-wrap">
-                <p className="text-white text-sm font-medium leading-snug">{editando ? editNombre : proceso.nombre}</p>
+                <div className="flex items-center gap-2 flex-wrap">
+                  {(proceso as any).documento_referencia && proceso.origen !== 'propuesta_ia' && (
+                    <span className="text-xs font-bold text-slate-400 bg-slate-800 border border-slate-700 px-1.5 py-0.5 rounded font-mono shrink-0">
+                      {((proceso as any).documento_referencia as string).replace(/\.[^.]+$/, '')}
+                    </span>
+                  )}
+                  <p className="text-white text-sm font-medium leading-snug">{editando ? editNombre : proceso.nombre}</p>
+                </div>
                 <div className="flex items-center gap-1.5 shrink-0">
                   {proceso.origen === 'propuesta_ia' ? (
                     <span className="text-xs px-2 py-0.5 rounded-full bg-violet-950/60 text-violet-300 border border-violet-700/50 font-medium">
