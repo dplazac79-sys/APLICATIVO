@@ -2462,7 +2462,12 @@ export default function DiscoveryExperiencia({
               <p className="text-slate-400 text-xs">{nombreProyecto}{clienteNombre ? ` · ${clienteNombre}` : ''}</p>
             </div>
           </div>
-          {totalProcesos > 0 && <DiscoveryAcciones proyectos={proyectosParaAcciones} />}
+          {totalProcesos > 0 && (
+            <div className="flex items-center gap-2 text-xs text-slate-500">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span>Análisis activo · {totalProcesos} procesos</span>
+            </div>
+          )}
         </div>
 
         {/* Panel de resultados post-discovery */}
@@ -2500,44 +2505,67 @@ export default function DiscoveryExperiencia({
               )}
             </div>
 
-            {/* Qué hacer ahora: 3 acciones concretas */}
+            {/* Navegación de etapas — clickeables */}
             <div className="grid grid-cols-3 gap-3">
               {[
                 {
                   step: '1',
-                  icon: Target,
-                  label: 'Lee cada proceso',
-                  desc: 'Expande el macroproceso y revisa el nombre y descripción de cada proceso. Verifica que refleja la realidad de tu organización.',
+                  icon: FileText,
+                  label: 'Centro Documental',
+                  desc: 'Vuelve a revisar o agregar documentos al proyecto.',
                   color: 'text-violet-400',
-                  bg: 'bg-violet-950/30 border-violet-800/30',
+                  bg: 'bg-violet-950/20 border-violet-800/20',
+                  href: '/documentos',
+                  done: true,
                 },
                 {
                   step: '2',
-                  icon: CheckCircle,
-                  label: 'Acepta o rechaza',
-                  desc: 'Haz clic en "Aceptar proceso" si es correcto, o "Rechazar" si no aplica. Esto construye tu inventario oficial de procesos.',
+                  icon: Brain,
+                  label: 'Discovery ejecutado',
+                  desc: `${documentos.filter(d => d.estado_procesamiento === 'listo').length} documentos analizados. Puedes re-ejecutar desde Centro Documental si subes nuevos archivos.`,
                   color: 'text-emerald-400',
-                  bg: 'bg-emerald-950/30 border-emerald-800/30',
+                  bg: 'bg-emerald-950/20 border-emerald-800/20',
+                  href: null,
+                  done: true,
                 },
                 {
                   step: '3',
-                  icon: TrendingUp,
-                  label: 'Profundiza con IA',
-                  desc: 'En los procesos aceptados, usa "Analizar con IA" para obtener diagnóstico de criticidad, riesgos y oportunidades de mejora.',
+                  icon: CheckCircle,
+                  label: 'Revisión en curso',
+                  desc: `${aceptados} aceptados · ${pendientes} pendientes. Acepta o rechaza cada proceso y profundiza con IA.`,
                   color: 'text-blue-400',
-                  bg: 'bg-blue-950/30 border-blue-800/30',
+                  bg: 'bg-blue-950/30 border-blue-800/40',
+                  href: null,
+                  done: false,
                 },
-              ].map(({ step, icon: Icon, label, desc, color, bg }) => (
-                <div key={step} className={`rounded-xl border px-3 py-3 ${bg}`}>
-                  <div className="flex items-center gap-2 mb-1.5">
-                    <span className="text-xs font-bold text-slate-600">PASO {step}</span>
+              ].map(({ step, icon: Icon, label, desc, color, bg, href, done }) => (
+                href ? (
+                  <a key={step} href={href} className={`rounded-xl border px-3 py-3 ${bg} hover:brightness-125 transition-all cursor-pointer block`}>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-xs font-bold text-slate-600">PASO {step}</span>
+                      <span className="text-xs text-emerald-500 font-semibold">✓ Hecho</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 mb-1.5">
+                      <Icon className={`w-3.5 h-3.5 ${color}`} />
+                      <span className={`text-sm font-semibold ${color}`}>{label}</span>
+                    </div>
+                    <p className="text-xs text-slate-400 leading-relaxed">{desc}</p>
+                    <p className="text-xs text-violet-400 mt-1.5">→ Ir a documentos</p>
+                  </a>
+                ) : (
+                  <div key={step} className={`rounded-xl border px-3 py-3 ${bg}`}>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-xs font-bold text-slate-600">PASO {step}</span>
+                      {done && <span className="text-xs text-emerald-500 font-semibold">✓ Hecho</span>}
+                      {!done && <span className="text-xs text-blue-400 font-semibold animate-pulse">● Aquí ahora</span>}
+                    </div>
+                    <div className="flex items-center gap-1.5 mb-1.5">
+                      <Icon className={`w-3.5 h-3.5 ${color}`} />
+                      <span className={`text-sm font-semibold ${color}`}>{label}</span>
+                    </div>
+                    <p className="text-xs text-slate-400 leading-relaxed">{desc}</p>
                   </div>
-                  <div className="flex items-center gap-1.5 mb-1.5">
-                    <Icon className={`w-3.5 h-3.5 ${color}`} />
-                    <span className={`text-sm font-semibold ${color}`}>{label}</span>
-                  </div>
-                  <p className="text-xs text-slate-400 leading-relaxed">{desc}</p>
-                </div>
+                )
               ))}
             </div>
 
