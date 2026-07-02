@@ -202,6 +202,7 @@ export const discoveryAI = inngest.createFunction(
               oportunidades_automatizacion: p.oportunidades_automatizacion ?? [],
               kpis_recomendados: p.kpis_recomendados ?? [],
               benchmark_industria: p.benchmark_industria ?? null,
+              especulativo: p.origen === 'propuesta_ia',
             },
             orden: i,
           }))
@@ -320,13 +321,20 @@ export const enriquecerDocumentoCliente = inngest.createFunction(
 
     // 5. Guardar resultado
     await step.run('guardar-resultado', async () => {
+      // Calcular posición real en el macroproceso desde BD (nunca dejar que la IA invente esto)
+      const { count: totalMacro } = await admin.from('proceso_enriquecido')
+        .select('id', { count: 'exact', head: true })
+        .eq('proyecto_id', proyecto_id)
+        .eq('macroproceso', enriquecido.macroproceso)
+      const numeroReal = (totalMacro ?? 0) + 1
+
       await admin.from('proceso_enriquecido').insert({
         documento_cliente_id,
         proyecto_id,
         nombre_proceso: enriquecido.nombre_proceso,
         macroproceso: enriquecido.macroproceso,
-        numero_en_macroproceso: enriquecido.numero_en_macroproceso,
-        total_en_macroproceso: enriquecido.total_en_macroproceso,
+        numero_en_macroproceso: numeroReal,
+        total_en_macroproceso: numeroReal,
         descripcion: enriquecido.descripcion,
         sin_proceso_riesgos: enriquecido.sin_proceso_riesgos,
         con_proceso_beneficios: enriquecido.con_proceso_beneficios,

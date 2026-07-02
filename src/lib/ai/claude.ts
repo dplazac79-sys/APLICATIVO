@@ -240,16 +240,18 @@ export async function reAnalizarContenidoEditado(contenidoEditado: {
   const msg = await client.messages.create({
     model: 'claude-sonnet-4-6',
     max_tokens: 2048,
-    system: `Eres un experto en análisis de procesos de negocio. Recibirás contenido editado por el cliente sobre un proceso. Tu tarea es actualizar los KPIs y riesgos en base al nuevo contenido.
+    system: `Eres un experto en análisis de procesos de negocio de AICOUNTS Consultores. Recibirás contenido editado por el cliente sobre un proceso. Tu tarea es actualizar los KPIs y riesgos basándote EXCLUSIVAMENTE en lo que el cliente describió.
+
+IMPORTANTE: No inventes cifras en $ que no estén en el texto del cliente. Los KPIs deben ser relativos (%, días, veces, nivel cualitativo). Si el cliente no menciona un valor numérico, usa descriptores cualitativos como "alto", "reducción significativa", "mejora esperada".
 
 Devuelve SOLO un objeto JSON válido:
 {
-  "valor_negocio": "resumen del valor actualizado según el contenido editado",
+  "valor_negocio": "resumen del valor actualizado según lo que describió el cliente — cualitativo si no hay datos numéricos",
   "kpis": [
-    {"nombre": "nombre del KPI", "valor_actual": "estimado actual", "valor_objetivo": "objetivo", "unidad": "%, días, $, etc"}
+    {"nombre": "nombre del KPI derivado de la descripción del cliente", "valor_actual": "estado descrito (ej: alto, ~70%, frecuente)", "valor_objetivo": "objetivo mencionado o implícito", "unidad": "%, días, veces — no $ sin respaldo"}
   ],
   "riesgos": [
-    {"descripcion": "descripción del riesgo", "probabilidad": "alta|media|baja", "impacto": "alto|medio|bajo"}
+    {"descripcion": "riesgo identificado en la descripción del cliente", "probabilidad": "alta|media|baja", "impacto": "alto|medio|bajo"}
   ]
 }`,
     messages: [{
@@ -272,29 +274,29 @@ export async function enriquecerProcesoCliente(
   const msg = await client.messages.create({
     model: 'claude-sonnet-4-6',
     max_tokens: 4096,
-    system: `Eres un experto en análisis de procesos de negocio. Recibirás un documento de proceso enviado por un cliente y el contexto del proyecto de consultoría. Tu tarea es enriquecer ese documento para que el cliente entienda:
+    system: `Eres un experto en análisis de procesos de negocio de AICOUNTS Consultores. Recibirás un documento de proceso enviado por un cliente y el contexto del proyecto de consultoría. Tu tarea es enriquecer ese documento para que el cliente entienda:
 1. Qué es exactamente este proceso y dónde se ubica en su cadena de valor
 2. Qué riesgos existen si este proceso no existe o falla
 3. Qué beneficios obtiene si el proceso existe y funciona bien
 4. El valor real del proceso para el negocio
 
+IMPORTANTE: Basarte ESTRICTAMENTE en lo que dice el documento. Los KPIs deben ser relativos (%, días, veces) nunca cifras absolutas en $ que no estén en el documento. Si el documento no menciona un dato, descríbelo cualitativamente.
+
 Devuelve SOLO un objeto JSON válido con esta estructura exacta:
 {
-  "nombre_proceso": "nombre claro del proceso",
-  "macroproceso": "nombre del macroproceso al que pertenece",
-  "numero_en_macroproceso": 2,
-  "total_en_macroproceso": 7,
-  "descripcion": "descripción clara del proceso en lenguaje de negocio (2-3 párrafos)",
-  "sin_proceso_riesgos": "texto explicando qué riesgos y consecuencias reales ocurren si este proceso no existe o falla (lenguaje ejecutivo, no técnico)",
-  "con_proceso_beneficios": "texto explicando qué beneficios concretos obtiene la organización con este proceso funcionando bien",
-  "valor_negocio": "valor cuantificable: ahorro estimado, reducción de errores, tiempo ahorrado, etc.",
-  "actores": ["lista de roles o personas involucradas"],
-  "sistemas": ["lista de sistemas de información involucrados"],
+  "nombre_proceso": "nombre claro del proceso tal como aparece en el documento",
+  "macroproceso": "nombre del macroproceso al que pertenece según el documento",
+  "descripcion": "descripción clara del proceso en lenguaje de negocio (2-3 párrafos), basada en el documento",
+  "sin_proceso_riesgos": "texto explicando qué riesgos y consecuencias reales ocurren si este proceso no existe o falla (lenguaje ejecutivo), derivado del documento",
+  "con_proceso_beneficios": "texto explicando qué beneficios concretos obtiene la organización con este proceso funcionando bien, derivado del documento",
+  "valor_negocio": "valor cualitativo o relativo derivado del documento — si no hay datos financieros, describe el impacto operacional",
+  "actores": ["lista de roles o personas involucradas según el documento"],
+  "sistemas": ["lista de sistemas de información mencionados en el documento"],
   "kpis": [
-    {"nombre": "nombre del KPI", "valor_actual": "estimado actual", "valor_objetivo": "objetivo", "unidad": "%, días, $, etc"}
+    {"nombre": "nombre del KPI mencionado o derivable del documento", "valor_actual": "estado actual relativo (ej: alto, bajo, ~80%)", "valor_objetivo": "objetivo descrito en el documento", "unidad": "%, días, veces, etc — no $ sin respaldo documental"}
   ],
   "riesgos": [
-    {"descripcion": "descripción del riesgo", "probabilidad": "alta|media|baja", "impacto": "alto|medio|bajo"}
+    {"descripcion": "riesgo identificado en el documento", "probabilidad": "alta|media|baja", "impacto": "alto|medio|bajo"}
   ]
 }`,
     messages: [{
@@ -306,8 +308,6 @@ Devuelve SOLO un objeto JSON válido con esta estructura exacta:
   return extractJson((msg.content[0] as { text: string }).text) as {
     nombre_proceso: string
     macroproceso: string
-    numero_en_macroproceso: number
-    total_en_macroproceso: number
     descripcion: string
     sin_proceso_riesgos: string
     con_proceso_beneficios: string
@@ -588,8 +588,9 @@ export async function proyectarProceso(
 ): Promise<ProyeccionProceso> {
   const sistemaPrompt = `Eres el motor de proyecciones estratégicas de ProcessOS, desarrollado por AICOUNTS Consultores.
 Tu misión: convertir el diagnóstico de un proceso en inteligencia accionable de clase mundial.
-Operas con el rigor de un consultor senior McKinsey + la precisión de un Data Scientist.
-Produces proyecciones realistas, no optimismo vacío. Cada número tiene fundamento.`
+Operas con el rigor de un consultor senior + la precisión de un analista de datos.
+Produces proyecciones basadas ESTRICTAMENTE en el diagnóstico documental adjunto.
+IMPORTANTE: No inventes cifras en $ ni porcentajes exactos sin respaldo en los datos del proceso. Si debes estimar, usa rangos cualitativos ("reducción significativa", "mejora considerable") o rangos amplios marcados como "estimado cualitativo". Las proyecciones financieras específicas requieren datos operacionales reales del cliente que deben ser validados por el consultor.`
 
   const msg = await (client as any).beta.messages.create({
     model: 'claude-sonnet-4-6',

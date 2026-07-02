@@ -71,7 +71,7 @@ Riesgos detectados: ${ctx.riesgos_detectados?.join(', ') ?? 'N/A'}
 }
 
 function construirResumenDocumentos(docs: DocumentoResumen[]): string {
-  if (!docs.length) return 'Sin documentos de origen disponibles.'
+  if (!docs.length) return 'ADVERTENCIA: Sin documentos de origen disponibles. Todo lo que generes debe marcarse como [ESPECULATIVO] ya que no hay base documental.'
   return docs.map(d =>
     `### ${d.nombre_archivo}\n${d.resumen_ejecutivo ?? 'Sin resumen.'}`
   ).join('\n\n').slice(0, 3000)
@@ -129,9 +129,13 @@ export async function generarArtefacto(
 
   // System prompt = plantilla del tipo (cacheado por Anthropic entre calls del mismo tipo)
   // User prompt = contexto específico del proceso (varía por call)
+  const anclaDocumental = documentos.length > 0
+    ? '## ⚠️ INSTRUCCIÓN DE ANCLAJE\nTodo el contenido generado DEBE derivarse de la Inteligencia Documental adjunta. Si debes inferir algo no explícito en el documento, prefijar con "[INFERIDO]". No inventes cifras en $ sin respaldo documental.'
+    : '## ⚠️ SIN DOCUMENTOS\nNo hay documentos de origen. Marca TODO el contenido como [ESPECULATIVO] y advierte explícitamente que requiere validación documental.'
   let userPrompt = [
     '## Contexto del proceso\n' + ctxStr,
     '## Inteligencia documental\n' + docsStr,
+    anclaDocumental,
   ].join('\n\n')
 
   if (tipo === 'to_be') {
