@@ -41,6 +41,10 @@ export default async function DiscoveryPage() {
 
   const aceptados = procesosProyecto.filter((p: Proceso) => p.estado_oferta === 'aceptado')
   const pendientes = procesosProyecto.filter((p: Proceso) => p.estado_oferta === 'propuesto')
+  // Solo nivel 1 (procesos hijos) para los contadores de origen
+  const procesosNivel1 = procesosProyecto.filter((p: Proceso) => p.nivel === 1)
+  const procesosDetectados = procesosNivel1.filter((p: Proceso) => p.origen === 'detectado').length
+  const procesosPropeustosIA = procesosNivel1.filter((p: Proceso) => p.origen === 'propuesta_ia').length
 
   // Roles únicos de procesos aceptados para Glosario
   const rolesDetectados = Array.from(
@@ -71,6 +75,8 @@ export default async function DiscoveryPage() {
       aceptados={aceptados.length}
       pendientes={pendientes.length}
       rechazados={procesosProyecto.filter((p: Proceso) => p.estado_oferta === 'rechazado').length}
+      procesosDetectados={procesosDetectados}
+      procesosPropeustosIA={procesosPropeustosIA}
       resumenDiscovery={proyecto.discovery_resumen as Record<string, unknown> | null}
       rolesDetectados={rolesDetectados}
       proyectosParaAcciones={proyectos.map(p => ({ id: p.id, nombre: p.nombre }))}

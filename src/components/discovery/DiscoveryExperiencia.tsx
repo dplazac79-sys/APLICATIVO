@@ -55,6 +55,8 @@ interface Props {
   aceptados: number
   pendientes: number
   rechazados: number
+  procesosDetectados: number
+  procesosPropeustosIA: number
   resumenDiscovery: Record<string, unknown> | null
   rolesDetectados: Array<{ rol: string; descripcion: string; procesos: string[] }>
   proyectosParaAcciones: { id: string; nombre: string }[]
@@ -1557,6 +1559,7 @@ function EstadoVacioDiscovery({
 export default function DiscoveryExperiencia({
   proyectoId, nombreProyecto, clienteNombre,
   macroprocesos, totalProcesos, aceptados, pendientes, rechazados,
+  procesosDetectados, procesosPropeustosIA,
   resumenDiscovery, rolesDetectados, proyectosParaAcciones, documentos,
 }: Props) {
   const [tab, setTab] = useState<'procesos' | 'glosario'>('procesos')
@@ -1588,55 +1591,74 @@ export default function DiscoveryExperiencia({
         {totalProcesos > 0 && (
           <div className="mt-5 pt-5 border-t border-slate-800 space-y-4">
 
-            {/* Explicación del origen de los resultados */}
-            <div className="flex items-start gap-3 bg-violet-950/30 border border-violet-800/30 rounded-xl px-4 py-3">
-              <Sparkles className="w-4 h-4 text-violet-400 shrink-0 mt-0.5" />
-              <p className="text-sm text-slate-300 leading-relaxed">
-                El análisis de tus documentos identificó{' '}
-                <span className="text-white font-semibold">{macroprocesos.length} macroproceso{macroprocesos.length !== 1 ? 's' : ''}</span>
-                {' '}y{' '}
-                <span className="text-white font-semibold">{totalProcesos} proceso{totalProcesos !== 1 ? 's' : ''}</span>
-                {' '}en tu organización. Un <span className="text-violet-300 font-medium">macroproceso</span> es un área de negocio (ej. Cadena de Suministro), y cada <span className="text-violet-300 font-medium">proceso</span> es una actividad específica dentro de él. Revisa cada uno y decide cuáles son correctos para tu organización.
-              </p>
+            {/* Narrativa clara del resultado */}
+            <div className="bg-violet-950/30 border border-violet-800/30 rounded-xl px-4 py-4 space-y-3">
+              <div className="flex items-start gap-3">
+                <Sparkles className="w-4 h-4 text-violet-400 shrink-0 mt-0.5" />
+                <div className="space-y-1">
+                  <p className="text-sm text-white font-semibold">
+                    Se analizaron {documentos.filter(d => d.estado_procesamiento === 'listo').length} documentos y se encontró {macroprocesos.length} macroproceso: <span className="text-violet-300">{macroprocesos[0]?.nombre ?? 'Cadena de Suministro'}</span>
+                  </p>
+                  <p className="text-sm text-slate-300 leading-relaxed">
+                    Dentro de ese macroproceso se identificaron{' '}
+                    <span className="text-emerald-400 font-semibold">{procesosDetectados} proceso{procesosDetectados !== 1 ? 's' : ''} existentes</span>
+                    {' '}(uno por cada documento analizado){procesosPropeustosIA > 0 && (
+                      <> y <span className="text-amber-400 font-semibold">{procesosPropeustosIA} proceso{procesosPropeustosIA !== 1 ? 's' : ''} propuesto{procesosPropeustosIA !== 1 ? 's' : ''} por IA</span> — actividades que deberían existir en esta organización pero aún no están documentadas.</>
+                    )}{procesosPropeustosIA === 0 && '.'}
+                  </p>
+                </div>
+              </div>
+              {procesosPropeustosIA > 0 && (
+                <div className="flex items-center gap-4 pt-1 border-t border-violet-800/20 text-xs">
+                  <span className="flex items-center gap-1.5 text-slate-400">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" />
+                    <span className="text-emerald-400 font-medium">{procesosDetectados} detectados</span> en tus documentos
+                  </span>
+                  <span className="flex items-center gap-1.5 text-slate-400">
+                    <span className="w-2 h-2 rounded-full bg-amber-400 shrink-0" />
+                    <span className="text-amber-400 font-medium">{procesosPropeustosIA} propuestos por IA</span> — brechas identificadas
+                  </span>
+                </div>
+              )}
             </div>
 
-            {/* Workflow de revisión: 3 pasos */}
+            {/* Qué hacer ahora: 3 acciones concretas */}
             <div className="grid grid-cols-3 gap-3">
               {[
                 {
                   step: '1',
                   icon: Target,
-                  label: 'Revisar',
-                  desc: 'Lee cada macroproceso y sus procesos detectados',
+                  label: 'Lee cada proceso',
+                  desc: 'Expande el macroproceso y revisa el nombre y descripción de cada proceso. Verifica que refleja la realidad de tu organización.',
                   color: 'text-violet-400',
                   bg: 'bg-violet-950/30 border-violet-800/30',
                 },
                 {
                   step: '2',
                   icon: CheckCircle,
-                  label: 'Validar',
-                  desc: 'Acepta los correctos, rechaza los que no aplican',
+                  label: 'Acepta o rechaza',
+                  desc: 'Haz clic en "Aceptar proceso" si es correcto, o "Rechazar" si no aplica. Esto construye tu inventario oficial de procesos.',
                   color: 'text-emerald-400',
                   bg: 'bg-emerald-950/30 border-emerald-800/30',
                 },
                 {
                   step: '3',
                   icon: TrendingUp,
-                  label: 'Analizar',
-                  desc: 'Usa "Analizar con IA" para profundizar en cada proceso',
+                  label: 'Profundiza con IA',
+                  desc: 'En los procesos aceptados, usa "Analizar con IA" para obtener diagnóstico de criticidad, riesgos y oportunidades de mejora.',
                   color: 'text-blue-400',
                   bg: 'bg-blue-950/30 border-blue-800/30',
                 },
               ].map(({ step, icon: Icon, label, desc, color, bg }) => (
-                <div key={step} className={`rounded-xl border px-3 py-2.5 ${bg}`}>
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-xs font-bold text-slate-500">PASO {step}</span>
+                <div key={step} className={`rounded-xl border px-3 py-3 ${bg}`}>
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <span className="text-xs font-bold text-slate-600">PASO {step}</span>
                   </div>
-                  <div className="flex items-center gap-1.5 mb-1">
+                  <div className="flex items-center gap-1.5 mb-1.5">
                     <Icon className={`w-3.5 h-3.5 ${color}`} />
                     <span className={`text-sm font-semibold ${color}`}>{label}</span>
                   </div>
-                  <p className="text-xs text-slate-500 leading-relaxed">{desc}</p>
+                  <p className="text-xs text-slate-400 leading-relaxed">{desc}</p>
                 </div>
               ))}
             </div>
