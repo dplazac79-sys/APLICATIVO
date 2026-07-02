@@ -202,9 +202,12 @@ function ProcesoCard({ proceso, esHijo = false }: { proceso: ProcesoConHijos; es
   if (esHijo) {
     // Simplified child variant
     return (
-      <div className={`rounded-xl border transition-all duration-200 overflow-hidden ${
+      <div
+        id={proceso.origen === 'propuesta_ia' ? `proceso-propuesta-ia-${proceso.id}` : undefined}
+        className={`rounded-xl border transition-all duration-200 overflow-hidden ${
         estadoLocal === 'aceptado' ? 'bg-slate-900/50 border-emerald-800/30' :
         estadoLocal === 'rechazado' ? 'bg-slate-900/30 border-red-900/30 opacity-50' :
+        proceso.origen === 'propuesta_ia' ? 'bg-violet-950/20 border-violet-700/50 hover:border-violet-600/70' :
         'bg-slate-900/40 border-slate-700/40 hover:border-slate-600/60'
       }`}>
         <div className="p-4">
@@ -1667,12 +1670,20 @@ export default function DiscoveryExperiencia({
       {totalProcesos > 0 && (
         <div className="flex gap-1 bg-slate-900/80 border border-slate-800 rounded-xl p-1 w-fit">
           {[
-            { id: 'procesos', label: 'Macroprocesos y Procesos', icon: Activity, count: macroprocesos.length },
+            { id: 'procesos', label: 'Macroprocesos y Procesos', icon: Activity, count: procesosPropeustosIA },
             { id: 'glosario', label: 'Glosario de Roles', icon: Users, count: rolesDetectados.length },
           ].map(t => (
             <button
               key={t.id}
-              onClick={() => setTab(t.id as 'procesos' | 'glosario')}
+              onClick={() => {
+                setTab(t.id as 'procesos' | 'glosario')
+                if (t.id === 'procesos' && procesosPropeustosIA > 0) {
+                  setTimeout(() => {
+                    const el = document.querySelector('[id^="proceso-propuesta-ia-"]')
+                    el?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                  }, 100)
+                }
+              }}
               className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${
                 tab === t.id
                   ? 'bg-violet-600 text-white shadow-lg shadow-violet-900/40'
@@ -1682,8 +1693,8 @@ export default function DiscoveryExperiencia({
               <t.icon className="w-4 h-4" />
               {t.label}
               {t.count > 0 && (
-                <span className={`text-xs px-1.5 py-0.5 rounded-full ${tab === t.id ? 'bg-white/20' : 'bg-slate-700 text-slate-400'}`}>
-                  {t.count}
+                <span className={`text-xs px-1.5 py-0.5 rounded-full ${tab === t.id ? 'bg-amber-400/30 text-amber-200' : 'bg-amber-900/60 text-amber-300'}`}>
+                  {t.count} nuevo{t.count !== 1 ? 's' : ''}
                 </span>
               )}
             </button>
@@ -1718,7 +1729,11 @@ export default function DiscoveryExperiencia({
               <span className="text-sm font-semibold text-slate-300">Macroprocesos detectados</span>
               <span className="text-xs text-slate-500 bg-slate-800 border border-slate-700 rounded-full px-2 py-0.5">{macroprocesos.length}</span>
             </div>
-            <p className="text-xs text-slate-500">Expande cada macroproceso para ver sus procesos</p>
+            {procesosPropeustosIA > 0 && (
+              <p className="text-xs text-amber-400/80">
+                ✨ {procesosPropeustosIA} proceso{procesosPropeustosIA !== 1 ? 's' : ''} propuesto{procesosPropeustosIA !== 1 ? 's' : ''} por IA — revisa y acepta o rechaza
+              </p>
+            )}
           </div>
 
           <div className="space-y-3">
