@@ -78,49 +78,146 @@ export type ResumenDoc = {
   proximos_pasos_sugeridos: string[]
 }
 
-export async function analizarDocumento(texto: string): Promise<{ clasificacion: ClasificacionDoc; analisis: ResumenDoc }> {
-  const systemPrompt = loadPrompt('analisis-documento')
-  const textoTruncado = texto.slice(0, 10000)
+const CHUNK_SIZE   = 50_000   // chars por sección
+const CHUNK_OVERLAP = 5_000   // solapamiento entre secciones para no perder contexto en los cortes
+const SINGLE_PASS_LIMIT = 80_000  // documentos ≤ esto se analizan de una sola vez
 
+async function analizarSeccion(
+  texto: string,
+  systemPrompt: string,
+  seccion?: string
+): Promise<{ clasificacion: ClasificacionDoc; analisis: ResumenDoc }> {
+  const header = seccion ? `[${seccion}]\n\n` : ''
   const msg = await (client as any).beta.messages.create({
     model: 'claude-sonnet-4-6',
     max_tokens: 6000,
     betas: ['prompt-caching-2024-07-31'],
-    system: [
-      {
-        type: 'text',
-        text: systemPrompt,
-        cache_control: { type: 'ephemeral' },
+    system: [{ type: 'text', text: systemPrompt, cache_control: { type: 'ephemeral' } }],
+    tools: [{
+      name: 'entregar_analisis',
+      description: 'Entrega el análisis completo del documento con clasificación y diagnóstico ejecutivo',
+      input_schema: {
+        type: 'object',
+        properties: { clasificacion: { type: 'object' }, analisis: { type: 'object' } },
+        required: ['clasificacion', 'analisis'],
       },
-    ],
-    tools: [
-      {
-        name: 'entregar_analisis',
-        description: 'Entrega el análisis completo del documento con clasificación y diagnóstico ejecutivo',
-        input_schema: {
-          type: 'object',
-          properties: {
-            clasificacion: { type: 'object' },
-            analisis: { type: 'object' },
-          },
-          required: ['clasificacion', 'analisis'],
-        },
-      },
-    ],
+    }],
     tool_choice: { type: 'tool', name: 'entregar_analisis' },
-    messages: [
-      {
-        role: 'user',
-        content: `Analiza este documento organizacional:\n\n${textoTruncado}`,
-      },
-    ],
+    messages: [{ role: 'user', content: `Analiza este documento organizacional:\n\n${header}${texto}` }],
+  })
+  const toolBlock = msg.content.find((b: { type: string }) => b.type === 'tool_use')
+  if (!toolBlock) throw new Error('No se recibió resultado del motor de inteligencia')
+  return toolBlock.input as { clasificacion: ClasificacionDoc; analisis: ResumenDoc }
+}
+
+async function consolidarSecciones(
+  parciales: Array<{ clasificacion: ClasificacionDoc; analisis: ResumenDoc }>
+): Promise<{ clasificacion: ClasificacionDoc; analisis: ResumenDoc }> {
+  if (!groqClient) {
+    // Sin Groq: merge manual tomando la primera sección + agregando hallazgos de las demás
+    const base = parciales[0]
+    for (const p of parciales.slice(1)) {
+      base.analisis.hallazgos_criticos   = Array.from(new Set([...base.analisis.hallazgos_criticos,   ...p.analisis.hallazgos_criticos]))
+      base.analisis.riesgos_criticos     = [...base.analisis.riesgos_criticos,     ...p.analisis.riesgos_criticos]
+      base.analisis.oportunidades_valor  = [...base.analisis.oportunidades_valor,  ...p.analisis.oportunidades_valor]
+      base.analisis.brechas_documentacion = Array.from(new Set([...base.analisis.brechas_documentacion, ...p.analisis.brechas_documentacion]))
+      base.analisis.quick_wins           = Array.from(new Set([...base.analisis.quick_wins, ...p.analisis.quick_wins]))
+      base.analisis.proximos_pasos_sugeridos = Array.from(new Set([...base.analisis.proximos_pasos_sugeridos, ...p.analisis.proximos_pasos_sugeridos]))
+      if (p.analisis.nivel_madurez_amo > base.analisis.nivel_madurez_amo)
+        base.analisis.nivel_madurez_amo = p.analisis.nivel_madurez_amo
+    }
+    return base
+  }
+
+  const resumen = parciales.map((p, i) => `
+=== SECCIÓN ${i + 1} ===
+Resumen: ${p.analisis.resumen_ejecutivo}
+Diagnóstico: ${p.analisis.diagnostico_operacional}
+Hallazgos: ${p.analisis.hallazgos_criticos.join(' | ')}
+Riesgos: ${p.analisis.riesgos_criticos.map(r => r.riesgo).join(' | ')}
+Oportunidades: ${p.analisis.oportunidades_valor.map(o => o.oportunidad).join(' | ')}
+Brechas: ${p.analisis.brechas_documentacion.join(' | ')}
+Madurez: ${p.analisis.nivel_madurez_amo} — ${p.analisis.nivel_madurez_nombre}
+Quick wins: ${p.analisis.quick_wins.join(' | ')}
+`).join('\n').slice(0, 12000)
+
+  const prompt = `Eres un consultor senior. Se analizó un documento en ${parciales.length} secciones. Consolida los hallazgos en UN análisis final coherente, sin duplicados, priorizando los más relevantes.
+
+${resumen}
+
+Devuelve SOLO este JSON (sin texto extra):
+{
+  "resumen_ejecutivo": "4-6 oraciones consolidadas nivel C-Suite",
+  "diagnostico_operacional": "2-3 oraciones del estado real de la operación",
+  "hallazgos_criticos": ["máximo 8 hallazgos únicos más relevantes"],
+  "riesgos_criticos": [{"riesgo":"...","impacto":"alto|medio|bajo","evidencia":"..."}],
+  "oportunidades_valor": [{"oportunidad":"...","impacto_estimado":"...","complejidad_implementacion":"alta|media|baja"}],
+  "brechas_documentacion": ["máximo 5 brechas únicas"],
+  "nivel_madurez_amo": 2,
+  "nivel_madurez_nombre": "...",
+  "nivel_madurez_evidencia": "...",
+  "quick_wins": ["máximo 5 acciones concretas"],
+  "recomendacion_ejecutiva": "Una sola frase directa para el CEO/COO",
+  "proximos_pasos_sugeridos": ["máximo 4 pasos concretos"]
+}`
+
+  const completion = await groqClient.chat.completions.create({
+    model: 'llama-3.3-70b-versatile',
+    messages: [{ role: 'user', content: prompt }],
+    max_tokens: 3000,
+    temperature: 0.2,
   })
 
-  // tool_use garantiza JSON válido — no hay parsing frágil
-  const toolBlock = msg.content.find((b: { type: string }) => b.type === 'tool_use')
-  if (!toolBlock) throw new Error('No se recibió resultado de análisis del motor de inteligencia')
+  const raw = completion.choices[0]?.message?.content ?? ''
+  const jsonMatch = raw.match(/\{[\s\S]*\}/)
+  if (!jsonMatch) throw new Error('Error consolidando secciones')
 
-  return toolBlock.input as { clasificacion: ClasificacionDoc; analisis: ResumenDoc }
+  const consolidado = JSON.parse(jsonMatch[0])
+  const base = parciales[0]
+
+  return {
+    clasificacion: {
+      ...base.clasificacion,
+      // Enriquecer palabras clave con las de todas las secciones
+      palabras_clave: Array.from(new Set(parciales.flatMap(p => p.clasificacion.palabras_clave))).slice(0, 10),
+    },
+    analisis: {
+      ...consolidado,
+      procesos_identificados: Array.from(new Set(parciales.flatMap(p => p.analisis.procesos_identificados))),
+      roles_y_responsabilidades: {
+        roles_identificados: Array.from(new Set(parciales.flatMap(p => p.analisis.roles_y_responsabilidades.roles_identificados))),
+        brechas_de_rol: Array.from(new Set(parciales.flatMap(p => p.analisis.roles_y_responsabilidades.brechas_de_rol))),
+      },
+    },
+  }
+}
+
+export async function analizarDocumento(texto: string): Promise<{ clasificacion: ClasificacionDoc; analisis: ResumenDoc }> {
+  const systemPrompt = loadPrompt('analisis-documento')
+
+  // Documento corto o mediano → un solo pase (antes: 10k, ahora: 80k)
+  if (texto.length <= SINGLE_PASS_LIMIT) {
+    return analizarSeccion(texto, systemPrompt)
+  }
+
+  // Documento largo → análisis por secciones con solapamiento
+  const secciones: string[] = []
+  let offset = 0
+  let idx = 1
+  while (offset < texto.length) {
+    secciones.push(texto.slice(offset, offset + CHUNK_SIZE))
+    offset += CHUNK_SIZE - CHUNK_OVERLAP
+    idx++
+  }
+
+  const total = secciones.length
+  const parciales = await Promise.all(
+    secciones.map((sec, i) =>
+      analizarSeccion(sec, systemPrompt, `Sección ${i + 1} de ${total}`)
+    )
+  )
+
+  return consolidarSecciones(parciales)
 }
 
 // Mantener exports individuales como alias para compatibilidad con otros módulos
