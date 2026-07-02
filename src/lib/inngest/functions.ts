@@ -193,7 +193,16 @@ export const discoveryAI = inngest.createFunction(
             nivel: 1, tipo: 'proceso', origen: p.origen, estado_oferta: 'propuesto',
             documento_origen_id: docs.find((d: { nombre_archivo: string }) => d.nombre_archivo === p.documento_referencia)?.id ?? null,
             roles_involucrados: p.roles_involucrados, riesgos_detectados: p.riesgos_si_no_existe_o_falla,
-            metadata_ia: { criticidad: p.criticidad, justificacion_ia: p.justificacion_ia, documento_referencia: p.documento_referencia ?? null },
+            metadata_ia: {
+              criticidad: p.criticidad,
+              justificacion_ia: p.justificacion_ia ?? null,
+              evidencia_documento: p.evidencia_documento ?? null,
+              documento_referencia: p.documento_referencia ?? null,
+              oportunidades_mejora: p.oportunidades_mejora ?? [],
+              oportunidades_automatizacion: p.oportunidades_automatizacion ?? [],
+              kpis_recomendados: p.kpis_recomendados ?? [],
+              benchmark_industria: p.benchmark_industria ?? null,
+            },
             orden: i,
           }))
         )

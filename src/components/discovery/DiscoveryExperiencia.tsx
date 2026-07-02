@@ -200,110 +200,324 @@ function ProcesoCard({ proceso, esHijo = false }: { proceso: ProcesoConHijos; es
   const tieneHijos = (proceso.hijos?.length ?? 0) > 0
 
   if (esHijo) {
-    // Simplified child variant
+    const meta = proceso.metadata_ia as any
+    const docCode = meta?.documento_referencia ? (meta.documento_referencia as string).replace(/\.[^.]+$/, '') : null
+    const riesgos: string[] = proceso.riesgos_detectados ?? []
+    const oportunidades: string[] = meta?.oportunidades_mejora ?? []
+    const automatizacion: string[] = meta?.oportunidades_automatizacion ?? []
+    const kpis: string[] = meta?.kpis_recomendados ?? []
+    const benchmark: string | null = meta?.benchmark_industria ?? null
+    const evidencia: string | null = meta?.evidencia_documento ?? null
+    const justificacion: string | null = meta?.justificacion_ia ?? null
+
+    const borderColor = estadoLocal === 'aceptado' ? 'border-emerald-700/50' :
+      estadoLocal === 'rechazado' ? 'border-red-800/40' :
+      proceso.origen === 'propuesta_ia' ? 'border-violet-700/50' : 'border-slate-700/50'
+
+    const accentBar = estadoLocal === 'aceptado' ? 'bg-emerald-500' :
+      estadoLocal === 'rechazado' ? 'bg-red-600' :
+      critCfg?.accent ?? 'bg-slate-600'
+
     return (
       <div
         id={proceso.origen === 'propuesta_ia' ? `proceso-propuesta-ia-${proceso.id}` : undefined}
-        className={`rounded-xl border transition-all duration-200 overflow-hidden ${
-        estadoLocal === 'aceptado' ? 'bg-slate-900/50 border-emerald-800/30' :
-        estadoLocal === 'rechazado' ? 'bg-slate-900/30 border-red-900/30 opacity-50' :
-        proceso.origen === 'propuesta_ia' ? 'bg-violet-950/20 border-violet-700/50 hover:border-violet-600/70' :
-        'bg-slate-900/40 border-slate-700/40 hover:border-slate-600/60'
-      }`}>
-        <div className="p-4">
-          <div className="flex items-start gap-3">
-            <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
-              estadoLocal === 'aceptado' ? 'bg-emerald-900/50 text-emerald-400' :
-              estadoLocal === 'rechazado' ? 'bg-red-900/30 text-red-400' :
-              'bg-slate-800 text-slate-400'
-            }`}>
-              {estadoIcon}
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-start justify-between gap-2 flex-wrap">
-                <div className="flex items-center gap-2 flex-wrap">
-                  {(proceso.metadata_ia as any)?.documento_referencia && proceso.origen !== 'propuesta_ia' && (
-                    <span className="text-xs font-bold text-slate-400 bg-slate-800 border border-slate-700 px-1.5 py-0.5 rounded font-mono shrink-0">
-                      {((proceso.metadata_ia as any)?.documento_referencia as string).replace(/\.[^.]+$/, '')}
-                    </span>
-                  )}
-                  <p className="text-white text-sm font-medium leading-snug">{editando ? editNombre : proceso.nombre}</p>
-                </div>
-                <div className="flex items-center gap-1.5 shrink-0">
-                  {proceso.origen === 'propuesta_ia' ? (
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-violet-950/60 text-violet-300 border border-violet-700/50 font-medium">
-                      ✨ Propuesto por IA
-                    </span>
-                  ) : (
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-blue-950/50 text-blue-300 border border-blue-800/40 font-medium">
-                      📄 Detectado
-                    </span>
-                  )}
-                </div>
+        className={`relative rounded-xl border transition-all duration-300 overflow-hidden ${borderColor} ${
+          estadoLocal === 'rechazado' ? 'opacity-50' : ''
+        } ${expandido ? 'bg-slate-900/70' : 'bg-slate-900/40 hover:bg-slate-900/60 cursor-pointer'}`}
+        onClick={() => !expandido && setExpandido(true)}
+      >
+        {/* Accent left bar */}
+        <div className={`absolute left-0 top-0 bottom-0 w-0.5 ${accentBar}`} />
+
+        {/* ── Collapsed header (always visible) ── */}
+        <div className="pl-3 pr-4 py-3.5 flex items-center gap-3">
+          <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
+            estadoLocal === 'aceptado' ? 'bg-emerald-900/50 text-emerald-400' :
+            estadoLocal === 'rechazado' ? 'bg-red-900/30 text-red-400' :
+            'bg-slate-800 text-slate-400'
+          }`}>
+            {estadoIcon}
+          </div>
+          <div className="flex-1 min-w-0 flex items-center gap-2 flex-wrap">
+            {docCode && (
+              <span className="text-xs font-bold font-mono text-slate-400 bg-slate-800 border border-slate-700 px-1.5 py-0.5 rounded shrink-0">{docCode}</span>
+            )}
+            <p className="text-white text-sm font-semibold leading-snug">{proceso.nombre}</p>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            {estadoLocal === 'aceptado' && (
+              <span className="flex items-center gap-1 text-xs text-emerald-400 font-medium"><CheckCircle className="w-3.5 h-3.5" /> Aceptado</span>
+            )}
+            {estadoLocal === 'rechazado' && (
+              <span className="flex items-center gap-1 text-xs text-red-400 font-medium"><XCircle className="w-3.5 h-3.5" /> Rechazado</span>
+            )}
+            {proceso.origen === 'propuesta_ia' ? (
+              <span className="text-xs px-2 py-0.5 rounded-full bg-violet-950/60 text-violet-300 border border-violet-700/50 font-medium">✨ IA</span>
+            ) : (
+              <span className="text-xs px-2 py-0.5 rounded-full bg-blue-950/50 text-blue-300 border border-blue-800/40 font-medium">📄 Detectado</span>
+            )}
+            {expandido
+              ? <ChevronUp className="w-4 h-4 text-slate-500 cursor-pointer" onClick={e => { e.stopPropagation(); setExpandido(false) }} />
+              : <ChevronDown className="w-4 h-4 text-slate-500" />
+            }
+          </div>
+        </div>
+
+        {/* ── Expanded detail panel ── */}
+        {expandido && (
+          <div className="border-t border-slate-700/40" onClick={e => e.stopPropagation()}>
+
+            {/* ── Sección 1: Qué es este proceso ── */}
+            <div className="px-5 pt-5 pb-4 space-y-3">
+              <div className="flex items-center gap-2">
+                <FileText className="w-3.5 h-3.5 text-slate-400" />
+                <span className="text-xs font-semibold text-slate-400 uppercase tracking-widest">¿Qué es este proceso?</span>
               </div>
-              {proceso.descripcion && !editando && (
-                <p className="text-slate-400 text-xs mt-1 leading-relaxed">{proceso.descripcion}</p>
+              <p className="text-slate-200 text-sm leading-relaxed">{proceso.descripcion}</p>
+
+              {/* Evidencia o justificación */}
+              {evidencia && (
+                <div className="rounded-lg bg-blue-950/30 border border-blue-800/30 p-3 flex items-start gap-2">
+                  <FileText className="w-3.5 h-3.5 text-blue-400 mt-0.5 shrink-0" />
+                  <div>
+                    <p className="text-blue-300 text-xs font-semibold mb-0.5">Evidencia en documento {docCode}</p>
+                    <p className="text-slate-300 text-xs leading-relaxed">{evidencia}</p>
+                  </div>
+                </div>
               )}
-              {proceso.origen === 'propuesta_ia' && (proceso as any).justificacion_ia && !editando && (
-                <p className="text-violet-400/80 text-xs mt-1 italic">💡 {(proceso as any).justificacion_ia}</p>
+              {proceso.origen === 'propuesta_ia' && justificacion && (
+                <div className="rounded-lg bg-violet-950/30 border border-violet-800/30 p-3 flex items-start gap-2">
+                  <Sparkles className="w-3.5 h-3.5 text-violet-400 mt-0.5 shrink-0" />
+                  <div>
+                    <p className="text-violet-300 text-xs font-semibold mb-0.5">¿Por qué debería existir?</p>
+                    <p className="text-slate-300 text-xs leading-relaxed">{justificacion}</p>
+                  </div>
+                </div>
               )}
-              {proceso.roles_involucrados?.length > 0 && (
-                <div className="flex gap-1 flex-wrap mt-1.5">
-                  {proceso.roles_involucrados.map(r => (
-                    <span key={r} className="text-xs text-slate-500 bg-slate-800/60 px-1.5 py-0.5 rounded">{r}</span>
+            </div>
+
+            {/* ── Sección 2: Criticidad + Roles ── */}
+            <div className="px-5 pb-4 grid grid-cols-2 gap-3">
+              {/* Criticidad */}
+              {critCfg && (
+                <div className={`rounded-xl border p-3 space-y-1 ${critCfg.bg}`}>
+                  <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest">Criticidad</p>
+                  <div className="flex items-center gap-2">
+                    <AlertTriangle className={`w-4 h-4 ${critCfg.color}`} />
+                    <span className={`text-sm font-bold ${critCfg.color}`}>{critCfg.label}</span>
+                  </div>
+                  <p className="text-xs text-slate-500">
+                    {critCfg.label === 'Crítica' ? 'Su falla detiene o daña el negocio' :
+                     critCfg.label === 'Alta' ? 'Genera costos o riesgos significativos' :
+                     critCfg.label === 'Media' ? 'Oportunidad relevante no urgente' :
+                     'Mejora deseable a largo plazo'}
+                  </p>
+                </div>
+              )}
+              {/* Roles */}
+              {proceso.roles_involucrados && proceso.roles_involucrados.length > 0 && (
+                <div className="rounded-xl border border-slate-700/40 bg-slate-800/30 p-3 space-y-2">
+                  <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest">Roles involucrados</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {proceso.roles_involucrados.map(r => (
+                      <span key={r} className="flex items-center gap-1 text-xs bg-slate-700/60 text-slate-300 border border-slate-600/40 px-2 py-0.5 rounded-full">
+                        <Users className="w-3 h-3" />{r}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* ── Sección 3: Riesgos ── */}
+            {riesgos.length > 0 && (
+              <div className="px-5 pb-4">
+                <div className="rounded-xl border border-red-900/30 bg-red-950/10 p-4 space-y-2">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Shield className="w-3.5 h-3.5 text-red-400" />
+                    <span className="text-xs font-semibold text-red-400 uppercase tracking-widest">Riesgos si falla o no existe</span>
+                  </div>
+                  {riesgos.map((r, i) => (
+                    <div key={i} className="flex items-start gap-2">
+                      <div className="w-1.5 h-1.5 rounded-full bg-red-500 mt-1.5 shrink-0" />
+                      <p className="text-sm text-slate-300 leading-snug">{r}</p>
+                    </div>
                   ))}
                 </div>
-              )}
-            </div>
-          </div>
-          <div className="flex items-center gap-2 mt-3 flex-wrap">
-            <button
-              onClick={analizarConIA}
-              disabled={analizando}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-violet-900/40 text-violet-300 border border-violet-800/50 hover:bg-violet-900/60 transition-all disabled:opacity-50"
-            >
-              {analizando ? <span className="w-3 h-3 rounded-full border-2 border-violet-400/30 border-t-violet-400 animate-spin" /> : <Sparkles className="w-3 h-3" />}
-              {resumen ? 'Ver diagnóstico' : 'Analizar con IA'}
-            </button>
-            {estadoLocal === 'propuesto' && (
-              <>
-                <button onClick={() => cambiarEstado('aceptado')} disabled={aprobando} className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-emerald-900/30 text-emerald-400 border border-emerald-800/40 hover:bg-emerald-900/50 transition-all disabled:opacity-50">
-                  <CheckCircle className="w-3 h-3" /> Aceptar
-                </button>
-                <button onClick={() => cambiarEstado('rechazado')} disabled={aprobando} className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-red-950/30 text-red-400 border border-red-900/40 hover:bg-red-950/50 transition-all disabled:opacity-50">
-                  <XCircle className="w-3 h-3" /> Rechazar
-                </button>
-              </>
+              </div>
             )}
-            {estadoLocal === 'aceptado' && (
-              <span className="flex items-center gap-1 text-xs text-emerald-400 font-medium">
-                <CheckCircle className="w-3 h-3" /> Validado
-              </span>
-            )}
-          </div>
-          {/* IA result for hijo */}
-          {expandido && (analizando || resumen) && (
-            <div className="mt-3">
-              {analizando && (
-                <div className="rounded-lg bg-violet-950/30 border border-violet-800/30 p-3 flex items-center gap-2">
-                  <span className="w-3.5 h-3.5 rounded-full border-2 border-violet-400/30 border-t-violet-400 animate-spin shrink-0" />
-                  <span className="text-violet-300 text-xs">Analizando...</span>
-                </div>
-              )}
-              {resumen && saludCfg && (
-                <div className={`rounded-lg border p-3 space-y-2 ${saludCfg.bg} ${saludCfg.border}`}>
-                  <div className="flex items-center gap-2">
-                    <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${saludCfg.color} bg-slate-900/60 border border-current/20`}>{saludCfg.label}</span>
+
+            {/* ── Sección 4: Oportunidades + Automatización en grid ── */}
+            {(oportunidades.length > 0 || automatizacion.length > 0) && (
+              <div className="px-5 pb-4 grid grid-cols-2 gap-3">
+                {oportunidades.length > 0 && (
+                  <div className="rounded-xl border border-emerald-800/30 bg-emerald-950/10 p-3 space-y-2">
+                    <div className="flex items-center gap-1.5 mb-1">
+                      <TrendingUp className="w-3.5 h-3.5 text-emerald-400" />
+                      <span className="text-xs font-semibold text-emerald-400 uppercase tracking-widest">Mejoras</span>
+                    </div>
+                    {oportunidades.map((o, i) => (
+                      <div key={i} className="flex items-start gap-1.5">
+                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 mt-1.5 shrink-0" />
+                        <p className="text-xs text-slate-300 leading-snug">{o}</p>
+                      </div>
+                    ))}
                   </div>
-                  <p className="text-slate-300 text-xs leading-relaxed">{resumen.diagnostico}</p>
-                  {resumen.siguiente_paso && (
-                    <p className="text-xs text-indigo-300"><span className="font-medium">Siguiente:</span> {resumen.siguiente_paso}</p>
+                )}
+                {automatizacion.length > 0 && (
+                  <div className="rounded-xl border border-indigo-800/30 bg-indigo-950/10 p-3 space-y-2">
+                    <div className="flex items-center gap-1.5 mb-1">
+                      <Cpu className="w-3.5 h-3.5 text-indigo-400" />
+                      <span className="text-xs font-semibold text-indigo-400 uppercase tracking-widest">Automatización</span>
+                    </div>
+                    {automatizacion.map((a, i) => (
+                      <div key={i} className="flex items-start gap-1.5">
+                        <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 mt-1.5 shrink-0" />
+                        <p className="text-xs text-slate-300 leading-snug">{a}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* ── Sección 5: KPIs ── */}
+            {kpis.length > 0 && (
+              <div className="px-5 pb-4">
+                <div className="rounded-xl border border-amber-800/30 bg-amber-950/10 p-3 space-y-2">
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <BarChart3 className="w-3.5 h-3.5 text-amber-400" />
+                    <span className="text-xs font-semibold text-amber-400 uppercase tracking-widest">KPIs recomendados</span>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {kpis.map((k, i) => (
+                      <span key={i} className="text-xs bg-amber-950/40 text-amber-300 border border-amber-800/40 px-2 py-1 rounded-lg">{k}</span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ── Sección 6: Benchmark ── */}
+            {benchmark && (
+              <div className="px-5 pb-4">
+                <div className="rounded-xl border border-slate-600/30 bg-slate-800/20 p-3 flex items-start gap-2">
+                  <Target className="w-3.5 h-3.5 text-slate-400 mt-0.5 shrink-0" />
+                  <div>
+                    <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-1">Benchmark industria</p>
+                    <p className="text-xs text-slate-300 leading-relaxed">{benchmark}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ── Sección 7: Análisis IA ── */}
+            <div className="px-5 pb-4">
+              <div className="rounded-xl border border-violet-800/30 bg-violet-950/10 p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Brain className="w-3.5 h-3.5 text-violet-400" />
+                    <span className="text-xs font-semibold text-violet-300 uppercase tracking-widest">Diagnóstico IA</span>
+                  </div>
+                  {resumen && (
+                    <button onClick={reanalizarConIA} disabled={analizando} className="flex items-center gap-1 text-xs text-slate-500 hover:text-violet-300 transition-colors">
+                      <RefreshCw className="w-3 h-3" /> Re-analizar
+                    </button>
                   )}
                 </div>
-              )}
+                {analizando && (
+                  <div className="flex items-center gap-3 py-2">
+                    <span className="w-4 h-4 rounded-full border-2 border-violet-400/30 border-t-violet-400 animate-spin shrink-0" />
+                    <span className="text-violet-300 text-xs">Analizando en profundidad...</span>
+                  </div>
+                )}
+                {!analizando && !resumen && (
+                  <div className="text-center py-2 space-y-2">
+                    <p className="text-slate-500 text-xs">Obtén un diagnóstico ejecutivo con criticidad, estado actual y próximo paso recomendado.</p>
+                    <button onClick={analizarConIA} className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold bg-gradient-to-r from-violet-600 to-indigo-600 text-white hover:from-violet-500 hover:to-indigo-500 mx-auto transition-all">
+                      <Sparkles className="w-3.5 h-3.5" /> Analizar con IA
+                    </button>
+                  </div>
+                )}
+                {resumen && saludCfg && (
+                  <div className={`rounded-lg border p-3 space-y-2 ${saludCfg.bg} ${saludCfg.border}`}>
+                    <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${saludCfg.color} bg-slate-900/60 border border-current/20`}>{saludCfg.label}</span>
+                    <p className="text-slate-200 text-sm leading-relaxed">{resumen.diagnostico}</p>
+                    {resumen.siguiente_paso && (
+                      <div className="flex items-start gap-2 pt-1 border-t border-slate-700/40">
+                        <ArrowRight className="w-3.5 h-3.5 text-indigo-400 mt-0.5 shrink-0" />
+                        <p className="text-xs text-indigo-300"><span className="font-semibold">Siguiente paso:</span> {resumen.siguiente_paso}</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
-          )}
-        </div>
+
+            {/* ── Sección 8: Decisión ── */}
+            <div className="px-5 pb-5">
+              <div className={`rounded-xl border p-4 space-y-3 ${
+                estadoLocal === 'aceptado' ? 'bg-emerald-950/20 border-emerald-700/40' :
+                estadoLocal === 'rechazado' ? 'bg-red-950/20 border-red-800/40' :
+                'bg-slate-800/30 border-slate-700/40'
+              }`}>
+                <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest">Tu decisión sobre este proceso</p>
+
+                {estadoLocal === 'propuesto' && (
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      onClick={() => cambiarEstado('aceptado')}
+                      disabled={aprobando}
+                      className="flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold bg-emerald-700 hover:bg-emerald-600 text-white transition-all disabled:opacity-50 shadow-lg shadow-emerald-900/40"
+                    >
+                      <CheckCircle className="w-4 h-4" /> Aceptar proceso
+                    </button>
+                    <button
+                      onClick={() => cambiarEstado('rechazado')}
+                      disabled={aprobando}
+                      className="flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold bg-red-900/60 hover:bg-red-900/80 text-red-300 border border-red-800/50 transition-all disabled:opacity-50"
+                    >
+                      <XCircle className="w-4 h-4" /> Rechazar
+                    </button>
+                  </div>
+                )}
+
+                {estadoLocal === 'aceptado' && (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-emerald-400">
+                      <CheckCircle className="w-5 h-5" />
+                      <span className="text-sm font-bold">Proceso aceptado — forma parte del inventario oficial</span>
+                    </div>
+                    <button
+                      onClick={() => cambiarEstado('rechazado')}
+                      disabled={aprobando}
+                      className="text-xs text-slate-500 hover:text-red-400 transition-colors"
+                    >
+                      Deshacer y rechazar
+                    </button>
+                  </div>
+                )}
+
+                {estadoLocal === 'rechazado' && (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-red-400">
+                      <XCircle className="w-5 h-5" />
+                      <span className="text-sm font-bold">Proceso rechazado — la consultora revisará</span>
+                    </div>
+                    <button
+                      onClick={() => setEstadoLocal('propuesto' as any)}
+                      disabled={aprobando}
+                      className="text-xs text-slate-500 hover:text-emerald-400 transition-colors"
+                    >
+                      Deshacer y volver a propuesto
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+
+          </div>
+        )}
       </div>
     )
   }
