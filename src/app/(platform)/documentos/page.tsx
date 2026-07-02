@@ -46,9 +46,21 @@ export default async function DocumentosPage({ searchParams }: { searchParams: {
 
   const { data: documentosRaw } = await query
 
+  function scOrden(nombre: string): number {
+    const m = nombre.match(/sc(\d+)/i)
+    return m ? parseInt(m[1], 10) : 9999
+  }
+
+  const documentosOrdenados = (documentosRaw ?? []).sort((a, b) => {
+    const sa = scOrden(a.nombre_archivo)
+    const sb = scOrden(b.nombre_archivo)
+    if (sa !== sb) return sa - sb
+    return new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+  })
+
   // Generar URLs firmadas (1 hora) en paralelo
   const documentos = await Promise.all(
-    (documentosRaw ?? []).map(async (doc) => {
+    documentosOrdenados.map(async (doc) => {
       const { data: signed } = await admin.storage
         .from('documentos')
         .createSignedUrl(doc.url_storage, 3600)
