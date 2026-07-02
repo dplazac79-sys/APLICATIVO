@@ -236,7 +236,7 @@ function ProcesoCard({ proceso, esHijo = false }: { proceso: ProcesoConHijos; es
                     </span>
                   ) : (
                     <span className="text-xs px-2 py-0.5 rounded-full bg-blue-950/50 text-blue-300 border border-blue-800/40 font-medium">
-                      📄 {(proceso.metadata_ia as any)?.documento_referencia ?? 'Detectado'}
+                      📄 Detectado
                     </span>
                   )}
                 </div>
