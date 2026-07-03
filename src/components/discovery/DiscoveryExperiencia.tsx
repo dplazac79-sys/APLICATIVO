@@ -439,7 +439,9 @@ function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: Proceso
   const [cargandoDoc, setCargandoDoc] = useState(false)
   const [analizando, setAnalizando] = useState(false)
   const [errorIA, setErrorIA] = useState<string | null>(null)
-  const [resumen, setResumen] = useState<Resumen | null>(null)
+  const [resumen, setResumen] = useState<Resumen | null>(
+    (proceso.metadata_ia as any)?.resumen_ia ?? null
+  )
   const [aprobando, setAprobando] = useState(false)
   const [estadoLocal, setEstadoLocal] = useState(proceso.estado_oferta)
 

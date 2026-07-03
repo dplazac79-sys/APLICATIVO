@@ -224,5 +224,12 @@ Devuelve este JSON exacto:
     return NextResponse.json({ error: `Error IA: ${msg}` }, { status: 502 })
   }
 
+  // Persistir en metadata_ia para que el botón muestre "Ver diagnóstico IA" al recargar
+  const metaActual = (proceso.metadata_ia ?? {}) as Record<string, unknown>
+  await admin
+    .from('proceso')
+    .update({ metadata_ia: { ...metaActual, resumen_ia: resultado } })
+    .eq('id', proceso_id)
+
   return NextResponse.json({ ok: true, resumen: resultado })
 }
