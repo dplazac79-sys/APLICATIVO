@@ -444,6 +444,10 @@ function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: Proceso
   )
   const [aprobando, setAprobando] = useState(false)
   const [estadoLocal, setEstadoLocal] = useState(proceso.estado_oferta)
+  const [errorCorr, setErrorCorr] = useState<string | null>(null)
+  const [versionDetalle, setVersionDetalle] = useState<number | null>(null)
+  const [docVisorUrl, setDocVisorUrl] = useState<string | null>(null)
+  const [cargandoVisor, setCargandoVisor] = useState(false)
 
   // Correcciones y versiones
   const metaInit = (proceso.metadata_ia ?? {}) as Record<string, unknown>
@@ -464,6 +468,8 @@ function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: Proceso
 
   async function marcarAtendido(tipo: Correccion['tipo'], indice: number) {
     const obs = textoCorr[claveCorr(tipo, indice)] ?? ''
+    if (!obs.trim()) { setErrorCorr('Debes escribir una observación antes de registrar.'); return }
+    setErrorCorr(null)
     const nuevas = correcciones.filter(c => !(c.tipo === tipo && c.indice === indice))
     const nueva: Correccion = { tipo, indice, observacion: obs, estado: 'atendido', fecha: new Date().toISOString() }
     const updated = [...nuevas, nueva]
@@ -471,27 +477,35 @@ function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: Proceso
     setExpandCorr(prev => ({ ...prev, [claveCorr(tipo, indice)]: false }))
     setGuardandoCorr(true)
     try {
-      await fetch(`/api/procesos/${proceso.id}/correcciones`, {
+      const res = await fetch(`/api/procesos/${proceso.id}/correcciones`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ correcciones: updated }),
       })
-    } catch { /* silent */ }
+      if (!res.ok) {
+        const e = await res.json().catch(() => ({}))
+        setErrorCorr(e.error ?? 'Error al guardar. Intenta de nuevo.')
+      }
+    } catch { setErrorCorr('Error de red. Intenta de nuevo.') }
     finally { setGuardandoCorr(false) }
   }
 
   async function desmarcarAtendido(tipo: Correccion['tipo'], indice: number) {
     const updated = correcciones.filter(c => !(c.tipo === tipo && c.indice === indice))
     setCorrecciones(updated)
-    await fetch(`/api/procesos/${proceso.id}/correcciones`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ correcciones: updated }),
-    })
+    setErrorCorr(null)
+    try {
+      await fetch(`/api/procesos/${proceso.id}/correcciones`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ correcciones: updated }),
+      })
+    } catch { /* best effort */ }
   }
 
   async function generarNuevaVersion() {
     setGenerandoVersion(true)
+    setErrorCorr(null)
     try {
       const res = await fetch(`/api/procesos/${proceso.id}/nueva-version`, { method: 'POST' })
       const data = await res.json()
@@ -499,9 +513,24 @@ function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: Proceso
         setVersiones(data.versiones)
         setCorrecciones(prev => prev.map(c => c.estado === 'atendido' ? { ...c, estado: 'archivado' as const } : c))
         setTabDoc('versiones')
+        setVersionDetalle(data.version.numero)
+      } else {
+        setErrorCorr(data.error ?? 'Error al generar versión.')
       }
-    } catch { /* silent */ }
+    } catch { setErrorCorr('Error de red al generar versión.') }
     finally { setGenerandoVersion(false) }
+  }
+
+  async function abrirDocumento(documentoId: string) {
+    if (docVisorUrl) { setDocVisorUrl(null); return }
+    setCargandoVisor(true)
+    try {
+      const res = await fetch(`/api/documentos/signed-url?id=${documentoId}`)
+      const data = await res.json()
+      if (data.url) setDocVisorUrl(data.url)
+      else setErrorCorr('No se pudo obtener el documento.')
+    } catch { setErrorCorr('Error al abrir el documento.') }
+    finally { setCargandoVisor(false) }
   }
 
   const atendidasActivas = correcciones.filter(c => c.estado === 'atendido').length
@@ -788,6 +817,15 @@ function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: Proceso
                   const pct = totalItems > 0 ? Math.round((resueltos / totalItems) * 100) : 0
                   return (
                     <div className="p-5 space-y-7">
+
+                      {/* Error de guardado */}
+                      {errorCorr && (
+                        <div className="rounded-lg border border-red-700/40 bg-red-950/20 px-4 py-2 text-xs text-red-300 flex items-center gap-2">
+                          <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                          {errorCorr}
+                          <button onClick={() => setErrorCorr(null)} className="ml-auto text-red-500 hover:text-red-300">✕</button>
+                        </div>
+                      )}
 
                       {/* ── Progress header ── */}
                       {totalItems > 0 && (
@@ -1553,45 +1591,136 @@ function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: Proceso
                       </div>
                     )}
 
+                    {/* Error de correcciones */}
+                    {errorCorr && (
+                      <div className="rounded-lg border border-red-700/40 bg-red-950/20 px-4 py-2 text-xs text-red-300 flex items-center gap-2">
+                        <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                        {errorCorr}
+                        <button onClick={() => setErrorCorr(null)} className="ml-auto text-red-500 hover:text-red-300">✕</button>
+                      </div>
+                    )}
+
                     {/* Lista de versiones consolidadas */}
                     {versiones.length > 0 && (
                       <div className="space-y-2">
                         <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest">Versiones consolidadas</p>
-                        <div className="space-y-2">
-                          {[...versiones].reverse().map((v, i) => {
+                        <div className="space-y-3">
+                          {([...versiones] as Array<Record<string,unknown>>).reverse().map((v, i) => {
                             const esUltima = i === 0
+                            const vNum = v.numero as number
+                            const vDesc = v.descripcion as string
+                            const vFecha = v.fecha as string
+                            const vCount = v.correcciones_aplicadas as number
+                            const detalle = (v.detalle_correcciones ?? []) as Array<{tipo:string;indice:number;texto_original:string;observacion:string;fecha:string}>
+                            const docId = v.documento_id as string | null | undefined
+                            const abierto = versionDetalle === vNum
                             return (
-                              <div key={v.numero} className={`rounded-xl border p-4 flex items-center justify-between gap-4 ${esUltima ? 'border-violet-700/40 bg-violet-950/20' : 'border-slate-700/40 bg-slate-800/20'}`}>
-                                <div className="flex items-center gap-3 min-w-0">
-                                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 font-black text-sm ${esUltima ? 'bg-violet-600 text-white' : 'bg-slate-700 text-slate-300'}`}>
-                                    v{v.numero}
-                                  </div>
-                                  <div className="min-w-0">
-                                    <div className="flex items-center gap-2">
-                                      <p className={`text-sm font-semibold truncate ${esUltima ? 'text-violet-200' : 'text-slate-300'}`}>
-                                        Versión {v.numero}
+                              <div key={vNum} className={`rounded-xl border overflow-hidden ${esUltima ? 'border-violet-700/40' : 'border-slate-700/40'}`}>
+                                {/* Header de versión */}
+                                <div className={`p-4 flex items-center justify-between gap-4 ${esUltima ? 'bg-violet-950/20' : 'bg-slate-800/20'}`}>
+                                  <div className="flex items-center gap-3 min-w-0">
+                                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 font-black text-sm ${esUltima ? 'bg-violet-600 text-white' : 'bg-slate-700 text-slate-300'}`}>
+                                      v{vNum}
+                                    </div>
+                                    <div className="min-w-0">
+                                      <p className={`text-sm font-semibold ${esUltima ? 'text-violet-200' : 'text-slate-300'}`}>
+                                        Versión {vNum}
                                         {esUltima && <span className="ml-2 text-xs font-normal text-violet-400 bg-violet-950/60 border border-violet-800/40 px-2 py-0.5 rounded-full">Última</span>}
                                       </p>
+                                      <p className="text-xs text-slate-500 mt-0.5">{vDesc}</p>
+                                      <p className="text-xs text-slate-600 mt-0.5">
+                                        {new Date(vFecha).toLocaleDateString('es-CL', { day: '2-digit', month: 'long', year: 'numeric' })}
+                                        {vCount > 0 && ` · ${vCount} mejora${vCount > 1 ? 's' : ''}`}
+                                      </p>
                                     </div>
-                                    <p className="text-xs text-slate-500 mt-0.5">{v.descripcion}</p>
-                                    <p className="text-xs text-slate-600 mt-0.5">
-                                      {new Date(v.fecha).toLocaleDateString('es-CL', { day: '2-digit', month: 'long', year: 'numeric' })}
-                                      {v.correcciones_aplicadas > 0 && ` · ${v.correcciones_aplicadas} hallazgo${v.correcciones_aplicadas > 1 ? 's' : ''} resuelto${v.correcciones_aplicadas > 1 ? 's' : ''}`}
-                                    </p>
+                                  </div>
+                                  <div className="flex items-center gap-2 shrink-0">
+                                    {detalle.length > 0 && (
+                                      <button
+                                        onClick={() => setVersionDetalle(abierto ? null : vNum)}
+                                        className="flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-lg bg-slate-700/60 hover:bg-slate-700 text-slate-300 border border-slate-600/40 transition-all"
+                                      >
+                                        <FileText className="w-3.5 h-3.5" />
+                                        {abierto ? 'Cerrar' : 'Ver detalle'}
+                                      </button>
+                                    )}
+                                    <a
+                                      href={`/api/procesos/${proceso.id}/exportar?v=${vNum}`}
+                                      download={`${proceso.nombre.replace(/[^a-z0-9]/gi,'_')}_v${vNum}.html`}
+                                      className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-lg transition-all ${
+                                        esUltima ? 'bg-violet-600 hover:bg-violet-500 text-white' : 'bg-slate-700/60 hover:bg-slate-700 text-slate-300 border border-slate-600/40'
+                                      }`}
+                                    >
+                                      <ArrowRight className="w-3.5 h-3.5 -rotate-45" />
+                                      Descargar
+                                    </a>
                                   </div>
                                 </div>
-                                <a
-                                  href={`/api/procesos/${proceso.id}/exportar?v=${v.numero}`}
-                                  download={`${proceso.nombre.replace(/[^a-z0-9]/gi,'_')}_v${v.numero}.html`}
-                                  className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-lg transition-all shrink-0 ${
-                                    esUltima
-                                      ? 'bg-violet-600 hover:bg-violet-500 text-white'
-                                      : 'bg-slate-700/60 hover:bg-slate-700 text-slate-300 border border-slate-600/40'
-                                  }`}
-                                >
-                                  <ArrowRight className="w-3.5 h-3.5 -rotate-45" />
-                                  Descargar
-                                </a>
+
+                                {/* Panel de detalle de correcciones con visor de documento */}
+                                {abierto && detalle.length > 0 && (
+                                  <div className="border-t border-slate-700/40 bg-slate-900/60 p-4 space-y-3">
+                                    <div className="flex items-center justify-between">
+                                      <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Mejoras aplicadas en esta versión</p>
+                                      {docId && (
+                                        <button
+                                          onClick={() => abrirDocumento(docId)}
+                                          disabled={cargandoVisor}
+                                          className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg bg-indigo-700/40 hover:bg-indigo-700/60 text-indigo-300 border border-indigo-700/40 transition-all disabled:opacity-50"
+                                        >
+                                          {cargandoVisor ? <span className="w-3 h-3 border-2 border-indigo-300/30 border-t-indigo-300 rounded-full animate-spin" /> : <FileText className="w-3.5 h-3.5" />}
+                                          {docVisorUrl ? 'Cerrar documento' : 'Ver documento fuente'}
+                                        </button>
+                                      )}
+                                    </div>
+
+                                    {/* Visor PDF inline */}
+                                    {docVisorUrl && (
+                                      <div className="rounded-xl overflow-hidden border border-indigo-700/30 bg-slate-950">
+                                        <div className="flex items-center justify-between px-3 py-2 bg-indigo-950/40 border-b border-indigo-700/20">
+                                          <p className="text-xs text-indigo-300 font-medium">Documento fuente — localiza los ítems del detalle abajo</p>
+                                          <button onClick={() => setDocVisorUrl(null)} className="text-slate-500 hover:text-slate-300 text-xs">✕ Cerrar</button>
+                                        </div>
+                                        <iframe
+                                          src={docVisorUrl}
+                                          className="w-full"
+                                          style={{ height: '480px' }}
+                                          title="Documento fuente"
+                                        />
+                                      </div>
+                                    )}
+
+                                    {/* Lista de correcciones con contexto */}
+                                    <div className="space-y-2">
+                                      {detalle.map((d, di) => {
+                                        const TIPO_LABEL: Record<string,string> = { riesgo: 'Riesgo', hallazgo: 'Hallazgo', brecha: 'Brecha', rol: 'Rol' }
+                                        const TIPO_COLOR: Record<string,string> = {
+                                          riesgo: 'bg-red-950/40 border-red-700/30 text-red-300',
+                                          hallazgo: 'bg-amber-950/40 border-amber-700/30 text-amber-300',
+                                          brecha: 'bg-blue-950/40 border-blue-700/30 text-blue-300',
+                                          rol: 'bg-violet-950/40 border-violet-700/30 text-violet-300',
+                                        }
+                                        return (
+                                          <div key={di} className="rounded-lg border border-slate-700/30 bg-slate-800/30 p-3 space-y-2">
+                                            <div className="flex items-start gap-2">
+                                              <span className={`text-xs font-bold px-2 py-0.5 rounded-md border shrink-0 ${TIPO_COLOR[d.tipo] ?? 'bg-slate-800 border-slate-700 text-slate-300'}`}>
+                                                {TIPO_LABEL[d.tipo] ?? d.tipo} #{d.indice + 1}
+                                              </span>
+                                              <p className="text-xs text-slate-400 leading-relaxed">{d.texto_original || '(ítem del documento)'}</p>
+                                            </div>
+                                            <div className="flex items-start gap-2 ml-1">
+                                              <CheckCircle className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
+                                              <p className="text-xs text-emerald-300 italic">"{d.observacion}"</p>
+                                            </div>
+                                            <p className="text-xs text-slate-600 ml-5">
+                                              {new Date(d.fecha).toLocaleDateString('es-CL', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' })}
+                                            </p>
+                                          </div>
+                                        )
+                                      })}
+                                    </div>
+                                  </div>
+                                )}
                               </div>
                             )
                           })}

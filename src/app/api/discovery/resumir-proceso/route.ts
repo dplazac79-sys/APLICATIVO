@@ -108,7 +108,17 @@ ${todasBrechas.slice(0, 8).map(b => `▸ ${b.slice(0,90)}`).join('\n')}
 RECOMENDACIONES EJECUTIVAS:
 ${todasRecomendaciones.join('\n')}`
 
-  // 5. Contexto de subprocesos
+  // 5. Mejoras ya registradas por el cliente (correcciones atendidas/archivadas)
+  const correccionesRegistradas = ((proceso.metadata_ia as Record<string,unknown>)?.correcciones ?? []) as Array<{
+    tipo: string; indice: number; observacion: string; estado: string; fecha: string
+  }>
+  const mejorasCliente = correccionesRegistradas.filter(c => c.estado === 'atendido' || c.estado === 'archivado')
+  const contextoMejoras = mejorasCliente.length > 0
+    ? `\nMEJORAS YA REGISTRADAS POR EL CLIENTE (${mejorasCliente.length} — NO repetir como pendientes):
+${mejorasCliente.map(c => `  [${c.tipo.toUpperCase()}] Ítem #${c.indice + 1}: "${c.observacion.slice(0, 120)}" (${c.estado})`).join('\n')}`
+    : ''
+
+  // 6. Contexto de subprocesos
   const contextoSubprocesos = (subprocesos ?? []).map(sp => {
     const meta = sp.metadata_ia as Record<string, unknown> | null
     return `  • ${sp.nombre}: ${sp.descripcion ?? 'Sin descripción'}
@@ -148,8 +158,9 @@ ${contextoSubprocesos}
 
 ` : ''}INTELIGENCIA DOCUMENTAL DEL PROYECTO (${docsConIA.length} documentos analizados):
 ${inteligenciaDocumental}
+${contextoMejoras}
 
-INSTRUCCIÓN: Basándote en TODA la inteligencia documental anterior, genera un diagnóstico ejecutivo profundo del proceso "${proceso.nombre}". Compara con mejores prácticas del mercado para la industria. Devuelve este JSON exacto:
+INSTRUCCIÓN: Basándote en TODA la inteligencia documental anterior, genera un diagnóstico ejecutivo profundo del proceso "${proceso.nombre}". Compara con mejores prácticas del mercado para la industria. Si hay MEJORAS YA REGISTRADAS, reconócelas explícitamente en el diagnóstico y ajusta el estado_salud en consecuencia — no repitas como pendiente lo que ya fue atendido. Devuelve este JSON exacto:
 {
   "diagnostico": "4-5 frases ejecutivas que sinteticen el estado real del proceso basándose en los documentos. Menciona hallazgos específicos de los documentos.",
   "estado_salud": "critico|en_riesgo|estable|optimizado",
