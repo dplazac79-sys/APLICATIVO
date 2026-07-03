@@ -1031,7 +1031,7 @@ function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: Proceso
                                       {!atendido ? (
                                         <button onClick={() => setExpandCorr(p => ({ ...p, [key]: !p[key] }))}
                                           className="text-xs text-slate-400 hover:text-emerald-400 flex items-center gap-1.5 transition-colors whitespace-nowrap">
-                                          <Edit2 className="w-3 h-3" /> {abierto ? 'Cerrar' : 'Registrar corrección →'}
+                                          <Edit2 className="w-3 h-3" /> {abierto ? 'Cerrar' : 'Registrar oportunidad →'}
                                         </button>
                                       ) : (
                                         <div className="flex items-center gap-2">
