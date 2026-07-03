@@ -100,12 +100,10 @@ export default async function DocumentosPage({ searchParams }: { searchParams: {
         />
       )}
 
-      {proyectoFiltro && (
-        <OrganigramaUploader
-          proyectoId={proyectoFiltro}
-          proyectoNombre={proyectoActivo?.nombre}
-        />
-      )}
+      <OrganigramaUploader
+        proyectos={proyectos}
+        proyectoPreseleccionado={proyectoFiltro}
+      />
 
       <DocumentosFiltroWrapper
         documentos={documentos as any}
