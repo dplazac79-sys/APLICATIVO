@@ -3,7 +3,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   const admin = createAdminClient()
-  const body = await req.json() as { correcciones: unknown[]; oportunidades_checkeadas?: unknown[] }
+  const body = await req.json() as { correcciones: unknown[]; oportunidades_checkeadas?: unknown[]; quickwins_checkeados?: unknown[]; pasos_checkeados?: unknown[] }
 
   const { data: proceso } = await admin
     .from('proceso')
@@ -18,9 +18,9 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     ...metaActual,
     correcciones: body.correcciones,
   }
-  if (body.oportunidades_checkeadas !== undefined) {
-    patch.oportunidades_checkeadas = body.oportunidades_checkeadas
-  }
+  if (body.oportunidades_checkeadas !== undefined) patch.oportunidades_checkeadas = body.oportunidades_checkeadas
+  if (body.quickwins_checkeados !== undefined) patch.quickwins_checkeados = body.quickwins_checkeados
+  if (body.pasos_checkeados !== undefined) patch.pasos_checkeados = body.pasos_checkeados
 
   const { error } = await admin
     .from('proceso')

@@ -448,9 +448,15 @@ function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: Proceso
   const [versionDetalle, setVersionDetalle] = useState<number | null>(null)
   const [docVisorUrl, setDocVisorUrl] = useState<string | null>(null)
   const [cargandoVisor, setCargandoVisor] = useState(false)
-  // Oportunidades checkeadas: { indice: number, texto: string, accion: 'realizado'|'descartado', fecha: string }[]
+  // Checklist persistente para oportunidades, quick wins y próximos pasos
   const [opChecked, setOpChecked] = useState<Array<{indice:number;texto:string;accion:'realizado'|'descartado';fecha:string}>>(
     ((proceso.metadata_ia as any)?.oportunidades_checkeadas ?? [])
+  )
+  const [qwChecked, setQwChecked] = useState<Array<{indice:number;texto:string;accion:'realizado'|'descartado';fecha:string}>>(
+    ((proceso.metadata_ia as any)?.quickwins_checkeados ?? [])
+  )
+  const [pasosChecked, setPasosChecked] = useState<Array<{indice:number;texto:string;accion:'realizado'|'descartado';fecha:string}>>(
+    ((proceso.metadata_ia as any)?.pasos_checkeados ?? [])
   )
 
   // Correcciones y versiones
@@ -525,20 +531,32 @@ function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: Proceso
     finally { setGenerandoVersion(false) }
   }
 
-  async function toggleOportunidad(indice: number, texto: string, accion: 'realizado' | 'descartado') {
-    const yaExiste = opChecked.find(o => o.indice === indice)
+  async function toggleChecked(
+    indice: number, texto: string, accion: 'realizado' | 'descartado',
+    current: Array<{indice:number;texto:string;accion:'realizado'|'descartado';fecha:string}>,
+    setter: React.Dispatch<React.SetStateAction<Array<{indice:number;texto:string;accion:'realizado'|'descartado';fecha:string}>>>,
+    key: string
+  ) {
+    const yaExiste = current.find(o => o.indice === indice)
     const updated = yaExiste
-      ? opChecked.filter(o => o.indice !== indice)
-      : [...opChecked, { indice, texto, accion, fecha: new Date().toISOString() }]
-    setOpChecked(updated)
+      ? current.filter(o => o.indice !== indice)
+      : [...current, { indice, texto, accion, fecha: new Date().toISOString() }]
+    setter(updated)
     try {
       await fetch(`/api/procesos/${proceso.id}/correcciones`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ correcciones, oportunidades_checkeadas: updated }),
+        body: JSON.stringify({ correcciones, [key]: updated }),
       })
     } catch { /* best effort */ }
   }
+
+  const toggleOportunidad = (i: number, t: string, a: 'realizado'|'descartado') =>
+    toggleChecked(i, t, a, opChecked, setOpChecked, 'oportunidades_checkeadas')
+  const toggleQW = (i: number, t: string, a: 'realizado'|'descartado') =>
+    toggleChecked(i, t, a, qwChecked, setQwChecked, 'quickwins_checkeados')
+  const togglePaso = (i: number, t: string, a: 'realizado'|'descartado') =>
+    toggleChecked(i, t, a, pasosChecked, setPasosChecked, 'pasos_checkeados')
 
   async function abrirDocumento(documentoId: string) {
     if (docVisorUrl) { setDocVisorUrl(null); return }
@@ -1157,36 +1175,62 @@ function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: Proceso
                   return (
                     <div className="p-5 space-y-7">
 
-                      {/* ── Quick wins ── */}
-                      {quickWins.length > 0 && (
-                        <div>
-                          <div className="flex items-center gap-2 mb-3">
-                            <div className="w-6 h-6 rounded-lg bg-emerald-950/70 border border-emerald-800/50 flex items-center justify-center">
-                              <Zap className="w-3.5 h-3.5 text-emerald-400" />
-                            </div>
-                            <div>
-                              <p className="text-xs font-bold text-emerald-400 uppercase tracking-widest">Quick wins</p>
-                              <p className="text-xs text-slate-600">Acciones ejecutables en menos de 30 días</p>
-                            </div>
-                          </div>
-
-                          <div className="grid gap-2">
-                            {quickWins.map((q, i) => (
-                              <div key={i} className="group flex items-start gap-3 rounded-2xl border border-emerald-800/25 bg-gradient-to-r from-emerald-950/20 to-transparent p-4 hover:border-emerald-700/40 transition-all duration-200">
-                                <div className="w-8 h-8 rounded-xl bg-emerald-900/60 border border-emerald-700/40 flex items-center justify-center shrink-0">
-                                  <span className="text-emerald-300 text-sm font-black">{i + 1}</span>
-                                </div>
-                                <div className="flex-1">
-                                  <p className="text-slate-100 text-sm leading-relaxed font-medium">{q}</p>
-                                </div>
-                                <span className="shrink-0 text-xs px-2 py-1 rounded-full bg-emerald-950/60 border border-emerald-800/40 text-emerald-400 font-semibold whitespace-nowrap">
-                                  ≤ 30 días
-                                </span>
+                      {/* ── Quick wins con checklist ── */}
+                      {quickWins.length > 0 && (() => {
+                        const qwCheckedIdx = new Set(qwChecked.map(o => o.indice))
+                        const qwHistorial = qwChecked.slice().sort((a,b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime())
+                        return (
+                          <div>
+                            <div className="flex items-center gap-2 mb-3">
+                              <div className="w-6 h-6 rounded-lg bg-emerald-950/70 border border-emerald-800/50 flex items-center justify-center">
+                                <Zap className="w-3.5 h-3.5 text-emerald-400" />
                               </div>
-                            ))}
+                              <div>
+                                <p className="text-xs font-bold text-emerald-400 uppercase tracking-widest">Quick wins</p>
+                                <p className="text-xs text-slate-600">Acciones ejecutables en menos de 30 días · {quickWins.length - qwCheckedIdx.size} activos{qwHistorial.length > 0 ? ` · ${qwHistorial.length} en historial` : ''}</p>
+                              </div>
+                            </div>
+                            <div className="grid gap-2">
+                              {quickWins.map((q, i) => {
+                                if (qwCheckedIdx.has(i)) return null
+                                return (
+                                  <div key={i} className="group flex items-start gap-3 rounded-2xl border border-emerald-800/25 bg-gradient-to-r from-emerald-950/20 to-transparent p-4 hover:border-emerald-700/40 transition-all duration-200">
+                                    <button
+                                      onClick={() => toggleQW(i, q, 'realizado')}
+                                      title="Marcar como realizado"
+                                      className="mt-0.5 w-5 h-5 rounded-md border-2 border-emerald-600/50 bg-emerald-950/40 hover:border-emerald-400 hover:bg-emerald-900/40 transition-all shrink-0"
+                                    />
+                                    <div className="flex-1">
+                                      <p className="text-slate-100 text-sm leading-relaxed font-medium">{q}</p>
+                                      <button onClick={() => toggleQW(i, q, 'descartado')} className="mt-1 text-xs text-slate-600 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100">Descartar →</button>
+                                    </div>
+                                    <span className="shrink-0 text-xs px-2 py-1 rounded-full bg-emerald-950/60 border border-emerald-800/40 text-emerald-400 font-semibold whitespace-nowrap">≤ 30 días</span>
+                                  </div>
+                                )
+                              })}
+                            </div>
+                            {qwHistorial.length > 0 && (
+                              <div className="mt-3 rounded-xl border border-slate-700/30 bg-slate-900/40 overflow-hidden">
+                                <div className="px-4 py-2.5 border-b border-slate-700/30 flex items-center gap-2">
+                                  <CheckCircle className="w-3.5 h-3.5 text-slate-500" />
+                                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-widest">Historial — {qwHistorial.length} quick win{qwHistorial.length > 1 ? 's' : ''}</p>
+                                </div>
+                                <div className="divide-y divide-slate-700/20">
+                                  {qwHistorial.map((h, hi) => (
+                                    <div key={hi} className="px-4 py-3 flex items-start gap-3">
+                                      <span className={`text-xs font-bold px-2 py-0.5 rounded-full border shrink-0 mt-0.5 ${h.accion === 'realizado' ? 'bg-emerald-950/40 border-emerald-700/30 text-emerald-400' : 'bg-slate-800/60 border-slate-700/30 text-slate-500'}`}>
+                                        {h.accion === 'realizado' ? '✓ Realizado' : '✕ Descartado'}
+                                      </span>
+                                      <p className="flex-1 text-xs text-slate-600 line-through leading-relaxed">{h.texto}</p>
+                                      <button onClick={() => toggleQW(h.indice, h.texto, h.accion)} className="text-xs text-slate-600 hover:text-emerald-400 transition-colors shrink-0">Restaurar</button>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
                           </div>
-                        </div>
-                      )}
+                        )
+                      })()}
 
                       {/* ── Oportunidades de valor con checklist ── */}
                       {oportunidades.length > 0 && (() => {
@@ -1302,47 +1346,71 @@ function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: Proceso
                         )
                       })()}
 
-                      {/* ── Próximos pasos — roadmap ── */}
-                      {pasos.length > 0 && (
-                        <div>
-                          <div className="flex items-center gap-2 mb-4">
-                            <div className="w-6 h-6 rounded-lg bg-amber-950/60 border border-amber-800/50 flex items-center justify-center">
-                              <ArrowRight className="w-3.5 h-3.5 text-amber-400" />
+                      {/* ── Próximos pasos con checklist ── */}
+                      {pasos.length > 0 && (() => {
+                        const pasosIdx = new Set(pasosChecked.map(o => o.indice))
+                        const pasosHistorial = pasosChecked.slice().sort((a,b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime())
+                        const pasosActivos = pasos.filter((_, i) => !pasosIdx.has(i))
+                        return (
+                          <div>
+                            <div className="flex items-center gap-2 mb-4">
+                              <div className="w-6 h-6 rounded-lg bg-amber-950/60 border border-amber-800/50 flex items-center justify-center">
+                                <ArrowRight className="w-3.5 h-3.5 text-amber-400" />
+                              </div>
+                              <div>
+                                <p className="text-xs font-bold text-amber-400 uppercase tracking-widest">Próximos pasos</p>
+                                <p className="text-xs text-slate-600">Secuencia recomendada · {pasosActivos.length} pendientes{pasosHistorial.length > 0 ? ` · ${pasosHistorial.length} en historial` : ''}</p>
+                              </div>
                             </div>
-                            <div>
-                              <p className="text-xs font-bold text-amber-400 uppercase tracking-widest">Próximos pasos</p>
-                              <p className="text-xs text-slate-600">Secuencia recomendada por el análisis</p>
-                            </div>
-                          </div>
-
-                          {/* Horizontal roadmap */}
-                          <div className="relative">
-                            {pasos.map((paso, i) => (
-                              <div key={i} className="flex gap-4 mb-3 last:mb-0">
-                                {/* Step indicator + connector */}
-                                <div className="flex flex-col items-center shrink-0">
-                                  <div className="w-8 h-8 rounded-full border-2 border-amber-600/50 bg-amber-950/40 flex items-center justify-center">
-                                    <span className="text-amber-300 text-xs font-black">{i + 1}</span>
+                            <div className="relative">
+                              {pasos.map((paso, i) => {
+                                if (pasosIdx.has(i)) return null
+                                const activoIdx = pasosActivos.indexOf(paso)
+                                return (
+                                  <div key={i} className="group flex gap-3 mb-3 last:mb-0">
+                                    <div className="flex flex-col items-center shrink-0">
+                                      <button
+                                        onClick={() => togglePaso(i, paso, 'realizado')}
+                                        title="Marcar como completado"
+                                        className="w-8 h-8 rounded-full border-2 border-amber-600/50 bg-amber-950/40 hover:border-emerald-500 hover:bg-emerald-950/40 transition-all flex items-center justify-center"
+                                      >
+                                        <span className="text-amber-300 group-hover:text-emerald-300 text-xs font-black transition-colors">{activoIdx + 1}</span>
+                                      </button>
+                                      {activoIdx < pasosActivos.length - 1 && (
+                                        <div className="w-px flex-1 min-h-[12px] bg-gradient-to-b from-amber-700/40 to-transparent mt-1" />
+                                      )}
+                                    </div>
+                                    <div className={`flex-1 rounded-2xl border p-3.5 mb-1 ${activoIdx === 0 ? 'border-amber-700/40 bg-amber-950/15' : 'border-slate-700/30 bg-slate-800/15'}`}>
+                                      {activoIdx === 0 && <p className="text-xs font-bold text-amber-400 mb-1 uppercase tracking-wider">Siguiente</p>}
+                                      <p className="text-sm text-slate-200 leading-relaxed">{paso}</p>
+                                      <button onClick={() => togglePaso(i, paso, 'descartado')} className="mt-1.5 text-xs text-slate-600 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100">Descartar →</button>
+                                    </div>
                                   </div>
-                                  {i < pasos.length - 1 && (
-                                    <div className="w-px flex-1 min-h-[12px] bg-gradient-to-b from-amber-700/40 to-transparent mt-1" />
-                                  )}
+                                )
+                              })}
+                            </div>
+                            {pasosHistorial.length > 0 && (
+                              <div className="mt-3 rounded-xl border border-slate-700/30 bg-slate-900/40 overflow-hidden">
+                                <div className="px-4 py-2.5 border-b border-slate-700/30 flex items-center gap-2">
+                                  <CheckCircle className="w-3.5 h-3.5 text-slate-500" />
+                                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-widest">Historial — {pasosHistorial.length} paso{pasosHistorial.length > 1 ? 's' : ''}</p>
                                 </div>
-                                <div className={`flex-1 rounded-2xl border p-3.5 mb-1 ${
-                                  i === 0
-                                    ? 'border-amber-700/40 bg-amber-950/15'
-                                    : 'border-slate-700/30 bg-slate-800/15'
-                                }`}>
-                                  {i === 0 && (
-                                    <p className="text-xs font-bold text-amber-400 mb-1 uppercase tracking-wider">Primero</p>
-                                  )}
-                                  <p className="text-sm text-slate-200 leading-relaxed">{paso}</p>
+                                <div className="divide-y divide-slate-700/20">
+                                  {pasosHistorial.map((h, hi) => (
+                                    <div key={hi} className="px-4 py-3 flex items-start gap-3">
+                                      <span className={`text-xs font-bold px-2 py-0.5 rounded-full border shrink-0 mt-0.5 ${h.accion === 'realizado' ? 'bg-emerald-950/40 border-emerald-700/30 text-emerald-400' : 'bg-slate-800/60 border-slate-700/30 text-slate-500'}`}>
+                                        {h.accion === 'realizado' ? '✓ Completado' : '✕ Descartado'}
+                                      </span>
+                                      <p className="flex-1 text-xs text-slate-600 line-through leading-relaxed">{h.texto}</p>
+                                      <button onClick={() => togglePaso(h.indice, h.texto, h.accion)} className="text-xs text-slate-600 hover:text-amber-400 transition-colors shrink-0">Restaurar</button>
+                                    </div>
+                                  ))}
                                 </div>
                               </div>
-                            ))}
+                            )}
                           </div>
-                        </div>
-                      )}
+                        )
+                      })()}
 
                       {quickWins.length === 0 && oportunidades.length === 0 && pasos.length === 0 && (
                         <div className="py-12 text-center">
