@@ -563,10 +563,7 @@ function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: Proceso
     setCargandoVisor(true)
     setDocVisorUrl(null)
     try {
-      const res = await fetch(`/api/documentos/signed-url?id=${documentoId}`)
-      const data = await res.json()
-      if (data.url) setDocVisorUrl(data.url)
-      else setErrorCorr('No se pudo obtener el documento.')
+      setDocVisorUrl(`/api/documentos/pdf-proxy?id=${documentoId}`)
     } catch { setErrorCorr('Error al abrir el documento.') }
     finally { setCargandoVisor(false) }
   }
