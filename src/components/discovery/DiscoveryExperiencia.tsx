@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import { useRouter } from 'next/navigation'
 import {
   Brain, Sparkles, ChevronDown, ChevronUp, CheckCircle, XCircle,
   Clock, Zap, Target, AlertTriangle, TrendingUp, Users, ArrowRight,
@@ -434,6 +435,7 @@ type VersionDoc = {
 }
 
 function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: ProcesoConHijos; esHijo?: boolean; proyectoId: string }) {
+  const router = useRouter()
   const [expandido, setExpandido] = useState(false)
   const [tabDoc, setTabDoc] = useState<'proceso' | 'hallazgos' | 'oportunidades' | 'roles' | 'versiones'>('proceso')
   const [docAnalisis, setDocAnalisis] = useState<DocAnalisis | null>(null)
@@ -747,13 +749,19 @@ function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: Proceso
   async function cambiarEstado(nuevoEstado: 'aceptado' | 'rechazado') {
     setAprobando(true)
     try {
-      await fetch(`/api/procesos/${proceso.id}/revisar`, {
+      const res = await fetch(`/api/procesos/${proceso.id}/revisar`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ estado_oferta: nuevoEstado }),
       })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        setErrorCorr(err.error ?? `Error ${res.status} al guardar`)
+        return
+      }
       setEstadoLocal(nuevoEstado)
-    } catch { /* silent */ }
+      router.refresh()
+    } catch { setErrorCorr('Error de conexión al guardar') }
     finally { setAprobando(false) }
   }
 
