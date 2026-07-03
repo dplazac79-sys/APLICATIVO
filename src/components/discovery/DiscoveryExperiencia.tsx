@@ -684,8 +684,10 @@ function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: Proceso
     try {
       const res = await fetch(`/api/procesos/${proceso.id}/proyectar`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({}) })
       const data = await res.json()
+      console.log('[proyectar] status:', res.status, 'data:', JSON.stringify(data).slice(0, 300))
       if (data.proyeccion) setProyeccion(data.proyeccion)
-    } catch { /* silent */ }
+      else console.error('[proyectar] sin proyeccion en respuesta:', data)
+    } catch (e) { console.error('[proyectar] fetch error:', e) }
     finally { setProyectando(false) }
   }
 
