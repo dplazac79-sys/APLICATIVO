@@ -431,6 +431,7 @@ function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: Proceso
   const [docAnalisis, setDocAnalisis] = useState<DocAnalisis | null>(null)
   const [cargandoDoc, setCargandoDoc] = useState(false)
   const [analizando, setAnalizando] = useState(false)
+  const [errorIA, setErrorIA] = useState<string | null>(null)
   const [resumen, setResumen] = useState<Resumen | null>(null)
   const [aprobando, setAprobando] = useState(false)
   const [estadoLocal, setEstadoLocal] = useState(proceso.estado_oferta)
@@ -584,6 +585,7 @@ function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: Proceso
     setExpandido(true)
     if (resumen) return
     setAnalizando(true)
+    setErrorIA(null)
     try {
       const res = await fetch('/api/discovery/resumir-proceso', {
         method: 'POST',
@@ -591,14 +593,18 @@ function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: Proceso
         body: JSON.stringify({ proceso_id: proceso.id }),
       })
       const data = await res.json()
+      if (!res.ok) { setErrorIA(data.error ?? `Error ${res.status}`); return }
       if (data.resumen) setResumen(data.resumen)
-    } catch { /* silent */ }
-    finally { setAnalizando(false) }
+      else setErrorIA('La IA no devolvió diagnóstico. Intenta de nuevo.')
+    } catch (e) {
+      setErrorIA(e instanceof Error ? e.message : 'Error de conexión')
+    } finally { setAnalizando(false) }
   }
 
   async function reanalizarConIA() {
     setResumen(null)
     setAnalizando(true)
+    setErrorIA(null)
     try {
       const res = await fetch('/api/discovery/resumir-proceso', {
         method: 'POST',
@@ -606,9 +612,12 @@ function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: Proceso
         body: JSON.stringify({ proceso_id: proceso.id }),
       })
       const data = await res.json()
+      if (!res.ok) { setErrorIA(data.error ?? `Error ${res.status}`); return }
       if (data.resumen) setResumen(data.resumen)
-    } catch { /* silent */ }
-    finally { setAnalizando(false) }
+      else setErrorIA('La IA no devolvió diagnóstico. Intenta de nuevo.')
+    } catch (e) {
+      setErrorIA(e instanceof Error ? e.message : 'Error de conexión')
+    } finally { setAnalizando(false) }
   }
 
   async function cambiarEstado(nuevoEstado: 'aceptado' | 'rechazado') {
@@ -1773,8 +1782,20 @@ function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: Proceso
               )}
 
               {!analizando && !resumen && (
-                <div className="rounded-xl bg-slate-800/30 border border-slate-700/30 p-4 text-center">
-                  <p className="text-slate-500 text-xs">Presiona "Analizar con IA" para obtener el diagnóstico completo de este {esHijo ? 'proceso' : 'macroproceso'}.</p>
+                <div className="rounded-xl bg-slate-800/30 border border-slate-700/30 p-4 text-center space-y-2">
+                  {errorIA ? (
+                    <>
+                      <p className="text-red-400 text-xs font-semibold flex items-center justify-center gap-1.5">
+                        <AlertCircle className="w-3.5 h-3.5" /> Error al analizar
+                      </p>
+                      <p className="text-red-300/70 text-xs">{errorIA}</p>
+                      <button onClick={analizarConIA} className="text-xs text-violet-400 hover:text-violet-300 underline transition-colors">
+                        Reintentar
+                      </button>
+                    </>
+                  ) : (
+                    <p className="text-slate-500 text-xs">Presiona "Analizar con IA" para obtener el diagnóstico completo de este {esHijo ? 'proceso' : 'macroproceso'}.</p>
+                  )}
                 </div>
               )}
 
