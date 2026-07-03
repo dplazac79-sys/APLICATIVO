@@ -22,6 +22,7 @@ interface Proceso {
   roles_involucrados: string[]
   riesgos_detectados: string[]
   metadata_ia: Record<string, unknown> | null
+  documento_origen_id?: string | null
 }
 
 interface ProcesoConHijos extends Proceso {
@@ -1880,7 +1881,7 @@ function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: Proceso
                             const vFecha = v.fecha as string
                             const vCount = v.correcciones_aplicadas as number
                             const detalle = (v.detalle_correcciones ?? []) as Array<{tipo:string;indice:number;texto_original:string;observacion:string;fecha:string}>
-                            const docId = v.documento_id as string | null | undefined
+                            const docId = (v.documento_id as string | null | undefined) ?? proceso.documento_origen_id ?? null
                             const abierto = versionDetalle === vNum
 
                             // Resumen de tipos de cambio para la leyenda

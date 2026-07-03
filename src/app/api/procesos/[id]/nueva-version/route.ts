@@ -57,8 +57,9 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
     }
   })
 
+  const maxNumero = versionesActuales.reduce((max, v) => Math.max(max, (v as Record<string,unknown>).numero as number ?? 0), 0)
   const nuevaVersion = {
-    numero: versionesActuales.length + 1,
+    numero: Math.max(versionesActuales.length === 0 ? 2 : maxNumero + 1, 2),
     fecha: new Date().toISOString(),
     correcciones_aplicadas: atendidas.length,
     descripcion: atendidas.length > 0
