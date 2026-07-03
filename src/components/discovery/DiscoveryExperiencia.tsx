@@ -559,8 +559,8 @@ function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: Proceso
     toggleChecked(i, t, a, pasosChecked, setPasosChecked, 'pasos_checkeados')
 
   async function abrirDocumento(documentoId: string) {
-    if (docVisorUrl) { setDocVisorUrl(null); return }
     setCargandoVisor(true)
+    setDocVisorUrl(null)
     try {
       const res = await fetch(`/api/documentos/signed-url?id=${documentoId}`)
       const data = await res.json()
@@ -1933,9 +1933,13 @@ function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: Proceso
                                     {docId && (
                                       <button
                                         onClick={async () => {
-                                          setVersionDetalle(abierto ? null : vNum)
-                                          if (!abierto) await abrirDocumento(docId)
-                                          else setDocVisorUrl(null)
+                                          if (abierto) {
+                                            setVersionDetalle(null)
+                                            setDocVisorUrl(null)
+                                          } else {
+                                            setVersionDetalle(vNum)
+                                            await abrirDocumento(docId)
+                                          }
                                         }}
                                         disabled={cargandoVisor}
                                         className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-lg transition-all disabled:opacity-50 ${
