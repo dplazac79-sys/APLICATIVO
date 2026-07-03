@@ -7,11 +7,21 @@ import type { Proceso, Proyecto } from '@/types/database'
 export default async function DiscoveryPage() {
   const admin = createAdminClient()
 
-  const [{ data: proyectosRaw }, { data: procesos }, { data: documentosRaw }] = await Promise.all([
+  const [
+    { data: proyectosRaw, error: errProyectos },
+    { data: procesos, error: errProcesos },
+    { data: documentosRaw, error: errDocs },
+  ] = await Promise.all([
     admin.from('proyecto').select('*, cliente(razon_social)').eq('estado_general', 'activo'),
     admin.from('proceso').select('*').order('nivel', { ascending: true }).order('orden', { ascending: true }),
     admin.from('documento').select('id, nombre_archivo, tipo, estado_procesamiento, clasificacion, created_at, proyecto_id, subido_por(rol)').order('created_at', { ascending: false }),
   ])
+
+  if (errProyectos || errProcesos || errDocs) {
+    const msg = (errProyectos ?? errProcesos ?? errDocs)?.message ?? 'Error al cargar datos'
+    console.error('[DiscoveryPage] Supabase error:', { errProyectos, errProcesos, errDocs })
+    throw new Error(`Error al cargar datos de discovery: ${msg}`)
+  }
 
   const proyectos = (proyectosRaw ?? []) as Array<Proyecto & { cliente: { razon_social: string } | null }>
 
