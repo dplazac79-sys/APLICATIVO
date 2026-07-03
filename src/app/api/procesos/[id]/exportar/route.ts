@@ -26,7 +26,8 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
   const versiones = (meta.versiones ?? []) as Array<{ numero: number; fecha: string; descripcion: string; correcciones_aplicadas: number }>
   const versionActual = (meta.version_actual as number) ?? 1
   const correcciones = (meta.correcciones ?? []) as Array<{ tipo: string; indice: number; observacion: string; estado: string; fecha: string }>
-  const ia = (doc?.analisis_ia ?? {}) as Record<string, unknown>
+  const iaRaw = (doc?.analisis_ia ?? {}) as Record<string, unknown>
+  const ia = ((iaRaw.analisis ?? iaRaw) as Record<string, unknown>)
   const atendidas = correcciones.filter(c => c.estado === 'archivado')
 
   const formatDate = (iso: string) => new Date(iso).toLocaleDateString('es-CL', { day: '2-digit', month: 'long', year: 'numeric' })

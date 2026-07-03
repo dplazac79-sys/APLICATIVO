@@ -40,7 +40,8 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   const contextoDocumental = (docs ?? [])
     .filter(d => d.analisis_ia)
     .map(d => {
-      const ia = d.analisis_ia as Record<string, unknown>
+      const iaRaw = d.analisis_ia as Record<string, unknown>
+      const ia = ((iaRaw.analisis ?? iaRaw) as Record<string, unknown>)
       return `### ${d.nombre_archivo}\nResumen: ${(ia.resumen_ejecutivo as string ?? '').slice(0, 400)}\nDiagnóstico: ${(ia.diagnostico_operacional as string ?? '').slice(0, 300)}`
     })
     .join('\n\n')

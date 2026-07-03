@@ -24,9 +24,16 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
     return NextResponse.json({ error: 'documento_no_encontrado' }, { status: 404 })
   }
 
+  // analisis_ia tiene estructura { clasificacion: {...}, analisis: { resumen_ejecutivo, ... } }
+  // Normalizamos para que los consumidores siempre reciban la sub-sección "analisis" plana
+  const iaRaw = doc.analisis_ia as Record<string, unknown> | null
+  const analisisNormalizado = iaRaw
+    ? ((iaRaw.analisis ?? iaRaw) as Record<string, unknown>)
+    : null
+
   return NextResponse.json({
     nombre_archivo: doc.nombre_archivo,
     resumen_ejecutivo: doc.resumen_ejecutivo,
-    analisis_ia: doc.analisis_ia,
+    analisis_ia: analisisNormalizado,
   })
 }

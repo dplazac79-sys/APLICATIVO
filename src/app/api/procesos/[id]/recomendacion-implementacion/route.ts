@@ -33,18 +33,20 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
     if (doc?.analisis_ia) ia = doc.analisis_ia as Record<string, unknown>
   }
 
-  // Construir contexto anclado en el documento — nada inventado
-  const resumenDoc       = (ia.resumen_ejecutivo as string)         ?? proceso.descripcion ?? ''
-  const diagnosticoDoc   = (ia.diagnostico_operacional as string)   ?? ''
-  const recomendacionDoc = (ia.recomendacion_ejecutiva as string)   ?? ''
-  const hallazgos        = (ia.hallazgos_criticos as string[])      ?? []
-  const riesgosDoc       = (ia.riesgos_criticos as Array<{ riesgo: string; impacto: string }>) ?? []
-  const oportunidades    = (ia.oportunidades_valor as Array<{ oportunidad: string; complejidad_implementacion: string }>) ?? []
-  const quickWins        = (ia.quick_wins as string[])              ?? []
-  const brechas          = (ia.brechas_documentacion as string[])   ?? []
-  const madurezN         = (ia.nivel_madurez_amo as number)         ?? null
-  const madurezNombre    = (ia.nivel_madurez_nombre as string)      ?? ''
-  const madurezEvidencia = (ia.nivel_madurez_evidencia as string)   ?? ''
+  // analisis_ia tiene estructura { clasificacion: {...}, analisis: { resumen_ejecutivo, ... } }
+  const analisis = ((ia.analisis ?? ia) as Record<string, unknown>)
+
+  const resumenDoc       = (analisis.resumen_ejecutivo as string)         ?? proceso.descripcion ?? ''
+  const diagnosticoDoc   = (analisis.diagnostico_operacional as string)   ?? ''
+  const recomendacionDoc = (analisis.recomendacion_ejecutiva as string)   ?? ''
+  const hallazgos        = (analisis.hallazgos_criticos as string[])      ?? []
+  const riesgosDoc       = (analisis.riesgos_criticos as Array<{ riesgo: string; impacto: string }>) ?? []
+  const oportunidades    = (analisis.oportunidades_valor as Array<{ oportunidad: string; complejidad_implementacion: string }>) ?? []
+  const quickWins        = (analisis.quick_wins as string[])              ?? []
+  const brechas          = (analisis.brechas_documentacion as string[])   ?? []
+  const madurezN         = (analisis.nivel_madurez_amo as number)         ?? null
+  const madurezNombre    = (analisis.nivel_madurez_nombre as string)      ?? ''
+  const madurezEvidencia = (analisis.nivel_madurez_evidencia as string)   ?? ''
   const roles            = (proceso.roles_involucrados ?? []) as string[]
 
   // Todo lo que el AI recibe viene textualmente del documento procesado por Claude

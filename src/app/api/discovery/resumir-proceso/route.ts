@@ -60,7 +60,8 @@ export async function POST(req: NextRequest) {
   const resumenes: string[] = []
 
   for (const doc of docsConIA) {
-    const ia = doc.analisis_ia as Record<string, unknown>
+    const iaRaw = doc.analisis_ia as Record<string, unknown>
+    const ia = ((iaRaw.analisis ?? iaRaw) as Record<string, unknown>)
     const hallazgos  = (ia.hallazgos_criticos  as string[] | undefined)  ?? []
     const riesgos    = (ia.riesgos_criticos    as Array<{riesgo:string;impacto:string}> | undefined) ?? []
     const opor       = (ia.oportunidades_valor as Array<{oportunidad:string;impacto_estimado?:string}> | undefined) ?? []
