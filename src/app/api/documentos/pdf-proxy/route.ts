@@ -6,13 +6,16 @@ export async function GET(req: NextRequest) {
   if (!id) return NextResponse.json({ error: 'id requerido' }, { status: 400 })
 
   const admin = createAdminClient()
-  const { data: doc } = await admin
+  const { data: doc, error: docError } = await admin
     .from('documento')
-    .select('url_storage, nombre')
+    .select('url_storage, nombre_archivo')
     .eq('id', id)
     .single()
 
-  if (!doc?.url_storage) return NextResponse.json({ error: 'documento no encontrado' }, { status: 404 })
+  console.log('[pdf-proxy] id:', id, 'doc:', doc, 'error:', docError?.message)
+
+  if (!doc) return NextResponse.json({ error: `documento ${id} no existe en BD`, detail: docError?.message }, { status: 404 })
+  if (!doc.url_storage) return NextResponse.json({ error: `documento ${id} existe pero url_storage es null` }, { status: 404 })
 
   const { data: signedData, error } = await admin.storage
     .from('documentos')
@@ -29,7 +32,7 @@ export async function GET(req: NextRequest) {
   return new NextResponse(buffer, {
     headers: {
       'Content-Type': 'application/pdf',
-      'Content-Disposition': `inline; filename="${doc.nombre ?? 'documento'}.pdf"`,
+      'Content-Disposition': `inline; filename="${doc.nombre_archivo ?? 'documento'}.pdf"`,
       'Cache-Control': 'private, max-age=300',
     },
   })
