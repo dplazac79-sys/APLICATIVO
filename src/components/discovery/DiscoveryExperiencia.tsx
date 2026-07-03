@@ -566,11 +566,19 @@ function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: Proceso
     setDocVisorUrl(null)
     try {
       const res = await fetch(`/api/documentos/pdf-proxy?id=${documentoId}`)
-      if (!res.ok) throw new Error('Error al obtener PDF')
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => ({ error: `HTTP ${res.status}` }))
+        console.error('[abrirDocumento] proxy error:', res.status, errBody)
+        setErrorCorr(`Error ${res.status}: ${errBody?.error ?? 'No se pudo abrir el documento'}`)
+        return
+      }
       const blob = await res.blob()
       const blobUrl = URL.createObjectURL(blob)
       setDocVisorUrl(blobUrl)
-    } catch { setErrorCorr('Error al abrir el documento.') }
+    } catch (e) {
+      console.error('[abrirDocumento] catch:', e)
+      setErrorCorr('Error al abrir el documento.')
+    }
     finally { setCargandoVisor(false) }
   }
 
