@@ -48,7 +48,10 @@ export async function POST(req: NextRequest) {
     : { data: [] }
 
   // 4. Construir inteligencia documental agregada (todos los documentos)
-  const inteligenciaDocumental = docsConIA.map(doc => {
+  // Limitar a máx 5 docs para no superar límite TPM de Groq (~12k tokens)
+  const docsParaAnalisis = docsConIA.slice(0, 5)
+
+  const inteligenciaDocumental = docsParaAnalisis.map(doc => {
     const ia = doc.analisis_ia as Record<string, unknown>
     const hallazgos  = (ia.hallazgos_criticos  as string[] | undefined)  ?? []
     const riesgos    = (ia.riesgos_criticos    as Array<{riesgo:string;impacto:string}> | undefined) ?? []
@@ -57,27 +60,17 @@ export async function POST(req: NextRequest) {
     const brechas    = (ia.brechas_documentacion as string[] | undefined) ?? []
     const madurez    = (ia.nivel_madurez_nombre as string | undefined)   ?? ''
     const resumen    = (ia.resumen_ejecutivo   as string | undefined)    ?? ''
-    const diag       = (ia.diagnostico_operacional as string | undefined) ?? ''
     const recomenda  = (ia.recomendacion_ejecutiva as string | undefined) ?? ''
-    const proximos   = (ia.proximos_pasos_sugeridos as string[] | undefined) ?? []
 
-    return `
-═══ DOCUMENTO: ${doc.nombre_archivo} ═══
-RESUMEN: ${resumen.slice(0, 500)}
-DIAGNÓSTICO OPERACIONAL: ${diag.slice(0, 400)}
-NIVEL DE MADUREZ: ${madurez}
-HALLAZGOS CRÍTICOS (${hallazgos.length}):
-${hallazgos.slice(0, 6).map((h, i) => `  ${i+1}. ${h}`).join('\n')}
-RIESGOS (${riesgos.length}):
-${riesgos.slice(0, 4).map(r => `  · [${r.impacto?.toUpperCase()}] ${r.riesgo}`).join('\n')}
-OPORTUNIDADES DE VALOR:
-${opor.slice(0, 4).map(o => `  ✦ ${o.oportunidad}${o.impacto_estimado ? ` — ${o.impacto_estimado}` : ''}`).join('\n')}
-QUICK WINS:
-${qw.slice(0, 3).map(q => `  ⚡ ${q}`).join('\n')}
-BRECHAS DOCUMENTALES:
-${brechas.slice(0, 3).map(b => `  ▸ ${b}`).join('\n')}
-RECOMENDACIÓN EJECUTIVA: ${recomenda.slice(0, 300)}
-PRÓXIMOS PASOS: ${proximos.slice(0, 3).join(' | ')}`
+    return `[DOC: ${doc.nombre_archivo.slice(0, 40)}]
+R: ${resumen.slice(0, 200)}
+MAD: ${madurez}
+H: ${hallazgos.slice(0, 3).join(' | ')}
+RG: ${riesgos.slice(0, 2).map(r => `[${r.impacto?.toUpperCase()}] ${r.riesgo}`).join(' | ')}
+OP: ${opor.slice(0, 2).map(o => o.oportunidad).join(' | ')}
+QW: ${qw.slice(0, 2).join(' | ')}
+BR: ${brechas.slice(0, 2).join(' | ')}
+REC: ${recomenda.slice(0, 150)}`
   }).join('\n\n')
 
   // 5. Contexto de subprocesos
