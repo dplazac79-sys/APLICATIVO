@@ -58,6 +58,49 @@ export async function POST(req: NextRequest) {
 
   if (dbError) return NextResponse.json({ error: dbError.message }, { status: 500 })
 
+  // Auto-trigger: si hay documentos procesados, recolectar roles y lanzar análisis IA
+  if (textoExtraido) {
+    try {
+      const { data: documentos } = await admin
+        .from('documento')
+        .select('nombre_archivo, analisis_ia, proceso:proceso_id(nombre)')
+        .eq('proyecto_id', proyectoId)
+        .eq('estado_procesamiento', 'listo')
+        .not('analisis_ia', 'is', null)
+
+      if (documentos && documentos.length > 0) {
+        const rolesMap = new Map<string, { rol: string; descripcion: string; procesos: string[] }>()
+        for (const doc of documentos) {
+          const ia = doc.analisis_ia as Record<string, unknown>
+          const rolesDoc = ia?.roles_y_responsabilidades as Record<string, unknown> | undefined
+          const docName = (doc.proceso as unknown as Record<string,string> | null)?.nombre ?? doc.nombre_archivo
+          const rolesId = (rolesDoc?.roles_identificados as string[] | undefined) ?? []
+          for (const rol of rolesId) {
+            if (!rol?.trim()) continue
+            const key = rol.toLowerCase().trim()
+            if (rolesMap.has(key)) { rolesMap.get(key)!.procesos.push(docName) }
+            else rolesMap.set(key, { rol: rol.trim(), descripcion: '', procesos: [docName] })
+          }
+        }
+
+        const rolesEnProcesos = Array.from(rolesMap.values()).slice(0, 30)
+        if (rolesEnProcesos.length > 0) {
+          const { data: analisis } = await admin.from('glosario_roles_analisis').insert({
+            proyecto_id: proyectoId, organigrama_id: org.id,
+            roles_en_procesos: rolesEnProcesos, estado: 'generando',
+          }).select('id').single()
+
+          if (analisis) {
+            await inngest.send({
+              name: 'portal/analizar-glosario-roles',
+              data: { analisis_id: analisis.id, proyecto_id: proyectoId },
+            })
+          }
+        }
+      }
+    } catch { /* best effort — no bloquear la respuesta al usuario */ }
+  }
+
   return NextResponse.json({ ok: true, organigrama: org })
 }
 

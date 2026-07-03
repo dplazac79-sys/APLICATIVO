@@ -411,7 +411,10 @@ export const analizarGlosarioRolesJob = inngest.createFunction(
       await admin.from('glosario_roles_analisis').update({
         estado: 'completado',
         mapeos,
-        resumen_ejecutivo: resultadoFinal.resumen_ejecutivo,
+        resumen_ejecutivo:              resultadoFinal.resumen_ejecutivo,
+        score_cobertura_organizacional: resultadoFinal.score_cobertura_organizacional ?? 0,
+        alertas_criticas:               resultadoFinal.alertas_criticas ?? [],
+        plan_accion_30_dias:            resultadoFinal.plan_accion_30_dias ?? [],
         total_mapeados:      mapeos.filter((m: any) => m.tipo === 'mapeo_directo').length,
         total_equivalencias: mapeos.filter((m: any) => m.tipo === 'equivalencia').length,
         total_crear_cargo:   mapeos.filter((m: any) => m.tipo === 'crear_cargo').length,

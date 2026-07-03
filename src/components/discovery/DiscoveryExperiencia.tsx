@@ -588,12 +588,19 @@ function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: Proceso
     id: string
     score_cobertura_organizacional: number
     resumen_ejecutivo: string
+    alertas_criticas?: string[]
+    plan_accion_30_dias?: string[]
     mapeos: MapeoRol[]
     estado: string
+    total_mapeados?: number
+    total_equivalencias?: number
+    total_crear_cargo?: number
   }
   const [glosarioData, setGlosarioData] = useState<GlosarioAnalisis | null>(null)
   const [cargandoGlosario, setCargandoGlosario] = useState(false)
   const [glosarioCargado, setGlosarioCargado] = useState(false)
+  const [lanzandoGlosario, setLanzandoGlosario] = useState(false)
+  const [errorGlosario, setErrorGlosario] = useState<string | null>(null)
 
   useEffect(() => {
     if (tabDoc === 'roles' && !glosarioCargado && !cargandoGlosario) {
@@ -605,6 +612,36 @@ function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: Proceso
         .finally(() => { setCargandoGlosario(false); setGlosarioCargado(true) })
     }
   }, [tabDoc, glosarioCargado, cargandoGlosario, proyectoId])
+
+  async function lanzarAnalisisRoles() {
+    setLanzandoGlosario(true)
+    setErrorGlosario(null)
+    try {
+      const res = await fetch('/api/portal/glosario-roles', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ proyecto_id: proyectoId }),
+      })
+      const data = await res.json()
+      if (!res.ok) { setErrorGlosario(data.error ?? 'Error al lanzar análisis'); return }
+      // Polling cada 4s hasta que el estado sea completado o error (máx 60s)
+      let intentos = 0
+      const poll = setInterval(async () => {
+        intentos++
+        const r = await fetch(`/api/portal/glosario-roles?proyecto_id=${proyectoId}`)
+        const d = await r.json()
+        if (d.analisis?.estado === 'completado') {
+          setGlosarioData(d.analisis)
+          clearInterval(poll)
+          setLanzandoGlosario(false)
+        } else if (d.analisis?.estado === 'error' || intentos >= 15) {
+          setErrorGlosario(d.analisis?.error_msg ?? 'El análisis tardó demasiado. Intenta de nuevo.')
+          clearInterval(poll)
+          setLanzandoGlosario(false)
+        }
+      }, 4000)
+    } catch { setErrorGlosario('Error de red.'); setLanzandoGlosario(false) }
+  }
 
   // Inline edit state
   const [editando, setEditando] = useState(false)
@@ -1461,16 +1498,26 @@ function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: Proceso
                         </div>
                       )}
 
-                      {/* No glosario yet */}
+                      {/* Error glosario */}
+                      {errorGlosario && (
+                        <div className="rounded-lg border border-red-700/40 bg-red-950/20 px-4 py-2 text-xs text-red-300 flex items-center gap-2">
+                          <AlertCircle className="w-3.5 h-3.5 shrink-0" />{errorGlosario}
+                          <button onClick={() => setErrorGlosario(null)} className="ml-auto text-red-500 hover:text-red-300">✕</button>
+                        </div>
+                      )}
+
+                      {/* No glosario yet — CTA para lanzar análisis */}
                       {!cargandoGlosario && glosarioCargado && !glosarioData && (
-                        <div className="rounded-2xl border border-slate-700/40 bg-slate-800/30 p-5 space-y-3">
+                        <div className="rounded-2xl border border-slate-700/40 bg-slate-800/30 p-5 space-y-4">
                           <div className="flex items-center gap-2.5">
                             <div className="w-9 h-9 rounded-xl bg-violet-900/30 border border-violet-700/30 flex items-center justify-center shrink-0">
                               <Users className="w-4 h-4 text-violet-400" />
                             </div>
                             <div>
-                              <p className="text-sm font-semibold text-slate-200">Análisis de organigrama pendiente</p>
-                              <p className="text-xs text-slate-500 mt-0.5">Sube tu organigrama en Centro Documental para que AICOUNTS cruce los roles del proceso con tu estructura real.</p>
+                              <p className="text-sm font-semibold text-slate-200">Cruce de roles pendiente</p>
+                              <p className="text-xs text-slate-500 mt-0.5">
+                                AICOUNTS leerá los roles de tus documentos de proceso y los cruzará con tu organigrama usando IA.
+                              </p>
                             </div>
                           </div>
                           {proceso.roles_involucrados && proceso.roles_involucrados.length > 0 && (
@@ -1483,6 +1530,41 @@ function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: Proceso
                               </div>
                             </div>
                           )}
+                          <button
+                            onClick={lanzarAnalisisRoles}
+                            disabled={lanzandoGlosario}
+                            className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white text-sm font-bold transition-all disabled:opacity-50 shadow-lg shadow-violet-900/30"
+                          >
+                            {lanzandoGlosario
+                              ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Analizando roles con IA…</>
+                              : <><Sparkles className="w-4 h-4" /> Analizar roles con IA</>
+                            }
+                          </button>
+                          {lanzandoGlosario && (
+                            <p className="text-xs text-slate-500 text-center">Esto puede tomar 20–40 segundos. No cierres esta pestaña.</p>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Glosario generándose */}
+                      {glosarioData?.estado === 'generando' && (
+                        <div className="rounded-xl border border-violet-700/30 bg-violet-950/20 px-4 py-3 flex items-center gap-3">
+                          <span className="w-4 h-4 border-2 border-violet-400/30 border-t-violet-400 rounded-full animate-spin shrink-0" />
+                          <p className="text-xs text-violet-300">El motor IA está cruzando los roles del proceso con tu organigrama…</p>
+                        </div>
+                      )}
+
+                      {/* Re-analizar */}
+                      {glosarioData?.estado === 'completado' && (
+                        <div className="flex justify-end">
+                          <button
+                            onClick={lanzarAnalisisRoles}
+                            disabled={lanzandoGlosario}
+                            className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-violet-400 transition-colors disabled:opacity-40"
+                          >
+                            <RefreshCw className={`w-3 h-3 ${lanzandoGlosario ? 'animate-spin' : ''}`} />
+                            {lanzandoGlosario ? 'Analizando…' : 'Re-analizar roles'}
+                          </button>
                         </div>
                       )}
 
@@ -1617,6 +1699,40 @@ function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: Proceso
                               </div>
                             </div>
                           ))}
+                        </div>
+                      )}
+
+                      {/* Alertas críticas del análisis */}
+                      {glosarioData?.alertas_criticas && glosarioData.alertas_criticas.length > 0 && (
+                        <div className="rounded-xl border border-red-700/30 bg-red-950/10 p-4 space-y-2">
+                          <p className="text-[10px] font-bold text-red-400 uppercase tracking-widest flex items-center gap-1.5">
+                            <AlertCircle className="w-3 h-3" /> Alertas críticas de cobertura
+                          </p>
+                          <div className="space-y-1.5">
+                            {glosarioData.alertas_criticas.map((a, i) => (
+                              <div key={i} className="flex items-start gap-2">
+                                <span className="text-red-500 text-xs shrink-0 mt-0.5">▸</span>
+                                <p className="text-xs text-red-300 leading-relaxed">{a}</p>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Plan de acción 30 días */}
+                      {glosarioData?.plan_accion_30_dias && glosarioData.plan_accion_30_dias.length > 0 && (
+                        <div className="rounded-xl border border-violet-700/30 bg-violet-950/10 p-4 space-y-2">
+                          <p className="text-[10px] font-bold text-violet-400 uppercase tracking-widest flex items-center gap-1.5">
+                            <Zap className="w-3 h-3" /> Plan de acción — 30 días
+                          </p>
+                          <div className="space-y-1.5">
+                            {glosarioData.plan_accion_30_dias.map((p, i) => (
+                              <div key={i} className="flex items-start gap-2">
+                                <span className="w-5 h-5 rounded-full bg-violet-800/60 border border-violet-700/40 flex items-center justify-center text-[10px] font-bold text-violet-300 shrink-0">{i+1}</span>
+                                <p className="text-xs text-slate-300 leading-relaxed">{p}</p>
+                              </div>
+                            ))}
+                          </div>
                         </div>
                       )}
 
