@@ -3,8 +3,7 @@
 import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select'
-import { Upload, X, CheckCircle2, Loader2, RefreshCw, FileText, AlertTriangle } from 'lucide-react'
+import { Upload, X, CheckCircle2, Loader2, RefreshCw, FileText, AlertTriangle, Building2, ChevronDown, CheckCircle } from 'lucide-react'
 import { toast } from 'sonner'
 
 interface Proyecto { id: string; nombre: string; cliente: { razon_social: string } | null }
@@ -36,9 +35,10 @@ export default function DocumentUploader({ proyectos, proyectoPreseleccionado, d
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const preNombre = proyectoPreseleccionado ? (proyectos.find(p => p.id === proyectoPreseleccionado)?.nombre ?? '') : ''
-  const [proyectoId, setProyectoId] = useState(proyectoPreseleccionado ?? '')
-  const [proyectoNombre, setProyectoNombre] = useState(preNombre)
-  const proyectoIdRef = useRef(proyectoPreseleccionado ?? '')
+  const [proyectoId, setProyectoId] = useState(proyectoPreseleccionado ?? (proyectos.length === 1 ? proyectos[0].id : ''))
+  const [proyectoNombre, setProyectoNombre] = useState(preNombre || (proyectos.length === 1 ? proyectos[0].nombre : ''))
+  const proyectoIdRef = useRef(proyectoPreseleccionado ?? (proyectos.length === 1 ? proyectos[0].id : ''))
+  const [mostrarSelectorProyecto, setMostrarSelectorProyecto] = useState(false)
   const [entries, setEntries] = useState<FileEntry[]>([])
   const [uploading, setUploading] = useState(false)
   const [done, setDone] = useState(0)
@@ -136,21 +136,48 @@ export default function DocumentUploader({ proyectos, proyectoPreseleccionado, d
   return (
     <div className="space-y-3">
       {/* Selector de proyecto */}
-      <Select value={proyectoId} onValueChange={(v: string | null) => v && handleProyectoChange(v)}>
-        <SelectTrigger className="bg-slate-800 border-slate-700 text-white">
-          <span className={proyectoId ? 'text-white' : 'text-slate-500'}>
-            {proyectoId ? proyectoNombre : 'Seleccionar proyecto...'}
-          </span>
-        </SelectTrigger>
-        <SelectContent className="bg-slate-800 border-slate-700">
-          {proyectos.map(p => (
-            <SelectItem key={p.id} value={p.id} className="text-slate-200 focus:bg-slate-700">
-              {p.nombre}
-              {p.cliente && <span className="text-slate-500 ml-1">— {p.cliente.razon_social}</span>}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+      <div className="relative">
+        <button
+          type="button"
+          onClick={() => setMostrarSelectorProyecto(v => !v)}
+          className="w-full flex items-center justify-between px-4 py-2.5 rounded-xl border border-slate-700/60 bg-slate-800 hover:border-violet-600/50 transition-all text-sm text-left"
+        >
+          {proyectoId ? (
+            <span className="flex items-center gap-2 min-w-0">
+              <Building2 className="w-4 h-4 text-violet-400 shrink-0" />
+              <span className="text-slate-200 font-medium truncate">{proyectoNombre}</span>
+            </span>
+          ) : (
+            <span className="text-slate-500">Seleccionar proyecto…</span>
+          )}
+          <ChevronDown className="w-4 h-4 text-slate-500 shrink-0 ml-2" />
+        </button>
+
+        {mostrarSelectorProyecto && (
+          <>
+            <div className="fixed inset-0 z-40" onClick={() => setMostrarSelectorProyecto(false)} />
+            <div className="absolute z-50 top-full left-0 right-0 mt-1 rounded-xl border border-slate-700/60 bg-slate-900 shadow-2xl shadow-black/60 overflow-hidden">
+              <div className="max-h-56 overflow-y-auto divide-y divide-slate-800/60">
+                {proyectos.map(p => (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => { handleProyectoChange(p.id); setMostrarSelectorProyecto(false) }}
+                    className={`w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-violet-950/30 transition-colors ${proyectoId === p.id ? 'bg-violet-950/40' : ''}`}
+                  >
+                    <Building2 className={`w-4 h-4 shrink-0 ${proyectoId === p.id ? 'text-violet-400' : 'text-slate-600'}`} />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-slate-200 font-medium truncate">{p.nombre}</p>
+                      {p.cliente && <p className="text-xs text-slate-500 truncate">{p.cliente.razon_social}</p>}
+                    </div>
+                    {proyectoId === p.id && <CheckCircle className="w-4 h-4 text-violet-400 shrink-0" />}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </>
+        )}
+      </div>
 
       {/* Zona de drop */}
       <div
