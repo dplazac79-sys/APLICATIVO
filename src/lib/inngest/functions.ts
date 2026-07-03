@@ -80,6 +80,17 @@ export const procesarDocumento = inngest.createFunction(
         embedding_ref: embedding,
         estado_procesamiento: 'listo',
       }).eq('id', documento_id)
+
+      // Sincronizar roles reales del RACI al proceso que originó este documento
+      const rolesIA = (resumen.roles_y_responsabilidades?.roles_identificados ?? []) as string[]
+      if (rolesIA.length > 0) {
+        // Extraer nombre corto: antes del primer '—' o '-'
+        const rolesCortos = rolesIA.map((r: string) => r.split(/\s*[—\-–]\s*/)[0].trim())
+        await admin.from('proceso')
+          .update({ roles_involucrados: rolesCortos })
+          .eq('documento_origen_id', documento_id)
+      }
+
       await registrarAudit({
         accion: 'UPDATE',
         entidad: 'documento',
