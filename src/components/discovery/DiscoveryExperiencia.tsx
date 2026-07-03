@@ -720,7 +720,7 @@ function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: Proceso
       })
       const data = await res.json()
       if (!res.ok) { setErrorIA(data.error ?? `Error ${res.status}`); return }
-      if (data.resumen) setResumen(data.resumen)
+      if (data.resumen) { setResumen(data.resumen); router.refresh() }
       else setErrorIA('La IA no devolvió diagnóstico. Intenta de nuevo.')
     } catch (e) {
       setErrorIA(e instanceof Error ? e.message : 'Error de conexión')
@@ -739,7 +739,7 @@ function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: Proceso
       })
       const data = await res.json()
       if (!res.ok) { setErrorIA(data.error ?? `Error ${res.status}`); return }
-      if (data.resumen) setResumen(data.resumen)
+      if (data.resumen) { setResumen(data.resumen); router.refresh() }
       else setErrorIA('La IA no devolvió diagnóstico. Intenta de nuevo.')
     } catch (e) {
       setErrorIA(e instanceof Error ? e.message : 'Error de conexión')
