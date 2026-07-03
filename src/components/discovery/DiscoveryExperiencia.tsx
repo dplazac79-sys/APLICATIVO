@@ -448,6 +448,10 @@ function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: Proceso
   const [versionDetalle, setVersionDetalle] = useState<number | null>(null)
   const [docVisorUrl, setDocVisorUrl] = useState<string | null>(null)
   const [cargandoVisor, setCargandoVisor] = useState(false)
+  // Oportunidades checkeadas: { indice: number, texto: string, accion: 'realizado'|'descartado', fecha: string }[]
+  const [opChecked, setOpChecked] = useState<Array<{indice:number;texto:string;accion:'realizado'|'descartado';fecha:string}>>(
+    ((proceso.metadata_ia as any)?.oportunidades_checkeadas ?? [])
+  )
 
   // Correcciones y versiones
   const metaInit = (proceso.metadata_ia ?? {}) as Record<string, unknown>
@@ -519,6 +523,21 @@ function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: Proceso
       }
     } catch { setErrorCorr('Error de red al generar versión.') }
     finally { setGenerandoVersion(false) }
+  }
+
+  async function toggleOportunidad(indice: number, texto: string, accion: 'realizado' | 'descartado') {
+    const yaExiste = opChecked.find(o => o.indice === indice)
+    const updated = yaExiste
+      ? opChecked.filter(o => o.indice !== indice)
+      : [...opChecked, { indice, texto, accion, fecha: new Date().toISOString() }]
+    setOpChecked(updated)
+    try {
+      await fetch(`/api/procesos/${proceso.id}/correcciones`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ correcciones, oportunidades_checkeadas: updated }),
+      })
+    } catch { /* best effort */ }
   }
 
   async function abrirDocumento(documentoId: string) {
@@ -1169,54 +1188,119 @@ function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: Proceso
                         </div>
                       )}
 
-                      {/* ── Oportunidades de valor ── */}
-                      {oportunidades.length > 0 && (
-                        <div>
-                          <div className="flex items-center gap-2 mb-3">
-                            <div className="w-6 h-6 rounded-lg bg-indigo-950/70 border border-indigo-800/50 flex items-center justify-center">
-                              <TrendingUp className="w-3.5 h-3.5 text-indigo-400" />
+                      {/* ── Oportunidades de valor con checklist ── */}
+                      {oportunidades.length > 0 && (() => {
+                        const checkedIndices = new Set(opChecked.map(o => o.indice))
+                        const activas = oportunidades.filter((_, i) => !checkedIndices.has(i))
+                        const historial = opChecked.slice().sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime())
+                        return (
+                          <div>
+                            <div className="flex items-center justify-between mb-3">
+                              <div className="flex items-center gap-2">
+                                <div className="w-6 h-6 rounded-lg bg-indigo-950/70 border border-indigo-800/50 flex items-center justify-center">
+                                  <TrendingUp className="w-3.5 h-3.5 text-indigo-400" />
+                                </div>
+                                <div>
+                                  <p className="text-xs font-bold text-indigo-400 uppercase tracking-widest">Oportunidades de valor</p>
+                                  <p className="text-xs text-slate-600">Iniciativas de mayor alcance · {activas.length} activas{historial.length > 0 ? ` · ${historial.length} en historial` : ''}</p>
+                                </div>
+                              </div>
                             </div>
-                            <div>
-                              <p className="text-xs font-bold text-indigo-400 uppercase tracking-widest">Oportunidades de valor</p>
-                              <p className="text-xs text-slate-600">Iniciativas de mayor alcance ordenadas por complejidad</p>
-                            </div>
-                          </div>
 
-                          <div className="space-y-2">
-                            {oportunidades.map((o, i) => {
-                              const nivel = o.complejidad_implementacion === 'alta' ? 3 : o.complejidad_implementacion === 'media' ? 2 : 1
-                              const color = o.complejidad_implementacion === 'alta' ? 'text-red-400' : o.complejidad_implementacion === 'media' ? 'text-amber-400' : 'text-emerald-400'
-                              const dotColor = o.complejidad_implementacion === 'alta' ? 'bg-red-500' : o.complejidad_implementacion === 'media' ? 'bg-amber-400' : 'bg-emerald-500'
-                              return (
-                                <div key={i} className="rounded-2xl border border-indigo-800/20 bg-gradient-to-br from-indigo-950/15 to-slate-900/20 p-4">
-                                  <div className="flex items-start gap-3">
-                                    <div className="w-8 h-8 rounded-xl bg-indigo-900/40 border border-indigo-700/30 flex items-center justify-center shrink-0 text-indigo-300 font-black text-sm">
-                                      {i + 1}
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                      <p className="text-white text-sm font-semibold leading-snug">{o.oportunidad}</p>
-                                      {o.impacto_estimado && (
-                                        <p className="text-slate-400 text-xs leading-relaxed mt-1.5">{o.impacto_estimado}</p>
-                                      )}
-                                    </div>
-                                    {/* Complexity meter */}
-                                    <div className="flex flex-col items-end gap-1 shrink-0">
-                                      <div className="flex gap-1">
-                                        {[1, 2, 3].map(n => (
-                                          <div key={n} className={`w-2.5 h-2.5 rounded-full ${n <= nivel ? dotColor : 'bg-slate-700'}`} />
-                                        ))}
+                            {/* Oportunidades activas */}
+                            <div className="space-y-2">
+                              {oportunidades.map((o, i) => {
+                                const checked = checkedIndices.has(i)
+                                if (checked) return null
+                                const nivel = o.complejidad_implementacion === 'alta' ? 3 : o.complejidad_implementacion === 'media' ? 2 : 1
+                                const color = o.complejidad_implementacion === 'alta' ? 'text-red-400' : o.complejidad_implementacion === 'media' ? 'text-amber-400' : 'text-emerald-400'
+                                const dotColor = o.complejidad_implementacion === 'alta' ? 'bg-red-500' : o.complejidad_implementacion === 'media' ? 'bg-amber-400' : 'bg-emerald-500'
+                                return (
+                                  <div key={i} className="group rounded-2xl border border-indigo-800/20 bg-gradient-to-br from-indigo-950/15 to-slate-900/20 p-4 hover:border-indigo-700/30 transition-all">
+                                    <div className="flex items-start gap-3">
+                                      {/* Checkbox realizado */}
+                                      <button
+                                        onClick={() => toggleOportunidad(i, o.oportunidad, 'realizado')}
+                                        title="Marcar como realizado"
+                                        className="mt-0.5 w-5 h-5 rounded-md border-2 border-indigo-600/50 bg-indigo-950/40 hover:border-emerald-500 hover:bg-emerald-950/40 transition-all shrink-0 flex items-center justify-center"
+                                      />
+                                      <div className="flex-1 min-w-0">
+                                        <p className="text-white text-sm font-semibold leading-snug">{o.oportunidad}</p>
+                                        {o.impacto_estimado && (
+                                          <p className="text-slate-400 text-xs leading-relaxed mt-1.5">{o.impacto_estimado}</p>
+                                        )}
+                                        {/* Acción descartar */}
+                                        <button
+                                          onClick={() => toggleOportunidad(i, o.oportunidad, 'descartado')}
+                                          className="mt-2 text-xs text-slate-600 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100"
+                                        >
+                                          Descartar →
+                                        </button>
                                       </div>
-                                      <span className={`text-xs font-bold uppercase ${color}`}>
-                                        {o.complejidad_implementacion === 'baja' ? 'Rápida' : o.complejidad_implementacion === 'media' ? 'Media' : 'Compleja'}
-                                      </span>
+                                      {/* Complexity meter */}
+                                      <div className="flex flex-col items-end gap-1 shrink-0">
+                                        <div className="flex gap-1">
+                                          {[1, 2, 3].map(n => (
+                                            <div key={n} className={`w-2.5 h-2.5 rounded-full ${n <= nivel ? dotColor : 'bg-slate-700'}`} />
+                                          ))}
+                                        </div>
+                                        <span className={`text-xs font-bold uppercase ${color}`}>
+                                          {o.complejidad_implementacion === 'baja' ? 'Rápida' : o.complejidad_implementacion === 'media' ? 'Media' : 'Compleja'}
+                                        </span>
+                                      </div>
                                     </div>
                                   </div>
+                                )
+                              })}
+                            </div>
+
+                            {/* Historial de oportunidades completadas/descartadas */}
+                            {historial.length > 0 && (
+                              <div className="mt-4 rounded-xl border border-slate-700/30 bg-slate-900/40 overflow-hidden">
+                                <div className="px-4 py-2.5 border-b border-slate-700/30 flex items-center gap-2">
+                                  <CheckCircle className="w-3.5 h-3.5 text-slate-500" />
+                                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-widest">Historial — {historial.length} oportunidad{historial.length > 1 ? 'es' : ''}</p>
                                 </div>
-                              )
-                            })}
+                                <div className="divide-y divide-slate-700/20">
+                                  {historial.map((h, hi) => {
+                                    const original = oportunidades[h.indice]
+                                    return (
+                                      <div key={hi} className="px-4 py-3 flex items-start gap-3">
+                                        <span className={`text-xs font-bold px-2 py-0.5 rounded-full border shrink-0 mt-0.5 ${
+                                          h.accion === 'realizado'
+                                            ? 'bg-emerald-950/40 border-emerald-700/30 text-emerald-400'
+                                            : 'bg-slate-800/60 border-slate-700/30 text-slate-500'
+                                        }`}>
+                                          {h.accion === 'realizado' ? '✓ Realizado' : '✕ Descartado'}
+                                        </span>
+                                        <div className="flex-1 min-w-0">
+                                          <p className={`text-xs leading-relaxed ${h.accion === 'realizado' ? 'text-slate-400 line-through' : 'text-slate-600 line-through'}`}>
+                                            {h.texto}
+                                          </p>
+                                          {original?.impacto_estimado && (
+                                            <p className="text-xs text-slate-600 mt-0.5">{original.impacto_estimado}</p>
+                                          )}
+                                          <p className="text-xs text-slate-700 mt-1">
+                                            {new Date(h.fecha).toLocaleDateString('es-CL', { day:'2-digit', month:'short', year:'numeric' })}
+                                          </p>
+                                        </div>
+                                        {/* Restaurar */}
+                                        <button
+                                          onClick={() => toggleOportunidad(h.indice, h.texto, h.accion)}
+                                          className="text-xs text-slate-600 hover:text-indigo-400 transition-colors shrink-0"
+                                          title="Restaurar a activas"
+                                        >
+                                          Restaurar
+                                        </button>
+                                      </div>
+                                    )
+                                  })}
+                                </div>
+                              </div>
+                            )}
                           </div>
-                        </div>
-                      )}
+                        )
+                      })()}
 
                       {/* ── Próximos pasos — roadmap ── */}
                       {pasos.length > 0 && (
