@@ -31,10 +31,17 @@ interface ProcesoConHijos extends Proceso {
 interface Resumen {
   diagnostico: string
   estado_salud: 'critico' | 'en_riesgo' | 'estable' | 'optimizado'
+  nivel_madurez?: string
   impacto_negocio: string
   quick_win: string
   potencial_automatizacion: 'alto' | 'medio' | 'bajo'
   siguiente_paso: string
+  brechas_principales?: string[]
+  oportunidades_valor?: string[]
+  riesgos_criticos?: string[]
+  benchmark_industria?: string
+  ancla_documental?: boolean
+  documentos_considerados?: number
 }
 
 interface DocumentoItem {
@@ -1801,17 +1808,36 @@ function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: Proceso
 
               {resumen && saludCfg && (
                 <div className={`rounded-xl border p-5 space-y-4 ${saludCfg.bg} ${saludCfg.border}`}>
+
+                  {/* Header: badge + docs count + madurez */}
                   <div className="flex items-center justify-between flex-wrap gap-2">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <Brain className="w-4 h-4 text-violet-400" />
                       <span className="text-violet-300 text-xs font-semibold uppercase tracking-widest">AICOUNTS Intelligence</span>
+                      {(resumen.documentos_considerados ?? 0) > 0 && (
+                        <span className="text-[10px] bg-violet-900/50 text-violet-300 border border-violet-700/40 px-2 py-0.5 rounded-full font-medium">
+                          {resumen.documentos_considerados} doc{(resumen.documentos_considerados ?? 0) !== 1 ? 's' : ''} analizados
+                        </span>
+                      )}
+                      {!resumen.ancla_documental && (
+                        <span className="text-[10px] bg-amber-900/40 text-amber-400 border border-amber-700/30 px-2 py-0.5 rounded-full">Análisis preliminar</span>
+                      )}
                     </div>
-                    <span className={`text-xs font-bold px-3 py-1 rounded-full ${saludCfg.color} bg-slate-900/60 border border-current/20`}>
-                      <span className="inline-block w-1.5 h-1.5 rounded-full mr-1.5 align-middle" style={{ background: 'currentColor' }} />
-                      {saludCfg.label}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      {resumen.nivel_madurez && (
+                        <span className="text-[10px] text-slate-400 bg-slate-900/60 px-2 py-0.5 rounded-full border border-slate-700/40">{resumen.nivel_madurez}</span>
+                      )}
+                      <span className={`text-xs font-bold px-3 py-1 rounded-full ${saludCfg.color} bg-slate-900/60 border border-current/20`}>
+                        <span className="inline-block w-1.5 h-1.5 rounded-full mr-1.5 align-middle" style={{ background: 'currentColor' }} />
+                        {saludCfg.label}
+                      </span>
+                    </div>
                   </div>
+
+                  {/* Diagnóstico */}
                   <p className="text-slate-200 text-sm leading-relaxed">{resumen.diagnostico}</p>
+
+                  {/* Impacto + Quick Win */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {resumen.impacto_negocio && (
                       <div className="bg-slate-900/60 rounded-lg p-3 space-y-1">
@@ -1832,7 +1858,67 @@ function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: Proceso
                       </div>
                     )}
                   </div>
-                  <div className="flex items-start gap-3 flex-wrap">
+
+                  {/* Brechas principales */}
+                  {resumen.brechas_principales && resumen.brechas_principales.length > 0 && (
+                    <div className="bg-slate-900/50 rounded-xl p-3 space-y-2">
+                      <p className="text-[10px] font-semibold text-red-400 uppercase tracking-widest flex items-center gap-1.5">
+                        <AlertTriangle className="w-3 h-3" /> Brechas críticas detectadas
+                      </p>
+                      <ul className="space-y-1">
+                        {resumen.brechas_principales.map((b, i) => (
+                          <li key={i} className="flex items-start gap-2 text-xs text-slate-300">
+                            <span className="w-4 h-4 rounded-full bg-red-900/50 border border-red-700/40 flex items-center justify-center text-red-400 text-[9px] font-bold shrink-0 mt-0.5">{i + 1}</span>
+                            {b}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* Oportunidades de valor */}
+                  {resumen.oportunidades_valor && resumen.oportunidades_valor.length > 0 && (
+                    <div className="bg-slate-900/50 rounded-xl p-3 space-y-2">
+                      <p className="text-[10px] font-semibold text-emerald-400 uppercase tracking-widest flex items-center gap-1.5">
+                        <TrendingUp className="w-3 h-3" /> Oportunidades de valor
+                      </p>
+                      <ul className="space-y-1">
+                        {resumen.oportunidades_valor.map((o, i) => (
+                          <li key={i} className="flex items-start gap-2 text-xs text-slate-300">
+                            <span className="text-emerald-400 shrink-0 mt-0.5">✦</span>
+                            {o}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* Riesgos críticos */}
+                  {resumen.riesgos_criticos && resumen.riesgos_criticos.length > 0 && (
+                    <div className="bg-slate-900/50 rounded-xl p-3 space-y-2">
+                      <p className="text-[10px] font-semibold text-amber-400 uppercase tracking-widest flex items-center gap-1.5">
+                        <Shield className="w-3 h-3" /> Riesgos a gestionar
+                      </p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {resumen.riesgos_criticos.map((r, i) => (
+                          <span key={i} className="text-[10px] bg-amber-950/40 text-amber-300 border border-amber-800/30 px-2 py-0.5 rounded-lg">{r}</span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Benchmark industria */}
+                  {resumen.benchmark_industria && (
+                    <div className="bg-slate-900/50 rounded-xl p-3 space-y-1 border border-violet-800/20">
+                      <p className="text-[10px] font-semibold text-violet-400 uppercase tracking-widest flex items-center gap-1.5">
+                        <BarChart3 className="w-3 h-3" /> Benchmark de industria
+                      </p>
+                      <p className="text-xs text-slate-300 leading-relaxed">{resumen.benchmark_industria}</p>
+                    </div>
+                  )}
+
+                  {/* Automatización + Siguiente paso */}
+                  <div className="flex items-start gap-3 flex-wrap pt-1 border-t border-slate-800/60">
                     {resumen.potencial_automatizacion && (
                       <div className="flex items-center gap-2 bg-slate-900/60 rounded-lg px-3 py-2">
                         <Cpu className="w-3.5 h-3.5 text-violet-400" />

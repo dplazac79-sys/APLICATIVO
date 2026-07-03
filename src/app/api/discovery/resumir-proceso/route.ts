@@ -14,84 +14,156 @@ export async function POST(req: NextRequest) {
   if (!proceso_id) return NextResponse.json({ error: 'Falta proceso_id' }, { status: 400 })
 
   const admin = createAdminClient()
+
+  // 1. Cargar el proceso con su proyecto
   const { data: proceso } = await admin
     .from('proceso')
-    .select('*, proyecto:proyecto_id(nombre, contexto, objetivos)')
+    .select('*, proyecto:proyecto_id(id, nombre, contexto, objetivos, cliente:cliente_id(razon_social, industria))')
     .eq('id', proceso_id)
     .single()
 
   if (!proceso) return NextResponse.json({ error: 'Proceso no encontrado' }, { status: 404 })
 
-  const meta = proceso.metadata_ia as Record<string, unknown> | null
+  const proyectoId = proceso.proyecto_id
+  const proyecto = proceso.proyecto as Record<string, unknown>
+  const cliente = proyecto?.cliente as Record<string, unknown> | null
 
-  // Cargar analisis_ia del documento origen — ancla documental obligatoria
-  let ia: Record<string, unknown> = {}
-  if (proceso.documento_origen_id) {
-    const { data: doc } = await admin
-      .from('documento')
-      .select('analisis_ia')
-      .eq('id', proceso.documento_origen_id)
-      .single()
-    if (doc?.analisis_ia) ia = doc.analisis_ia as Record<string, unknown>
-  }
+  // 2. Cargar TODOS los documentos del proyecto con analisis_ia completo
+  const { data: documentos } = await admin
+    .from('documento')
+    .select('id, nombre_archivo, analisis_ia, clasificacion, tipo')
+    .eq('proyecto_id', proyectoId)
+    .eq('estado_procesamiento', 'listo')
+    .order('created_at', { ascending: true })
 
-  const resumenDoc       = (ia.resumen_ejecutivo as string)       ?? ''
-  const diagnosticoDoc   = (ia.diagnostico_operacional as string) ?? ''
-  const hallazgosDoc     = (ia.hallazgos_criticos as string[])    ?? []
-  const riesgosDoc       = (ia.riesgos_criticos as Array<{ riesgo: string; impacto: string }>) ?? []
-  const quickWinsDoc     = (ia.quick_wins as string[])            ?? []
-  const madurezNombre    = (ia.nivel_madurez_nombre as string)    ?? ''
-  const recomendacionDoc = (ia.recomendacion_ejecutiva as string) ?? ''
+  const docsConIA = (documentos ?? []).filter(d => d.analisis_ia)
 
-  const tieneDocumento = resumenDoc.length > 0
+  // 3. Cargar subprocesos hijos (si es macroproceso nivel=0)
+  const { data: subprocesos } = proceso.nivel === 0
+    ? await admin
+        .from('proceso')
+        .select('nombre, descripcion, roles_involucrados, riesgos_detectados, metadata_ia')
+        .eq('padre_id', proceso_id)
+        .order('orden', { ascending: true })
+    : { data: [] }
 
-  const systemPrompt = `Eres un consultor experto en procesos organizacionales de AICOUNTS Consultores.
-${tieneDocumento
-  ? 'Basándote ESTRICTAMENTE en el análisis documental adjunto, entrega un diagnóstico ejecutivo del proceso. No inventes ni supones — todo debe rastrearse al documento.'
-  : 'El proceso aún no tiene documento analizado. Usa solo los metadatos disponibles y sé explícito en que es un análisis preliminar.'}`
+  // 4. Construir inteligencia documental agregada (todos los documentos)
+  const inteligenciaDocumental = docsConIA.map(doc => {
+    const ia = doc.analisis_ia as Record<string, unknown>
+    const hallazgos  = (ia.hallazgos_criticos  as string[] | undefined)  ?? []
+    const riesgos    = (ia.riesgos_criticos    as Array<{riesgo:string;impacto:string}> | undefined) ?? []
+    const opor       = (ia.oportunidades_valor as Array<{oportunidad:string;impacto_estimado?:string}> | undefined) ?? []
+    const qw         = (ia.quick_wins          as string[] | undefined)  ?? []
+    const brechas    = (ia.brechas_documentacion as string[] | undefined) ?? []
+    const madurez    = (ia.nivel_madurez_nombre as string | undefined)   ?? ''
+    const resumen    = (ia.resumen_ejecutivo   as string | undefined)    ?? ''
+    const diag       = (ia.diagnostico_operacional as string | undefined) ?? ''
+    const recomenda  = (ia.recomendacion_ejecutiva as string | undefined) ?? ''
+    const proximos   = (ia.proximos_pasos_sugeridos as string[] | undefined) ?? []
 
-  const userPrompt = `PROCESO: ${proceso.nombre}
-PROYECTO: ${(proceso.proyecto as Record<string, unknown>)?.nombre ?? ''}
-CRITICIDAD: ${meta?.criticidad ?? 'No evaluada'}
-ROLES INVOLUCRADOS: ${(proceso.roles_involucrados ?? []).join(', ') || 'No identificados'}
-
-${tieneDocumento ? `═══ ANÁLISIS DOCUMENTAL (fuente primaria) ═══
-
-RESUMEN EJECUTIVO:
-"${resumenDoc.slice(0, 600)}"
-
-DIAGNÓSTICO OPERACIONAL:
-"${diagnosticoDoc.slice(0, 400)}"
-
-HALLAZGOS CRÍTICOS (${hallazgosDoc.length}):
-${hallazgosDoc.slice(0, 5).map((h, i) => `${i + 1}. ${h}`).join('\n')}
-
-RIESGOS IDENTIFICADOS:
-${riesgosDoc.slice(0, 3).map(r => `- [${r.impacto?.toUpperCase()}] ${r.riesgo}`).join('\n')}
-
+    return `
+═══ DOCUMENTO: ${doc.nombre_archivo} ═══
+RESUMEN: ${resumen.slice(0, 500)}
+DIAGNÓSTICO OPERACIONAL: ${diag.slice(0, 400)}
+NIVEL DE MADUREZ: ${madurez}
+HALLAZGOS CRÍTICOS (${hallazgos.length}):
+${hallazgos.slice(0, 6).map((h, i) => `  ${i+1}. ${h}`).join('\n')}
+RIESGOS (${riesgos.length}):
+${riesgos.slice(0, 4).map(r => `  · [${r.impacto?.toUpperCase()}] ${r.riesgo}`).join('\n')}
+OPORTUNIDADES DE VALOR:
+${opor.slice(0, 4).map(o => `  ✦ ${o.oportunidad}${o.impacto_estimado ? ` — ${o.impacto_estimado}` : ''}`).join('\n')}
 QUICK WINS:
-${quickWinsDoc.slice(0, 3).map(q => `- ${q}`).join('\n')}
+${qw.slice(0, 3).map(q => `  ⚡ ${q}`).join('\n')}
+BRECHAS DOCUMENTALES:
+${brechas.slice(0, 3).map(b => `  ▸ ${b}`).join('\n')}
+RECOMENDACIÓN EJECUTIVA: ${recomenda.slice(0, 300)}
+PRÓXIMOS PASOS: ${proximos.slice(0, 3).join(' | ')}`
+  }).join('\n\n')
 
-NIVEL DE MADUREZ: ${madurezNombre}
-RECOMENDACIÓN EJECUTIVA: "${recomendacionDoc.slice(0, 300)}"` : `DESCRIPCIÓN: ${proceso.descripcion ?? 'No disponible'}
-ESTADO ACTUAL: ${meta?.estado_actual ?? 'No disponible'}`}
+  // 5. Contexto de subprocesos
+  const contextoSubprocesos = (subprocesos ?? []).map(sp => {
+    const meta = sp.metadata_ia as Record<string, unknown> | null
+    return `  • ${sp.nombre}: ${sp.descripcion ?? 'Sin descripción'}
+    Roles: ${(sp.roles_involucrados ?? []).join(', ') || 'No identificados'}
+    Riesgos: ${(sp.riesgos_detectados ?? []).slice(0, 2).join(', ') || 'No detectados'}
+    Criticidad: ${meta?.criticidad ?? 'No evaluada'}`
+  }).join('\n')
 
-Responde SOLO en JSON con este formato exacto (sin texto extra):
+  const tieneDocumentos = docsConIA.length > 0
+
+  // 6. Prompt de clase mundial
+  const systemPrompt = `Eres el motor de inteligencia organizacional de AICOUNTS Consultores — una firma de consultoría de procesos de clase mundial. Tu rol es el de un Senior Partner con 20+ años de experiencia en transformación operacional en industrias de salud, retail, manufactura y servicios.
+
+Tu análisis debe:
+1. BASARSE ESTRICTAMENTE en la inteligencia documental real del cliente — CERO especulación sin respaldo
+2. Comparar con MEJORES PRÁCTICAS del mercado para la industria indicada (menciona estándares: ISO, APQC, Six Sigma, Lean, SCOR según aplique)
+3. Ser ACCIONABLE: cada recomendación tiene un responsable y un plazo implícito
+4. Usar lenguaje ejecutivo de C-Suite, no jerga técnica
+5. Identificar el POTENCIAL REAL de mejora basado en los datos del cliente
+6. NUNCA inventar cifras en $ sin respaldo documental — usa cualitativos o rangos
+
+Responde SOLO en JSON válido, sin texto extra antes ni después.`
+
+  const userPrompt = tieneDocumentos ? `
+EMPRESA: ${cliente?.razon_social ?? proyecto?.nombre ?? 'No especificado'}
+INDUSTRIA: ${cliente?.industria ?? 'No especificada'}
+PROYECTO DE CONSULTORÍA: ${proyecto?.nombre ?? ''}
+CONTEXTO DEL PROYECTO: ${(proyecto?.contexto as string ?? '').slice(0, 400)}
+
+PROCESO A ANALIZAR: ${proceso.nombre} (Nivel ${proceso.nivel === 0 ? 'Macroproceso' : 'Proceso'})
+DESCRIPCIÓN: ${proceso.descripcion ?? 'No disponible'}
+CRITICIDAD: ${(proceso.metadata_ia as Record<string,unknown>)?.criticidad ?? 'No evaluada'}
+ROLES: ${(proceso.roles_involucrados ?? []).join(', ') || 'No identificados'}
+
+${proceso.nivel === 0 && (subprocesos ?? []).length > 0 ? `SUBPROCESOS BAJO ESTE MACROPROCESO (${(subprocesos ?? []).length}):
+${contextoSubprocesos}
+
+` : ''}INTELIGENCIA DOCUMENTAL DEL PROYECTO (${docsConIA.length} documentos analizados):
+${inteligenciaDocumental}
+
+INSTRUCCIÓN: Basándote en TODA la inteligencia documental anterior, genera un diagnóstico ejecutivo profundo del proceso "${proceso.nombre}". Compara con mejores prácticas del mercado para la industria. Devuelve este JSON exacto:
 {
-  "diagnostico": "${tieneDocumento ? '2-3 frases que citen o parafraseen el diagnóstico del documento formal' : '2-3 frases basadas solo en metadatos disponibles — indica que es preliminar'}",
+  "diagnostico": "4-5 frases ejecutivas que sinteticen el estado real del proceso basándose en los documentos. Menciona hallazgos específicos de los documentos.",
   "estado_salud": "critico|en_riesgo|estable|optimizado",
-  "impacto_negocio": "1 frase del impacto si este proceso falla o se optimiza",
-  "quick_win": "${tieneDocumento ? 'Acción concreta derivada de los quick wins del documento' : 'Acción preliminar — requiere análisis documental para validar'}",
+  "nivel_madurez": "Ej: Nivel 2 — Gestionado",
+  "impacto_negocio": "Impacto concreto si este proceso falla o se optimiza, basado en los documentos",
+  "quick_win": "La acción más impactante en ≤ 30 días derivada de los quick wins documentados",
   "potencial_automatizacion": "alto|medio|bajo",
-  "siguiente_paso": "Qué debería hacer el equipo consultor con este proceso ahora mismo",
-  "ancla_documental": ${tieneDocumento ? 'true' : 'false'}
+  "siguiente_paso": "Acción concreta y específica que el equipo consultor debe tomar ahora mismo",
+  "brechas_principales": ["Brecha 1 documentada", "Brecha 2 documentada", "Brecha 3 documentada"],
+  "oportunidades_valor": ["Oportunidad 1 con impacto", "Oportunidad 2 con impacto", "Oportunidad 3 con impacto"],
+  "riesgos_criticos": ["Riesgo 1 [ALTO]", "Riesgo 2 [MEDIO]", "Riesgo 3"],
+  "benchmark_industria": "Cómo se compara este proceso con mejores prácticas del sector (menciona estándar específico si aplica: ISO, APQC SCOR, Lean, Six Sigma, etc.)",
+  "ancla_documental": true,
+  "documentos_considerados": ${docsConIA.length}
+}` : `
+PROCESO: ${proceso.nombre}
+PROYECTO: ${proyecto?.nombre ?? ''}
+DESCRIPCIÓN: ${proceso.descripcion ?? 'No disponible'}
+
+No hay documentos procesados para este proyecto. El diagnóstico es PRELIMINAR.
+Devuelve este JSON exacto:
+{
+  "diagnostico": "Diagnóstico preliminar indicando que se requiere análisis documental para una evaluación precisa. Describe el proceso desde su nombre y descripción.",
+  "estado_salud": "en_riesgo",
+  "nivel_madurez": "Sin evaluar — requiere documentos",
+  "impacto_negocio": "No determinable sin documentación del proceso",
+  "quick_win": "Cargar documentos del proceso para habilitar el análisis completo con IA",
+  "potencial_automatizacion": "medio",
+  "siguiente_paso": "Solicitar al cliente la documentación del proceso para análisis de primera clase",
+  "brechas_principales": ["Sin documentación disponible para análisis", "Roles no formalizados", "Procesos sin respaldo documental"],
+  "oportunidades_valor": ["Formalizar documentación del proceso", "Establecer métricas base", "Definir roles y responsabilidades"],
+  "riesgos_criticos": ["Proceso sin documentación implica riesgo de conocimiento tácito", "Sin métricas definidas no se puede medir mejora"],
+  "benchmark_industria": "Requiere documentación para comparar con mejores prácticas del sector",
+  "ancla_documental": false,
+  "documentos_considerados": 0
 }`
 
   let resultado: Record<string, unknown>
   try {
     const completion = await groq.chat.completions.create({
       model: 'llama-3.3-70b-versatile',
-      max_tokens: 600,
+      max_tokens: 1200,
       temperature: 0.2,
       messages: [
         { role: 'system', content: systemPrompt },
@@ -103,7 +175,21 @@ Responde SOLO en JSON con este formato exacto (sin texto extra):
     try {
       resultado = JSON.parse(match ? match[0] : text)
     } catch {
-      resultado = { diagnostico: text, estado_salud: 'estable', impacto_negocio: '', quick_win: '', potencial_automatizacion: 'medio', siguiente_paso: '', ancla_documental: tieneDocumento }
+      resultado = {
+        diagnostico: text.slice(0, 500),
+        estado_salud: 'en_riesgo',
+        nivel_madurez: 'No determinado',
+        impacto_negocio: '',
+        quick_win: '',
+        potencial_automatizacion: 'medio',
+        siguiente_paso: '',
+        brechas_principales: [],
+        oportunidades_valor: [],
+        riesgos_criticos: [],
+        benchmark_industria: '',
+        ancla_documental: tieneDocumentos,
+        documentos_considerados: docsConIA.length,
+      }
     }
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err)
