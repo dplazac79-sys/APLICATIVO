@@ -561,9 +561,15 @@ function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: Proceso
 
   async function abrirDocumento(documentoId: string) {
     setCargandoVisor(true)
+    // Revocar blob URL anterior si existe
+    if (docVisorUrl?.startsWith('blob:')) URL.revokeObjectURL(docVisorUrl)
     setDocVisorUrl(null)
     try {
-      setDocVisorUrl(`/api/documentos/pdf-proxy?id=${documentoId}`)
+      const res = await fetch(`/api/documentos/pdf-proxy?id=${documentoId}`)
+      if (!res.ok) throw new Error('Error al obtener PDF')
+      const blob = await res.blob()
+      const blobUrl = URL.createObjectURL(blob)
+      setDocVisorUrl(blobUrl)
     } catch { setErrorCorr('Error al abrir el documento.') }
     finally { setCargandoVisor(false) }
   }
