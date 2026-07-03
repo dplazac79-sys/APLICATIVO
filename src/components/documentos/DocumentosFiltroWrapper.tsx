@@ -111,7 +111,7 @@ function DocFila({
             <Download className="w-4 h-4" />
           </div>
         )}
-        <DocumentoAcciones documentoId={doc.id} estado={estadoKey as any} puedeEliminar={puedeEliminar} />
+        <DocumentoAcciones documentoId={doc.id} estado={estadoKey as any} puedeEliminar={puedeEliminar} puedeAnalizar={esInterno} />
         {!puedeEliminar && (
           <div className="w-8 h-8 flex items-center justify-center text-slate-700" title="Solo lectura">
             <Lock className="w-3.5 h-3.5" />

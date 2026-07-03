@@ -236,13 +236,21 @@ export async function reAnalizarContenidoEditado(contenidoEditado: {
   sin_proceso_riesgos: string
   con_proceso_beneficios: string
   nombre_proceso: string
+  contexto_documental?: string | null
 }) {
+  const anclaDocumental = contenidoEditado.contexto_documental
+    ? `\n\n## CONTEXTO DOCUMENTAL (fuente primaria — no contradecir)\n${contenidoEditado.contexto_documental}`
+    : ''
+
   const msg = await client.messages.create({
     model: 'claude-sonnet-4-6',
     max_tokens: 2048,
-    system: `Eres un experto en análisis de procesos de negocio de AICOUNTS Consultores. Recibirás contenido editado por el cliente sobre un proceso. Tu tarea es actualizar los KPIs y riesgos basándote EXCLUSIVAMENTE en lo que el cliente describió.
+    system: `Eres un experto en análisis de procesos de negocio de AICOUNTS Consultores. Recibirás contenido editado por el cliente sobre un proceso y, cuando esté disponible, el contexto documental del proyecto como ancla.
 
-IMPORTANTE: No inventes cifras en $ que no estén en el texto del cliente. Los KPIs deben ser relativos (%, días, veces, nivel cualitativo). Si el cliente no menciona un valor numérico, usa descriptores cualitativos como "alto", "reducción significativa", "mejora esperada".
+Tu tarea es actualizar los KPIs y riesgos respetando estas prioridades:
+1. El contexto documental es la fuente primaria — no contradigas datos que estén en él.
+2. El contenido editado por el cliente complementa y precisa el documento — incorpóralo.
+3. No inventes cifras en $ sin respaldo. Los KPIs deben ser relativos (%, días, veces, nivel cualitativo).
 
 Devuelve SOLO un objeto JSON válido:
 {
@@ -256,7 +264,7 @@ Devuelve SOLO un objeto JSON válido:
 }`,
     messages: [{
       role: 'user',
-      content: `Proceso: ${contenidoEditado.nombre_proceso}\n\nDescripción actualizada:\n${contenidoEditado.descripcion}\n\nSin este proceso:\n${contenidoEditado.sin_proceso_riesgos}\n\nCon este proceso:\n${contenidoEditado.con_proceso_beneficios}`
+      content: `Proceso: ${contenidoEditado.nombre_proceso}\n\nDescripción actualizada:\n${contenidoEditado.descripcion}\n\nSin este proceso:\n${contenidoEditado.sin_proceso_riesgos}\n\nCon este proceso:\n${contenidoEditado.con_proceso_beneficios}${anclaDocumental}`
     }],
   })
   if (msg.stop_reason === 'max_tokens') throw new Error('Respuesta IA incompleta al re-analizar')

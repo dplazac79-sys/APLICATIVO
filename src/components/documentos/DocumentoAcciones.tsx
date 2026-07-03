@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { CheckCircle, AlertCircle, Trash2, Lock } from 'lucide-react'
+import { CheckCircle, AlertCircle, Trash2, Lock, RefreshCw } from 'lucide-react'
 
 interface Props {
   documentoId: string
@@ -12,15 +12,48 @@ interface Props {
 }
 
 
-export default function DocumentoAcciones({ documentoId, estado: estadoInicial, puedeEliminar = true }: Props) {
+export default function DocumentoAcciones({ documentoId, estado: estadoInicial, puedeEliminar = true, puedeAnalizar = false }: Props) {
   const [eliminando, setEliminando] = useState(false)
+  const [reAnalizando, setReAnalizando] = useState(false)
+  const [reAnalizado, setReAnalizado] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  async function reAnalizar() {
+    setReAnalizando(true)
+    setError(null)
+    try {
+      const res = await fetch('/api/documentos/procesar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ documento_id: documentoId }),
+      })
+      if (!res.ok) throw new Error('Error al re-analizar')
+      setReAnalizado(true)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al re-analizar')
+    } finally {
+      setReAnalizando(false)
+    }
+  }
 
   if (estadoInicial === 'listo') {
     return (
-      <div className="flex items-center gap-1.5 text-emerald-400 text-xs">
-        <CheckCircle className="w-3.5 h-3.5" />
-        Procesado
+      <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 text-emerald-400 text-xs">
+          <CheckCircle className="w-3.5 h-3.5" />
+          {reAnalizado ? 'Re-análisis encolado' : 'Procesado'}
+        </div>
+        {puedeAnalizar && !reAnalizado && (
+          <button
+            onClick={reAnalizar}
+            disabled={reAnalizando}
+            title="Re-analizar con IA (nueva versión del motor)"
+            className="flex items-center gap-1 text-[10px] text-slate-500 hover:text-violet-400 transition-colors disabled:opacity-40"
+          >
+            <RefreshCw className={`w-3 h-3 ${reAnalizando ? 'animate-spin' : ''}`} />
+            {reAnalizando ? 'Encolando…' : 'Re-analizar'}
+          </button>
+        )}
       </div>
     )
   }

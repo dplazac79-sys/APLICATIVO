@@ -28,14 +28,30 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   const limite = await verificarLimiteIA(proceso.proyecto_id, 'resumir')
   if (!limite.permitido) return NextResponse.json({ error: limite.mensaje }, { status: 429 })
 
+  // Ancla documental: cargar analisis_ia de documentos del proyecto para grounding
+  const admin = createAdminClient()
+  const { data: docs } = await admin
+    .from('documento')
+    .select('nombre_archivo, analisis_ia')
+    .eq('proyecto_id', proceso.proyecto_id)
+    .eq('estado_procesamiento', 'listo')
+    .limit(3)
+
+  const contextoDocumental = (docs ?? [])
+    .filter(d => d.analisis_ia)
+    .map(d => {
+      const ia = d.analisis_ia as Record<string, unknown>
+      return `### ${d.nombre_archivo}\nResumen: ${(ia.resumen_ejecutivo as string ?? '').slice(0, 400)}\nDiagnóstico: ${(ia.diagnostico_operacional as string ?? '').slice(0, 300)}`
+    })
+    .join('\n\n')
+
   const resultado = await reAnalizarContenidoEditado({
     nombre_proceso: proceso.nombre_proceso,
     descripcion,
     sin_proceso_riesgos,
     con_proceso_beneficios,
+    contexto_documental: contextoDocumental || null,
   })
-
-  const admin = createAdminClient()
   await admin.from('proceso_enriquecido').update({
     valor_negocio: resultado.valor_negocio,
     kpis: resultado.kpis,
