@@ -2,8 +2,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import Groq from 'groq-sdk'
 
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY! })
-
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
   const admin = createAdminClient()
   const { data: proceso } = await admin.from('proceso').select('metadata_ia').eq('id', params.id).single()
@@ -13,6 +11,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
 }
 
 export async function POST(_req: NextRequest, { params }: { params: { id: string } }) {
+  const groq = new Groq({ apiKey: process.env.GROQ_API_KEY! })
   const admin = createAdminClient()
 
   const { data: proceso } = await admin
