@@ -1882,42 +1882,78 @@ function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: Proceso
                             const detalle = (v.detalle_correcciones ?? []) as Array<{tipo:string;indice:number;texto_original:string;observacion:string;fecha:string}>
                             const docId = v.documento_id as string | null | undefined
                             const abierto = versionDetalle === vNum
+
+                            // Resumen de tipos de cambio para la leyenda
+                            const TIPO_LABEL: Record<string,string> = { riesgo: 'Riesgo', hallazgo: 'Hallazgo', brecha: 'Brecha', rol: 'Rol', oportunidad: 'Oportunidad' }
+                            const TIPO_COLOR: Record<string,string> = {
+                              riesgo: 'bg-red-950/40 border-red-700/30 text-red-300',
+                              hallazgo: 'bg-amber-950/40 border-amber-700/30 text-amber-300',
+                              brecha: 'bg-blue-950/40 border-blue-700/30 text-blue-300',
+                              rol: 'bg-violet-950/40 border-violet-700/30 text-violet-300',
+                              oportunidad: 'bg-emerald-950/40 border-emerald-700/30 text-emerald-300',
+                            }
+                            const conteoTipos = detalle.reduce<Record<string,number>>((acc, d) => {
+                              acc[d.tipo] = (acc[d.tipo] ?? 0) + 1; return acc
+                            }, {})
+
                             return (
                               <div key={vNum} className={`rounded-xl border overflow-hidden ${esUltima ? 'border-violet-700/40' : 'border-slate-700/40'}`}>
                                 {/* Header de versión */}
-                                <div className={`p-4 flex items-center justify-between gap-4 ${esUltima ? 'bg-violet-950/20' : 'bg-slate-800/20'}`}>
-                                  <div className="flex items-center gap-3 min-w-0">
+                                <div className={`p-4 flex items-start justify-between gap-4 ${esUltima ? 'bg-violet-950/20' : 'bg-slate-800/20'}`}>
+                                  <div className="flex items-start gap-3 min-w-0 flex-1">
                                     <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 font-black text-sm ${esUltima ? 'bg-violet-600 text-white' : 'bg-slate-700 text-slate-300'}`}>
                                       v{vNum}
                                     </div>
-                                    <div className="min-w-0">
-                                      <p className={`text-sm font-semibold ${esUltima ? 'text-violet-200' : 'text-slate-300'}`}>
-                                        Versión {vNum}
-                                        {esUltima && <span className="ml-2 text-xs font-normal text-violet-400 bg-violet-950/60 border border-violet-800/40 px-2 py-0.5 rounded-full">Última</span>}
-                                      </p>
+                                    <div className="min-w-0 flex-1">
+                                      <div className="flex items-center gap-2 flex-wrap">
+                                        <p className={`text-sm font-semibold ${esUltima ? 'text-violet-200' : 'text-slate-300'}`}>
+                                          Versión {vNum}
+                                        </p>
+                                        {esUltima && <span className="text-xs font-normal text-violet-400 bg-violet-950/60 border border-violet-800/40 px-2 py-0.5 rounded-full">Última</span>}
+                                      </div>
                                       <p className="text-xs text-slate-500 mt-0.5">{vDesc}</p>
                                       <p className="text-xs text-slate-600 mt-0.5">
                                         {new Date(vFecha).toLocaleDateString('es-CL', { day: '2-digit', month: 'long', year: 'numeric' })}
                                         {vCount > 0 && ` · ${vCount} mejora${vCount > 1 ? 's' : ''}`}
                                       </p>
+                                      {/* Chips de tipo de cambio */}
+                                      {Object.keys(conteoTipos).length > 0 && (
+                                        <div className="flex flex-wrap gap-1.5 mt-2">
+                                          {Object.entries(conteoTipos).map(([tipo, cnt]) => (
+                                            <span key={tipo} className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${TIPO_COLOR[tipo] ?? 'bg-slate-800 border-slate-700 text-slate-300'}`}>
+                                              {cnt} {TIPO_LABEL[tipo] ?? tipo}{cnt > 1 ? 's' : ''} corregido{cnt > 1 ? 's' : ''}
+                                            </span>
+                                          ))}
+                                        </div>
+                                      )}
                                     </div>
                                   </div>
-                                  <div className="flex items-center gap-2 shrink-0">
-                                    {detalle.length > 0 && (
+                                  {/* Acciones: Ver (primario) + Descargar (secundario) */}
+                                  <div className="flex flex-col gap-2 shrink-0">
+                                    {docId && (
                                       <button
-                                        onClick={() => setVersionDetalle(abierto ? null : vNum)}
-                                        className="flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-lg bg-slate-700/60 hover:bg-slate-700 text-slate-300 border border-slate-600/40 transition-all"
+                                        onClick={async () => {
+                                          setVersionDetalle(abierto ? null : vNum)
+                                          if (!abierto) await abrirDocumento(docId)
+                                          else setDocVisorUrl(null)
+                                        }}
+                                        disabled={cargandoVisor}
+                                        className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-lg transition-all disabled:opacity-50 ${
+                                          esUltima
+                                            ? 'bg-violet-600 hover:bg-violet-500 text-white'
+                                            : 'bg-indigo-700/40 hover:bg-indigo-700/60 text-indigo-300 border border-indigo-700/40'
+                                        }`}
                                       >
-                                        <FileText className="w-3.5 h-3.5" />
-                                        {abierto ? 'Cerrar' : 'Ver detalle'}
+                                        {cargandoVisor && !abierto
+                                          ? <span className="w-3 h-3 border-2 border-current/30 border-t-current rounded-full animate-spin" />
+                                          : <FileText className="w-3.5 h-3.5" />}
+                                        {abierto ? 'Cerrar' : 'Ver documento'}
                                       </button>
                                     )}
                                     <a
                                       href={`/api/procesos/${proceso.id}/exportar?v=${vNum}`}
                                       download={`${proceso.nombre.replace(/[^a-z0-9]/gi,'_')}_v${vNum}.html`}
-                                      className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-lg transition-all ${
-                                        esUltima ? 'bg-violet-600 hover:bg-violet-500 text-white' : 'bg-slate-700/60 hover:bg-slate-700 text-slate-300 border border-slate-600/40'
-                                      }`}
+                                      className="flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-lg bg-slate-700/40 hover:bg-slate-700/70 text-slate-400 border border-slate-600/40 transition-all"
                                     >
                                       <ArrowRight className="w-3.5 h-3.5 -rotate-45" />
                                       Descargar
@@ -1925,68 +1961,67 @@ function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: Proceso
                                   </div>
                                 </div>
 
-                                {/* Panel de detalle de correcciones con visor de documento */}
-                                {abierto && detalle.length > 0 && (
-                                  <div className="border-t border-slate-700/40 bg-slate-900/60 p-4 space-y-3">
-                                    <div className="flex items-center justify-between">
-                                      <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Mejoras aplicadas en esta versión</p>
-                                      {docId && (
-                                        <button
-                                          onClick={() => abrirDocumento(docId)}
-                                          disabled={cargandoVisor}
-                                          className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg bg-indigo-700/40 hover:bg-indigo-700/60 text-indigo-300 border border-indigo-700/40 transition-all disabled:opacity-50"
-                                        >
-                                          {cargandoVisor ? <span className="w-3 h-3 border-2 border-indigo-300/30 border-t-indigo-300 rounded-full animate-spin" /> : <FileText className="w-3.5 h-3.5" />}
-                                          {docVisorUrl ? 'Cerrar documento' : 'Ver documento fuente'}
-                                        </button>
-                                      )}
-                                    </div>
+                                {/* Panel expandible: visor PDF + lista de cambios */}
+                                {abierto && (
+                                  <div className="border-t border-slate-700/40 bg-slate-900/60 p-4 space-y-4">
 
-                                    {/* Visor PDF inline */}
+                                    {/* Visor PDF inline — abre directo al hacer clic en "Ver documento" */}
                                     {docVisorUrl && (
                                       <div className="rounded-xl overflow-hidden border border-indigo-700/30 bg-slate-950">
                                         <div className="flex items-center justify-between px-3 py-2 bg-indigo-950/40 border-b border-indigo-700/20">
-                                          <p className="text-xs text-indigo-300 font-medium">Documento fuente — localiza los ítems del detalle abajo</p>
-                                          <button onClick={() => setDocVisorUrl(null)} className="text-slate-500 hover:text-slate-300 text-xs">✕ Cerrar</button>
+                                          <div className="flex items-center gap-2">
+                                            <FileText className="w-3.5 h-3.5 text-indigo-400" />
+                                            <p className="text-xs text-indigo-300 font-medium">Documento fuente</p>
+                                            {detalle[0]?.texto_original && (
+                                              <span className="text-[10px] text-slate-500">· Usa Ctrl+F para buscar el texto resaltado abajo</span>
+                                            )}
+                                          </div>
+                                          <button onClick={() => setDocVisorUrl(null)} className="text-slate-500 hover:text-slate-300 text-xs px-2 py-1 rounded hover:bg-slate-700/40">✕ Cerrar visor</button>
                                         </div>
                                         <iframe
                                           src={docVisorUrl}
                                           className="w-full"
-                                          style={{ height: '480px' }}
+                                          style={{ height: '520px' }}
                                           title="Documento fuente"
                                         />
                                       </div>
                                     )}
 
-                                    {/* Lista de correcciones con contexto */}
-                                    <div className="space-y-2">
-                                      {detalle.map((d, di) => {
-                                        const TIPO_LABEL: Record<string,string> = { riesgo: 'Riesgo', hallazgo: 'Hallazgo', brecha: 'Brecha', rol: 'Rol' }
-                                        const TIPO_COLOR: Record<string,string> = {
-                                          riesgo: 'bg-red-950/40 border-red-700/30 text-red-300',
-                                          hallazgo: 'bg-amber-950/40 border-amber-700/30 text-amber-300',
-                                          brecha: 'bg-blue-950/40 border-blue-700/30 text-blue-300',
-                                          rol: 'bg-violet-950/40 border-violet-700/30 text-violet-300',
-                                        }
-                                        return (
+                                    {/* Lista de cambios aplicados */}
+                                    {detalle.length > 0 && (
+                                      <div className="space-y-2">
+                                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Cambios aplicados en esta versión</p>
+                                        {detalle.map((d, di) => (
                                           <div key={di} className="rounded-lg border border-slate-700/30 bg-slate-800/30 p-3 space-y-2">
                                             <div className="flex items-start gap-2">
-                                              <span className={`text-xs font-bold px-2 py-0.5 rounded-md border shrink-0 ${TIPO_COLOR[d.tipo] ?? 'bg-slate-800 border-slate-700 text-slate-300'}`}>
-                                                {TIPO_LABEL[d.tipo] ?? d.tipo} #{d.indice + 1}
+                                              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md border shrink-0 ${TIPO_COLOR[d.tipo] ?? 'bg-slate-800 border-slate-700 text-slate-300'}`}>
+                                                {TIPO_LABEL[d.tipo] ?? d.tipo}
                                               </span>
-                                              <p className="text-xs text-slate-400 leading-relaxed">{d.texto_original || '(ítem del documento)'}</p>
+                                              {/* Texto original resaltado — el usuario puede Ctrl+F esto en el visor */}
+                                              {d.texto_original && (
+                                                <p className="text-xs text-slate-300 leading-relaxed font-medium bg-yellow-950/20 border border-yellow-700/20 rounded px-2 py-1 flex-1">
+                                                  {d.texto_original}
+                                                </p>
+                                              )}
                                             </div>
-                                            <div className="flex items-start gap-2 ml-1">
+                                            <div className="flex items-start gap-2 pl-1">
                                               <CheckCircle className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
-                                              <p className="text-xs text-emerald-300 italic">"{d.observacion}"</p>
+                                              <div>
+                                                <p className="text-[10px] text-slate-500 mb-0.5">Oportunidad registrada por el cliente</p>
+                                                <p className="text-xs text-emerald-300 italic">"{d.observacion}"</p>
+                                              </div>
                                             </div>
-                                            <p className="text-xs text-slate-600 ml-5">
+                                            <p className="text-[10px] text-slate-600 pl-1">
                                               {new Date(d.fecha).toLocaleDateString('es-CL', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' })}
                                             </p>
                                           </div>
-                                        )
-                                      })}
-                                    </div>
+                                        ))}
+                                      </div>
+                                    )}
+
+                                    {detalle.length === 0 && (
+                                      <p className="text-xs text-slate-600 text-center py-2">Versión inicial sin detalle de cambios</p>
+                                    )}
                                   </div>
                                 )}
                               </div>
