@@ -12,10 +12,8 @@ export async function GET(req: NextRequest) {
     .eq('id', id)
     .single()
 
-  console.log('[pdf-proxy] id:', id, 'doc:', doc, 'error:', docError?.message)
-
-  if (!doc) return NextResponse.json({ error: `documento ${id} no existe en BD`, detail: docError?.message }, { status: 404 })
-  if (!doc.url_storage) return NextResponse.json({ error: `documento ${id} existe pero url_storage es null` }, { status: 404 })
+  if (!doc) return NextResponse.json({ error: 'documento no encontrado' }, { status: 404 })
+  if (!doc.url_storage) return NextResponse.json({ error: 'documento sin archivo asociado' }, { status: 404 })
 
   const { data: signedData, error } = await admin.storage
     .from('documentos')
