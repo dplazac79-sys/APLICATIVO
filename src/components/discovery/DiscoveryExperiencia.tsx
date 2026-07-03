@@ -3679,23 +3679,25 @@ export default function DiscoveryExperiencia({
           </div>
 
           {(() => {
-            const procesosAnalizados = macroprocesos.flatMap(m => m.hijos ?? []).filter(p => (p.metadata_ia as Record<string,unknown> | null)?.resumen_ia).length
-            const totalHijos = macroprocesos.flatMap(m => m.hijos ?? []).length
-            const todosAnalizados = totalHijos > 0 && procesosAnalizados === totalHijos
-            const algunoAnalizados = procesosAnalizados > 0 && !todosAnalizados
-            if (todosAnalizados) return (
+            const hijos = macroprocesos.flatMap(m => m.hijos ?? [])
+            const totalHijos = hijos.length
+            const revisados = hijos.filter(p => p.estado_oferta === 'aceptado' || p.estado_oferta === 'rechazado').length
+            const todosRevisados = totalHijos > 0 && revisados === totalHijos
+            const algunoRevisado = revisados > 0 && !todosRevisados
+
+            if (todosRevisados) return (
               <div className="flex items-center gap-3 bg-emerald-950/30 border border-emerald-800/30 rounded-xl px-4 py-3">
                 <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0" />
                 <p className="text-emerald-300/80 text-xs">
-                  Todos los procesos tienen diagnóstico IA activo. Puedes re-analizar cualquiera desde su panel.
+                  Todos los procesos han sido revisados. Puedes profundizar con <span className="font-medium text-emerald-300">Analizar con IA</span> en cualquier proceso para diagnóstico ejecutivo detallado.
                 </p>
               </div>
             )
-            if (algunoAnalizados) return (
-              <div className="flex items-center gap-3 bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3">
-                <Sparkles className="w-4 h-4 text-violet-400 shrink-0" />
-                <p className="text-slate-400 text-xs">
-                  <span className="text-violet-300 font-medium">{procesosAnalizados} de {totalHijos} procesos</span> con diagnóstico IA. Activa <span className="text-violet-300 font-medium">Analizar con IA</span> en los restantes.
+            if (algunoRevisado) return (
+              <div className="flex items-center gap-3 bg-amber-950/20 border border-amber-800/20 rounded-xl px-4 py-3">
+                <Clock className="w-4 h-4 text-amber-400 shrink-0" />
+                <p className="text-amber-300/80 text-xs">
+                  <span className="font-medium text-amber-300">{revisados} de {totalHijos} procesos</span> revisados. Acepta o rechaza los restantes para completar la validación.
                 </p>
               </div>
             )
@@ -3703,7 +3705,7 @@ export default function DiscoveryExperiencia({
               <div className="flex items-center gap-3 bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3">
                 <Sparkles className="w-4 h-4 text-violet-400 shrink-0" />
                 <p className="text-slate-400 text-xs">
-                  Activa <span className="text-violet-300 font-medium">Analizar con IA</span> en cualquier proceso para un análisis ejecutivo instantáneo de criticidad, impacto al negocio y oportunidades de automatización.
+                  Abre cada proceso, revisa el análisis y acepta o rechaza. Usa <span className="text-violet-300 font-medium">Analizar con IA</span> para obtener diagnóstico ejecutivo de criticidad e impacto al negocio.
                 </p>
               </div>
             )
