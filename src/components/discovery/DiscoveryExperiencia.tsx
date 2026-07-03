@@ -2491,8 +2491,7 @@ function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: Proceso
             )}
 
             {/* Section E: Proyecciones IA */}
-            {!esHijo && (
-              <div>
+            <div>
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
                     <TrendingUp className="w-3.5 h-3.5 text-violet-400" />
@@ -2516,7 +2515,11 @@ function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: Proceso
 
                 {!proyeccion && !proyectando && (
                   <div className="rounded-xl bg-slate-800/30 border border-slate-700/30 p-4 text-center space-y-2">
-                    <p className="text-slate-400 text-xs">Genera una proyección estratégica con escenarios, mejoras priorizadas, roadmap y proyección de KPIs a 12 meses.</p>
+                    <p className="text-slate-400 text-xs">
+                      {esHijo
+                        ? `Proyecta qué pasaría en la operación si "${proceso.nombre}" se implementa según el documento — mejoras, escenarios y KPIs a 12 meses.`
+                        : 'Proyecta el impacto total para la empresa si se implementan todos los subprocesos — escenarios, roadmap y KPIs a 12 meses.'}
+                    </p>
                   </div>
                 )}
 
@@ -2654,8 +2657,7 @@ function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: Proceso
                     </div>
                   </div>
                 )}
-              </div>
-            )}
+            </div>
           </div>
         )}
       </div>
@@ -2663,7 +2665,7 @@ function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: Proceso
   )
 }
 
-// ─── Polling screen (Feature 1) ───────────────────────────────────────────────
+// ─── Polling screen (Feature 1) ─────────────────────────────────────────────
 
 function PollingScreen({
   proyectoId,
