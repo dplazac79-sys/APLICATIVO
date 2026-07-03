@@ -63,8 +63,8 @@ En un solo análisis ejecutas DOS tareas simultáneas: **clasificación document
       "Proceso con descripción de su estado actual"
     ],
     "roles_y_responsabilidades": {
-      "roles_identificados": ["Cargo 1", "Cargo 2"],
-      "brechas_de_rol": ["Rol que debería existir y no existe o no está claro"]
+      "roles_identificados": ["Copia textual exacta de cada cabecera de columna de la tabla RACI / matriz de responsabilidades del documento. NO inventes ni parafrasees — extrae el texto literal tal como aparece en el documento. Si hay más de una tabla RACI, combina las cabeceras únicas. Ejemplo real: ['Jefe SC', 'Ref. Clínico', 'Gerencia Fin.', 'Compras', 'Ger. Ops', 'Usuario']"],
+      "brechas_de_rol": ["Rol que debería existir según el contexto del proceso pero no aparece en la RACI ni está formalmente asignado"]
     },
     "riesgos_criticos": [
       {
