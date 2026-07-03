@@ -1,12 +1,12 @@
 import fs from 'fs'
 import path from 'path'
-import Anthropic from '@anthropic-ai/sdk'
+import Groq from 'groq-sdk'
 import type { TipoArtefacto } from '@/types/database'
 import { extractJson } from '@/lib/ai/claude'
 // Re-exportar desde fuente única para evitar duplicación (M2)
 export { ORDEN_GENERACION, LABEL_ARTEFACTO } from '@/lib/artefactos-meta'
 
-const client = new Anthropic()
+const groq = new Groq({ apiKey: process.env.GROQ_API_KEY! })
 
 const promptCache = new Map<string, string>()
 
@@ -77,44 +77,39 @@ function construirResumenDocumentos(docs: DocumentoResumen[]): string {
   ).join('\n\n').slice(0, 3000)
 }
 
-/**
- * Llama a Claude usando tool_use para JSON estructurado garantizado.
- * - Prompt caching en system prompt (mismo para todos los artefactos del mismo tipo)
- * - tool_use en vez de extractJson: no puede fallar el parsing
- */
-async function llamarClaudeConCache(
+async function llamarGroqConFunctionCalling(
   systemPrompt: string,
   userPrompt: string
 ): Promise<Record<string, unknown>> {
-  const msg = await (client as any).beta.messages.create({
-    model: 'claude-sonnet-4-6',
+  const completion = await groq.chat.completions.create({
+    model: 'llama-3.3-70b-versatile',
     max_tokens: 4096,
-    betas: ['prompt-caching-2024-07-31'],
-    system: [
-      {
-        type: 'text',
-        text: systemPrompt,
-        cache_control: { type: 'ephemeral' }, // cacheado entre artefactos del mismo tipo
-      },
+    temperature: 0.1,
+    messages: [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: userPrompt },
     ],
-    tools: [
-      {
+    tools: [{
+      type: 'function',
+      function: {
         name: 'generar_artefacto',
         description: 'Genera el artefacto solicitado en formato JSON estructurado',
-        input_schema: {
+        parameters: {
           type: 'object',
           properties: { resultado: { type: 'object', description: 'El artefacto completo' } },
           required: ['resultado'],
         },
       },
-    ],
-    tool_choice: { type: 'tool', name: 'generar_artefacto' },
-    messages: [{ role: 'user', content: userPrompt }],
+    }],
+    tool_choice: { type: 'function', function: { name: 'generar_artefacto' } } as any,
   })
-
-  const toolBlock = msg.content.find((b: any) => b.type === 'tool_use')
-  if (!toolBlock) throw new Error('Claude no retornó herramienta — respuesta inesperada')
-  return (toolBlock as any).input.resultado as Record<string, unknown>
+  const toolCall = completion.choices[0]?.message?.tool_calls?.[0]
+  if (toolCall) {
+    return (JSON.parse(toolCall.function.arguments) as { resultado: Record<string, unknown> }).resultado
+  }
+  // Fallback: si no retornó tool call, parsear el content como JSON
+  const text = completion.choices[0]?.message?.content ?? ''
+  return extractJson(text) as Record<string, unknown>
 }
 
 export async function generarArtefacto(
@@ -151,5 +146,5 @@ export async function generarArtefacto(
     userPrompt += '\n\n## Dashboard brechas\n' + JSON.stringify(existentes.dashboard_brechas ?? {}, null, 2)
   }
 
-  return llamarClaudeConCache(plantilla, userPrompt)
+  return llamarGroqConFunctionCalling(plantilla, userPrompt)
 }

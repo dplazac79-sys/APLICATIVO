@@ -1,10 +1,10 @@
 import fs from 'fs'
 import path from 'path'
-import Anthropic from '@anthropic-ai/sdk'
+import Groq from 'groq-sdk'
 import { extractJson } from '@/lib/ai/claude'
 import type { RecomendacionIA, KgIndustriaSnapshot } from './tipos'
 
-const client = new Anthropic()
+const groq = new Groq({ apiKey: process.env.GROQ_API_KEY! })
 const promptCache = new Map<string, string>()
 
 function loadPrompt(name: string): string {
@@ -52,13 +52,14 @@ export async function generarRecomendaciones(
     .replace('{{industria}}', ctx.industria)
     .replace('{{kg_patrones_industria}}', kgPatrones)
 
-  const response = await client.messages.create({
-    model: 'claude-sonnet-4-6',
+  const completion = await groq.chat.completions.create({
+    model: 'llama-3.3-70b-versatile',
     max_tokens: 4096,
+    temperature: 0.2,
     messages: [{ role: 'user', content: prompt }],
   })
 
-  const text = response.content[0].type === 'text' ? response.content[0].text : ''
+  const text = completion.choices[0]?.message?.content ?? ''
   const parsed = extractJson(text) as { recomendaciones: RecomendacionIA[] }
   return parsed?.recomendaciones ?? []
 }

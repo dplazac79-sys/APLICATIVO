@@ -1,9 +1,7 @@
-import Anthropic from '@anthropic-ai/sdk'
 import Groq from 'groq-sdk'
 import fs from 'fs'
 import path from 'path'
 
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 const groqClient = process.env.GROQ_API_KEY
   ? new Groq({ apiKey: process.env.GROQ_API_KEY })
   : null
@@ -87,27 +85,33 @@ async function analizarSeccion(
   systemPrompt: string,
   seccion?: string
 ): Promise<{ clasificacion: ClasificacionDoc; analisis: ResumenDoc }> {
+  if (!groqClient) throw new Error('GROQ_API_KEY no configurada')
   const header = seccion ? `[${seccion}]\n\n` : ''
-  const msg = await (client as any).beta.messages.create({
-    model: 'claude-sonnet-4-6',
+  const completion = await groqClient.chat.completions.create({
+    model: 'llama-3.3-70b-versatile',
     max_tokens: 6000,
-    betas: ['prompt-caching-2024-07-31'],
-    system: [{ type: 'text', text: systemPrompt, cache_control: { type: 'ephemeral' } }],
+    temperature: 0.1,
+    messages: [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: `Analiza este documento organizacional:\n\n${header}${texto}` },
+    ],
     tools: [{
-      name: 'entregar_analisis',
-      description: 'Entrega el análisis completo del documento con clasificación y diagnóstico ejecutivo',
-      input_schema: {
-        type: 'object',
-        properties: { clasificacion: { type: 'object' }, analisis: { type: 'object' } },
-        required: ['clasificacion', 'analisis'],
+      type: 'function',
+      function: {
+        name: 'entregar_analisis',
+        description: 'Entrega el análisis completo del documento con clasificación y diagnóstico ejecutivo',
+        parameters: {
+          type: 'object',
+          properties: { clasificacion: { type: 'object' }, analisis: { type: 'object' } },
+          required: ['clasificacion', 'analisis'],
+        },
       },
     }],
-    tool_choice: { type: 'tool', name: 'entregar_analisis' },
-    messages: [{ role: 'user', content: `Analiza este documento organizacional:\n\n${header}${texto}` }],
+    tool_choice: { type: 'function', function: { name: 'entregar_analisis' } } as any,
   })
-  const toolBlock = msg.content.find((b: { type: string }) => b.type === 'tool_use')
-  if (!toolBlock) throw new Error('No se recibió resultado del motor de inteligencia')
-  return toolBlock.input as { clasificacion: ClasificacionDoc; analisis: ResumenDoc }
+  const toolCall = completion.choices[0]?.message?.tool_calls?.[0]
+  if (!toolCall) throw new Error('No se recibió resultado del motor de inteligencia')
+  return JSON.parse(toolCall.function.arguments) as { clasificacion: ClasificacionDoc; analisis: ResumenDoc }
 }
 
 async function consolidarSecciones(
@@ -242,33 +246,34 @@ export async function reAnalizarContenidoEditado(contenidoEditado: {
     ? `\n\n## CONTEXTO DOCUMENTAL (fuente primaria — no contradecir)\n${contenidoEditado.contexto_documental}`
     : ''
 
-  const msg = await client.messages.create({
-    model: 'claude-sonnet-4-6',
+  if (!groqClient) throw new Error('GROQ_API_KEY no configurada')
+  const completion = await groqClient.chat.completions.create({
+    model: 'llama-3.3-70b-versatile',
     max_tokens: 2048,
-    system: `Eres un experto en análisis de procesos de negocio de AICOUNTS Consultores. Recibirás contenido editado por el cliente sobre un proceso y, cuando esté disponible, el contexto documental del proyecto como ancla.
+    temperature: 0.2,
+    messages: [
+      { role: 'system', content: `Eres un experto en análisis de procesos de negocio de AICOUNTS Consultores. Recibirás contenido editado por el cliente sobre un proceso y, cuando esté disponible, el contexto documental del proyecto como ancla.
 
 Tu tarea es actualizar los KPIs y riesgos respetando estas prioridades:
 1. El contexto documental es la fuente primaria — no contradigas datos que estén en él.
 2. El contenido editado por el cliente complementa y precisa el documento — incorpóralo.
 3. No inventes cifras en $ sin respaldo. Los KPIs deben ser relativos (%, días, veces, nivel cualitativo).
 
-Devuelve SOLO un objeto JSON válido:
+Devuelve SOLO un objeto JSON válido sin texto extra:
 {
   "valor_negocio": "resumen del valor actualizado según lo que describió el cliente — cualitativo si no hay datos numéricos",
   "kpis": [
-    {"nombre": "nombre del KPI derivado de la descripción del cliente", "valor_actual": "estado descrito (ej: alto, ~70%, frecuente)", "valor_objetivo": "objetivo mencionado o implícito", "unidad": "%, días, veces — no $ sin respaldo"}
+    {"nombre": "nombre del KPI", "valor_actual": "estado (ej: alto, ~70%, frecuente)", "valor_objetivo": "objetivo implícito", "unidad": "%, días, veces — no $ sin respaldo"}
   ],
   "riesgos": [
-    {"descripcion": "riesgo identificado en la descripción del cliente", "probabilidad": "alta|media|baja", "impacto": "alto|medio|bajo"}
+    {"descripcion": "riesgo identificado", "probabilidad": "alta|media|baja", "impacto": "alto|medio|bajo"}
   ]
-}`,
-    messages: [{
-      role: 'user',
-      content: `Proceso: ${contenidoEditado.nombre_proceso}\n\nDescripción actualizada:\n${contenidoEditado.descripcion}\n\nSin este proceso:\n${contenidoEditado.sin_proceso_riesgos}\n\nCon este proceso:\n${contenidoEditado.con_proceso_beneficios}${anclaDocumental}`
-    }],
+}` },
+      { role: 'user', content: `Proceso: ${contenidoEditado.nombre_proceso}\n\nDescripción actualizada:\n${contenidoEditado.descripcion}\n\nSin este proceso:\n${contenidoEditado.sin_proceso_riesgos}\n\nCon este proceso:\n${contenidoEditado.con_proceso_beneficios}${anclaDocumental}` },
+    ],
   })
-  if (msg.stop_reason === 'max_tokens') throw new Error('Respuesta IA incompleta al re-analizar')
-  return extractJson((msg.content[0] as { text: string }).text) as {
+  const text = completion.choices[0]?.message?.content ?? ''
+  return extractJson(text) as {
     valor_negocio: string
     kpis: Array<{ nombre: string; valor_actual: string; valor_objetivo: string; unidad: string }>
     riesgos: Array<{ descripcion: string; probabilidad: string; impacto: string }>
@@ -279,10 +284,13 @@ export async function enriquecerProcesoCliente(
   textoDocumento: string,
   contextoProyecto: string
 ) {
-  const msg = await client.messages.create({
-    model: 'claude-sonnet-4-6',
+  if (!groqClient) throw new Error('GROQ_API_KEY no configurada')
+  const completion = await groqClient.chat.completions.create({
+    model: 'llama-3.3-70b-versatile',
     max_tokens: 4096,
-    system: `Eres un experto en análisis de procesos de negocio de AICOUNTS Consultores. Recibirás un documento de proceso enviado por un cliente y el contexto del proyecto de consultoría. Tu tarea es enriquecer ese documento para que el cliente entienda:
+    temperature: 0.2,
+    messages: [
+      { role: 'system', content: `Eres un experto en análisis de procesos de negocio de AICOUNTS Consultores. Recibirás un documento de proceso enviado por un cliente y el contexto del proyecto de consultoría. Tu tarea es enriquecer ese documento para que el cliente entienda:
 1. Qué es exactamente este proceso y dónde se ubica en su cadena de valor
 2. Qué riesgos existen si este proceso no existe o falla
 3. Qué beneficios obtiene si el proceso existe y funciona bien
@@ -290,7 +298,7 @@ export async function enriquecerProcesoCliente(
 
 IMPORTANTE: Basarte ESTRICTAMENTE en lo que dice el documento. Los KPIs deben ser relativos (%, días, veces) nunca cifras absolutas en $ que no estén en el documento. Si el documento no menciona un dato, descríbelo cualitativamente.
 
-Devuelve SOLO un objeto JSON válido con esta estructura exacta:
+Devuelve SOLO un objeto JSON válido sin texto extra:
 {
   "nombre_proceso": "nombre claro del proceso tal como aparece en el documento",
   "macroproceso": "nombre del macroproceso al que pertenece según el documento",
@@ -306,14 +314,12 @@ Devuelve SOLO un objeto JSON válido con esta estructura exacta:
   "riesgos": [
     {"descripcion": "riesgo identificado en el documento", "probabilidad": "alta|media|baja", "impacto": "alto|medio|bajo"}
   ]
-}`,
-    messages: [{
-      role: 'user',
-      content: `Documento del cliente:\n${textoDocumento.slice(0, 10000)}\n\nContexto del proyecto:\n${contextoProyecto.slice(0, 4000)}`
-    }],
+}` },
+      { role: 'user', content: `Documento del cliente:\n${textoDocumento.slice(0, 10000)}\n\nContexto del proyecto:\n${contextoProyecto.slice(0, 4000)}` },
+    ],
   })
-  if (msg.stop_reason === 'max_tokens') throw new Error('Respuesta IA incompleta al enriquecer proceso')
-  return extractJson((msg.content[0] as { text: string }).text) as {
+  const text = completion.choices[0]?.message?.content ?? ''
+  return extractJson(text) as {
     nombre_proceso: string
     macroproceso: string
     descripcion: string
@@ -403,30 +409,8 @@ ${resumenesTruncados.map((d, i) => `--- Documento ${i + 1} ---\n${d}`).join('\n\
 
   let rawText: string
 
-  if (groqClient) {
-    // Usar Groq cuando está configurado (free tier — Llama 3.3 70B)
-    rawText = await discoveryProcesosGroq(contenido, system)
-  } else {
-    // Fallback a Anthropic cuando tiene créditos
-    const msg = await client.messages.create({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 8000,
-      system,
-      messages: [{ role: 'user', content: contenido }],
-    })
-    rawText = (msg.content[0] as { text: string }).text
-    // Si la respuesta se cortó, intentar recuperar el JSON parcial antes de fallar
-    if (msg.stop_reason === 'max_tokens') {
-      try {
-        return extractJson(rawText) as DiscoveryResult
-      } catch {
-        throw new Error(
-          `El análisis se generó pero quedó incompleto (demasiados documentos para una sola llamada). ` +
-          `Selecciona máximo 5 documentos a la vez.`
-        )
-      }
-    }
-  }
+  // Motor principal: Groq llama-3.3-70b-versatile
+  rawText = await discoveryProcesosGroq(contenido, system)
 
   return extractJson(rawText) as DiscoveryResult
 }
@@ -524,14 +508,18 @@ Retorna este JSON exacto:
 }
 `
 
-  const msg = await client.messages.create({
-    model: 'claude-sonnet-4-6',
+  if (!groqClient) throw new Error('GROQ_API_KEY no configurada')
+  const completion = await groqClient.chat.completions.create({
+    model: 'llama-3.3-70b-versatile',
     max_tokens: 8000,
-    system,
-    messages: [{ role: 'user', content: userContent }],
+    temperature: 0.2,
+    messages: [
+      { role: 'system', content: system },
+      { role: 'user', content: userContent },
+    ],
   })
-
-  return extractJson((msg.content[0] as { text: string }).text) as {
+  const text = completion.choices[0]?.message?.content ?? ''
+  return extractJson(text) as {
     mapeos: RolMapeo[]
     resumen_ejecutivo: string
     alertas_criticas: string[]
@@ -600,34 +588,33 @@ Operas con el rigor de un consultor senior + la precisión de un analista de dat
 Produces proyecciones basadas ESTRICTAMENTE en el diagnóstico documental adjunto.
 IMPORTANTE: No inventes cifras en $ ni porcentajes exactos sin respaldo en los datos del proceso. Si debes estimar, usa rangos cualitativos ("reducción significativa", "mejora considerable") o rangos amplios marcados como "estimado cualitativo". Las proyecciones financieras específicas requieren datos operacionales reales del cliente que deben ser validados por el consultor.`
 
-  const msg = await (client as any).beta.messages.create({
-    model: 'claude-sonnet-4-6',
+  if (!groqClient) throw new Error('GROQ_API_KEY no configurada')
+  const userContent = `## Contexto del proyecto\n${proyectoCx}\n\n## Proceso a proyectar\n${procesoCx}${
+    opciones?.incluir_automatizacion ? '\n\n## Nota: incluir análisis de automatización con IA/RPA en las mejoras propuestas.' : ''
+  }`
+  const completion = await groqClient.chat.completions.create({
+    model: 'llama-3.3-70b-versatile',
     max_tokens: 6000,
-    betas: ['prompt-caching-2024-07-31'],
-    system: [{ type: 'text', text: sistemaPrompt, cache_control: { type: 'ephemeral' } }],
-    tools: [
-      {
+    temperature: 0.2,
+    messages: [
+      { role: 'system', content: sistemaPrompt },
+      { role: 'user', content: userContent },
+    ],
+    tools: [{
+      type: 'function',
+      function: {
         name: 'generar_proyeccion',
         description: 'Genera la proyección completa del proceso con escenarios, mejoras y roadmap',
-        input_schema: {
+        parameters: {
           type: 'object',
           properties: { proyeccion: { type: 'object', description: 'Proyección completa' } },
           required: ['proyeccion'],
         },
       },
-    ],
-    tool_choice: { type: 'tool', name: 'generar_proyeccion' },
-    messages: [
-      {
-        role: 'user',
-        content: `## Contexto del proyecto\n${proyectoCx}\n\n## Proceso a proyectar\n${procesoCx}${
-          opciones?.incluir_automatizacion ? '\n\n## Nota: incluir análisis de automatización con IA/RPA en las mejoras propuestas.' : ''
-        }`,
-      },
-    ],
+    }],
+    tool_choice: { type: 'function', function: { name: 'generar_proyeccion' } } as any,
   })
-
-  const toolBlock = msg.content.find((b: any) => b.type === 'tool_use')
-  if (!toolBlock) throw new Error('Sin respuesta de proyección')
-  return (toolBlock as any).input.proyeccion as ProyeccionProceso
+  const toolCall = completion.choices[0]?.message?.tool_calls?.[0]
+  if (!toolCall) throw new Error('Sin respuesta de proyección')
+  return (JSON.parse(toolCall.function.arguments) as { proyeccion: ProyeccionProceso }).proyeccion
 }
