@@ -2106,6 +2106,171 @@ function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: Proceso
                       </div>
                     )}
                   </div>
+
+                  {/* Proyecciones e Impacto — hijo */}
+                  <div className="mt-4 pt-4 border-t border-slate-700/40">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <TrendingUp className="w-3.5 h-3.5 text-violet-400" />
+                        <span className="text-violet-400 text-xs font-semibold uppercase tracking-widest">Proyecciones e Impacto</span>
+                      </div>
+                      {!proyeccion && (
+                        <button
+                          onClick={generarProyeccion}
+                          disabled={proyectando}
+                          className="flex items-center gap-1.5 px-3 py-1.5 bg-violet-600/20 border border-violet-500/40 text-violet-300 text-xs font-medium rounded-lg hover:bg-violet-600/30 transition-all disabled:opacity-50"
+                        >
+                          {proyectando ? <><span className="w-3 h-3 border border-violet-400/40 border-t-violet-300 rounded-full animate-spin" />Analizando...</> : <><Zap className="w-3 h-3" />Generar proyección</>}
+                        </button>
+                      )}
+                      {proyeccion && (
+                        <button onClick={generarProyeccion} disabled={proyectando} className="text-xs text-slate-500 hover:text-violet-400 transition-colors flex items-center gap-1">
+                          <RefreshCw className="w-3 h-3" /> Actualizar
+                        </button>
+                      )}
+                    </div>
+
+                    {!proyeccion && !proyectando && (
+                      <div className="rounded-xl bg-slate-800/30 border border-slate-700/30 p-4 text-center">
+                        <p className="text-slate-400 text-xs">Proyecta qué pasaría en la operación si &quot;{proceso.nombre}&quot; se implementa — mejoras, escenarios y KPIs a 12 meses.</p>
+                      </div>
+                    )}
+
+                    {proyectando && (
+                      <div className="rounded-xl bg-violet-950/20 border border-violet-800/30 p-4 space-y-2">
+                        {['Diagnosticando estado actual...', 'Modelando escenarios de mejora...', 'Construyendo roadmap 90 días...', 'Proyectando KPIs a 12 meses...'].map((msg, i) => (
+                          <div key={i} className="flex items-center gap-2">
+                            <div className="w-1.5 h-1.5 rounded-full bg-violet-500 animate-pulse" style={{ animationDelay: `${i * 0.3}s` }} />
+                            <span className="text-xs text-slate-400">{msg}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {proyeccion && (
+                      <div className="space-y-3">
+                        {/* Header: estado actual */}
+                        <div className="rounded-xl bg-slate-800/40 border border-slate-700/40 p-3 space-y-1.5">
+                          <p className="text-xs text-slate-400 leading-relaxed">{proyeccion.estado_actual?.diagnostico}</p>
+                          <div className="flex items-center gap-3 flex-wrap">
+                            <span className="text-xs text-slate-500">Madurez: <span className="text-white font-semibold">Nivel {proyeccion.estado_actual?.nivel_madurez}/5</span></span>
+                            {proyeccion.estado_actual?.costo_ineficiencia_estimado && (
+                              <span className="text-xs text-amber-400">⚡ {proyeccion.estado_actual.costo_ineficiencia_estimado}</span>
+                            )}
+                            <span className="text-xs bg-violet-600/20 text-violet-300 px-2 py-0.5 rounded-full border border-violet-500/30">
+                              Confianza {proyeccion.nivel_confianza}%
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Tabs */}
+                        <div className="flex gap-1 bg-slate-800/40 rounded-xl p-1">
+                          {(['mejoras', 'escenarios', 'roadmap', 'kpis'] as const).map(t => (
+                            <button key={t} onClick={() => setTabProyeccion(t)}
+                              className={`flex-1 py-1.5 text-xs font-medium rounded-lg transition-all capitalize ${tabProyeccion === t ? 'bg-slate-700 text-white' : 'text-slate-500 hover:text-slate-300'}`}>
+                              {t === 'kpis' ? 'KPIs' : t.charAt(0).toUpperCase() + t.slice(1)}
+                            </button>
+                          ))}
+                        </div>
+
+                        {/* Tab: Mejoras */}
+                        {tabProyeccion === 'mejoras' && (
+                          <div className="space-y-2">
+                            {(proyeccion.mejoras_propuestas ?? []).slice(0, 5).map((m, i) => (
+                              <div key={i} className="rounded-xl bg-slate-800/30 border border-slate-700/30 p-3 space-y-1">
+                                <div className="flex items-start justify-between gap-2">
+                                  <p className="text-sm text-white font-medium">{m.titulo}</p>
+                                  <div className="flex gap-1 shrink-0">
+                                    <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${m.impacto === 'alto' ? 'bg-emerald-900/60 text-emerald-300' : m.impacto === 'medio' ? 'bg-amber-900/60 text-amber-300' : 'bg-slate-700 text-slate-400'}`}>
+                                      {m.impacto}
+                                    </span>
+                                    <span className={`text-xs px-1.5 py-0.5 rounded-full ${m.tipo === 'quick_win' ? 'bg-violet-900/60 text-violet-300' : 'bg-slate-700/60 text-slate-400'}`}>
+                                      {m.tipo === 'quick_win' ? '⚡ Quick win' : m.tipo === 'proyecto_corto' ? '📦 Proyecto' : '🔄 Transformación'}
+                                    </span>
+                                  </div>
+                                </div>
+                                <p className="text-xs text-slate-400 leading-relaxed">{m.descripcion}</p>
+                                <div className="flex gap-3 text-xs text-slate-500">
+                                  <span>⏱ {m.plazo_semanas} sem</span>
+                                  {m.valor_estimado && <span className="text-emerald-400">💰 {m.valor_estimado}</span>}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Tab: Escenarios */}
+                        {tabProyeccion === 'escenarios' && (
+                          <div className="space-y-2">
+                            {(['conservador', 'base', 'optimista'] as const).map(esc => {
+                              const e = proyeccion.escenarios?.[esc]
+                              if (!e) return null
+                              const color = esc === 'optimista' ? 'emerald' : esc === 'base' ? 'blue' : 'slate'
+                              return (
+                                <div key={esc} className={`rounded-xl bg-${color}-950/20 border border-${color}-800/30 p-3 space-y-1`}>
+                                  <div className="flex items-center justify-between">
+                                    <span className={`text-xs font-semibold text-${color}-400 capitalize`}>{esc}</span>
+                                    <span className="text-xs text-slate-500">{e.probabilidad}% prob.</span>
+                                  </div>
+                                  <p className="text-xs text-slate-300 leading-relaxed">{e.descripcion}</p>
+                                  {e.ahorro_estimado && <p className="text-xs text-emerald-400 font-medium">💰 {e.ahorro_estimado}</p>}
+                                </div>
+                              )
+                            })}
+                          </div>
+                        )}
+
+                        {/* Tab: Roadmap */}
+                        {tabProyeccion === 'roadmap' && (
+                          <div className="space-y-2">
+                            {(proyeccion.roadmap_90_dias ?? []).map((r, i) => (
+                              <div key={i} className="flex gap-3 items-start">
+                                <div className="shrink-0 w-8 h-8 rounded-lg bg-violet-900/40 border border-violet-700/40 flex items-center justify-center">
+                                  <span className="text-xs text-violet-300 font-bold">{r.semana?.replace(/[^0-9]/g, '') || i + 1}</span>
+                                </div>
+                                <div className="flex-1 py-1">
+                                  <p className="text-xs text-white font-medium">{r.accion}</p>
+                                  <p className="text-xs text-slate-500">{r.responsable} · {r.entregable}</p>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Tab: KPIs */}
+                        {tabProyeccion === 'kpis' && (
+                          <div className="overflow-x-auto">
+                            <table className="w-full text-xs">
+                              <thead>
+                                <tr className="text-slate-500 border-b border-slate-700/40">
+                                  <th className="text-left py-2 pr-3 font-medium">KPI</th>
+                                  <th className="text-right py-2 px-2 font-medium">Actual</th>
+                                  <th className="text-right py-2 px-2 font-medium text-blue-400">6 meses</th>
+                                  <th className="text-right py-2 pl-2 font-medium text-emerald-400">12 meses</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-slate-700/20">
+                                {(proyeccion.proyeccion_kpis ?? []).map((k, i) => (
+                                  <tr key={i}>
+                                    <td className="py-2 pr-3 text-slate-300">{k.kpi} <span className="text-slate-600">({k.unidad})</span></td>
+                                    <td className="py-2 px-2 text-right text-slate-400">{k.valor_actual}</td>
+                                    <td className="py-2 px-2 text-right text-blue-300 font-medium">{k.valor_6_meses}</td>
+                                    <td className="py-2 pl-2 text-right text-emerald-300 font-bold">{k.valor_12_meses}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        )}
+
+                        {/* Recomendación ejecutiva */}
+                        <div className="rounded-xl bg-gradient-to-r from-violet-950/40 to-slate-800/40 border border-violet-700/30 p-3">
+                          <p className="text-xs text-violet-300 font-semibold mb-1">Recomendación ejecutiva</p>
+                          <p className="text-xs text-slate-300 leading-relaxed">{proyeccion.recomendacion_ejecutiva}</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </>
             )}
