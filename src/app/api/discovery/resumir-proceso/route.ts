@@ -28,11 +28,13 @@ export async function POST(req: NextRequest) {
   const cliente = proyecto?.cliente as Record<string, unknown> | null
 
   // 2. Cargar TODOS los documentos del proyecto con analisis_ia completo
+  // Filtramos por analisis_ia not null en vez de estado='listo' porque a veces
+  // el estado puede quedar en 'procesando' aunque el análisis ya esté disponible
   const { data: documentos } = await admin
     .from('documento')
     .select('id, nombre_archivo, analisis_ia, clasificacion, tipo')
     .eq('proyecto_id', proyectoId)
-    .eq('estado_procesamiento', 'listo')
+    .not('analisis_ia', 'is', null)
     .order('created_at', { ascending: true })
 
   const docsConIA = (documentos ?? []).filter(d => d.analisis_ia)
