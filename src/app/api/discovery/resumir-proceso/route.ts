@@ -119,16 +119,23 @@ ${todasRecomendaciones.join('\n')}`
 ${mejorasCliente.map(c => `  [${c.tipo.toUpperCase()}] Ítem #${c.indice + 1}: "${c.observacion.slice(0, 120)}" (${c.estado})`).join('\n')}`
     : ''
 
-  // 6. Contexto de subprocesos
+  // 6. Contexto de subprocesos — incluye resumen_ia ya calculado si existe
   const contextoSubprocesos = (subprocesos ?? []).map(sp => {
     const meta = sp.metadata_ia as Record<string, unknown> | null
-    return `  • ${sp.nombre}: ${sp.descripcion ?? 'Sin descripción'}
+    const resumenIA = meta?.resumen_ia as Record<string, unknown> | null
+    return `  • ${sp.nombre}
+    Descripción: ${sp.descripcion ?? 'Sin descripción'}
     Roles: ${(sp.roles_involucrados ?? []).join(', ') || 'No identificados'}
-    Riesgos: ${(sp.riesgos_detectados ?? []).slice(0, 2).join(', ') || 'No detectados'}
-    Criticidad: ${meta?.criticidad ?? 'No evaluada'}`
-  }).join('\n')
+    Criticidad: ${meta?.criticidad ?? 'No evaluada'}
+    ${resumenIA ? `Diagnóstico IA: ${(resumenIA.diagnostico as string ?? '').slice(0, 200)}
+    Estado salud: ${resumenIA.estado_salud ?? 'N/D'}
+    Quick win: ${(resumenIA.quick_win as string ?? '').slice(0, 100)}
+    Brechas: ${((resumenIA.brechas_principales as string[]) ?? []).slice(0, 2).join('; ')}` : ''}`
+  }).join('\n\n')
 
-  const tieneDocumentos = docsConIA.length > 0
+  // Si no hay docs pero sí hay subprocesos con resumen_ia, el macroproceso SÍ tiene contexto
+  const subprocesosConResumen = (subprocesos ?? []).filter(sp => (sp.metadata_ia as Record<string,unknown> | null)?.resumen_ia)
+  const tieneDocumentos = docsConIA.length > 0 || subprocesosConResumen.length > 0
 
   // 6. Prompt de clase mundial
   const systemPrompt = `Eres el motor de inteligencia organizacional de AICOUNTS Consultores — una firma de consultoría de procesos de clase mundial. Tu rol es el de un Senior Partner con 20+ años de experiencia en transformación operacional en industrias de salud, retail, manufactura y servicios.
