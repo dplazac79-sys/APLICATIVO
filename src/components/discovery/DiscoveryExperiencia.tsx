@@ -1977,66 +1977,76 @@ function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: Proceso
                                   </div>
                                 </div>
 
-                                {/* Panel expandible: visor PDF + lista de cambios */}
+                                {/* Panel expandible: layout lado a lado — PDF izquierda, cambios derecha */}
                                 {abierto && (
-                                  <div className="border-t border-slate-700/40 bg-slate-900/60 p-4 space-y-4">
+                                  <div className="border-t border-slate-700/40 bg-slate-900/60">
+                                    {cargandoVisor && (
+                                      <div className="flex items-center justify-center gap-2 py-8 text-slate-500 text-xs">
+                                        <span className="w-4 h-4 border-2 border-slate-600 border-t-indigo-400 rounded-full animate-spin" />
+                                        Cargando documento...
+                                      </div>
+                                    )}
+                                    {!cargandoVisor && (
+                                      <div className={`flex ${docVisorUrl ? 'flex-row' : 'flex-col p-4'} gap-0 min-h-0`}>
 
-                                    {/* Visor PDF inline — abre directo al hacer clic en "Ver documento" */}
-                                    {docVisorUrl && (
-                                      <div className="rounded-xl overflow-hidden border border-indigo-700/30 bg-slate-950">
-                                        <div className="flex items-center justify-between px-3 py-2 bg-indigo-950/40 border-b border-indigo-700/20">
-                                          <div className="flex items-center gap-2">
-                                            <FileText className="w-3.5 h-3.5 text-indigo-400" />
-                                            <p className="text-xs text-indigo-300 font-medium">Documento fuente</p>
-                                            {detalle[0]?.texto_original && (
-                                              <span className="text-[10px] text-slate-500">· Usa Ctrl+F para buscar el texto resaltado abajo</span>
-                                            )}
-                                          </div>
-                                          <button onClick={() => setDocVisorUrl(null)} className="text-slate-500 hover:text-slate-300 text-xs px-2 py-1 rounded hover:bg-slate-700/40">✕ Cerrar visor</button>
+                                        {/* Panel derecho: cambios */}
+                                        <div className={`${docVisorUrl ? 'w-72 shrink-0 border-r border-slate-700/40 overflow-y-auto' : 'w-full'} p-4 space-y-3`} style={docVisorUrl ? { maxHeight: '560px' } : {}}>
+                                          {detalle.length > 0 ? (
+                                            <>
+                                              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Cambios en esta versión</p>
+                                              {detalle.map((d, di) => (
+                                                <div key={di} className="rounded-lg border border-slate-700/30 bg-slate-800/30 p-3 space-y-2">
+                                                  <div className="flex items-center gap-2 flex-wrap">
+                                                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md border shrink-0 ${TIPO_COLOR[d.tipo] ?? 'bg-slate-800 border-slate-700 text-slate-300'}`}>
+                                                      {TIPO_LABEL[d.tipo] ?? d.tipo}
+                                                    </span>
+                                                    {d.texto_original && docVisorUrl && (
+                                                      <button
+                                                        onClick={() => {
+                                                          // Navegar al texto en el visor usando fragment search
+                                                          const iframeEl = document.querySelector(`iframe[title="pdf-v${vNum}"]`) as HTMLIFrameElement | null
+                                                          if (iframeEl) {
+                                                            iframeEl.src = docVisorUrl + '#search=' + encodeURIComponent(d.texto_original.slice(0, 60))
+                                                          }
+                                                        }}
+                                                        className="text-[10px] text-indigo-400 hover:text-indigo-300 border border-indigo-700/30 hover:border-indigo-500/50 px-2 py-0.5 rounded-md transition-all"
+                                                      >
+                                                        Ubicar en PDF →
+                                                      </button>
+                                                    )}
+                                                  </div>
+                                                  {d.texto_original && (
+                                                    <p className="text-[11px] text-yellow-200/80 leading-relaxed bg-yellow-950/20 border border-yellow-700/20 rounded px-2 py-1.5">
+                                                      {d.texto_original}
+                                                    </p>
+                                                  )}
+                                                  <div className="flex items-start gap-2">
+                                                    <CheckCircle className="w-3 h-3 text-emerald-400 shrink-0 mt-0.5" />
+                                                    <p className="text-[11px] text-emerald-300 italic leading-relaxed">"{d.observacion}"</p>
+                                                  </div>
+                                                  <p className="text-[10px] text-slate-600">
+                                                    {new Date(d.fecha).toLocaleDateString('es-CL', { day:'2-digit', month:'short', year:'numeric' })}
+                                                  </p>
+                                                </div>
+                                              ))}
+                                            </>
+                                          ) : (
+                                            <p className="text-xs text-slate-600 text-center py-2">Versión inicial sin detalle de cambios</p>
+                                          )}
                                         </div>
-                                        <iframe
-                                          src={docVisorUrl}
-                                          className="w-full"
-                                          style={{ height: '520px' }}
-                                          title="Documento fuente"
-                                        />
-                                      </div>
-                                    )}
 
-                                    {/* Lista de cambios aplicados */}
-                                    {detalle.length > 0 && (
-                                      <div className="space-y-2">
-                                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Cambios aplicados en esta versión</p>
-                                        {detalle.map((d, di) => (
-                                          <div key={di} className="rounded-lg border border-slate-700/30 bg-slate-800/30 p-3 space-y-2">
-                                            <div className="flex items-start gap-2">
-                                              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md border shrink-0 ${TIPO_COLOR[d.tipo] ?? 'bg-slate-800 border-slate-700 text-slate-300'}`}>
-                                                {TIPO_LABEL[d.tipo] ?? d.tipo}
-                                              </span>
-                                              {/* Texto original resaltado — el usuario puede Ctrl+F esto en el visor */}
-                                              {d.texto_original && (
-                                                <p className="text-xs text-slate-300 leading-relaxed font-medium bg-yellow-950/20 border border-yellow-700/20 rounded px-2 py-1 flex-1">
-                                                  {d.texto_original}
-                                                </p>
-                                              )}
-                                            </div>
-                                            <div className="flex items-start gap-2 pl-1">
-                                              <CheckCircle className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
-                                              <div>
-                                                <p className="text-[10px] text-slate-500 mb-0.5">Oportunidad registrada por el cliente</p>
-                                                <p className="text-xs text-emerald-300 italic">"{d.observacion}"</p>
-                                              </div>
-                                            </div>
-                                            <p className="text-[10px] text-slate-600 pl-1">
-                                              {new Date(d.fecha).toLocaleDateString('es-CL', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' })}
-                                            </p>
+                                        {/* PDF a la derecha — ocupa el espacio restante */}
+                                        {docVisorUrl && (
+                                          <div className="flex-1 min-w-0">
+                                            <iframe
+                                              src={docVisorUrl}
+                                              className="w-full h-full"
+                                              style={{ height: '560px' }}
+                                              title={`pdf-v${vNum}`}
+                                            />
                                           </div>
-                                        ))}
+                                        )}
                                       </div>
-                                    )}
-
-                                    {detalle.length === 0 && (
-                                      <p className="text-xs text-slate-600 text-center py-2">Versión inicial sin detalle de cambios</p>
                                     )}
                                   </div>
                                 )}
