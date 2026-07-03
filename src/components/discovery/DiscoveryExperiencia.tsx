@@ -2535,10 +2535,10 @@ function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: Proceso
                   <div className="space-y-3">
                     {/* Diagnóstico actual */}
                     <div className="rounded-xl bg-slate-800/40 border border-slate-700/40 p-3 space-y-1.5">
-                      <p className="text-xs text-slate-400 leading-relaxed">{proyeccion.estado_actual.diagnostico}</p>
+                      <p className="text-xs text-slate-400 leading-relaxed">{proyeccion.estado_actual?.diagnostico}</p>
                       <div className="flex items-center gap-3 flex-wrap">
-                        <span className="text-xs text-slate-500">Madurez: <span className="text-white font-semibold">Nivel {proyeccion.estado_actual.nivel_madurez}/5</span></span>
-                        {proyeccion.estado_actual.costo_ineficiencia_estimado && (
+                        <span className="text-xs text-slate-500">Madurez: <span className="text-white font-semibold">Nivel {proyeccion.estado_actual?.nivel_madurez}/5</span></span>
+                        {proyeccion.estado_actual?.costo_ineficiencia_estimado && (
                           <span className="text-xs text-amber-400">⚡ {proyeccion.estado_actual.costo_ineficiencia_estimado}</span>
                         )}
                         <span className="text-xs bg-violet-600/20 text-violet-300 px-2 py-0.5 rounded-full border border-violet-500/30">
@@ -2560,7 +2560,7 @@ function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: Proceso
                     {/* Tab: Mejoras */}
                     {tabProyeccion === 'mejoras' && (
                       <div className="space-y-2">
-                        {proyeccion.mejoras_propuestas.slice(0, 5).map((m, i) => (
+                        {(proyeccion.mejoras_propuestas ?? []).slice(0, 5).map((m, i) => (
                           <div key={i} className="rounded-xl bg-slate-800/30 border border-slate-700/30 p-3 space-y-1">
                             <div className="flex items-start justify-between gap-2">
                               <p className="text-sm text-white font-medium">{m.titulo}</p>
@@ -2587,7 +2587,8 @@ function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: Proceso
                     {tabProyeccion === 'escenarios' && (
                       <div className="space-y-2">
                         {(['conservador', 'base', 'optimista'] as const).map(esc => {
-                          const e = proyeccion.escenarios[esc]
+                          const e = proyeccion.escenarios?.[esc]
+                          if (!e) return null
                           const color = esc === 'optimista' ? 'emerald' : esc === 'base' ? 'blue' : 'slate'
                           return (
                             <div key={esc} className={`rounded-xl bg-${color}-950/20 border border-${color}-800/30 p-3 space-y-1`}>
@@ -2606,7 +2607,7 @@ function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: Proceso
                     {/* Tab: Roadmap */}
                     {tabProyeccion === 'roadmap' && (
                       <div className="space-y-2">
-                        {proyeccion.roadmap_90_dias.map((r, i) => (
+                        {(proyeccion.roadmap_90_dias ?? []).map((r, i) => (
                           <div key={i} className="flex gap-3 items-start">
                             <div className="shrink-0 w-8 h-8 rounded-lg bg-violet-900/40 border border-violet-700/40 flex items-center justify-center">
                               <span className="text-xs text-violet-300 font-bold">{r.semana?.replace(/[^0-9]/g, '') || i + 1}</span>
@@ -2633,7 +2634,7 @@ function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: Proceso
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-slate-700/20">
-                            {proyeccion.proyeccion_kpis.map((k, i) => (
+                            {(proyeccion.proyeccion_kpis ?? []).map((k, i) => (
                               <tr key={i}>
                                 <td className="py-2 pr-3 text-slate-300">{k.kpi} <span className="text-slate-600">({k.unidad})</span></td>
                                 <td className="py-2 px-2 text-right text-slate-400">{k.valor_actual}</td>

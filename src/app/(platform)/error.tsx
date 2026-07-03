@@ -23,10 +23,6 @@ export default function PlatformError({
           {error.digest && (
             <p className="text-xs text-slate-600 font-mono mt-2">ref: {error.digest}</p>
           )}
-          {process.env.NODE_ENV !== 'production' && (
-            <p className="text-xs text-red-400 font-mono mt-2 text-left whitespace-pre-wrap">{error.message}</p>
-          )}
-          <p className="text-xs text-slate-600 font-mono mt-1 text-left whitespace-pre-wrap break-all">{error.message?.slice(0, 200)}</p>
         </div>
         <button
           onClick={reset}
