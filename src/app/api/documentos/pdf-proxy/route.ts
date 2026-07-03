@@ -8,15 +8,15 @@ export async function GET(req: NextRequest) {
   const admin = createAdminClient()
   const { data: doc } = await admin
     .from('documento')
-    .select('archivo_url, nombre')
+    .select('url_storage, nombre')
     .eq('id', id)
     .single()
 
-  if (!doc?.archivo_url) return NextResponse.json({ error: 'documento no encontrado' }, { status: 404 })
+  if (!doc?.url_storage) return NextResponse.json({ error: 'documento no encontrado' }, { status: 404 })
 
   const { data: signedData, error } = await admin.storage
     .from('documentos')
-    .createSignedUrl(doc.archivo_url, 300)
+    .createSignedUrl(doc.url_storage, 300)
 
   if (error || !signedData?.signedUrl) {
     return NextResponse.json({ error: 'no se pudo generar URL firmada' }, { status: 500 })
