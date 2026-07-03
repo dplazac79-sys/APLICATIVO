@@ -87,19 +87,23 @@ Responde en JSON con este formato exacto:
   "ancla_documental": ${tieneDocumento ? 'true' : 'false'}
 }`
 
-  const response = await anthropic.messages.create({
-    model: 'claude-haiku-4-5-20251001',
-    max_tokens: 600,
-    messages: [{ role: 'user', content: prompt }],
-  })
-
-  const text = (response.content[0] as { type: string; text: string }).text
   let resultado: Record<string, unknown>
   try {
-    const match = text.match(/\{[\s\S]*\}/)
-    resultado = JSON.parse(match ? match[0] : text)
-  } catch {
-    resultado = { diagnostico: text, estado_salud: 'estable', impacto_negocio: '', quick_win: '', potencial_automatizacion: 'medio', siguiente_paso: '' }
+    const response = await anthropic.messages.create({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 600,
+      messages: [{ role: 'user', content: prompt }],
+    })
+    const text = (response.content[0] as { type: string; text: string }).text
+    try {
+      const match = text.match(/\{[\s\S]*\}/)
+      resultado = JSON.parse(match ? match[0] : text)
+    } catch {
+      resultado = { diagnostico: text, estado_salud: 'estable', impacto_negocio: '', quick_win: '', potencial_automatizacion: 'medio', siguiente_paso: '' }
+    }
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err)
+    return NextResponse.json({ error: `Error IA: ${msg}` }, { status: 502 })
   }
 
   return NextResponse.json({ ok: true, resumen: resultado })
