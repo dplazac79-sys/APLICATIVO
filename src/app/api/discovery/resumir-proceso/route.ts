@@ -47,11 +47,19 @@ export async function POST(req: NextRequest) {
         .order('orden', { ascending: true })
     : { data: [] }
 
-  // 4. Construir inteligencia documental agregada (todos los documentos)
-  // Limitar a máx 5 docs para no superar límite TPM de Groq (~12k tokens)
-  const docsParaAnalisis = docsConIA.slice(0, 5)
+  // 4. Agregar inteligencia de TODOS los documentos en estructura consolidada
+  // En lugar de repetir bloques por doc (escala tokens O(n)), se agrega en listas únicas
+  // Esto permite procesar N documentos sin exceder el límite TPM de Groq
+  const todosHallazgos: string[] = []
+  const todosRiesgos: Array<{riesgo:string;impacto:string}> = []
+  const todasOportunidades: Array<{oportunidad:string;impacto_estimado?:string}> = []
+  const todosQuickWins: string[] = []
+  const todasBrechas: string[] = []
+  const todasRecomendaciones: string[] = []
+  const nivelesMadurez: string[] = []
+  const resumenes: string[] = []
 
-  const inteligenciaDocumental = docsParaAnalisis.map(doc => {
+  for (const doc of docsConIA) {
     const ia = doc.analisis_ia as Record<string, unknown>
     const hallazgos  = (ia.hallazgos_criticos  as string[] | undefined)  ?? []
     const riesgos    = (ia.riesgos_criticos    as Array<{riesgo:string;impacto:string}> | undefined) ?? []
@@ -61,17 +69,44 @@ export async function POST(req: NextRequest) {
     const madurez    = (ia.nivel_madurez_nombre as string | undefined)   ?? ''
     const resumen    = (ia.resumen_ejecutivo   as string | undefined)    ?? ''
     const recomenda  = (ia.recomendacion_ejecutiva as string | undefined) ?? ''
+    const diag       = (ia.diagnostico_operacional as string | undefined) ?? ''
 
-    return `[DOC: ${doc.nombre_archivo.slice(0, 40)}]
-R: ${resumen.slice(0, 200)}
-MAD: ${madurez}
-H: ${hallazgos.slice(0, 3).join(' | ')}
-RG: ${riesgos.slice(0, 2).map(r => `[${r.impacto?.toUpperCase()}] ${r.riesgo}`).join(' | ')}
-OP: ${opor.slice(0, 2).map(o => o.oportunidad).join(' | ')}
-QW: ${qw.slice(0, 2).join(' | ')}
-BR: ${brechas.slice(0, 2).join(' | ')}
-REC: ${recomenda.slice(0, 150)}`
-  }).join('\n\n')
+    todosHallazgos.push(...hallazgos)
+    todosRiesgos.push(...riesgos)
+    todasOportunidades.push(...opor)
+    todosQuickWins.push(...qw)
+    todasBrechas.push(...brechas)
+    if (recomenda) todasRecomendaciones.push(`[${doc.nombre_archivo.slice(0,20)}] ${recomenda.slice(0,120)}`)
+    if (madurez) nivelesMadurez.push(madurez)
+    if (resumen || diag) resumenes.push(`[${doc.nombre_archivo.slice(0,20)}] ${(resumen || diag).slice(0,180)}`)
+  }
+
+  // Construir bloque consolidado — tamaño fijo independiente de N documentos
+  const inteligenciaDocumental = `DOCUMENTOS ANALIZADOS: ${docsConIA.length} (${docsConIA.map(d => d.nombre_archivo.slice(0,15)).join(', ')})
+
+SÍNTESIS EJECUTIVA POR DOCUMENTO:
+${resumenes.join('\n')}
+
+NIVEL DE MADUREZ (por proceso):
+${Array.from(new Set(nivelesMadurez)).join(', ') || 'No determinado'}
+
+HALLAZGOS CRÍTICOS CONSOLIDADOS (${todosHallazgos.length} total):
+${todosHallazgos.slice(0, 10).map((h, i) => `${i+1}. ${h.slice(0,100)}`).join('\n')}
+
+RIESGOS CONSOLIDADOS (${todosRiesgos.length} total):
+${todosRiesgos.slice(0, 8).map(r => `[${(r.impacto ?? '').toUpperCase()}] ${r.riesgo.slice(0,80)}`).join('\n')}
+
+OPORTUNIDADES DE VALOR CONSOLIDADAS (${todasOportunidades.length} total):
+${todasOportunidades.slice(0, 8).map(o => `✦ ${o.oportunidad.slice(0,90)}${o.impacto_estimado ? ` (${o.impacto_estimado.slice(0,40)})` : ''}`).join('\n')}
+
+QUICK WINS IDENTIFICADOS (${todosQuickWins.length} total):
+${todosQuickWins.slice(0, 6).map(q => `⚡ ${q.slice(0,90)}`).join('\n')}
+
+BRECHAS DOCUMENTALES CONSOLIDADAS (${todasBrechas.length} total):
+${todasBrechas.slice(0, 8).map(b => `▸ ${b.slice(0,90)}`).join('\n')}
+
+RECOMENDACIONES EJECUTIVAS:
+${todasRecomendaciones.join('\n')}`
 
   // 5. Contexto de subprocesos
   const contextoSubprocesos = (subprocesos ?? []).map(sp => {
