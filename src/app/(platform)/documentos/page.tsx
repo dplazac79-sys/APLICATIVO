@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import DocumentUploader from '@/components/documentos/DocumentUploader'
 import DocumentosFiltroWrapper from '@/components/documentos/DocumentosFiltroWrapper'
+import OrganigramaUploader from '@/components/documentos/OrganigramaUploader'
 
 export const dynamic = 'force-dynamic'
 
@@ -96,6 +97,13 @@ export default async function DocumentosPage({ searchParams }: { searchParams: {
           proyectos={proyectos}
           proyectoPreseleccionado={proyectoFiltro}
           documentosExistentes={documentos.map(d => ({ id: d.id, nombre_archivo: d.nombre_archivo }))}
+        />
+      )}
+
+      {proyectoFiltro && (
+        <OrganigramaUploader
+          proyectoId={proyectoFiltro}
+          proyectoNombre={proyectoActivo?.nombre}
         />
       )}
 
