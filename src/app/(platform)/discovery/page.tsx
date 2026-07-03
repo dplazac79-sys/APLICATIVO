@@ -80,7 +80,7 @@ export default async function DiscoveryPage() {
       nombreProyecto={proyecto.nombre}
       clienteNombre={proyecto.cliente?.razon_social ?? null}
       macroprocesos={macroprocesos as any}
-      totalProcesos={procesosProyecto.length}
+      totalProcesos={procesosNivel1.length}
       aceptados={aceptados.length}
       pendientes={pendientes.length}
       rechazados={procesosProyecto.filter((p: Proceso) => p.estado_oferta === 'rechazado').length}
