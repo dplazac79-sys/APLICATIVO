@@ -2194,17 +2194,20 @@ function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: Proceso
 
             {/* Edit toggle */}
             <button
-              onClick={() => { setEditando(v => !v); setExpandido(true) }}
-              className="ml-auto flex items-center gap-1 text-xs text-slate-500 hover:text-violet-300 transition-colors"
+              onClick={(e) => { e.stopPropagation(); setEditando(v => !v); setExpandido(true) }}
+              className="ml-auto flex items-center gap-1 text-xs text-slate-500 hover:text-violet-300 transition-colors px-2 py-1 rounded-lg hover:bg-slate-800/60"
             >
-              <Edit2 className="w-3.5 h-3.5" /> Editar
+              <Edit2 className="w-3.5 h-3.5" /> {editando ? 'Cerrar editor' : 'Editar'}
             </button>
 
             {tieneHijos && (
-              <span className="flex items-center gap-1 text-xs text-slate-500">
+              <button
+                onClick={(e) => { e.stopPropagation(); setExpandido(v => !v) }}
+                className="flex items-center gap-1 text-xs text-slate-500 hover:text-indigo-300 transition-colors px-2 py-1 rounded-lg hover:bg-slate-800/60"
+              >
                 <Layers className="w-3.5 h-3.5" />
                 {proceso.hijos.length} proceso{proceso.hijos.length !== 1 ? 's' : ''}
-              </span>
+              </button>
             )}
           </div>
         </div>
