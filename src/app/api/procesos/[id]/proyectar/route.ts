@@ -158,8 +158,14 @@ ${inteligenciaBase}` : 'SIN DOCUMENTOS PROCESADOS — usar contexto del proceso 
 
 INSTRUCCIÓN: Genera la proyección estratégica completa. ${esMacro ? 'Modela el impacto TOTAL para la empresa si se implementan todos los subprocesos.' : 'Modela qué cambiaría en la operación si este proceso se implementa según el documento.'} Incluye escenarios realistas, mejoras priorizadas por impacto/esfuerzo, roadmap de 90 días y KPIs proyectados a 6 y 12 meses.`
 
-  // Intentar con modelo principal, fallback a modelo liviano si hay rate limit
-  const modelos = ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant']
+  // Intentar modelos en orden — cada uno tiene cupo diario independiente en Groq
+  const modelos = [
+    'llama-3.3-70b-versatile',
+    'llama-3.1-8b-instant',
+    'gemma2-9b-it',
+    'mixtral-8x7b-32768',
+    'llama-3.2-3b-preview',
+  ]
 
   let lastError = ''
   for (const modelo of modelos) {
