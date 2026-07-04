@@ -158,9 +158,14 @@ ${inteligenciaBase}` : 'SIN DOCUMENTOS PROCESADOS — usar contexto del proceso 
 
 INSTRUCCIÓN: Genera la proyección estratégica completa. ${esMacro ? 'Modela el impacto TOTAL para la empresa si se implementan todos los subprocesos.' : 'Modela qué cambiaría en la operación si este proceso se implementa según el documento.'} Incluye escenarios realistas, mejoras priorizadas por impacto/esfuerzo, roadmap de 90 días y KPIs proyectados a 6 y 12 meses.`
 
+  // Intentar con modelo principal, fallback a modelo liviano si hay rate limit
+  const modelos = ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant']
+
+  let lastError = ''
+  for (const modelo of modelos) {
   try {
     const completion = await groq.chat.completions.create({
-      model: 'llama-3.3-70b-versatile',
+      model: modelo,
       max_tokens: 6000,
       temperature: 0.2,
       messages: [
@@ -285,7 +290,7 @@ INSTRUCCIÓN: Genera la proyección estratégica completa. ${esMacro ? 'Modela e
     })
 
     const toolCall = completion.choices[0]?.message?.tool_calls?.[0]
-    if (!toolCall) return NextResponse.json({ error: 'Sin respuesta de proyección' }, { status: 502 })
+    if (!toolCall) { lastError = 'Sin respuesta de proyección'; continue }
 
     const { proyeccion } = JSON.parse(toolCall.function.arguments) as { proyeccion: Record<string, unknown> }
 
@@ -307,8 +312,18 @@ INSTRUCCIÓN: Genera la proyección estratégica completa. ${esMacro ? 'Modela e
     return NextResponse.json({ proyeccion })
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err)
+    // Si es rate limit, intentar con el siguiente modelo
+    if (msg.includes('rate_limit') || msg.includes('429') || msg.includes('Rate limit')) {
+      lastError = `Límite de tokens alcanzado en modelo ${modelo} — intentando con modelo alternativo...`
+      continue
+    }
     return NextResponse.json({ error: msg }, { status: 500 })
   }
+  } // fin loop modelos
+
+  return NextResponse.json({
+    error: `Límite diario de procesamiento IA alcanzado. El servicio se resetea cada 24h. Intenta más tarde o contacta a soporte. (${lastError})`
+  }, { status: 429 })
 }
 
 // GET: devuelve proyección guardada en metadata_ia (sin re-calcular)

@@ -676,18 +676,24 @@ function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: Proceso
   const proyeccionGuardada = (proceso.metadata_ia as any)?.proyeccion_ia as Proyeccion | undefined
   const [proyeccion, setProyeccion] = useState<Proyeccion | null>(proyeccionGuardada ?? null)
   const [proyectando, setProyectando] = useState(false)
+  const [errorProyeccion, setErrorProyeccion] = useState<string | null>(null)
   const [tabProyeccion, setTabProyeccion] = useState<'mejoras' | 'escenarios' | 'roadmap' | 'kpis'>('mejoras')
 
   async function generarProyeccion() {
     if (proyectando) return
     setProyectando(true)
+    setErrorProyeccion(null)
     try {
       const res = await fetch(`/api/procesos/${proceso.id}/proyectar`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({}) })
       const data = await res.json()
-      console.log('[proyectar] status:', res.status, 'data:', JSON.stringify(data).slice(0, 300))
-      if (data.proyeccion) setProyeccion(data.proyeccion)
-      else console.error('[proyectar] sin proyeccion en respuesta:', data)
-    } catch (e) { console.error('[proyectar] fetch error:', e) }
+      if (data.proyeccion) {
+        setProyeccion(data.proyeccion)
+      } else {
+        setErrorProyeccion(data.error ?? 'Error generando la proyección. Intenta de nuevo.')
+      }
+    } catch {
+      setErrorProyeccion('Error de conexión. Verifica tu red e intenta de nuevo.')
+    }
     finally { setProyectando(false) }
   }
 
@@ -2132,9 +2138,16 @@ function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: Proceso
                       )}
                     </div>
 
-                    {!proyeccion && !proyectando && (
+                    {!proyeccion && !proyectando && !errorProyeccion && (
                       <div className="rounded-xl bg-slate-800/30 border border-slate-700/30 p-4 text-center">
                         <p className="text-slate-400 text-xs">Proyecta qué pasaría en la operación si &quot;{proceso.nombre}&quot; se implementa — mejoras, escenarios y KPIs a 12 meses.</p>
+                      </div>
+                    )}
+
+                    {errorProyeccion && (
+                      <div className="rounded-xl bg-red-950/30 border border-red-800/40 p-3 flex items-start gap-2">
+                        <span className="text-red-400 text-xs shrink-0 mt-0.5">⚠</span>
+                        <p className="text-red-300 text-xs leading-relaxed">{errorProyeccion}</p>
                       </div>
                     )}
 
@@ -2680,13 +2693,20 @@ function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: Proceso
                   )}
                 </div>
 
-                {!proyeccion && !proyectando && (
+                {!proyeccion && !proyectando && !errorProyeccion && (
                   <div className="rounded-xl bg-slate-800/30 border border-slate-700/30 p-4 text-center space-y-2">
                     <p className="text-slate-400 text-xs">
                       {esHijo
                         ? `Proyecta qué pasaría en la operación si "${proceso.nombre}" se implementa según el documento — mejoras, escenarios y KPIs a 12 meses.`
                         : 'Proyecta el impacto total para la empresa si se implementan todos los subprocesos — escenarios, roadmap y KPIs a 12 meses.'}
                     </p>
+                  </div>
+                )}
+
+                {errorProyeccion && (
+                  <div className="rounded-xl bg-red-950/30 border border-red-800/40 p-3 flex items-start gap-2">
+                    <span className="text-red-400 text-xs shrink-0 mt-0.5">⚠</span>
+                    <p className="text-red-300 text-xs leading-relaxed">{errorProyeccion}</p>
                   </div>
                 )}
 
