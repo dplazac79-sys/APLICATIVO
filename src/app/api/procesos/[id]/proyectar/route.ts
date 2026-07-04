@@ -162,9 +162,9 @@ INSTRUCCIÓN: Genera la proyección estratégica completa. ${esMacro ? 'Modela e
   const modelos = [
     'llama-3.3-70b-versatile',
     'llama-3.1-8b-instant',
-    'gemma2-9b-it',
+    'llama3-70b-8192',
+    'llama3-8b-8192',
     'mixtral-8x7b-32768',
-    'llama-3.2-3b-preview',
   ]
 
   let lastError = ''
@@ -319,8 +319,9 @@ INSTRUCCIÓN: Genera la proyección estratégica completa. ${esMacro ? 'Modela e
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err)
     // Si es rate limit, intentar con el siguiente modelo
-    if (msg.includes('rate_limit') || msg.includes('429') || msg.includes('Rate limit')) {
-      lastError = `Límite de tokens alcanzado en modelo ${modelo} — intentando con modelo alternativo...`
+    if (msg.includes('rate_limit') || msg.includes('429') || msg.includes('Rate limit') ||
+        msg.includes('model_decommissioned') || msg.includes('decommissioned') || msg.includes('400')) {
+      lastError = `Modelo ${modelo} no disponible — intentando alternativo...`
       continue
     }
     return NextResponse.json({ error: msg }, { status: 500 })
