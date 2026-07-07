@@ -294,15 +294,29 @@ Devuelve: {"duracion_total_semanas":12,"metodologia":"metodología sugerida","fa
     },
   }
 
-  // ── Ejecutar TODOS en paralelo — prompts pequeños, no hay rate limit ──────
-  const resultados = await Promise.all(
-    ORDEN_GENERACION.map(async (tipo) => {
+  // ── Dos lotes de 9 con 1.2s entre ellos — equilibrio velocidad/rate-limit ─
+  const mitad = Math.ceil(ORDEN_GENERACION.length / 2)
+  const lote1 = ORDEN_GENERACION.slice(0, mitad)
+  const lote2 = ORDEN_GENERACION.slice(mitad)
+
+  const [res1, res2] = await Promise.all([
+    Promise.all(lote1.map(async (tipo) => {
       const cfg = PROMPTS[tipo]
       if (!cfg) return { tipo, contenido: null, ok: false }
       const contenido = await llamarGroq(groq, modelos, SYSTEM, cfg.prompt, cfg.tokens)
       return { tipo, contenido, ok: contenido !== null }
-    })
-  )
+    })),
+    (async () => {
+      await new Promise(r => setTimeout(r, 1200))
+      return Promise.all(lote2.map(async (tipo) => {
+        const cfg = PROMPTS[tipo]
+        if (!cfg) return { tipo, contenido: null, ok: false }
+        const contenido = await llamarGroq(groq, modelos, SYSTEM, cfg.prompt, cfg.tokens)
+        return { tipo, contenido, ok: contenido !== null }
+      }))
+    })(),
+  ])
+  const resultados = [...res1, ...res2]
 
   // ── Guardar en BD ─────────────────────────────────────────────────────────
   let guardados = 0
