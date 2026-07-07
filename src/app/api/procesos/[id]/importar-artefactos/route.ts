@@ -6,47 +6,55 @@ import { extraerTextoPDF, extraerTextoDOCX } from '@/lib/extract-text'
 import { ORDEN_GENERACION } from '@/lib/artefactos-meta'
 import type { TipoArtefacto } from '@/types/database'
 
-// Extrae el texto de la sección ARTEFACTOS METODOLÓGICOS del documento
-function extraerSeccionArtefactos(texto: string): string {
-  const patrones = [
-    /artefactos\s+metodol[oó]gicos/i,
-    /marco\s+metodol[oó]gico/i,
-    /artefactos\s+del\s+proceso/i,
-    /documentaci[oó]n\s+metodol[oó]gica/i,
-  ]
-  let inicio = -1
-  for (const p of patrones) {
-    const m = texto.search(p)
-    if (m >= 0 && (inicio < 0 || m < inicio)) inicio = m
+// Ejecuta promesas en lotes secuenciales para evitar rate limits
+async function enLotes<T>(items: T[], tamano: number, fn: (item: T) => Promise<unknown>, delayMs = 800) {
+  const resultados: unknown[] = []
+  for (let i = 0; i < items.length; i += tamano) {
+    const lote = items.slice(i, i + tamano)
+    const res = await Promise.all(lote.map(fn))
+    resultados.push(...res)
+    if (i + tamano < items.length) await new Promise(r => setTimeout(r, delayMs))
   }
-  if (inicio < 0) return texto.slice(0, 12000) // si no hay sección, usar todo
-
-  // Extraer desde esa sección hasta el final o hasta la siguiente sección de nivel similar
-  const resto = texto.slice(inicio)
-  // Máx 15000 chars — más que suficiente para todos los artefactos
-  return resto.slice(0, 15000)
+  return resultados
 }
 
-// Prompt por tipo de artefacto para extracción desde el documento
-const PROMPT_EXTRACCION: Record<TipoArtefacto, string> = {
-  sipoc: `Extrae el SIPOC del documento. Devuelve: {"proveedores":[],"entradas":[],"proceso":"","salidas":[],"clientes":[],"notas":""}`,
-  as_is: `Extrae el AS-IS (estado actual del proceso). Devuelve: {"descripcion_estado_actual":"","actores":[],"sistemas_involucrados":[],"pasos":[{"orden":1,"descripcion":"","responsable":"","duracion_estimada":""}],"puntos_dolor":[],"tiempo_ciclo_actual":""}`,
-  bpmn: `Extrae el flujo BPMN/diagrama de procesos. Devuelve: {"titulo":"","descripcion":"","nodes":[{"id":"1","type":"default","position":{"x":100,"y":100},"data":{"label":"Inicio"}}],"edges":[]}`,
-  flujograma: `Extrae el flujograma del proceso. Devuelve: {"titulo":"","nodes":[{"id":"1","type":"default","position":{"x":100,"y":100},"data":{"label":"Inicio"}}],"edges":[]}`,
-  historias_usuario: `Extrae las historias de usuario. Devuelve: {"historias":[{"id":"HU-01","rol":"","necesidad":"","beneficio":"","prioridad":"alta","criterios_aceptacion":[],"puntos_historia":3}]}`,
-  raci: `Extrae la matriz RACI. Devuelve: {"actividades":[],"roles":[],"matriz":{}}  La matriz tiene estructura: {actividad: {rol: "R"|"A"|"C"|"I"}}`,
-  riesgo_control: `Extrae los riesgos y controles. Devuelve: {"riesgos":[{"id":"R-01","descripcion":"","categoria":"","probabilidad":"media","impacto":"alto","nivel_riesgo":"alto","control":"","responsable":"","estado":"activo"}]}`,
-  kpi_sla: `Extrae los KPIs y SLAs. Devuelve: {"indicadores":[{"nombre":"","descripcion":"","formula":"","unidad":"","linea_base":"","meta":"","frecuencia":"mensual","dueno":"","fuente_dato":"","sla":"","valor_real":null}],"financiero":{}}`,
-  diagnostico: `Extrae el diagnóstico del proceso (FODA, nivel de madurez). Devuelve: {"nivel_madurez":2,"nivel_madurez_descripcion":"","fortalezas":[],"debilidades":[],"oportunidades":[],"amenazas":[],"brechas_criticas":[],"recomendaciones_prioritarias":[]}`,
-  to_be: `Extrae el estado futuro TO-BE del proceso. Devuelve: {"descripcion_estado_futuro":"","actores":[],"sistemas_requeridos":[],"pasos":[{"orden":1,"descripcion":"","responsable":"","automatizado":false,"herramienta":""}],"metricas_objetivo":[{"nombre":"","valor_actual":"","valor_objetivo":""}],"mejoras_respecto_asis":[]}`,
-  dashboard_brechas: `Extrae el dashboard de brechas (AS-IS vs TO-BE). Devuelve: {"resumen_ejecutivo":"","comparativo":[{"dimension":"","valor_asis":"","valor_tobe":"","brecha":"","impacto":"alto","iniciativa":""}],"quick_wins":[],"indice_brecha_global":0}`,
-  cierre_ejecutivo: `Extrae el resumen ejecutivo de cierre. Devuelve: {"titulo_proyecto":"","resumen_proyecto":"","procesos_transformados":0,"reduccion_tiempo_ciclo_estimada":"","roi_estimado":"","logros_principales":[],"proximos_pasos":[],"recomendacion_ceo":""}`,
-  checklist: `Extrae los checklists por rol. Devuelve: {"frecuencia_uso":"por_transaccion","checklists":[{"rol":"","descripcion_rol":"","items":[{"descripcion":"","fase":"preparacion","critico":false,"nota":""}]}]}`,
-  backlog: `Extrae el backlog priorizado de iniciativas. Devuelve: {"resumen":{"total_quick_wins":0,"total_proyectos_medios":0,"total_proyectos_mayores":0,"esfuerzo_total_semanas":0},"iniciativas":[{"id":"I-01","titulo":"","descripcion":"","categoria":"quick_win","impacto":4,"esfuerzo":2,"tiempo_estimado":"2 semanas","responsable_sugerido":"","beneficio_esperado":""}]}`,
-  cinco_porques: `Extrae el análisis de 5 porqués. Devuelve: {"analisis":[{"problema":"","impacto":"","cadena":[{"porque":""}],"causa_raiz":"","tipo_causa":"proceso","accion_correctiva":"","responsable":"","plazo":""}],"conclusion_sistemica":""}`,
-  acta_inicio: `Extrae el acta de inicio del proyecto. Devuelve: {"titulo_proyecto":"","proposito":"","fecha_inicio":"","fecha_fin_estimada":"","presupuesto_estimado":"","patrocinador":"","director_proyecto":"","alcance":{"incluye":[],"excluye":[]},"objetivos":[{"descripcion":"","metrica":"","meta":""}],"supuestos":[],"restricciones":[],"criterios_exito":[],"firmas_requeridas":[]}`,
-  plan_pruebas: `Extrae el plan de pruebas. Devuelve: {"resumen":"","ambiente_pruebas":"","responsable_pruebas":"","casos":[{"id":"CP-01","nombre":"","tipo":"funcional","prioridad":"alta","precondicion":"","pasos":[],"resultado_esperado":"","criterio_falla":""}],"criterios_aprobacion":[],"plan_contingencia":""}`,
-  roadmap: `Extrae el roadmap de implementación. Devuelve: {"duracion_total_semanas":12,"metodologia":"","fases":[{"nombre":"","objetivo":"","semana_inicio":1,"semana_fin":4,"duracion_semanas":4,"actividades":[],"entregables":[],"hitos":[]}],"factores_exito":[]}`,
+async function llamarGroq(
+  groq: Groq,
+  modelos: string[],
+  prompt: string,
+  maxTokens = 3000
+): Promise<Record<string, unknown> | null> {
+  for (const modelo of modelos) {
+    for (let intento = 0; intento < 2; intento++) {
+      try {
+        const completion = await groq.chat.completions.create({
+          model: modelo,
+          max_tokens: maxTokens,
+          temperature: 0.1,
+          messages: [{
+            role: 'system',
+            content: 'Eres un consultor senior de procesos. Responde ÚNICAMENTE con JSON válido y completo. Sin texto adicional, sin markdown, sin explicaciones.'
+          }, {
+            role: 'user',
+            content: prompt
+          }],
+          response_format: { type: 'json_object' },
+        })
+        const text = completion.choices[0]?.message?.content ?? ''
+        if (!text) continue
+        const parsed = JSON.parse(text)
+        return (parsed.resultado ?? parsed.contenido ?? parsed) as Record<string, unknown>
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err)
+        if (msg.includes('rate') || msg.includes('429')) {
+          await new Promise(r => setTimeout(r, 2000 * (intento + 1)))
+          continue
+        }
+        break
+      }
+    }
+  }
+  return null
 }
 
 export async function POST(
@@ -59,7 +67,6 @@ export async function POST(
 
   const admin = createAdminClient()
 
-  // Cargar proceso y su documento origen
   const { data: proceso } = await admin
     .from('proceso')
     .select('*, proyecto:proyecto_id(nombre, cliente:cliente_id(razon_social, industria))')
@@ -71,7 +78,7 @@ export async function POST(
   const proyecto = proceso.proyecto as Record<string, unknown>
   const cliente = proyecto?.cliente as Record<string, unknown>
 
-  // Buscar documento del proceso — primero el documento_origen_id, luego por proyecto
+  // Buscar documento origen
   let docId: string | null = proceso.documento_origen_id as string | null
   if (!docId) {
     const { data: docs } = await admin
@@ -84,7 +91,6 @@ export async function POST(
     docId = docs?.[0]?.id ?? null
   }
   if (!docId) {
-    // Ultimo intento: cualquier documento del proyecto con análisis
     const { data: docs } = await admin
       .from('documento')
       .select('id')
@@ -93,174 +99,196 @@ export async function POST(
       .limit(1)
     docId = docs?.[0]?.id ?? null
   }
-
-  if (!docId) {
-    return NextResponse.json({ error: 'No hay documentos procesados para este proceso' }, { status: 404 })
-  }
+  if (!docId) return NextResponse.json({ error: 'No hay documentos procesados para este proceso' }, { status: 404 })
 
   const { data: doc } = await admin.from('documento').select('*').eq('id', docId).single()
   if (!doc) return NextResponse.json({ error: 'Documento no encontrado' }, { status: 404 })
 
-  // Descargar y extraer texto del documento
-  let textoDocumento = ''
+  // Extraer TEXTO COMPLETO del documento (sin truncar la sección)
+  let textoCompleto = ''
   try {
     const { data: fileData } = await admin.storage.from('documentos').download(doc.url_storage as string)
     if (fileData) {
       const buffer = Buffer.from(await fileData.arrayBuffer())
       const nombre = (doc.nombre_archivo as string).toLowerCase()
-      if (nombre.endsWith('.docx') || nombre.endsWith('.doc')) {
-        textoDocumento = await extraerTextoDOCX(buffer)
-      } else if (nombre.endsWith('.pdf')) {
-        textoDocumento = await extraerTextoPDF(buffer)
-      }
+      if (nombre.endsWith('.docx') || nombre.endsWith('.doc')) textoCompleto = await extraerTextoDOCX(buffer)
+      else if (nombre.endsWith('.pdf')) textoCompleto = await extraerTextoPDF(buffer)
     }
   } catch (err) {
-    console.error('[importar-artefactos] Error extrayendo texto:', err)
+    console.error('[importar] Error extrayendo texto:', err)
   }
 
-  // Si no se pudo extraer texto, usar el análisis IA como contexto
-  const ia = (doc.analisis_ia as any)?.analisis ?? doc.analisis_ia as any
-  const contextoFallback = ia ? [
-    ia.resumen_ejecutivo ? `Descripción: ${ia.resumen_ejecutivo}` : '',
-    ia.diagnostico_operacional ? `Estado operacional: ${ia.diagnostico_operacional}` : '',
-    ia.hallazgos_criticos?.length ? `Hallazgos: ${(ia.hallazgos_criticos as string[]).join('; ')}` : '',
-    ia.roles_y_responsabilidades?.roles_identificados?.length
-      ? `Roles: ${(ia.roles_y_responsabilidades.roles_identificados as string[]).join(', ')}`
-      : '',
-    ia.procesos_identificados?.length ? `Procesos: ${(ia.procesos_identificados as string[]).join('; ')}` : '',
-    ia.oportunidades_valor?.length
-      ? `Oportunidades: ${(ia.oportunidades_valor as Array<{oportunidad:string}>).map(o => o.oportunidad).join('; ')}`
-      : '',
-    ia.quick_wins?.length ? `Quick wins: ${(ia.quick_wins as string[]).join('; ')}` : '',
+  // Fallback: usar analisis_ia
+  const ia = ((doc.analisis_ia as Record<string, unknown>)?.analisis ?? doc.analisis_ia) as Record<string, unknown> | null
+  const textoFallback = ia ? [
+    ia['resumen_ejecutivo'] ? `Resumen: ${ia['resumen_ejecutivo']}` : '',
+    ia['diagnostico_operacional'] ? `Estado operacional: ${ia['diagnostico_operacional']}` : '',
+    ia['hallazgos_criticos'] ? `Hallazgos: ${JSON.stringify(ia['hallazgos_criticos'])}` : '',
+    ia['roles_y_responsabilidades'] ? `Roles: ${JSON.stringify(ia['roles_y_responsabilidades'])}` : '',
+    ia['procesos_identificados'] ? `Procesos: ${JSON.stringify(ia['procesos_identificados'])}` : '',
+    ia['oportunidades_valor'] ? `Oportunidades: ${JSON.stringify(ia['oportunidades_valor'])}` : '',
+    ia['quick_wins'] ? `Quick wins: ${JSON.stringify(ia['quick_wins'])}` : '',
   ].filter(Boolean).join('\n') : ''
 
-  const textoBase = textoDocumento
-    ? extraerSeccionArtefactos(textoDocumento)
-    : contextoFallback
+  const textoBase = textoCompleto || textoFallback
+  if (!textoBase) return NextResponse.json({ error: 'No se pudo obtener contenido del documento' }, { status: 400 })
 
-  if (!textoBase) {
-    return NextResponse.json({ error: 'No se pudo obtener contenido del documento' }, { status: 400 })
-  }
+  const empresa = String(cliente?.razon_social ?? 'N/A')
+  const industria = String(cliente?.industria ?? 'N/A')
+  const procesoNombre = proceso.nombre as string
+  const procesoDesc = (proceso.descripcion as string) ?? ''
 
-  const contextoEmpresa = `EMPRESA: ${String(cliente?.razon_social ?? 'N/A')}
-INDUSTRIA: ${String(cliente?.industria ?? 'N/A')}
-PROCESO: ${proceso.nombre} — ${proceso.descripcion ?? ''}
-DOCUMENTO: ${doc.nombre_archivo as string}`
+  // Contexto base reutilizable (sin el texto completo para no repetirlo)
+  const ctx = `EMPRESA: ${empresa} | INDUSTRIA: ${industria}
+PROCESO: ${procesoNombre}${procesoDesc ? ` — ${procesoDesc}` : ''}
+DOCUMENTO FUENTE: ${doc.nombre_archivo as string}`
+
+  // Texto acotado para prompts individuales (primeros 18000 chars)
+  const texto = textoBase.slice(0, 18000)
 
   const groq = new Groq({ apiKey: process.env.GROQ_API_KEY! })
   const modelos = ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant']
 
-  const esqueleton = (tipo: TipoArtefacto) => ({
-    titulo: proceso.nombre,
-    descripcion: `Diagrama ${tipo === 'bpmn' ? 'BPMN' : 'de flujo'} — ${proceso.nombre}`,
-    nodes: [
-      { id: '1', type: 'input', position: { x: 250, y: 50 }, data: { label: 'Inicio' } },
-      { id: '2', type: 'default', position: { x: 250, y: 150 }, data: { label: proceso.nombre } },
-      { id: '3', type: 'output', position: { x: 250, y: 250 }, data: { label: 'Fin' } },
-    ],
-    edges: [
-      { id: 'e1-2', source: '1', target: '2', animated: true },
-      { id: 'e2-3', source: '2', target: '3', animated: true },
-    ],
-  })
+  // Prompts detallados y específicos por tipo
+  function buildPrompt(tipo: TipoArtefacto): string {
+    const base = `${ctx}\n\nCONTENIDO DEL DOCUMENTO:\n${texto}\n\n`
 
+    switch (tipo) {
+      case 'sipoc':
+        return base + `Extrae el SIPOC completo del proceso "${procesoNombre}".
+Devuelve JSON con esta estructura exacta:
+{"proveedores":["lista de proveedores reales del proceso"],"entradas":["lista de entradas/inputs reales"],"proceso":"descripción del proceso central en 1-2 oraciones","salidas":["lista de salidas/outputs reales"],"clientes":["lista de clientes/receptores reales"],"notas":"contexto adicional importante","limite_entrada":"descripción de qué dispara el proceso","limite_salida":"descripción de cuándo termina el proceso"}`
+
+      case 'as_is':
+        return base + `Extrae el estado actual AS-IS del proceso "${procesoNombre}".
+Devuelve JSON:
+{"descripcion_estado_actual":"descripción completa del estado actual","actores":["lista de actores/roles involucrados"],"sistemas_involucrados":["sistemas tecnológicos usados"],"pasos":[{"orden":1,"descripcion":"descripción del paso","responsable":"rol responsable","duracion_estimada":"tiempo estimado","sistema":"sistema usado si aplica"}],"puntos_dolor":["problemas y fricciones identificados"],"tiempo_ciclo_actual":"tiempo total del proceso","volumen_transacciones":"estimado de transacciones por período"}`
+
+      case 'bpmn':
+        return base + `Extrae el flujo BPMN del proceso "${procesoNombre}" con TODOS sus pasos reales.
+Genera un diagrama React Flow completo. Reglas:
+- Nodo inicial tipo "start" (id="1", y=50), nodo final tipo "end"
+- Nodos de tareas tipo "task", decisiones tipo "decision"
+- Posicionar verticalmente: y aumenta 130px por nivel, x=400 flujo principal, x=680 ramales derecha, x=120 ramales izquierda
+- Mínimo 7 nodos, máximo 14 nodos
+- Labels descriptivos pero cortos (máx 40 chars)
+Devuelve JSON:
+{"titulo":"${procesoNombre}","nodes":[{"id":"1","type":"start","position":{"x":400,"y":50},"data":{"label":"Inicio"}},{"id":"2","type":"task","position":{"x":400,"y":180},"data":{"label":"Paso real del proceso"}},...],"edges":[{"id":"e1-2","source":"1","target":"2","animated":true},...]}`
+
+      case 'flujograma':
+        return base + `Extrae el flujograma detallado del proceso "${procesoNombre}".
+Similar al BPMN pero enfocado en el flujo operativo con todas las decisiones y ramificaciones.
+Devuelve JSON:
+{"titulo":"${procesoNombre}","nodes":[{"id":"1","type":"start","position":{"x":400,"y":50},"data":{"label":"Inicio"}},...],"edges":[{"id":"e1-2","source":"1","target":"2","animated":true},...]}`
+
+      case 'historias_usuario':
+        return base + `Extrae o construye las historias de usuario del proceso "${procesoNombre}".
+Devuelve JSON:
+{"historias":[{"id":"HU-01","rol":"rol del usuario","necesidad":"qué necesita hacer","beneficio":"para qué / cuál es el valor","prioridad":"alta|media|baja","criterios_aceptacion":["criterio 1","criterio 2"],"puntos_historia":3,"estado":"pendiente"}]}`
+
+      case 'raci':
+        return base + `Extrae la matriz RACI del proceso "${procesoNombre}".
+Devuelve JSON:
+{"actividades":["lista de actividades del proceso"],"roles":["lista de roles/actores"],"matriz":{"Actividad 1":{"Rol A":"R","Rol B":"A","Rol C":"C"},...},"leyenda":{"R":"Responsable de ejecutar","A":"Aprobador","C":"Consultado","I":"Informado"}}`
+
+      case 'riesgo_control':
+        return base + `Extrae los riesgos y controles del proceso "${procesoNombre}".
+Devuelve JSON:
+{"riesgos":[{"id":"R-01","descripcion":"descripción del riesgo","categoria":"operacional|financiero|regulatorio|tecnológico","probabilidad":"alta|media|baja","impacto":"alto|medio|bajo","nivel_riesgo":"alto|medio|bajo","control":"control mitigante","tipo_control":"preventivo|detectivo|correctivo","responsable":"rol responsable","estado":"activo|mitigado"}]}`
+
+      case 'kpi_sla':
+        return base + `Extrae los KPIs y SLAs del proceso "${procesoNombre}".
+Devuelve JSON:
+{"indicadores":[{"nombre":"nombre del KPI","descripcion":"qué mide","formula":"cómo se calcula","unidad":"%|días|N°|$","linea_base":"valor actual","meta":"valor objetivo","frecuencia":"diaria|semanal|mensual","dueno":"rol responsable","fuente_dato":"sistema fuente","sla":"acuerdo de nivel de servicio si aplica","tipo":"eficiencia|calidad|tiempo|costo"}],"financiero":{"ahorro_estimado":"","roi_estimado":""}}`
+
+      case 'diagnostico':
+        return base + `Realiza el diagnóstico FODA y nivel de madurez del proceso "${procesoNombre}".
+Devuelve JSON:
+{"nivel_madurez":2,"nivel_madurez_descripcion":"descripción del nivel (1=inicial, 2=repetible, 3=definido, 4=gestionado, 5=optimizado)","fortalezas":["fortaleza 1"],"debilidades":["debilidad 1"],"oportunidades":["oportunidad 1"],"amenazas":["amenaza 1"],"brechas_criticas":["brecha prioritaria 1"],"recomendaciones_prioritarias":["recomendación 1"],"conclusion":"resumen ejecutivo del diagnóstico"}`
+
+      case 'to_be':
+        return base + `Extrae o construye el estado futuro TO-BE del proceso "${procesoNombre}".
+Devuelve JSON:
+{"descripcion_estado_futuro":"descripción completa del estado futuro deseado","actores":["actores en el nuevo modelo"],"sistemas_requeridos":["sistemas necesarios"],"pasos":[{"orden":1,"descripcion":"paso mejorado","responsable":"rol","automatizado":false,"herramienta":"","mejora_vs_asis":"qué mejora respecto al AS-IS"}],"metricas_objetivo":[{"nombre":"KPI","valor_actual":"","valor_objetivo":"","plazo":""}],"mejoras_respecto_asis":["mejora concreta 1"],"tiempo_ciclo_objetivo":"","reduccion_estimada":""}`
+
+      case 'dashboard_brechas':
+        return base + `Construye el dashboard de brechas AS-IS vs TO-BE del proceso "${procesoNombre}".
+Devuelve JSON:
+{"resumen_ejecutivo":"análisis ejecutivo de brechas","comparativo":[{"dimension":"dimensión evaluada","valor_asis":"situación actual","valor_tobe":"situación futura","brecha":"descripción de la brecha","impacto":"alto|medio|bajo","iniciativa":"iniciativa para cerrar la brecha","esfuerzo":"alto|medio|bajo"}],"quick_wins":["acción de impacto rápido 1"],"indice_brecha_global":65,"conclusion":"conclusión y priorización"}`
+
+      case 'cierre_ejecutivo':
+        return base + `Extrae el resumen ejecutivo de cierre del proceso "${procesoNombre}".
+Devuelve JSON:
+{"titulo_proyecto":"título del proyecto","resumen_proyecto":"resumen ejecutivo completo","procesos_transformados":1,"reduccion_tiempo_ciclo_estimada":"X%","ahorro_estimado":"$X","roi_estimado":"X%","logros_principales":["logro 1"],"proximos_pasos":["paso 1"],"recomendacion_ceo":"recomendación estratégica para la dirección","fecha_cierre":"","clasificacion_exito":"exitoso|parcial|en_progreso"}`
+
+      case 'checklist':
+        return base + `Extrae los checklists operacionales por rol del proceso "${procesoNombre}".
+Devuelve JSON:
+{"frecuencia_uso":"por_transaccion|diario|semanal","checklists":[{"rol":"nombre del rol","descripcion_rol":"qué hace este rol en el proceso","items":[{"descripcion":"tarea específica a verificar","fase":"preparacion|ejecucion|cierre|revision","critico":true,"nota":"observación si aplica"}]}]}`
+
+      case 'backlog':
+        return base + `Extrae el backlog priorizado de mejoras e iniciativas del proceso "${procesoNombre}".
+Devuelve JSON:
+{"resumen":{"total_quick_wins":0,"total_proyectos_medios":0,"total_proyectos_mayores":0,"esfuerzo_total_semanas":0},"iniciativas":[{"id":"I-01","titulo":"nombre de la iniciativa","descripcion":"descripción detallada","categoria":"quick_win|proyecto_medio|proyecto_mayor","impacto":4,"esfuerzo":2,"tiempo_estimado":"2 semanas","responsable_sugerido":"rol","beneficio_esperado":"descripción del beneficio","dependencias":[]}]}`
+
+      case 'cinco_porques':
+        return base + `Aplica el análisis de 5 Porqués a los problemas principales del proceso "${procesoNombre}".
+Devuelve JSON:
+{"analisis":[{"problema":"descripción del problema principal","impacto":"impacto en el proceso/negocio","cadena":[{"porque":"1er porqué"},{"porque":"2do porqué"},{"porque":"3er porqué"},{"porque":"4to porqué"},{"porque":"5to porqué — causa raíz"}],"causa_raiz":"causa raíz identificada","tipo_causa":"proceso|persona|tecnología|datos|proveedor","accion_correctiva":"acción para eliminar la causa raíz","responsable":"rol responsable","plazo":"estimado de implementación"}],"conclusion_sistemica":"patrones sistémicos identificados"}`
+
+      case 'acta_inicio':
+        return base + `Extrae el Acta de Inicio del proyecto/proceso "${procesoNombre}".
+Devuelve JSON:
+{"titulo_proyecto":"título formal","proposito":"propósito y justificación del proyecto","fecha_inicio":"","fecha_fin_estimada":"","presupuesto_estimado":"","patrocinador":"nombre o rol del sponsor","director_proyecto":"","alcance":{"incluye":["entregable 1"],"excluye":["exclusión 1"]},"objetivos":[{"descripcion":"objetivo","metrica":"cómo se mide","meta":"valor objetivo"}],"supuestos":["supuesto 1"],"restricciones":["restricción 1"],"criterios_exito":["criterio 1"],"firmas_requeridas":["rol 1"]}`
+
+      case 'plan_pruebas':
+        return base + `Construye el plan de pruebas del proceso "${procesoNombre}".
+Devuelve JSON:
+{"resumen":"descripción del plan de pruebas","ambiente_pruebas":"descripción del ambiente","responsable_pruebas":"rol responsable","casos":[{"id":"CP-01","nombre":"nombre del caso","tipo":"funcional|integración|regresión|usuario","prioridad":"alta|media|baja","precondicion":"condición previa","pasos":["paso 1","paso 2"],"resultado_esperado":"qué debe ocurrir","criterio_falla":"cuándo falla"}],"criterios_aprobacion":["criterio global 1"],"plan_contingencia":"qué hacer si las pruebas fallan"}`
+
+      case 'roadmap':
+        return base + `Extrae el roadmap de implementación del proceso "${procesoNombre}".
+Devuelve JSON:
+{"duracion_total_semanas":12,"metodologia":"metodología de implementación","fases":[{"nombre":"nombre de la fase","objetivo":"objetivo de esta fase","semana_inicio":1,"semana_fin":4,"duracion_semanas":4,"actividades":["actividad 1"],"entregables":["entregable 1"],"hitos":["hito clave"]}],"factores_exito":["factor crítico 1"],"riesgos_implementacion":["riesgo 1"]}`
+
+      default:
+        return base + `Extrae información sobre "${tipo}" del proceso "${procesoNombre}". Devuelve un JSON estructurado con la información relevante encontrada en el documento.`
+    }
+  }
+
+  // Extraer un artefacto con reintentos
   async function extraerArtefacto(tipo: TipoArtefacto): Promise<{ tipo: TipoArtefacto; contenido: unknown; ok: boolean }> {
-    if (tipo === 'bpmn' || tipo === 'flujograma') {
-      // Generar nodos reales a partir de los pasos del proceso
-      const promptDiagrama = `${contextoEmpresa}
-
-CONTENIDO DEL DOCUMENTO:
-${textoBase}
-
-Extrae los pasos del proceso en orden y genera un diagrama de flujo JSON para React Flow.
-Devuelve ÚNICAMENTE este JSON:
-{
-  "titulo": "nombre del proceso",
-  "nodes": [
-    {"id":"1","type":"start","position":{"x":400,"y":50},"data":{"label":"Inicio"}},
-    {"id":"2","type":"task","position":{"x":400,"y":160},"data":{"label":"Paso 1: descripción breve"}},
-    ...más pasos...,
-    {"id":"N","type":"end","position":{"x":400,"y":YY},"data":{"label":"Fin"}}
-  ],
-  "edges": [
-    {"id":"e1-2","source":"1","target":"2"},
-    ...
-  ]
-}
-Tipos de nodo: "start" (inicio, 1 solo), "end" (fin, 1 solo), "task" (tarea normal), "decision" (rombo de decisión/gateway).
-Posiciona los nodos verticalmente con 130px de separación. Máximo 10 nodos. Labels cortos (máx 40 chars).`
-
-      for (const modelo of modelos) {
-        try {
-          const completion = await groq.chat.completions.create({
-            model: modelo, max_tokens: 2000, temperature: 0.1,
-            messages: [{ role: 'user', content: promptDiagrama }],
-            response_format: { type: 'json_object' },
-          })
-          const text = completion.choices[0]?.message?.content ?? ''
-          if (!text) continue
-          const parsed = JSON.parse(text)
-          if (parsed.nodes?.length > 1) return { tipo, contenido: parsed, ok: true }
-        } catch { continue }
-      }
-      return { tipo, contenido: esqueleton(tipo), ok: true }
-    }
-    const promptExtraccion = PROMPT_EXTRACCION[tipo]
-    if (!promptExtraccion) return { tipo, contenido: null, ok: false }
-
-    const prompt = `${contextoEmpresa}
-
-CONTENIDO DEL DOCUMENTO:
-${textoBase}
-
-TAREA: ${promptExtraccion}
-
-Extrae la información DIRECTAMENTE del documento. Si el documento no contiene esta información, construye el artefacto basándote en el contexto disponible.
-Responde ÚNICAMENTE con el JSON solicitado, sin texto adicional.`
-
-    for (const modelo of modelos) {
-      try {
-        const completion = await groq.chat.completions.create({
-          model: modelo,
-          max_tokens: 2000,
-          temperature: 0.1,
-          messages: [{ role: 'user', content: prompt }],
-          response_format: { type: 'json_object' },
-        })
-        const text = completion.choices[0]?.message?.content ?? ''
-        if (!text) continue
-        const parsed = JSON.parse(text)
-        return { tipo, contenido: (parsed.resultado ?? parsed) as Record<string, unknown>, ok: true }
-      } catch {
-        continue
-      }
-    }
+    const prompt = buildPrompt(tipo)
+    const contenido = await llamarGroq(groq, modelos, prompt, 3500)
+    if (contenido) return { tipo, contenido, ok: true }
     return { tipo, contenido: null, ok: false }
   }
 
-  // Ejecutar todas las extracciones en paralelo (5x más rápido)
-  const resultadosArr = await Promise.all(ORDEN_GENERACION.map(tipo => extraerArtefacto(tipo)))
-  const resultados: Record<string, unknown> = {}
-  const errores: string[] = []
-  for (const r of resultadosArr) {
-    if (r.ok && r.contenido !== null) resultados[r.tipo] = r.contenido
-    else errores.push(r.tipo)
-  }
+  // Ejecutar en lotes de 4 para no saturar el rate limit de Groq
+  const resultadosArr = await enLotes(
+    ORDEN_GENERACION,
+    4,
+    (tipo) => extraerArtefacto(tipo as TipoArtefacto),
+    1000
+  ) as Array<{ tipo: TipoArtefacto; contenido: unknown; ok: boolean }>
 
-  // Guardar todos los artefactos extraídos en BD
+  const errores: string[] = []
   let guardados = 0
-  for (const [tipo, contenido] of Object.entries(resultados)) {
+
+  for (const r of resultadosArr) {
+    if (!r.ok || r.contenido === null) { errores.push(r.tipo); continue }
+
     const { data: existing } = await admin
       .from('artefacto')
       .select('id, version')
       .eq('proceso_id', params.id)
-      .eq('tipo', tipo)
+      .eq('tipo', r.tipo)
       .single()
 
     if (existing) {
       await admin.from('artefacto').update({
-        contenido,
-        version: existing.version + 1,
+        contenido: r.contenido,
+        version: (existing.version ?? 1) + 1,
         estado_validacion: 'pendiente',
         generado_por_ia: true,
       }).eq('id', existing.id)
@@ -268,8 +296,8 @@ Responde ÚNICAMENTE con el JSON solicitado, sin texto adicional.`
       await admin.from('artefacto').insert({
         proceso_id: params.id,
         proyecto_id: proceso.proyecto_id,
-        tipo,
-        contenido,
+        tipo: r.tipo,
+        contenido: r.contenido,
         estado_validacion: 'pendiente',
         generado_por_ia: true,
       })
@@ -280,8 +308,9 @@ Responde ÚNICAMENTE con el JSON solicitado, sin texto adicional.`
   return NextResponse.json({
     ok: true,
     guardados,
+    total: ORDEN_GENERACION.length,
     errores,
-    fuente: textoDocumento ? 'documento' : 'analisis_ia',
+    fuente: textoCompleto ? 'documento' : 'analisis_ia',
     documento: doc.nombre_archivo,
   })
 }
