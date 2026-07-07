@@ -399,22 +399,49 @@ function HistorialPanel({
 
 // ─── Panel de mejora IA ───────────────────────────────────────────────────────
 
-function resumirValor(v: unknown): string {
-  if (v === null || v === undefined) return '—'
-  if (typeof v === 'string') return v.slice(0, 120) + (v.length > 120 ? '…' : '')
-  if (Array.isArray(v)) return `${v.length} elemento${v.length !== 1 ? 's' : ''}`
-  if (typeof v === 'object') return `${Object.keys(v as object).length} campo${Object.keys(v as object).length !== 1 ? 's' : ''}`
-  return String(v).slice(0, 80)
+type DiffCampo = {
+  campo: string
+  esArray: boolean
+  esTexto: boolean
+  antes: string | string[]
+  despues: string | string[]
 }
 
-function calcularDiff(original: Record<string, unknown>, mejorado: Record<string, unknown>) {
-  const cambios: { campo: string; antes: string; despues: string }[] = []
+function valorALista(v: unknown): string[] {
+  if (v === null || v === undefined) return []
+  if (Array.isArray(v)) {
+    return v.map(item => {
+      if (typeof item === 'string') return item
+      if (typeof item === 'object' && item !== null) {
+        // Tomar el primer valor string del objeto como label
+        const vals = Object.values(item as object).filter(x => typeof x === 'string')
+        return (vals[0] as string) ?? JSON.stringify(item).slice(0, 80)
+      }
+      return String(item)
+    }).filter(Boolean)
+  }
+  return []
+}
+
+function resumirTexto(v: unknown): string {
+  if (v === null || v === undefined) return '—'
+  if (typeof v === 'string') return v.slice(0, 200) + (v.length > 200 ? '…' : '')
+  if (typeof v === 'number' || typeof v === 'boolean') return String(v)
+  return JSON.stringify(v).slice(0, 200)
+}
+
+function calcularDiff(original: Record<string, unknown>, mejorado: Record<string, unknown>): DiffCampo[] {
+  const cambios: DiffCampo[] = []
   const todosCampos = Array.from(new Set([...Object.keys(original), ...Object.keys(mejorado)]))
   for (const campo of todosCampos) {
-    const antes = JSON.stringify(original[campo] ?? null)
-    const despues = JSON.stringify(mejorado[campo] ?? null)
-    if (antes !== despues) {
-      cambios.push({ campo, antes: resumirValor(original[campo]), despues: resumirValor(mejorado[campo]) })
+    const vAntes = original[campo] ?? null
+    const vDespues = mejorado[campo] ?? null
+    if (JSON.stringify(vAntes) === JSON.stringify(vDespues)) continue
+    const esArray = Array.isArray(vAntes) || Array.isArray(vDespues)
+    if (esArray) {
+      cambios.push({ campo, esArray: true, esTexto: false, antes: valorALista(vAntes), despues: valorALista(vDespues) })
+    } else {
+      cambios.push({ campo, esArray: false, esTexto: true, antes: resumirTexto(vAntes), despues: resumirTexto(vDespues) })
     }
   }
   return cambios
@@ -431,7 +458,7 @@ function MejoraIAPanel({
   const [instruccion, setInstruccion] = useState('')
   const [mejorando, setMejorando] = useState(false)
   const [sugerencia, setSugerencia] = useState<Record<string, unknown> | null>(null)
-  const [diff, setDiff] = useState<{ campo: string; antes: string; despues: string }[]>([])
+  const [diff, setDiff] = useState<DiffCampo[]>([])
   const [error, setError] = useState<string | null>(null)
 
   async function mejorar() {
@@ -518,27 +545,68 @@ function MejoraIAPanel({
               {diff.length > 0 && (
                 <div className="space-y-2">
                   <p className="text-slate-400 text-xs uppercase tracking-wider font-medium">Cambios detectados</p>
-                  {diff.map(({ campo, antes, despues }) => (
-                    <div key={campo} className="bg-slate-800/60 border border-slate-700/50 rounded-lg overflow-hidden">
-                      <div className="px-3 py-1.5 bg-slate-800 border-b border-slate-700/50">
-                        <span className="text-slate-300 text-xs font-mono font-semibold">{campo}</span>
-                      </div>
-                      <div className="p-3 space-y-2">
-                        <div className="space-y-1">
-                          <span className="text-xs text-red-400 font-medium uppercase tracking-wider">Antes</span>
-                          <p className="text-xs text-slate-500 bg-red-950/20 border border-red-900/30 rounded px-2 py-1.5 leading-relaxed">
-                            {antes}
-                          </p>
+                  {diff.map((d) => {
+                    if (d.esArray) {
+                      const antesArr = d.antes as string[]
+                      const despuesArr = d.despues as string[]
+                      const eliminados = antesArr.filter(x => !despuesArr.includes(x))
+                      const agregados = despuesArr.filter(x => !antesArr.includes(x))
+                      const iguales = despuesArr.filter(x => antesArr.includes(x))
+                      return (
+                        <div key={d.campo} className="bg-slate-800/60 border border-slate-700/50 rounded-lg overflow-hidden">
+                          <div className="px-3 py-1.5 bg-slate-800 border-b border-slate-700/50 flex items-center justify-between">
+                            <span className="text-slate-300 text-xs font-mono font-semibold">{d.campo}</span>
+                            <span className="text-xs text-slate-500">{antesArr.length} → {despuesArr.length} elementos</span>
+                          </div>
+                          <div className="p-3 space-y-1">
+                            {eliminados.map((item, i) => (
+                              <div key={`del-${i}`} className="flex items-start gap-2 bg-red-950/20 border border-red-900/30 rounded px-2 py-1">
+                                <span className="text-red-500 text-xs mt-0.5 shrink-0">−</span>
+                                <span className="text-red-300 text-xs leading-relaxed">{item}</span>
+                              </div>
+                            ))}
+                            {agregados.map((item, i) => (
+                              <div key={`add-${i}`} className="flex items-start gap-2 bg-emerald-950/20 border border-emerald-900/30 rounded px-2 py-1">
+                                <span className="text-emerald-500 text-xs mt-0.5 shrink-0">+</span>
+                                <span className="text-emerald-300 text-xs leading-relaxed">{item}</span>
+                              </div>
+                            ))}
+                            {iguales.slice(0, 2).map((item, i) => (
+                              <div key={`eq-${i}`} className="flex items-start gap-2 px-2 py-1 opacity-40">
+                                <span className="text-slate-600 text-xs mt-0.5 shrink-0">·</span>
+                                <span className="text-slate-500 text-xs leading-relaxed">{item}</span>
+                              </div>
+                            ))}
+                            {iguales.length > 2 && (
+                              <p className="text-slate-600 text-xs px-2 opacity-50">…y {iguales.length - 2} sin cambios</p>
+                            )}
+                          </div>
                         </div>
-                        <div className="space-y-1">
-                          <span className="text-xs text-emerald-400 font-medium uppercase tracking-wider">Después</span>
-                          <p className="text-xs text-slate-200 bg-emerald-950/20 border border-emerald-900/30 rounded px-2 py-1.5 leading-relaxed">
-                            {despues}
-                          </p>
+                      )
+                    }
+                    // Campo de texto
+                    return (
+                      <div key={d.campo} className="bg-slate-800/60 border border-slate-700/50 rounded-lg overflow-hidden">
+                        <div className="px-3 py-1.5 bg-slate-800 border-b border-slate-700/50">
+                          <span className="text-slate-300 text-xs font-mono font-semibold">{d.campo}</span>
+                        </div>
+                        <div className="p-3 space-y-2">
+                          <div className="space-y-1">
+                            <span className="text-xs text-red-400 font-medium">Antes</span>
+                            <p className="text-xs text-red-300/70 bg-red-950/20 border border-red-900/30 rounded px-2 py-1.5 leading-relaxed">
+                              {d.antes as string}
+                            </p>
+                          </div>
+                          <div className="space-y-1">
+                            <span className="text-xs text-emerald-400 font-medium">Después</span>
+                            <p className="text-xs text-slate-200 bg-emerald-950/20 border border-emerald-900/30 rounded px-2 py-1.5 leading-relaxed">
+                              {d.despues as string}
+                            </p>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
               )}
 
