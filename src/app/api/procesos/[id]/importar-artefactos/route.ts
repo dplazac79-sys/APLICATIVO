@@ -295,29 +295,28 @@ Devuelve: {"duracion_total_semanas":12,"metodologia":"metodología sugerida","fa
     },
   }
 
-  // ── Dos lotes de 9 con 1.2s entre ellos — equilibrio velocidad/rate-limit ─
-  const mitad = Math.ceil(ORDEN_GENERACION.length / 2)
-  const lote1 = ORDEN_GENERACION.slice(0, mitad)
-  const lote2 = ORDEN_GENERACION.slice(mitad)
+  // ── 3 lotes de 6 con 2.5s entre cada uno — evita rate limit de Groq ────────
+  const TAM = 6
+  const lote1 = ORDEN_GENERACION.slice(0, TAM)
+  const lote2 = ORDEN_GENERACION.slice(TAM, TAM * 2)
+  const lote3 = ORDEN_GENERACION.slice(TAM * 2)
 
-  const [res1, res2] = await Promise.all([
-    Promise.all(lote1.map(async (tipo) => {
+  async function ejecutarLote(tipos: typeof ORDEN_GENERACION) {
+    return Promise.all(tipos.map(async (tipo) => {
       const cfg = PROMPTS[tipo]
       if (!cfg) return { tipo, contenido: null, ok: false }
       const contenido = await llamarGroq(groq, modelos, SYSTEM, cfg.prompt, cfg.tokens)
       return { tipo, contenido, ok: contenido !== null }
-    })),
-    (async () => {
-      await new Promise(r => setTimeout(r, 1200))
-      return Promise.all(lote2.map(async (tipo) => {
-        const cfg = PROMPTS[tipo]
-        if (!cfg) return { tipo, contenido: null, ok: false }
-        const contenido = await llamarGroq(groq, modelos, SYSTEM, cfg.prompt, cfg.tokens)
-        return { tipo, contenido, ok: contenido !== null }
-      }))
-    })(),
-  ])
-  const resultados = [...res1, ...res2]
+    }))
+  }
+
+  const res1 = await ejecutarLote(lote1)
+  await new Promise(r => setTimeout(r, 2500))
+  const res2 = await ejecutarLote(lote2)
+  await new Promise(r => setTimeout(r, 2500))
+  const res3 = await ejecutarLote(lote3)
+
+  const resultados = [...res1, ...res2, ...res3]
 
   // ── Guardar en BD ─────────────────────────────────────────────────────────
   let guardados = 0
