@@ -291,28 +291,15 @@ Devuelve: {"duracion_total_semanas":12,"metodologia":"metodología sugerida","fa
     },
   }
 
-  // ── 3 lotes de 6 con 2.5s entre cada uno — evita rate limit de Groq ────────
-  const TAM = 6
-  const lote1 = ORDEN_GENERACION.slice(0, TAM)
-  const lote2 = ORDEN_GENERACION.slice(TAM, TAM * 2)
-  const lote3 = ORDEN_GENERACION.slice(TAM * 2)
-
-  async function ejecutarLote(tipos: typeof ORDEN_GENERACION) {
-    return Promise.all(tipos.map(async (tipo) => {
+  // ── 18 llamadas en paralelo — Together AI no tiene rate limits en plan pago ─
+  const resultados = await Promise.all(
+    ORDEN_GENERACION.map(async (tipo) => {
       const cfg = PROMPTS[tipo]
       if (!cfg) return { tipo, contenido: null, ok: false }
       const contenido = await llamarIA(modelos, SYSTEM, cfg.prompt, cfg.tokens)
       return { tipo, contenido, ok: contenido !== null }
-    }))
-  }
-
-  const res1 = await ejecutarLote(lote1)
-  await new Promise(r => setTimeout(r, 2500))
-  const res2 = await ejecutarLote(lote2)
-  await new Promise(r => setTimeout(r, 2500))
-  const res3 = await ejecutarLote(lote3)
-
-  const resultados = [...res1, ...res2, ...res3]
+    })
+  )
 
   // ── Guardar en BD ─────────────────────────────────────────────────────────
   let guardados = 0
