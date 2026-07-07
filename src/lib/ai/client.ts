@@ -6,7 +6,7 @@
 import OpenAI from 'openai'
 import Groq from 'groq-sdk'
 
-// Together AI — OpenAI-compatible, sin rate limits agresivos en plan de pago
+// Together AI — OpenAI-compatible, sin rate limits en plan de pago
 const TOGETHER_KEY = process.env.TOGETHER_API_KEY
 const GROQ_KEY     = process.env.GROQ_API_KEY
 
@@ -20,13 +20,14 @@ export const togetherClient = TOGETHER_KEY
     })
   : null
 
-// Cliente Groq (fallback)
+// Cliente Groq (fallback sin Together AI)
 export const groqClient = GROQ_KEY ? new Groq({ apiKey: GROQ_KEY }) : null
 
-// Modelos equivalentes
 export const MODELOS = {
+  // Llama-3.3-70B: mejor modelo de Together AI para JSON estructurado complejo
+  potente: usesTogetherAI ? 'meta-llama/Llama-3.3-70B-Instruct-Turbo'      : 'llama-3.3-70b-versatile',
+  // Llama-3.1-8B: fallback rápido para tareas simples
   rapido:  usesTogetherAI ? 'meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo'  : 'llama-3.1-8b-instant',
-  potente: usesTogetherAI ? 'meta-llama/Llama-3.3-70B-Instruct-Turbo'       : 'llama-3.3-70b-versatile',
 } as const
 
 /**

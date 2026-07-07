@@ -91,7 +91,8 @@ export async function POST(
     return NextResponse.json({ error: 'No hay análisis IA disponible para este documento' }, { status: 400 })
   }
 
-  const modelos = [MODELOS.rapido, MODELOS.potente]
+  // Potente primero: 70B garantiza JSON complejo correcto en los 18 artefactos
+  const modelos = [MODELOS.potente, MODELOS.rapido]
 
   // ── System prompt base ────────────────────────────────────────────────────
   const SYSTEM = `Eres un consultor senior de procesos de AICOUNTS Consultores especializado en metodología de procesos para industria ${industria}.
