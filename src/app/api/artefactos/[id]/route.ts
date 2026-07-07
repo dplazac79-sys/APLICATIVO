@@ -49,6 +49,21 @@ export async function PATCH(
       }
     }
 
+    // Guardar versión actual en historial antes de editar contenido
+    const body2 = body as { motivo_cambio?: string }
+    if (contenido !== undefined) {
+      await admin.from('artefacto_historial').insert({
+        artefacto_id: params.id,
+        proceso_id: actual.proceso_id,
+        tipo: actual.tipo,
+        contenido: (actual as Record<string, unknown> & { contenido?: unknown }).contenido,
+        version: actual.version,
+        estado_validacion: actual.estado_validacion,
+        modificado_por: user.id,
+        motivo_cambio: body2.motivo_cambio ?? 'Edición manual',
+      }) // fire-and-forget — historial no debe bloquear el guardado
+    }
+
     const update: Record<string, unknown> = {}
     if (contenido !== undefined) {
       update.contenido = contenido

@@ -1,12 +1,11 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { notFound } from 'next/navigation'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Layers, FileText, ChevronLeft, Printer } from 'lucide-react'
 import Link from 'next/link'
 import type { Artefacto } from '@/types/database'
 import ArtefactoGenerador from '@/components/artefactos/ArtefactoGenerador'
-import ArtefactoValidador from '@/components/artefactos/ArtefactoValidador'
-import VistaArtefacto from '@/components/artefactos/VistaArtefacto'
+import ArtefactoCardEditor from '@/components/artefactos/ArtefactoCardEditor'
 import { LABEL_ARTEFACTO, ORDEN_GENERACION } from '@/lib/artefactos-meta'
 
 export const dynamic = 'force-dynamic'
@@ -103,42 +102,29 @@ export default async function ProcesoArtefactosPage({ params }: Props) {
       {/* Artefactos en orden metodológico */}
       {ORDEN_GENERACION.map(tipo => {
         const art = artefactosPorTipo[tipo]
+        if (art) {
+          return (
+            <div key={tipo}>
+              <ArtefactoCardEditor artefacto={art} procesoId={params.procesoId} />
+            </div>
+          )
+        }
+        // Sin artefacto generado aún — mostrar placeholder con botón de generar
         return (
-          <Card key={tipo} className="bg-slate-900 border-slate-800">
-            <CardHeader className="pb-3">
+          <Card key={tipo} className="bg-slate-900/50 border-slate-800/50 border-dashed">
+            <CardContent className="py-4">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-base text-white flex items-center gap-2">
-                  <FileText className="w-4 h-4 text-purple-400" />
-                  {LABEL_ARTEFACTO[tipo]}
-                  {art && (
-                    <span className="text-slate-600 text-xs font-normal">v{art.version}</span>
-                  )}
-                </CardTitle>
                 <div className="flex items-center gap-2">
-                  {art ? (
-                    <>
-                      <ArtefactoValidador artefactoId={art.id} estadoActual={art.estado_validacion} />
-                      <ArtefactoGenerador
-                        procesoId={params.procesoId}
-                        tipo={tipo}
-                        tieneArtefactos={true}
-                      />
-                    </>
-                  ) : (
-                    <ArtefactoGenerador
-                      procesoId={params.procesoId}
-                      tipo={tipo}
-                      tieneArtefactos={false}
-                    />
-                  )}
+                  <FileText className="w-4 h-4 text-slate-700" />
+                  <span className="text-slate-500 text-sm">{LABEL_ARTEFACTO[tipo]}</span>
                 </div>
+                <ArtefactoGenerador
+                  procesoId={params.procesoId}
+                  tipo={tipo}
+                  tieneArtefactos={false}
+                />
               </div>
-            </CardHeader>
-            {art && (
-              <CardContent className="pt-0">
-                <VistaArtefacto artefacto={art} />
-              </CardContent>
-            )}
+            </CardContent>
           </Card>
         )
       })}
