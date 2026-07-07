@@ -7,6 +7,7 @@ import { CheckCircle, AlertCircle, Sparkles, RefreshCw } from 'lucide-react'
 interface Props {
   procesoId: string
   procesoNombre: string
+  onComplete?: () => void
 }
 
 type Estado = 'extrayendo' | 'ok' | 'error'
@@ -20,7 +21,7 @@ const ARTEFACTOS_LABELS = [
 
 const TIEMPO_ESTIMADO = 35 // segundos estimados
 
-export default function ImportadorArtefactos({ procesoId, procesoNombre }: Props) {
+export default function ImportadorArtefactos({ procesoId, procesoNombre, onComplete }: Props) {
   const router = useRouter()
   const [estado, setEstado] = useState<Estado>('extrayendo')
   const [guardados, setGuardados] = useState(0)
@@ -166,7 +167,7 @@ export default function ImportadorArtefactos({ procesoId, procesoNombre }: Props
               </p>
             </div>
             <button
-              onClick={() => router.refresh()}
+              onClick={() => { router.refresh(); onComplete?.() }}
               className="shrink-0 flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-emerald-900/50 hover:bg-emerald-800/50 border border-emerald-700/50 text-emerald-300 transition-colors"
             >
               <RefreshCw className="w-3 h-3" />
@@ -176,6 +177,14 @@ export default function ImportadorArtefactos({ procesoId, procesoNombre }: Props
         </div>
 
         {/* Explicación de gap cuando hay artefactos faltantes */}
+        {guardados < total && !explicacionGap && (
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4">
+            <p className="text-slate-400 text-sm">
+              <span className="text-amber-400 font-medium">{total - guardados} artefacto{total - guardados > 1 ? 's' : ''} no pudo{total - guardados > 1 ? 'ron' : ''} generarse</span>
+              {' '}en esta extracción. Esto puede deberse a que el documento no contiene información suficiente para ese tipo de artefacto, o que no es aplicable a este proceso. Puedes intentar re-extraer o completar manualmente desde el editor.
+            </p>
+          </div>
+        )}
         {hayGap && (
           <div className="bg-blue-950/20 border border-blue-800/40 rounded-2xl p-5 space-y-4">
             <div className="flex items-start gap-3">

@@ -20,6 +20,7 @@ export default function BotonReextraer({ procesoId, procesoNombre, totalActual, 
       <ImportadorArtefactos
         procesoId={procesoId}
         procesoNombre={procesoNombre}
+        onComplete={() => setExtrayendo(false)}
       />
     )
   }
