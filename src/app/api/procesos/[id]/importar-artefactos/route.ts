@@ -104,7 +104,9 @@ export async function POST(
   }
 
   const groq = new Groq({ apiKey: process.env.GROQ_API_KEY! })
-  const modelos = ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant']
+  // 8b-instant es 3x más rápido — suficiente para extracción estructurada
+  // 70b como fallback solo si 8b falla
+  const modelos = ['llama-3.1-8b-instant', 'llama-3.3-70b-versatile']
 
   // ── System prompt base ────────────────────────────────────────────────────
   const SYSTEM = `Eres un consultor senior de procesos de AICOUNTS Consultores especializado en metodología de procesos para industria ${industria}.
@@ -292,22 +294,15 @@ Devuelve: {"duracion_total_semanas":12,"metodologia":"metodología sugerida","fa
     },
   }
 
-  // ── Ejecutar en lotes de 6 con 800ms entre lotes ──────────────────────────
-  const resultados: Array<{ tipo: TipoArtefacto; contenido: unknown; ok: boolean }> = []
-
-  for (let i = 0; i < ORDEN_GENERACION.length; i += 6) {
-    const lote = ORDEN_GENERACION.slice(i, i + 6)
-    const loteRes = await Promise.all(
-      lote.map(async (tipo) => {
-        const cfg = PROMPTS[tipo]
-        if (!cfg) return { tipo, contenido: null, ok: false }
-        const contenido = await llamarGroq(groq, modelos, SYSTEM, cfg.prompt, cfg.tokens)
-        return { tipo, contenido, ok: contenido !== null }
-      })
-    )
-    resultados.push(...loteRes)
-    if (i + 6 < ORDEN_GENERACION.length) await new Promise(r => setTimeout(r, 800))
-  }
+  // ── Ejecutar TODOS en paralelo — prompts pequeños, no hay rate limit ──────
+  const resultados = await Promise.all(
+    ORDEN_GENERACION.map(async (tipo) => {
+      const cfg = PROMPTS[tipo]
+      if (!cfg) return { tipo, contenido: null, ok: false }
+      const contenido = await llamarGroq(groq, modelos, SYSTEM, cfg.prompt, cfg.tokens)
+      return { tipo, contenido, ok: contenido !== null }
+    })
+  )
 
   // ── Guardar en BD ─────────────────────────────────────────────────────────
   let guardados = 0
