@@ -399,22 +399,46 @@ function HistorialPanel({
 
 // ─── Panel de mejora IA ───────────────────────────────────────────────────────
 
+function resumirValor(v: unknown): string {
+  if (v === null || v === undefined) return '—'
+  if (typeof v === 'string') return v.slice(0, 120) + (v.length > 120 ? '…' : '')
+  if (Array.isArray(v)) return `${v.length} elemento${v.length !== 1 ? 's' : ''}`
+  if (typeof v === 'object') return `${Object.keys(v as object).length} campo${Object.keys(v as object).length !== 1 ? 's' : ''}`
+  return String(v).slice(0, 80)
+}
+
+function calcularDiff(original: Record<string, unknown>, mejorado: Record<string, unknown>) {
+  const cambios: { campo: string; antes: string; despues: string }[] = []
+  const todosCampos = Array.from(new Set([...Object.keys(original), ...Object.keys(mejorado)]))
+  for (const campo of todosCampos) {
+    const antes = JSON.stringify(original[campo] ?? null)
+    const despues = JSON.stringify(mejorado[campo] ?? null)
+    if (antes !== despues) {
+      cambios.push({ campo, antes: resumirValor(original[campo]), despues: resumirValor(mejorado[campo]) })
+    }
+  }
+  return cambios
+}
+
 function MejoraIAPanel({
-  artefactoId, onAplicar, onClose
+  artefactoId, contenidoActual, onAplicar, onClose
 }: {
   artefactoId: string
-  onAplicar: (contenido: Record<string, unknown>) => void
+  contenidoActual: Record<string, unknown>
+  onAplicar: (contenido: Record<string, unknown>, camposModificados: string[]) => void
   onClose: () => void
 }) {
   const [instruccion, setInstruccion] = useState('')
   const [mejorando, setMejorando] = useState(false)
   const [sugerencia, setSugerencia] = useState<Record<string, unknown> | null>(null)
+  const [diff, setDiff] = useState<{ campo: string; antes: string; despues: string }[]>([])
   const [error, setError] = useState<string | null>(null)
 
   async function mejorar() {
     setMejorando(true)
     setError(null)
     setSugerencia(null)
+    setDiff([])
     try {
       const res = await fetch(`/api/artefactos/${artefactoId}/mejorar`, {
         method: 'POST',
@@ -423,7 +447,9 @@ function MejoraIAPanel({
       })
       const d = await res.json()
       if (!res.ok) throw new Error(d.error)
-      setSugerencia(d.contenido)
+      const nuevo = d.contenido as Record<string, unknown>
+      setSugerencia(nuevo)
+      setDiff(calcularDiff(contenidoActual as Record<string, unknown>, nuevo))
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error IA')
     } finally {
@@ -434,7 +460,7 @@ function MejoraIAPanel({
   return (
     <div className="fixed inset-0 z-50 flex">
       <div className="flex-1 bg-black/60" onClick={onClose} />
-      <div className="w-96 bg-slate-900 border-l border-slate-700 flex flex-col">
+      <div className="w-[440px] bg-slate-900 border-l border-slate-700 flex flex-col">
         <div className="flex items-center justify-between p-4 border-b border-slate-800">
           <div className="flex items-center gap-2">
             <Sparkles className="w-4 h-4 text-purple-400" />
@@ -463,7 +489,7 @@ function MejoraIAPanel({
             className="w-full bg-purple-600 hover:bg-purple-700 text-white"
           >
             {mejorando ? (
-              <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Generando mejoras...</>
+              <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Analizando y mejorando...</>
             ) : (
               <><Sparkles className="w-4 h-4 mr-2" /> Generar versión mejorada</>
             )}
@@ -478,15 +504,51 @@ function MejoraIAPanel({
 
           {sugerencia && (
             <div className="space-y-3">
+              {/* Resumen de cambios */}
               <div className="bg-emerald-950/30 border border-emerald-700/40 rounded-lg p-3">
                 <p className="text-emerald-400 text-xs font-semibold uppercase tracking-wider mb-1">
-                  ✓ Versión mejorada lista
+                  ✓ {diff.length} campo{diff.length !== 1 ? 's' : ''} mejorado{diff.length !== 1 ? 's' : ''}
                 </p>
-                <p className="text-slate-400 text-xs">
-                  Revisa los cambios antes de aplicar. La versión actual se guardará en historial.
+                <p className="text-slate-500 text-xs">
+                  La versión actual se guardará automáticamente en historial.
                 </p>
               </div>
-              <div className="grid grid-cols-2 gap-2">
+
+              {/* Diff campo a campo */}
+              {diff.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-slate-400 text-xs uppercase tracking-wider font-medium">Cambios detectados</p>
+                  {diff.map(({ campo, antes, despues }) => (
+                    <div key={campo} className="bg-slate-800/60 border border-slate-700/50 rounded-lg overflow-hidden">
+                      <div className="px-3 py-1.5 bg-slate-800 border-b border-slate-700/50">
+                        <span className="text-slate-300 text-xs font-mono font-semibold">{campo}</span>
+                      </div>
+                      <div className="p-3 space-y-2">
+                        <div className="space-y-1">
+                          <span className="text-xs text-red-400 font-medium uppercase tracking-wider">Antes</span>
+                          <p className="text-xs text-slate-500 bg-red-950/20 border border-red-900/30 rounded px-2 py-1.5 leading-relaxed">
+                            {antes}
+                          </p>
+                        </div>
+                        <div className="space-y-1">
+                          <span className="text-xs text-emerald-400 font-medium uppercase tracking-wider">Después</span>
+                          <p className="text-xs text-slate-200 bg-emerald-950/20 border border-emerald-900/30 rounded px-2 py-1.5 leading-relaxed">
+                            {despues}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {diff.length === 0 && (
+                <div className="bg-slate-800/40 border border-slate-700/40 rounded-lg p-3 text-center">
+                  <p className="text-slate-500 text-sm">La IA no detectó mejoras significativas para este artefacto.</p>
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 gap-2 pt-1">
                 <button
                   onClick={onClose}
                   className="text-slate-400 hover:text-white border border-slate-700 hover:border-slate-500 rounded-lg py-2 text-sm transition-colors"
@@ -494,10 +556,11 @@ function MejoraIAPanel({
                   Cancelar
                 </button>
                 <button
-                  onClick={() => onAplicar(sugerencia)}
-                  className="bg-purple-600 hover:bg-purple-700 text-white rounded-lg py-2 text-sm transition-colors flex items-center justify-center gap-1.5"
+                  onClick={() => onAplicar(sugerencia, diff.map(d => d.campo))}
+                  disabled={diff.length === 0}
+                  className="bg-purple-600 hover:bg-purple-700 disabled:opacity-40 text-white rounded-lg py-2 text-sm transition-colors flex items-center justify-center gap-1.5"
                 >
-                  <CheckCircle className="w-4 h-4" /> Aplicar mejoras
+                  <CheckCircle className="w-4 h-4" /> Aplicar {diff.length} cambio{diff.length !== 1 ? 's' : ''}
                 </button>
               </div>
             </div>
@@ -527,6 +590,7 @@ export default function ArtefactoCardEditor({ artefacto: artefactoInicial, proce
   const [errorGuardar, setErrorGuardar] = useState<string | null>(null)
   const [guardadoOk, setGuardadoOk] = useState(false)
   const [expandido, setExpandido] = useState(true)
+  const [camposResaltados, setCamposResaltados] = useState<string[]>([])
 
   const tipo = artefacto.tipo as TipoArtefacto
   const tipoLabel = LABEL_ARTEFACTO[tipo] ?? tipo
@@ -587,9 +651,12 @@ export default function ArtefactoCardEditor({ artefacto: artefactoInicial, proce
     }
   }
 
-  function aplicarMejoraIA(contenido: Record<string, unknown>) {
+  function aplicarMejoraIA(contenido: Record<string, unknown>, campos: string[]) {
     setPanelAbierto(null)
+    setCamposResaltados(campos)
     guardar(contenido, 'Mejora generada por IA')
+    // Quitar resaltado tras 4 segundos
+    setTimeout(() => setCamposResaltados([]), 4000)
   }
 
   function onRestaurar() {
@@ -726,6 +793,20 @@ export default function ArtefactoCardEditor({ artefacto: artefactoInicial, proce
         {/* ── Cuerpo ── */}
         {expandido && (
           <div className="p-4">
+            {/* Banner de campos mejorados por IA */}
+            {camposResaltados.length > 0 && modo === 'vista' && (
+              <div className="mb-4 flex items-start gap-3 bg-purple-950/40 border border-purple-700/50 rounded-xl px-4 py-3">
+                <Sparkles className="w-4 h-4 text-purple-400 shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-purple-300 text-sm font-medium">
+                    IA mejoró {camposResaltados.length} campo{camposResaltados.length !== 1 ? 's' : ''}
+                  </p>
+                  <p className="text-purple-500 text-xs mt-0.5">
+                    {camposResaltados.map(c => <span key={c} className="inline-block bg-purple-900/60 border border-purple-700/50 rounded px-1.5 py-0.5 mr-1 font-mono text-purple-300">{c}</span>)}
+                  </p>
+                </div>
+              </div>
+            )}
             {modo === 'vista' ? (
               <VistaArtefacto artefacto={artefacto} />
             ) : (
@@ -798,6 +879,7 @@ export default function ArtefactoCardEditor({ artefacto: artefactoInicial, proce
       {panelAbierto === 'ia' && (
         <MejoraIAPanel
           artefactoId={artefacto.id}
+          contenidoActual={artefacto.contenido as Record<string, unknown>}
           onAplicar={aplicarMejoraIA}
           onClose={() => setPanelAbierto(null)}
         />
