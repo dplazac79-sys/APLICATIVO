@@ -18,7 +18,7 @@ const ARTEFACTOS_LABELS = [
   'Backlog', '5 Porqués', 'Acta de inicio', 'Plan de pruebas', 'Roadmap',
 ]
 
-const TIEMPO_ESTIMADO = 18 // segundos estimados
+const TIEMPO_ESTIMADO = 35 // segundos estimados
 
 export default function ImportadorArtefactos({ procesoId, procesoNombre }: Props) {
   const router = useRouter()

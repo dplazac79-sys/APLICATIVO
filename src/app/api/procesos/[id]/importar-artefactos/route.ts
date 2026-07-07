@@ -11,7 +11,7 @@ async function llamarGroq(
   modelos: string[],
   systemPrompt: string,
   userPrompt: string,
-  maxTokens = 3000
+  maxTokens = 1800
 ): Promise<Record<string, unknown> | null> {
   for (const modelo of modelos) {
     for (let intento = 0; intento < 2; intento++) {
@@ -33,7 +33,7 @@ async function llamarGroq(
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : String(err)
         if (msg.includes('rate') || msg.includes('429')) {
-          await new Promise(r => setTimeout(r, 3000 * (intento + 1)))
+          await new Promise(r => setTimeout(r, 1500 * (intento + 1)))
           continue
         }
         break
@@ -85,17 +85,18 @@ export async function POST(
   const ia = ((doc.analisis_ia as Record<string, unknown>)?.analisis
     ?? doc.analisis_ia) as Record<string, unknown> | null
 
-  const iaStr = ia ? JSON.stringify(ia).slice(0, 6000) : ''
+  // iaStr compacto — 3500 chars es suficiente para todos los artefactos
+  const iaStr = ia ? JSON.stringify(ia).slice(0, 3500) : ''
 
-  // 2. Extracto breve del documento (primeras 3000 chars) para contexto adicional
+  // textoDoc solo para artefactos que necesitan pasos secuenciales reales (BPMN, AS-IS, Flujograma, SIPOC)
   let textoDoc = ''
   try {
     const { data: fileData } = await admin.storage.from('documentos').download(doc.url_storage as string)
     if (fileData) {
       const buffer = Buffer.from(await fileData.arrayBuffer())
       const nombre = (doc.nombre_archivo as string).toLowerCase()
-      if (nombre.endsWith('.docx') || nombre.endsWith('.doc')) textoDoc = (await extraerTextoDOCX(buffer)).slice(0, 4000)
-      else if (nombre.endsWith('.pdf')) textoDoc = (await extraerTextoPDF(buffer)).slice(0, 4000)
+      if (nombre.endsWith('.docx') || nombre.endsWith('.doc')) textoDoc = (await extraerTextoDOCX(buffer)).slice(0, 2500)
+      else if (nombre.endsWith('.pdf')) textoDoc = (await extraerTextoPDF(buffer)).slice(0, 2500)
     }
   } catch { /* continuar con analisis_ia */ }
 
@@ -117,7 +118,7 @@ REGLA CRÍTICA: Devuelve ÚNICAMENTE JSON válido y completo. Sin texto adiciona
   const PROMPTS: Record<TipoArtefacto, { prompt: string; tokens: number }> = {
 
     sipoc: {
-      tokens: 2000,
+      tokens: 1200,
       prompt: `Con base en este análisis del proceso:
 ${iaStr}
 ${textoDoc ? `\nContexto del documento:\n${textoDoc}` : ''}
@@ -127,7 +128,7 @@ Devuelve: {"proveedores":["proveedor real 1","proveedor real 2"],"entradas":["en
     },
 
     as_is: {
-      tokens: 3000,
+      tokens: 2000,
       prompt: `Con base en este análisis del proceso:
 ${iaStr}
 
@@ -136,7 +137,7 @@ Devuelve: {"descripcion_estado_actual":"descripción detallada del estado actual
     },
 
     bpmn: {
-      tokens: 3000,
+      tokens: 2000,
       prompt: `Con base en este análisis del proceso "${procesoNombre}":
 ${iaStr}
 ${textoDoc ? `\nContexto documento:\n${textoDoc}` : ''}
@@ -158,7 +159,7 @@ Devuelve EXACTAMENTE:
     },
 
     flujograma: {
-      tokens: 2500,
+      tokens: 2000,
       prompt: `Con base en este análisis del proceso "${procesoNombre}":
 ${iaStr}
 
@@ -168,7 +169,7 @@ Devuelve: {"titulo":"${procesoNombre}","nodes":[{"id":"1","type":"start","positi
     },
 
     historias_usuario: {
-      tokens: 2500,
+      tokens: 1800,
       prompt: `Con base en los roles y procesos del análisis:
 ${iaStr}
 
@@ -177,7 +178,7 @@ Devuelve: {"historias":[{"id":"HU-01","rol":"rol real","necesidad":"qué necesit
     },
 
     raci: {
-      tokens: 2500,
+      tokens: 1500,
       prompt: `Con base en los roles y responsabilidades del análisis:
 ${iaStr}
 
@@ -186,7 +187,7 @@ Devuelve: {"actividades":["actividad real 1","actividad real 2"],"roles":["Rol A
     },
 
     riesgo_control: {
-      tokens: 2500,
+      tokens: 1800,
       prompt: `Con base en los riesgos críticos del análisis:
 ${iaStr}
 
@@ -195,7 +196,7 @@ Devuelve: {"riesgos":[{"id":"R-01","descripcion":"riesgo real del documento","ca
     },
 
     kpi_sla: {
-      tokens: 2500,
+      tokens: 1800,
       prompt: `Con base en el análisis del proceso:
 ${iaStr}
 
@@ -204,7 +205,7 @@ Devuelve: {"indicadores":[{"nombre":"nombre del KPI","descripcion":"qué mide","
     },
 
     diagnostico: {
-      tokens: 2500,
+      tokens: 1500,
       prompt: `Con base en el análisis de madurez y brechas:
 ${iaStr}
 
@@ -213,7 +214,7 @@ Devuelve: {"nivel_madurez":${ia?.['nivel_madurez_amo'] ?? 2},"nivel_madurez_desc
     },
 
     to_be: {
-      tokens: 2500,
+      tokens: 2000,
       prompt: `Con base en las oportunidades y próximos pasos del análisis:
 ${iaStr}
 
@@ -222,7 +223,7 @@ Devuelve: {"descripcion_estado_futuro":"descripción del estado futuro","actores
     },
 
     dashboard_brechas: {
-      tokens: 2500,
+      tokens: 1500,
       prompt: `Con base en las brechas del análisis:
 ${iaStr}
 
@@ -231,7 +232,7 @@ Devuelve: {"resumen_ejecutivo":"análisis ejecutivo","comparativo":[{"dimension"
     },
 
     cierre_ejecutivo: {
-      tokens: 2000,
+      tokens: 1200,
       prompt: `Con base en el análisis ejecutivo:
 ${iaStr}
 
@@ -240,7 +241,7 @@ Devuelve: {"titulo_proyecto":"título formal","resumen_proyecto":"resumen ejecut
     },
 
     checklist: {
-      tokens: 2500,
+      tokens: 1800,
       prompt: `Con base en los roles y procesos del análisis:
 ${iaStr}
 
@@ -249,7 +250,7 @@ Devuelve: {"frecuencia_uso":"por_transaccion|diario|semanal","checklists":[{"rol
     },
 
     backlog: {
-      tokens: 2000,
+      tokens: 1500,
       prompt: `Con base en quick wins y oportunidades del análisis:
 ${iaStr}
 
@@ -258,7 +259,7 @@ Devuelve: {"resumen":{"total_quick_wins":0,"total_proyectos_medios":0,"total_pro
     },
 
     cinco_porques: {
-      tokens: 2000,
+      tokens: 1500,
       prompt: `Con base en los hallazgos críticos del análisis:
 ${iaStr}
 
@@ -267,7 +268,7 @@ Devuelve: {"analisis":[{"problema":"problema real del documento","impacto":"impa
     },
 
     acta_inicio: {
-      tokens: 2500,
+      tokens: 1800,
       prompt: `Con base en el análisis del proceso:
 ${iaStr}
 
@@ -276,7 +277,7 @@ Devuelve: {"titulo_proyecto":"título formal","proposito":"propósito y justific
     },
 
     plan_pruebas: {
-      tokens: 2500,
+      tokens: 1800,
       prompt: `Con base en el análisis del proceso:
 ${iaStr}
 
@@ -285,7 +286,7 @@ Devuelve: {"resumen":"descripción del plan","ambiente_pruebas":"ambiente necesa
     },
 
     roadmap: {
-      tokens: 2500,
+      tokens: 1800,
       prompt: `Con base en las recomendaciones y próximos pasos del análisis:
 ${iaStr}
 
