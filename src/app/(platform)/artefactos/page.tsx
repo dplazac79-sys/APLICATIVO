@@ -87,7 +87,16 @@ export default async function ArtefactosPage() {
   function renderArbol(lista: Proceso[], padreId: string | null, nivel: number): React.ReactNode {
     const hijos = lista.filter(p => p.padre_id === padreId)
     if (!hijos.length) return null
-    return hijos.map(p => {
+    // Ordenar por código numérico (SC01 < SC02...) derivado del documento
+    const hijosOrdenados = [...hijos].sort((a, b) => {
+      const ca = derivarCodigo(a as any, lista) ?? ''
+      const cb = derivarCodigo(b as any, lista) ?? ''
+      const na = parseInt(ca.replace(/\D/g, '') || '999', 10)
+      const nb = parseInt(cb.replace(/\D/g, '') || '999', 10)
+      if (na !== nb) return na - nb
+      return ca.localeCompare(cb)
+    })
+    return hijosOrdenados.map(p => {
       const cfg = NIVEL_CONFIG[nivel] ?? NIVEL_CONFIG[4]
       const arts = artefactosPorProceso[p.id] ?? []
       const total = ORDEN_GENERACION.length
