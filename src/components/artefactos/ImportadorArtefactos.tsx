@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { CheckCircle, AlertCircle, Sparkles } from 'lucide-react'
+import { CheckCircle, AlertCircle, Sparkles, RefreshCw } from 'lucide-react'
 
 interface Props {
   procesoId: string
@@ -59,12 +59,17 @@ export default function ImportadorArtefactos({ procesoId, procesoNombre }: Props
         if (cancelado) return
         const d = await res.json()
         if (!res.ok) throw new Error(d.error ?? 'Error importando artefactos')
-        setGuardados(d.guardados ?? 0)
-        setTotal(d.total ?? ARTEFACTOS_LABELS.length)
+        const guardadosN = d.guardados ?? 0
+        const totalN = d.total ?? ARTEFACTOS_LABELS.length
+        setGuardados(guardadosN)
+        setTotal(totalN)
         setFuente(d.fuente ?? '')
         if (d.explicacion_gap) setExplicacionGap(d.explicacion_gap)
         setEstado('ok')
-        setTimeout(() => { if (!cancelado) router.refresh() }, 600)
+        // Si salieron todos, refrescar automático. Si hay gap, el usuario refresca manualmente.
+        if (guardadosN >= totalN) {
+          setTimeout(() => { if (!cancelado) router.refresh() }, 600)
+        }
       } catch (err) {
         if (!cancelado) {
           setError(err instanceof Error ? err.message : 'Error desconocido')
@@ -152,15 +157,21 @@ export default function ImportadorArtefactos({ procesoId, procesoNombre }: Props
         <div className="bg-emerald-950/20 border border-emerald-800/40 rounded-2xl p-5">
           <div className="flex items-center gap-3">
             <CheckCircle className="w-5 h-5 text-emerald-400 shrink-0" />
-            <div>
+            <div className="flex-1">
               <p className="text-emerald-300 font-medium text-sm">
                 {guardados} de {total} artefactos extraídos en {tiempoReal}s
               </p>
               <p className="text-slate-500 text-xs mt-0.5">
                 {fuente === 'documento' ? 'Desde el texto del documento' : 'Desde el análisis del documento'}
-                {' · '}Actualizando vista...
               </p>
             </div>
+            <button
+              onClick={() => router.refresh()}
+              className="shrink-0 flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-emerald-900/50 hover:bg-emerald-800/50 border border-emerald-700/50 text-emerald-300 transition-colors"
+            >
+              <RefreshCw className="w-3 h-3" />
+              Ver artefactos
+            </button>
           </div>
         </div>
 
