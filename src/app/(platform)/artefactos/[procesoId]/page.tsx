@@ -5,6 +5,7 @@ import Link from 'next/link'
 import type { Artefacto } from '@/types/database'
 import ArtefactoCardEditor from '@/components/artefactos/ArtefactoCardEditor'
 import ImportadorArtefactos from '@/components/artefactos/ImportadorArtefactos'
+import BotonReextraer from '@/components/artefactos/BotonReextraer'
 import { ORDEN_GENERACION } from '@/lib/artefactos-meta'
 
 export const dynamic = 'force-dynamic'
@@ -122,6 +123,16 @@ export default async function ProcesoArtefactosPage({ params }: Props) {
         <ImportadorArtefactos
           procesoId={params.procesoId}
           procesoNombre={proceso.nombre}
+        />
+      )}
+
+      {/* ── Botón re-extraer (siempre visible cuando hay artefactos) ── */}
+      {!sinArtefactos && (
+        <BotonReextraer
+          procesoId={params.procesoId}
+          procesoNombre={proceso.nombre}
+          totalActual={totalGenerados}
+          totalEsperado={ORDEN_GENERACION.length}
         />
       )}
 
