@@ -29,9 +29,9 @@ export default function ImportadorArtefactos({ procesoId, procesoNombre, onCompl
   const [error, setError] = useState<string | null>(null)
   const [explicacionGap, setExplicacionGap] = useState<{
     titulo: string
-    mensaje_principal: string
-    artefactos_criticos: string[]
-    artefactos_pendientes_razon: string
+    artefactos_pendientes: string[]
+    razon_negocio: string
+    valor_generado: string
     siguiente_paso: string
   } | null>(null)
   const [total, setTotal] = useState(0)
@@ -167,7 +167,7 @@ export default function ImportadorArtefactos({ procesoId, procesoNombre, onCompl
               </p>
             </div>
             <button
-              onClick={() => { router.refresh(); onComplete?.() }}
+              onClick={() => { router.refresh(); setTimeout(() => onComplete?.(), 800) }}
               className="shrink-0 flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-emerald-900/50 hover:bg-emerald-800/50 border border-emerald-700/50 text-emerald-300 transition-colors"
             >
               <RefreshCw className="w-3 h-3" />
@@ -176,58 +176,45 @@ export default function ImportadorArtefactos({ procesoId, procesoNombre, onCompl
           </div>
         </div>
 
-        {/* Explicación de gap cuando hay artefactos faltantes */}
-        {guardados < total && !explicacionGap && (
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4">
-            <p className="text-slate-400 text-sm">
-              <span className="text-amber-400 font-medium">{total - guardados} artefacto{total - guardados > 1 ? 's' : ''} no pudo{total - guardados > 1 ? 'ron' : ''} generarse</span>
-              {' '}en esta extracción. Esto puede deberse a que el documento no contiene información suficiente para ese tipo de artefacto, o que no es aplicable a este proceso. Puedes intentar re-extraer o completar manualmente desde el editor.
-            </p>
-          </div>
-        )}
-        {hayGap && (
-          <div className="bg-blue-950/20 border border-blue-800/40 rounded-2xl p-5 space-y-4">
-            <div className="flex items-start gap-3">
-              <div className="w-8 h-8 rounded-lg bg-blue-900/50 border border-blue-700/50 flex items-center justify-center shrink-0 mt-0.5">
-                <span className="text-blue-300 text-sm">i</span>
-              </div>
-              <div className="min-w-0">
-                <p className="text-blue-200 font-semibold text-sm">{explicacionGap.titulo}</p>
-                <p className="text-slate-400 text-xs mt-1.5 leading-relaxed">
-                  {explicacionGap.mensaje_principal}
-                </p>
-              </div>
-            </div>
-
-            {/* Artefactos críticos generados */}
-            {explicacionGap.artefactos_criticos?.length > 0 && (
-              <div className="space-y-1.5">
-                <p className="text-slate-500 text-xs font-medium uppercase tracking-wide">
-                  Artefactos clave generados para este proceso
-                </p>
-                <div className="flex flex-wrap gap-1.5">
-                  {explicacionGap.artefactos_criticos.map((a, i) => (
-                    <span key={i} className="text-xs px-2.5 py-1 rounded-full bg-emerald-900/30 border border-emerald-700/40 text-emerald-300">
-                      ✓ {a}
-                    </span>
-                  ))}
+        {/* Panel de gap */}
+        {guardados < total && (
+          <div className="bg-slate-900 border border-slate-700/60 rounded-2xl p-5 space-y-4">
+            {explicacionGap ? (
+              <>
+                <div>
+                  <p className="text-white font-semibold text-sm">{explicacionGap.titulo}</p>
+                  <p className="text-slate-400 text-xs mt-2 leading-relaxed">{explicacionGap.razon_negocio}</p>
                 </div>
+
+                {/* Artefactos pendientes nombrados exactamente */}
+                <div className="space-y-1.5">
+                  <p className="text-slate-500 text-xs font-medium uppercase tracking-wide">Requieren co-construcción con el equipo</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {explicacionGap.artefactos_pendientes.map((a, i) => (
+                      <span key={i} className="text-xs px-2.5 py-1 rounded-full bg-amber-950/40 border border-amber-700/40 text-amber-300">
+                        {a}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="bg-emerald-950/20 border border-emerald-800/30 rounded-xl p-3">
+                  <p className="text-emerald-300 text-xs leading-relaxed">{explicacionGap.valor_generado}</p>
+                </div>
+
+                <div className="flex items-start gap-2">
+                  <span className="text-blue-400 text-xs shrink-0 mt-0.5">→</span>
+                  <p className="text-blue-300/80 text-xs leading-relaxed">{explicacionGap.siguiente_paso}</p>
+                </div>
+              </>
+            ) : (
+              <div>
+                <p className="text-slate-300 text-sm font-medium">{total - guardados} artefacto{total - guardados > 1 ? 's' : ''} requiere{total - guardados === 1 ? '' : 'n'} co-construcción</p>
+                <p className="text-slate-500 text-xs mt-1.5 leading-relaxed">
+                  Su definición depende de decisiones de gobierno y estructura organizacional que serán formalizadas en conjunto con el equipo en la siguiente etapa del proyecto.
+                </p>
               </div>
             )}
-
-            {/* Razón de los pendientes */}
-            <div className="bg-slate-900/50 rounded-xl p-3 border border-slate-800/60">
-              <p className="text-slate-500 text-xs font-medium mb-1">Artefactos pendientes</p>
-              <p className="text-slate-400 text-xs leading-relaxed">
-                {explicacionGap.artefactos_pendientes_razon}
-              </p>
-            </div>
-
-            {/* Siguiente paso */}
-            <div className="flex items-start gap-2">
-              <span className="text-amber-400 text-xs shrink-0 mt-0.5">→</span>
-              <p className="text-amber-300/80 text-xs leading-relaxed">{explicacionGap.siguiente_paso}</p>
-            </div>
           </div>
         )}
       </div>

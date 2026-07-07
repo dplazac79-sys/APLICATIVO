@@ -84,23 +84,11 @@ export async function POST(
   const ia = ((doc.analisis_ia as Record<string, unknown>)?.analisis
     ?? doc.analisis_ia) as Record<string, unknown> | null
 
-  // iaStr compacto — 3500 chars es suficiente para todos los artefactos
-  const iaStr = ia ? JSON.stringify(ia).slice(0, 3500) : ''
+  // iaStr es la fuente primaria — el análisis IA ya tiene toda la estructura del proceso
+  const iaStr = ia ? JSON.stringify(ia).slice(0, 5000) : ''
 
-  // textoDoc solo para artefactos que necesitan pasos secuenciales reales (BPMN, AS-IS, Flujograma, SIPOC)
-  let textoDoc = ''
-  try {
-    const { data: fileData } = await admin.storage.from('documentos').download(doc.url_storage as string)
-    if (fileData) {
-      const buffer = Buffer.from(await fileData.arrayBuffer())
-      const nombre = (doc.nombre_archivo as string).toLowerCase()
-      if (nombre.endsWith('.docx') || nombre.endsWith('.doc')) textoDoc = (await extraerTextoDOCX(buffer)).slice(0, 2500)
-      else if (nombre.endsWith('.pdf')) textoDoc = (await extraerTextoPDF(buffer)).slice(0, 2500)
-    }
-  } catch { /* continuar con analisis_ia */ }
-
-  if (!iaStr && !textoDoc) {
-    return NextResponse.json({ error: 'No se pudo obtener contenido del documento' }, { status: 400 })
+  if (!iaStr) {
+    return NextResponse.json({ error: 'No hay análisis IA disponible para este documento' }, { status: 400 })
   }
 
   const modelos = [MODELOS.rapido, MODELOS.potente]
@@ -117,9 +105,8 @@ REGLA CRÍTICA: Devuelve ÚNICAMENTE JSON válido y completo. Sin texto adiciona
       tokens: 1200,
       prompt: `Con base en este análisis del proceso:
 ${iaStr}
-${textoDoc ? `\nContexto del documento:\n${textoDoc}` : ''}
 
-Genera el SIPOC completo de "${procesoNombre}". Extrae proveedores, entradas, pasos clave del proceso, salidas y clientes REALES del documento.
+Genera el SIPOC completo de "${procesoNombre}". Extrae proveedores, entradas, pasos clave del proceso, salidas y clientes REALES del análisis.
 Devuelve: {"proveedores":["proveedor real 1","proveedor real 2"],"entradas":["entrada real 1"],"proceso":"descripción del proceso en 2-3 oraciones","salidas":["salida real 1"],"clientes":["cliente/receptor real 1"],"notas":"contexto adicional","limite_entrada":"qué dispara el proceso","limite_salida":"cuándo termina el proceso"}`
     },
 
@@ -136,7 +123,6 @@ Devuelve: {"descripcion_estado_actual":"descripción detallada del estado actual
       tokens: 2000,
       prompt: `Con base en este análisis del proceso "${procesoNombre}":
 ${iaStr}
-${textoDoc ? `\nContexto documento:\n${textoDoc}` : ''}
 
 Genera un diagrama BPMN COMPLETO Y DETALLADO para React Flow. OBLIGATORIO: mínimo 8 nodos, máximo 12 nodos. Incluye TODOS los pasos reales del proceso, con decisiones donde corresponda.
 
@@ -327,34 +313,45 @@ Devuelve: {"duracion_total_semanas":12,"metodologia":"metodología sugerida","fa
     guardados++
   }
 
+  // ── Etiquetas legibles para los tipos de artefacto ───────────────────────
+  const LABELS: Record<string, string> = {
+    sipoc: 'SIPOC', as_is: 'AS-IS', bpmn: 'BPMN', flujograma: 'Flujograma',
+    historias_usuario: 'Historias de Usuario', raci: 'Matriz RACI',
+    riesgo_control: 'Riesgos y Controles', kpi_sla: 'KPIs y SLAs',
+    diagnostico: 'Diagnóstico', to_be: 'TO-BE', dashboard_brechas: 'Dashboard de Brechas',
+    cierre_ejecutivo: 'Cierre Ejecutivo', checklist: 'Checklists por Rol',
+    backlog: 'Backlog Priorizado', cinco_porques: '5 Porqués',
+    acta_inicio: 'Acta de Inicio', plan_pruebas: 'Plan de Pruebas',
+    roadmap: 'Roadmap de Implementación',
+  }
+
   // ── Explicación de negocio si hay gap ────────────────────────────────────
   let explicacion_gap: Record<string, unknown> | null = null
   if (guardados < ORDEN_GENERACION.length && errores.length > 0) {
-    const tiposExitosos = resultados.filter(r => r.ok).map(r => r.tipo)
-    const tiposFallidos = errores
-    const promptGap = `Eres un consultor senior de AICOUNTS Consultores explicando a un cliente ejecutivo por qué no todos los artefactos metodológicos pudieron extraerse automáticamente de un documento de proceso.
+    const labelsExitosos = resultados.filter(r => r.ok).map(r => LABELS[r.tipo] ?? r.tipo)
+    const labelsFallidos = errores.map(e => LABELS[e] ?? e)
+    const promptGap = `Eres un consultor senior de AICOUNTS Consultores. Debes explicar a un ejecutivo cliente por qué ${labelsFallidos.length === 1 ? 'un artefacto específico' : 'algunos artefactos'} del marco metodológico requieren una etapa adicional de co-construcción.
 
-Proceso: "${procesoNombre}"
-Empresa: ${empresa}
-Artefactos generados exitosamente (${tiposExitosos.length}): ${tiposExitosos.join(', ')}
-Artefactos no generados (${tiposFallidos.length}): ${tiposFallidos.join(', ')}
+CONTEXTO DEL PROCESO:
+Proceso: "${procesoNombre}" | Empresa: ${empresa} | Industria: ${industria}
+Análisis del proceso: ${iaStr.slice(0, 2000)}
 
-Contexto del análisis del proceso:
-${iaStr.slice(0, 2000)}
+ARTEFACTOS GENERADOS (${labelsExitosos.length}): ${labelsExitosos.join(', ')}
+ARTEFACTOS QUE REQUIEREN CO-CONSTRUCCIÓN (${labelsFallidos.length}): ${labelsFallidos.join(', ')}
 
-Genera una explicación ejecutiva breve y positiva en español para el cliente. IMPORTANTE:
-- NO menciones errores técnicos, timeouts, ni problemas de sistema
-- Explica en lenguaje de negocio por qué algunos artefactos requieren información adicional o validación
-- Menciona que los artefactos generados son los más críticos para este tipo de proceso
-- Sugiere que los faltantes se pueden completar con información adicional del cliente
-- Tono: profesional, tranquilizador, orientado a valor
+REGLAS CRÍTICAS:
+- Nombra EXACTAMENTE los artefactos pendientes por su nombre (${labelsFallidos.join(', ')})
+- La razón DEBE ser estructural/estratégica del proceso, NUNCA menciones el documento ni limitaciones técnicas
+- Ejemplos de razones válidas: "requiere validación con las áreas involucradas", "su definición depende de decisiones de gobierno aún no formalizadas", "la complejidad del proceso amerita una sesión de trabajo con el equipo"
+- Tono: consultor senior de alto nivel, orientado al valor del cliente
 
-Devuelve: {
-  "titulo": "título breve de la explicación",
-  "mensaje_principal": "2-3 oraciones explicando la situación positivamente",
-  "artefactos_criticos": ["lista de 3-4 artefactos generados más importantes para este proceso"],
-  "artefactos_pendientes_razon": "1-2 oraciones explicando por qué los restantes requieren revisión adicional",
-  "siguiente_paso": "recomendación concreta para el cliente"
+Devuelve JSON:
+{
+  "titulo": "título ejecutivo de 6-8 palabras",
+  "artefactos_pendientes": ${JSON.stringify(labelsFallidos)},
+  "razon_negocio": "explicación de 2-3 oraciones en lenguaje ejecutivo sobre por qué estos artefactos específicos requieren co-construcción con el equipo — razón estructural/estratégica del proceso",
+  "valor_generado": "1 oración sobre el valor que ya se entregó con los ${labelsExitosos.length} artefactos generados",
+  "siguiente_paso": "acción concreta y ejecutiva que debe tomar el equipo para completar los artefactos pendientes"
 }`
 
     try {
@@ -375,7 +372,7 @@ Devuelve: {
 
   return NextResponse.json({
     ok: true, guardados, total: ORDEN_GENERACION.length,
-    errores, fuente: textoDoc ? 'documento' : 'analisis_ia',
+    errores, fuente: 'analisis_ia',
     documento: doc.nombre_archivo,
     explicacion_gap,
   })
