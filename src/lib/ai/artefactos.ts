@@ -6,8 +6,6 @@ import { extractJson } from '@/lib/ai/claude'
 // Re-exportar desde fuente única para evitar duplicación (M2)
 export { ORDEN_GENERACION, LABEL_ARTEFACTO } from '@/lib/artefactos-meta'
 
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY! })
-
 const promptCache = new Map<string, string>()
 
 function leerPrompt(tipo: TipoArtefacto): string {
@@ -77,39 +75,37 @@ function construirResumenDocumentos(docs: DocumentoResumen[]): string {
   ).join('\n\n').slice(0, 3000)
 }
 
-async function llamarGroqConFunctionCalling(
+async function llamarGroq(
   systemPrompt: string,
   userPrompt: string
 ): Promise<Record<string, unknown>> {
-  const completion = await groq.chat.completions.create({
-    model: 'llama-3.3-70b-versatile',
-    max_tokens: 4096,
-    temperature: 0.1,
-    messages: [
-      { role: 'system', content: systemPrompt },
-      { role: 'user', content: userPrompt },
-    ],
-    tools: [{
-      type: 'function',
-      function: {
-        name: 'generar_artefacto',
-        description: 'Genera el artefacto solicitado en formato JSON estructurado',
-        parameters: {
-          type: 'object',
-          properties: { resultado: { type: 'object', description: 'El artefacto completo' } },
-          required: ['resultado'],
-        },
-      },
-    }],
-    tool_choice: { type: 'function', function: { name: 'generar_artefacto' } } as any,
-  })
-  const toolCall = completion.choices[0]?.message?.tool_calls?.[0]
-  if (toolCall) {
-    return (JSON.parse(toolCall.function.arguments) as { resultado: Record<string, unknown> }).resultado
+  const groq = new Groq({ apiKey: process.env.GROQ_API_KEY! })
+  const modelos = ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant']
+  let lastError = ''
+
+  for (const modelo of modelos) {
+    try {
+      const completion = await groq.chat.completions.create({
+        model: modelo,
+        max_tokens: 4000,
+        temperature: 0.1,
+        messages: [
+          { role: 'system', content: systemPrompt + '\n\nResponde ÚNICAMENTE con JSON válido, sin texto antes ni después.' },
+          { role: 'user', content: userPrompt },
+        ],
+        response_format: { type: 'json_object' },
+      })
+      const text = completion.choices[0]?.message?.content ?? ''
+      if (!text) { lastError = `${modelo}: respuesta vacía`; continue }
+      const parsed = JSON.parse(text)
+      // Puede venir envuelto en { resultado: {...} } o directamente
+      return (parsed.resultado ?? parsed) as Record<string, unknown>
+    } catch (err) {
+      lastError = `${modelo}: ${err instanceof Error ? err.message.slice(0, 100) : String(err)}`
+      continue
+    }
   }
-  // Fallback: si no retornó tool call, parsear el content como JSON
-  const text = completion.choices[0]?.message?.content ?? ''
-  return extractJson(text) as Record<string, unknown>
+  throw new Error(`Error generando artefacto IA: ${lastError}`)
 }
 
 export async function generarArtefacto(
@@ -146,5 +142,5 @@ export async function generarArtefacto(
     userPrompt += '\n\n## Dashboard brechas\n' + JSON.stringify(existentes.dashboard_brechas ?? {}, null, 2)
   }
 
-  return llamarGroqConFunctionCalling(plantilla, userPrompt)
+  return llamarGroq(plantilla, userPrompt)
 }

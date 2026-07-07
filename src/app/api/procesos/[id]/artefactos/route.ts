@@ -106,18 +106,22 @@ async function procesarArtefactosEnBackground(
       cliente_industria: clienteRaw?.industria ? String(clienteRaw.industria) : null,
     }
 
-    // Cargar documentos de origen del proyecto
+    // Cargar documentos con análisis IA (sin filtrar por estado_procesamiento — algunos quedan en 'procesando')
     const { data: documentos } = await admin
       .from('documento')
-      .select('nombre_archivo, resumen_ejecutivo, clasificacion')
+      .select('nombre_archivo, resumen_ejecutivo, analisis_ia, clasificacion')
       .eq('proyecto_id', proceso.proyecto_id)
-      .eq('estado_procesamiento', 'listo')
+      .not('analisis_ia', 'is', null)
 
-    const docs: DocumentoResumen[] = (documentos ?? []).map(d => ({
-      nombre_archivo: d.nombre_archivo,
-      resumen_ejecutivo: d.resumen_ejecutivo,
-      clasificacion: d.clasificacion as Record<string, unknown> | null,
-    }))
+    const docs: DocumentoResumen[] = (documentos ?? []).map(d => {
+      const ia = (d.analisis_ia as any)?.analisis ?? d.analisis_ia as any
+      const resumen = ia?.resumen_ejecutivo ?? d.resumen_ejecutivo ?? null
+      return {
+        nombre_archivo: d.nombre_archivo,
+        resumen_ejecutivo: resumen,
+        clasificacion: d.clasificacion as Record<string, unknown> | null,
+      }
+    })
 
     const tipos = tipoSolicitado ? [tipoSolicitado] : ORDEN_GENERACION
     const generados: Record<string, unknown> = {}
