@@ -163,15 +163,36 @@ export default async function ArtefactosPage() {
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         {[
-          { label: 'Procesos aceptados', value: totalProcesosAceptados, color: 'text-white' },
-          { label: 'Artefactos generados', value: totalArtefactos, color: 'text-purple-400' },
-          { label: 'Publicados', value: totalPublicados, color: 'text-blue-400' },
-          { label: 'Cobertura', value: `${cobertura}%`, color: 'text-emerald-400' },
+          {
+            label: 'Procesos aceptados',
+            value: totalProcesosAceptados,
+            color: 'text-white',
+            desc: 'Procesos aprobados en Discovery AI con documentación cargada',
+          },
+          {
+            label: 'Artefactos generados',
+            value: totalArtefactos,
+            color: 'text-purple-400',
+            desc: 'Total de artefactos extraídos de los documentos (SIPOC, RACI, AS-IS…)',
+          },
+          {
+            label: 'Publicados',
+            value: totalPublicados,
+            color: 'text-blue-400',
+            desc: 'Artefactos revisados, validados y listos para entrega al cliente',
+          },
+          {
+            label: 'Cobertura',
+            value: `${cobertura}%`,
+            color: 'text-emerald-400',
+            desc: 'Porcentaje de procesos que ya tienen artefactos generados',
+          },
         ].map(s => (
           <Card key={s.label} className="bg-slate-900 border-slate-800">
             <CardContent className="p-4">
               <p className="text-slate-400 text-xs uppercase tracking-wider">{s.label}</p>
               <p className={`text-2xl font-bold mt-1 ${s.color}`}>{s.value}</p>
+              <p className="text-slate-600 text-xs mt-2 leading-snug">{s.desc}</p>
             </CardContent>
           </Card>
         ))}
