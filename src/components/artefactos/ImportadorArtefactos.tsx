@@ -67,9 +67,9 @@ export default function ImportadorArtefactos({ procesoId, procesoNombre, onCompl
         setFuente(d.fuente ?? '')
         if (d.explicacion_gap) setExplicacionGap(d.explicacion_gap)
         setEstado('ok')
-        // Si salieron todos, refrescar automático. Si hay gap, el usuario refresca manualmente.
+        // Full reload garantiza datos frescos desde BD. Si hay gap, el usuario confirma antes.
         if (guardadosN >= totalN) {
-          setTimeout(() => { if (!cancelado) router.refresh() }, 600)
+          setTimeout(() => { if (!cancelado) window.location.reload() }, 1200)
         }
       } catch (err) {
         if (!cancelado) {
@@ -167,7 +167,7 @@ export default function ImportadorArtefactos({ procesoId, procesoNombre, onCompl
               </p>
             </div>
             <button
-              onClick={() => { router.refresh(); setTimeout(() => onComplete?.(), 800) }}
+              onClick={() => { window.location.reload() }}
               className="shrink-0 flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-emerald-900/50 hover:bg-emerald-800/50 border border-emerald-700/50 text-emerald-300 transition-colors"
             >
               <RefreshCw className="w-3 h-3" />
