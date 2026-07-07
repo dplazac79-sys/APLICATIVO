@@ -1,12 +1,12 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { notFound } from 'next/navigation'
-import { Layers, ChevronLeft, Printer, FileCheck2 } from 'lucide-react'
+import { Layers, ChevronLeft, Printer, FileCheck2, Lock } from 'lucide-react'
 import Link from 'next/link'
 import type { Artefacto } from '@/types/database'
 import ArtefactoCardEditor from '@/components/artefactos/ArtefactoCardEditor'
 import ImportadorArtefactos from '@/components/artefactos/ImportadorArtefactos'
 import BotonReextraer from '@/components/artefactos/BotonReextraer'
-import { ORDEN_GENERACION } from '@/lib/artefactos-meta'
+import { ORDEN_GENERACION, LABEL_ARTEFACTO } from '@/lib/artefactos-meta'
 
 export const dynamic = 'force-dynamic'
 
@@ -136,12 +136,23 @@ export default async function ProcesoArtefactosPage({ params }: Props) {
         />
       )}
 
-      {/* ── Artefactos en orden metodológico ── */}
-      {ORDEN_GENERACION.map(tipo => {
+      {/* ── Artefactos en orden metodológico (18 slots siempre visibles) ── */}
+      {ORDEN_GENERACION.map((tipo, idx) => {
         const art = artefactosPorTipo[tipo]
-        if (!art) return null // Se están importando — el auto-refresh los mostrará
+        const numero = idx + 1
+        if (art) {
+          return (
+            <ArtefactoCardEditor key={tipo} artefacto={art} procesoId={params.procesoId} numero={numero} />
+          )
+        }
+        // Placeholder para artefactos no extraídos
         return (
-          <ArtefactoCardEditor key={tipo} artefacto={art} procesoId={params.procesoId} />
+          <div key={tipo} className="bg-slate-900/50 border border-slate-800/60 border-dashed rounded-2xl px-4 py-3 flex items-center gap-3 opacity-60">
+            <Lock className="w-4 h-4 text-slate-600 shrink-0" />
+            <span className="text-xs font-mono font-bold text-slate-600 shrink-0 w-5 text-right">{numero}.</span>
+            <span className="text-slate-500 text-sm">{LABEL_ARTEFACTO[tipo]}</span>
+            <span className="ml-auto text-xs text-slate-600 bg-slate-800 px-2 py-0.5 rounded-full">Requiere co-construcción</span>
+          </div>
         )
       })}
     </div>

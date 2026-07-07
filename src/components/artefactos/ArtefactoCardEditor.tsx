@@ -650,9 +650,10 @@ function MejoraIAPanel({
 interface Props {
   artefacto: Artefacto
   procesoId: string
+  numero?: number
 }
 
-export default function ArtefactoCardEditor({ artefacto: artefactoInicial, procesoId }: Props) {
+export default function ArtefactoCardEditor({ artefacto: artefactoInicial, procesoId, numero }: Props) {
   const router = useRouter()
   const [artefacto, setArtefacto] = useState(artefactoInicial)
   const [modo, setModo] = useState<'vista' | 'editar'>('vista')
@@ -755,7 +756,10 @@ export default function ArtefactoCardEditor({ artefacto: artefactoInicial, proce
             >
               {expandido ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
             </button>
-            <div className="min-w-0">
+            <div className="min-w-0 flex items-center gap-2">
+              {numero !== undefined && (
+                <span className="shrink-0 text-xs font-mono font-bold text-slate-600 w-6 text-right">{numero}.</span>
+              )}
               <h3 className="text-white font-semibold text-sm truncate">{tipoLabel}</h3>
               <div className="flex items-center gap-2 mt-0.5">
                 <span className="text-slate-600 text-xs">v{artefacto.version}</span>
