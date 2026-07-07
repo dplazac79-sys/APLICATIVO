@@ -158,178 +158,93 @@ ${inteligenciaBase}` : 'SIN DOCUMENTOS PROCESADOS — usar contexto del proceso 
 
 INSTRUCCIÓN: Genera la proyección estratégica completa. ${esMacro ? 'Modela el impacto TOTAL para la empresa si se implementan todos los subprocesos.' : 'Modela qué cambiaría en la operación si este proceso se implementa según el documento.'} Incluye escenarios realistas, mejoras priorizadas por impacto/esfuerzo, roadmap de 90 días y KPIs proyectados a 6 y 12 meses.`
 
-  // Intentar modelos en orden — cada uno tiene cupo diario independiente en Groq
-  const modelos = [
-    'llama-3.3-70b-versatile',
-    'llama-3.1-8b-instant',
-    'llama3-70b-8192',
-    'llama3-8b-8192',
-    'mixtral-8x7b-32768',
-  ]
+  // Prompt compacto para JSON directo — sin tool_choice, más confiable y consume menos tokens
+  const jsonPrompt = `${systemPrompt}
+
+${userPrompt}
+
+Responde ÚNICAMENTE con este JSON válido, sin texto antes ni después:
+{
+  "estado_actual": {
+    "diagnostico": "3-4 oraciones del estado actual basadas en los documentos",
+    "nivel_madurez": 2,
+    "principales_fricciones": ["fricción 1", "fricción 2", "fricción 3"],
+    "costo_ineficiencia_estimado": "descripción cualitativa del costo de ineficiencia"
+  },
+  "mejoras_propuestas": [
+    {"id":"m1","titulo":"título","descripcion":"descripción","impacto":"alto","esfuerzo":"medio","tipo":"quick_win","plazo_semanas":4,"valor_estimado":"descripción del valor"},
+    {"id":"m2","titulo":"título","descripcion":"descripción","impacto":"medio","esfuerzo":"alto","tipo":"proyecto_corto","plazo_semanas":12,"valor_estimado":"descripción del valor"}
+  ],
+  "escenarios": {
+    "conservador": {"descripcion":"...","ahorro_estimado":"...","probabilidad":60,"plazo_meses":6},
+    "base": {"descripcion":"...","ahorro_estimado":"...","probabilidad":30,"plazo_meses":9},
+    "optimista": {"descripcion":"...","ahorro_estimado":"...","probabilidad":10,"plazo_meses":12}
+  },
+  "roadmap_90_dias": [
+    {"semana":"Semana 1-2","accion":"acción concreta","responsable":"rol","entregable":"entregable"}
+  ],
+  "proyeccion_kpis": [
+    {"kpi":"nombre KPI","valor_actual":"estado actual","valor_6_meses":"proyección 6m","valor_12_meses":"proyección 12m","unidad":"%"}
+  ],
+  "recomendacion_ejecutiva": "2-3 oraciones accionables para el C-Suite",
+  "nivel_confianza": 75
+}`
+
+  // Solo modelos activos en Groq a julio 2025
+  const modelos = ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant']
 
   let lastError = ''
   for (const modelo of modelos) {
-  try {
-    const completion = await groq.chat.completions.create({
-      model: modelo,
-      max_tokens: 6000,
-      temperature: 0.2,
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: userPrompt },
-      ],
-      tools: [{
-        type: 'function',
-        function: {
-          name: 'generar_proyeccion',
-          description: 'Genera la proyección estratégica completa del proceso con todos los campos requeridos',
-          parameters: {
-            type: 'object',
-            required: ['proyeccion'],
-            properties: {
-              proyeccion: {
-                type: 'object',
-                required: ['estado_actual', 'mejoras_propuestas', 'escenarios', 'roadmap_90_dias', 'proyeccion_kpis', 'recomendacion_ejecutiva', 'nivel_confianza'],
-                properties: {
-                  estado_actual: {
-                    type: 'object',
-                    required: ['diagnostico', 'nivel_madurez', 'principales_fricciones', 'costo_ineficiencia_estimado'],
-                    properties: {
-                      diagnostico: { type: 'string', description: '3-4 oraciones sobre el estado actual basadas en los documentos' },
-                      nivel_madurez: { type: 'number', description: 'Número del 1 al 5' },
-                      principales_fricciones: { type: 'array', items: { type: 'string' }, description: 'Lista de 3-5 fricciones principales' },
-                      costo_ineficiencia_estimado: { type: 'string', description: 'Descripción cualitativa del costo de ineficiencia actual' },
-                    },
-                  },
-                  mejoras_propuestas: {
-                    type: 'array',
-                    description: 'Lista de 4-6 mejoras priorizadas',
-                    items: {
-                      type: 'object',
-                      required: ['id', 'titulo', 'descripcion', 'impacto', 'esfuerzo', 'tipo', 'plazo_semanas', 'valor_estimado'],
-                      properties: {
-                        id: { type: 'string' },
-                        titulo: { type: 'string' },
-                        descripcion: { type: 'string' },
-                        impacto: { type: 'string', enum: ['alto', 'medio', 'bajo'] },
-                        esfuerzo: { type: 'string', enum: ['alto', 'medio', 'bajo'] },
-                        tipo: { type: 'string', enum: ['quick_win', 'proyecto_corto', 'transformacion'] },
-                        plazo_semanas: { type: 'number' },
-                        valor_estimado: { type: 'string', description: 'Descripción cualitativa del valor esperado' },
-                      },
-                    },
-                  },
-                  escenarios: {
-                    type: 'object',
-                    required: ['conservador', 'base', 'optimista'],
-                    properties: {
-                      conservador: {
-                        type: 'object',
-                        required: ['descripcion', 'ahorro_estimado', 'probabilidad', 'plazo_meses'],
-                        properties: {
-                          descripcion: { type: 'string' },
-                          ahorro_estimado: { type: 'string' },
-                          probabilidad: { type: 'number', description: 'Probabilidad como número 0-100' },
-                          plazo_meses: { type: 'number' },
-                        },
-                      },
-                      base: {
-                        type: 'object',
-                        required: ['descripcion', 'ahorro_estimado', 'probabilidad', 'plazo_meses'],
-                        properties: {
-                          descripcion: { type: 'string' },
-                          ahorro_estimado: { type: 'string' },
-                          probabilidad: { type: 'number' },
-                          plazo_meses: { type: 'number' },
-                        },
-                      },
-                      optimista: {
-                        type: 'object',
-                        required: ['descripcion', 'ahorro_estimado', 'probabilidad', 'plazo_meses'],
-                        properties: {
-                          descripcion: { type: 'string' },
-                          ahorro_estimado: { type: 'string' },
-                          probabilidad: { type: 'number' },
-                          plazo_meses: { type: 'number' },
-                        },
-                      },
-                    },
-                  },
-                  roadmap_90_dias: {
-                    type: 'array',
-                    description: 'Lista de 8-12 acciones semana a semana',
-                    items: {
-                      type: 'object',
-                      required: ['semana', 'accion', 'responsable', 'entregable'],
-                      properties: {
-                        semana: { type: 'string', description: 'Ej: Semana 1-2' },
-                        accion: { type: 'string' },
-                        responsable: { type: 'string' },
-                        entregable: { type: 'string' },
-                      },
-                    },
-                  },
-                  proyeccion_kpis: {
-                    type: 'array',
-                    description: 'Lista de 4-6 KPIs con proyección',
-                    items: {
-                      type: 'object',
-                      required: ['kpi', 'valor_actual', 'valor_6_meses', 'valor_12_meses', 'unidad'],
-                      properties: {
-                        kpi: { type: 'string' },
-                        valor_actual: { type: 'string' },
-                        valor_6_meses: { type: 'string' },
-                        valor_12_meses: { type: 'string' },
-                        unidad: { type: 'string', description: 'Ej: %, días, veces — no $ sin respaldo' },
-                      },
-                    },
-                  },
-                  recomendacion_ejecutiva: { type: 'string', description: '2-3 oraciones accionables para el C-Suite' },
-                  nivel_confianza: { type: 'number', description: 'Confianza del análisis 0-100 basada en cantidad de documentos' },
-                },
-              },
-            },
-          },
-        },
-      }],
-      tool_choice: { type: 'function', function: { name: 'generar_proyeccion' } } as any,
-    })
+    try {
+      const completion = await groq.chat.completions.create({
+        model: modelo,
+        max_tokens: 3000,
+        temperature: 0.2,
+        messages: [{ role: 'user', content: jsonPrompt }],
+        response_format: { type: 'json_object' },
+      })
 
-    const toolCall = completion.choices[0]?.message?.tool_calls?.[0]
-    if (!toolCall) { lastError = 'Sin respuesta de proyección'; continue }
+      const text = completion.choices[0]?.message?.content ?? ''
+      if (!text) { lastError = `${modelo}: respuesta vacía`; continue }
 
-    const { proyeccion } = JSON.parse(toolCall.function.arguments) as { proyeccion: Record<string, unknown> }
+      let proyeccion: Record<string, unknown>
+      try {
+        const parsed = JSON.parse(text)
+        // El modelo puede devolver { proyeccion: {...} } o directamente el objeto
+        proyeccion = (parsed.proyeccion ?? parsed) as Record<string, unknown>
+      } catch {
+        lastError = `${modelo}: JSON inválido`
+        continue
+      }
 
-    // Persistir en metadata_ia
-    const { data: proc2 } = await admin.from('proceso').select('metadata_ia').eq('id', procesoId).single()
-    const meta = (proc2?.metadata_ia ?? {}) as Record<string, unknown>
-    await admin.from('proceso').update({
-      metadata_ia: { ...meta, proyeccion_ia: proyeccion, proyeccion_generada_at: new Date().toISOString() },
-    }).eq('id', procesoId)
+      if (!proyeccion.estado_actual) { lastError = `${modelo}: estructura incompleta`; continue }
 
-    await registrarUsoIA({
-      proyecto_id: proyectoId,
-      usuario_id: user.id,
-      tipo: 'resumir',
-      tokens_input: 3000,
-      tokens_output: 2000,
-    }).catch(() => {})
+      // Persistir en metadata_ia
+      const { data: proc2 } = await admin.from('proceso').select('metadata_ia').eq('id', procesoId).single()
+      const meta = (proc2?.metadata_ia ?? {}) as Record<string, unknown>
+      await admin.from('proceso').update({
+        metadata_ia: { ...meta, proyeccion_ia: proyeccion, proyeccion_generada_at: new Date().toISOString() },
+      }).eq('id', procesoId)
 
-    return NextResponse.json({ proyeccion })
-  } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : String(err)
-    // Si es rate limit, intentar con el siguiente modelo
-    if (msg.includes('rate_limit') || msg.includes('429') || msg.includes('Rate limit') ||
-        msg.includes('model_decommissioned') || msg.includes('decommissioned') || msg.includes('400')) {
-      lastError = `Modelo ${modelo} no disponible — intentando alternativo...`
+      await registrarUsoIA({
+        proyecto_id: proyectoId,
+        usuario_id: user.id,
+        tipo: 'resumir',
+        tokens_input: 2000,
+        tokens_output: 1500,
+      }).catch(() => {})
+
+      return NextResponse.json({ proyeccion })
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err)
+      lastError = `${modelo}: ${msg.slice(0, 120)}`
+      // Siempre intentar el siguiente modelo ante cualquier error
       continue
     }
-    return NextResponse.json({ error: msg }, { status: 500 })
   }
-  } // fin loop modelos
 
   return NextResponse.json({
-    error: `Límite diario de procesamiento IA alcanzado. El servicio se resetea cada 24h. Intenta más tarde o contacta a soporte. (${lastError})`
+    error: `No se pudo generar la proyección. ${lastError.includes('rate') || lastError.includes('429') || lastError.includes('limit') ? 'Límite de procesamiento IA alcanzado — el servicio se resetea cada 24h.' : 'Error de conexión con el servicio IA.'} (${lastError})`
   }, { status: 429 })
 }
 
