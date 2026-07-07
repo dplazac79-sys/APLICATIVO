@@ -70,9 +70,9 @@ export default function ImportadorArtefactos({ procesoId, procesoNombre }: Props
   if (estado === 'extrayendo') {
     const total = ARTEFACTOS_LABELS.length
     const pasado = elapsed > TIEMPO_ESTIMADO
-    // Hasta el estimado: avanza hasta 92%. Después: pulsa entre 92-96% para no congelarse
+    // Hasta el estimado: avanza hasta 92%. Después: sube muy lento hacia 99%, nunca retrocede
     const pctEstimado = pasado
-      ? 92 + (Math.sin(elapsed * 0.8) * 2 + 2) // oscila 92-96%
+      ? Math.min(92 + (elapsed - TIEMPO_ESTIMADO) * 0.15, 99)
       : Math.min((elapsed / TIEMPO_ESTIMADO) * 92, 92)
     const activo = Math.min(Math.floor((elapsed / TIEMPO_ESTIMADO) * total), total - 1)
     const restantes = Math.max(TIEMPO_ESTIMADO - elapsed, 0)
