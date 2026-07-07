@@ -34,6 +34,7 @@
     "lucide-react": "^1.18.0",
     "mammoth": "^1.12.0",
     "next": "14.2.35",
+    "openai": "^6.45.0",
     "pdf-parse": "^1.1.1",
     "pptxgenjs": "^4.0.1",
     "react": "^18",

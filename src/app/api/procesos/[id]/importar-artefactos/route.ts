@@ -1,13 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import Groq from 'groq-sdk'
+import { chatCompletion, MODELOS } from '@/lib/ai/client'
 import { extraerTextoPDF, extraerTextoDOCX } from '@/lib/extract-text'
 import { ORDEN_GENERACION } from '@/lib/artefactos-meta'
 import type { TipoArtefacto } from '@/types/database'
 
-async function llamarGroq(
-  groq: Groq,
+async function llamarIA(
   modelos: string[],
   systemPrompt: string,
   userPrompt: string,
@@ -16,7 +15,7 @@ async function llamarGroq(
   for (const modelo of modelos) {
     for (let intento = 0; intento < 2; intento++) {
       try {
-        const completion = await groq.chat.completions.create({
+        const completion = await chatCompletion({
           model: modelo,
           max_tokens: maxTokens,
           temperature: 0.1,
@@ -104,10 +103,7 @@ export async function POST(
     return NextResponse.json({ error: 'No se pudo obtener contenido del documento' }, { status: 400 })
   }
 
-  const groq = new Groq({ apiKey: process.env.GROQ_API_KEY! })
-  // 8b-instant es 3x más rápido — suficiente para extracción estructurada
-  // 70b como fallback solo si 8b falla
-  const modelos = ['llama-3.1-8b-instant', 'llama-3.3-70b-versatile']
+  const modelos = [MODELOS.rapido, MODELOS.potente]
 
   // ── System prompt base ────────────────────────────────────────────────────
   const SYSTEM = `Eres un consultor senior de procesos de AICOUNTS Consultores especializado en metodología de procesos para industria ${industria}.
@@ -305,7 +301,7 @@ Devuelve: {"duracion_total_semanas":12,"metodologia":"metodología sugerida","fa
     return Promise.all(tipos.map(async (tipo) => {
       const cfg = PROMPTS[tipo]
       if (!cfg) return { tipo, contenido: null, ok: false }
-      const contenido = await llamarGroq(groq, modelos, SYSTEM, cfg.prompt, cfg.tokens)
+      const contenido = await llamarIA(modelos, SYSTEM, cfg.prompt, cfg.tokens)
       return { tipo, contenido, ok: contenido !== null }
     }))
   }
@@ -375,9 +371,8 @@ Devuelve: {
 }`
 
     try {
-      const groqGap = new Groq({ apiKey: process.env.GROQ_API_KEY! })
-      const comp = await groqGap.chat.completions.create({
-        model: 'llama-3.1-8b-instant',
+      const comp = await chatCompletion({
+        model: MODELOS.rapido,
         max_tokens: 800,
         temperature: 0.3,
         messages: [

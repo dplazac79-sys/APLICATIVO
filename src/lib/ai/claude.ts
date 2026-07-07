@@ -1,10 +1,6 @@
-import Groq from 'groq-sdk'
 import fs from 'fs'
 import path from 'path'
-
-const groqClient = process.env.GROQ_API_KEY
-  ? new Groq({ apiKey: process.env.GROQ_API_KEY })
-  : null
+import { chatCompletion, MODELOS } from './client'
 
 const promptCache = new Map<string, string>()
 
@@ -85,10 +81,9 @@ async function analizarSeccion(
   systemPrompt: string,
   seccion?: string
 ): Promise<{ clasificacion: ClasificacionDoc; analisis: ResumenDoc }> {
-  if (!groqClient) throw new Error('GROQ_API_KEY no configurada')
   const header = seccion ? `[${seccion}]\n\n` : ''
-  const completion = await groqClient.chat.completions.create({
-    model: 'llama-3.3-70b-versatile',
+  const completion = await chatCompletion({
+    model: MODELOS.potente,
     max_tokens: 6000,
     temperature: 0.1,
     messages: [
@@ -109,7 +104,7 @@ async function analizarSeccion(
     }],
     tool_choice: { type: 'function', function: { name: 'entregar_analisis' } } as any,
   })
-  const toolCall = completion.choices[0]?.message?.tool_calls?.[0]
+  const toolCall = completion.choices[0]?.message?.tool_calls?.[0] as { function: { arguments: string } } | undefined
   if (!toolCall) throw new Error('No se recibió resultado del motor de inteligencia')
   return JSON.parse(toolCall.function.arguments) as { clasificacion: ClasificacionDoc; analisis: ResumenDoc }
 }
@@ -117,7 +112,7 @@ async function analizarSeccion(
 async function consolidarSecciones(
   parciales: Array<{ clasificacion: ClasificacionDoc; analisis: ResumenDoc }>
 ): Promise<{ clasificacion: ClasificacionDoc; analisis: ResumenDoc }> {
-  if (!groqClient) {
+  if (parciales.length === 1) {
     // Sin Groq: merge manual tomando la primera sección + agregando hallazgos de las demás
     const base = parciales[0]
     for (const p of parciales.slice(1)) {
@@ -165,8 +160,8 @@ Devuelve SOLO este JSON (sin texto extra):
   "proximos_pasos_sugeridos": ["máximo 4 pasos concretos"]
 }`
 
-  const completion = await groqClient.chat.completions.create({
-    model: 'llama-3.3-70b-versatile',
+  const completion = await chatCompletion({
+    model: MODELOS.potente,
     messages: [{ role: 'user', content: prompt }],
     max_tokens: 3000,
     temperature: 0.2,
@@ -246,9 +241,8 @@ export async function reAnalizarContenidoEditado(contenidoEditado: {
     ? `\n\n## CONTEXTO DOCUMENTAL (fuente primaria — no contradecir)\n${contenidoEditado.contexto_documental}`
     : ''
 
-  if (!groqClient) throw new Error('GROQ_API_KEY no configurada')
-  const completion = await groqClient.chat.completions.create({
-    model: 'llama-3.3-70b-versatile',
+  const completion = await chatCompletion({
+    model: MODELOS.potente,
     max_tokens: 2048,
     temperature: 0.2,
     messages: [
@@ -284,9 +278,8 @@ export async function enriquecerProcesoCliente(
   textoDocumento: string,
   contextoProyecto: string
 ) {
-  if (!groqClient) throw new Error('GROQ_API_KEY no configurada')
-  const completion = await groqClient.chat.completions.create({
-    model: 'llama-3.3-70b-versatile',
+  const completion = await chatCompletion({
+    model: MODELOS.potente,
     max_tokens: 4096,
     temperature: 0.2,
     messages: [
@@ -377,23 +370,9 @@ export interface DiscoveryResult {
 // límite sólo aplica si el cliente sube algo excepcionalmente grande.
 const MAX_CHARS_POR_DOC = 800
 
-async function discoveryProcesosGroq(prompt: string, systemPrompt: string): Promise<string> {
-  if (!groqClient) throw new Error('GROQ_API_KEY no configurada')
-  const completion = await groqClient.chat.completions.create({
-    model: 'llama-3.3-70b-versatile',
-    max_tokens: 6000,
-    messages: [
-      { role: 'system', content: systemPrompt },
-      { role: 'user', content: prompt },
-    ],
-  })
-  return completion.choices[0]?.message?.content ?? ''
-}
-
 export async function discoveryProcesos(contextoCliente: string, documentosResumidos: string[]) {
   const system = loadPrompt('discovery-procesos')
 
-  // Truncar cada resumen defensivamente — nunca dejar que el input explote
   const resumenesTruncados = documentosResumidos.map((d) => {
     if (d.length <= MAX_CHARS_POR_DOC) return d
     return d.slice(0, MAX_CHARS_POR_DOC) + `\n[resumen truncado — ${Math.round(d.length / 1000)}k chars totales]`
@@ -407,12 +386,15 @@ Documentos analizados:
 ${resumenesTruncados.map((d, i) => `--- Documento ${i + 1} ---\n${d}`).join('\n\n')}
 `
 
-  let rawText: string
-
-  // Motor principal: Groq llama-3.3-70b-versatile
-  rawText = await discoveryProcesosGroq(contenido, system)
-
-  return extractJson(rawText) as DiscoveryResult
+  const completion = await chatCompletion({
+    model: MODELOS.potente,
+    max_tokens: 6000,
+    messages: [
+      { role: 'system', content: system },
+      { role: 'user', content: contenido },
+    ],
+  })
+  return extractJson(completion.choices[0]?.message?.content ?? '') as DiscoveryResult
 }
 
 // ── Glosario de Roles ─────────────────────────────────────────────────────────
@@ -508,9 +490,8 @@ Retorna este JSON exacto:
 }
 `
 
-  if (!groqClient) throw new Error('GROQ_API_KEY no configurada')
-  const completion = await groqClient.chat.completions.create({
-    model: 'llama-3.3-70b-versatile',
+  const completion = await chatCompletion({
+    model: MODELOS.potente,
     max_tokens: 8000,
     temperature: 0.2,
     messages: [
@@ -588,12 +569,11 @@ Operas con el rigor de un consultor senior + la precisión de un analista de dat
 Produces proyecciones basadas ESTRICTAMENTE en el diagnóstico documental adjunto.
 IMPORTANTE: No inventes cifras en $ ni porcentajes exactos sin respaldo en los datos del proceso. Si debes estimar, usa rangos cualitativos ("reducción significativa", "mejora considerable") o rangos amplios marcados como "estimado cualitativo". Las proyecciones financieras específicas requieren datos operacionales reales del cliente que deben ser validados por el consultor.`
 
-  if (!groqClient) throw new Error('GROQ_API_KEY no configurada')
   const userContent = `## Contexto del proyecto\n${proyectoCx}\n\n## Proceso a proyectar\n${procesoCx}${
     opciones?.incluir_automatizacion ? '\n\n## Nota: incluir análisis de automatización con IA/RPA en las mejoras propuestas.' : ''
   }`
-  const completion = await groqClient.chat.completions.create({
-    model: 'llama-3.3-70b-versatile',
+  const completion = await chatCompletion({
+    model: MODELOS.potente,
     max_tokens: 6000,
     temperature: 0.2,
     messages: [
@@ -614,7 +594,7 @@ IMPORTANTE: No inventes cifras en $ ni porcentajes exactos sin respaldo en los d
     }],
     tool_choice: { type: 'function', function: { name: 'generar_proyeccion' } } as any,
   })
-  const toolCall = completion.choices[0]?.message?.tool_calls?.[0]
+  const toolCall = completion.choices[0]?.message?.tool_calls?.[0] as { function: { arguments: string } } | undefined
   if (!toolCall) throw new Error('Sin respuesta de proyección')
   return (JSON.parse(toolCall.function.arguments) as { proyeccion: ProyeccionProceso }).proyeccion
 }

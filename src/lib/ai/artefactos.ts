@@ -1,6 +1,6 @@
 import fs from 'fs'
 import path from 'path'
-import Groq from 'groq-sdk'
+import { chatCompletion, MODELOS } from '@/lib/ai/client'
 import type { TipoArtefacto } from '@/types/database'
 import { extractJson } from '@/lib/ai/claude'
 // Re-exportar desde fuente única para evitar duplicación (M2)
@@ -79,13 +79,12 @@ async function llamarGroq(
   systemPrompt: string,
   userPrompt: string
 ): Promise<Record<string, unknown>> {
-  const groq = new Groq({ apiKey: process.env.GROQ_API_KEY! })
-  const modelos = ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant']
+  const modelos = [MODELOS.potente, MODELOS.rapido]
   let lastError = ''
 
   for (const modelo of modelos) {
     try {
-      const completion = await groq.chat.completions.create({
+      const completion = await chatCompletion({
         model: modelo,
         max_tokens: 4000,
         temperature: 0.1,
@@ -98,7 +97,6 @@ async function llamarGroq(
       const text = completion.choices[0]?.message?.content ?? ''
       if (!text) { lastError = `${modelo}: respuesta vacía`; continue }
       const parsed = JSON.parse(text)
-      // Puede venir envuelto en { resultado: {...} } o directamente
       return (parsed.resultado ?? parsed) as Record<string, unknown>
     } catch (err) {
       lastError = `${modelo}: ${err instanceof Error ? err.message.slice(0, 100) : String(err)}`

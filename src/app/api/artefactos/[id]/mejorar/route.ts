@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import Groq from 'groq-sdk'
+import { chatCompletion, MODELOS } from '@/lib/ai/client'
 import { LABEL_ARTEFACTO } from '@/lib/artefactos-meta'
 import { extraerTextoPDF, extraerTextoDOCX } from '@/lib/extract-text'
 import type { TipoArtefacto } from '@/types/database'
@@ -116,13 +116,12 @@ Devuelve el JSON completo del artefacto mejorado, manteniendo exactamente la mis
 
   const userPrompt = esDiagrama ? userPromptDiagrama : userPromptNormal
 
-  const groq = new Groq({ apiKey: process.env.GROQ_API_KEY! })
-  const modelos = ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant']
+  const modelos = [MODELOS.potente, MODELOS.rapido]
   let lastError = ''
 
   for (const modelo of modelos) {
     try {
-      const completion = await groq.chat.completions.create({
+      const completion = await chatCompletion({
         model: modelo,
         max_tokens: 4000,
         temperature: 0.2,

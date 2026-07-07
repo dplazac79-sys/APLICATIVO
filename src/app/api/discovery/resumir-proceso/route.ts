@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import Groq from 'groq-sdk'
+import { chatCompletion, MODELOS } from '@/lib/ai/client'
 
 export async function POST(req: NextRequest) {
-  const groq = new Groq({ apiKey: process.env.GROQ_API_KEY! })
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
@@ -209,8 +208,8 @@ Devuelve este JSON exacto:
 
   let resultado: Record<string, unknown>
   try {
-    const completion = await groq.chat.completions.create({
-      model: 'llama-3.3-70b-versatile',
+    const completion = await chatCompletion({
+      model: MODELOS.potente,
       max_tokens: 1200,
       temperature: 0.2,
       messages: [

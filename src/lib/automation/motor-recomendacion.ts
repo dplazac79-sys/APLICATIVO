@@ -1,10 +1,8 @@
 import fs from 'fs'
 import path from 'path'
-import Groq from 'groq-sdk'
+import { chatCompletion, MODELOS } from '@/lib/ai/client'
 import { extractJson } from '@/lib/ai/claude'
 import type { RecomendacionIA, KgIndustriaSnapshot } from './tipos'
-
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY! })
 const promptCache = new Map<string, string>()
 
 function loadPrompt(name: string): string {
@@ -52,8 +50,8 @@ export async function generarRecomendaciones(
     .replace('{{industria}}', ctx.industria)
     .replace('{{kg_patrones_industria}}', kgPatrones)
 
-  const completion = await groq.chat.completions.create({
-    model: 'llama-3.3-70b-versatile',
+  const completion = await chatCompletion({
+    model: MODELOS.potente,
     max_tokens: 4096,
     temperature: 0.2,
     messages: [{ role: 'user', content: prompt }],

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import Groq from 'groq-sdk'
+import { chatCompletion, MODELOS } from '@/lib/ai/client'
 
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
   const admin = createAdminClient()
@@ -11,7 +11,6 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
 }
 
 export async function POST(_req: NextRequest, { params }: { params: { id: string } }) {
-  const groq = new Groq({ apiKey: process.env.GROQ_API_KEY! })
   const admin = createAdminClient()
 
   const { data: proceso } = await admin
@@ -113,8 +112,8 @@ Usando EXCLUSIVAMENTE los datos anteriores como base, genera el siguiente JSON. 
 Responde SOLO con el JSON. Sé directo, específico y trazable al documento.`
 
   try {
-    const completion = await groq.chat.completions.create({
-      model: 'llama-3.3-70b-versatile',
+    const completion = await chatCompletion({
+      model: MODELOS.potente,
       messages: [{ role: 'user', content: prompt }],
       max_tokens: 2500,
       temperature: 0.2,  // más bajo = menos alucinación
