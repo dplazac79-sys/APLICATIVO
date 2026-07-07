@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Loader2, FileText, CheckCircle, AlertCircle, Sparkles } from 'lucide-react'
+import { CheckCircle, AlertCircle, Sparkles } from 'lucide-react'
 
 interface Props {
   procesoId: string
@@ -11,12 +11,26 @@ interface Props {
 
 type Estado = 'extrayendo' | 'ok' | 'error'
 
+const ARTEFACTOS_LABELS = [
+  'SIPOC', 'AS-IS', 'BPMN', 'Flujograma', 'Historias de usuario',
+  'Matriz RACI', 'Riesgos y controles', 'KPIs y SLAs', 'Diagnóstico',
+  'TO-BE', 'Dashboard brechas', 'Cierre ejecutivo',
+]
+
 export default function ImportadorArtefactos({ procesoId, procesoNombre }: Props) {
   const router = useRouter()
   const [estado, setEstado] = useState<Estado>('extrayendo')
   const [guardados, setGuardados] = useState(0)
   const [fuente, setFuente] = useState<string>('')
   const [error, setError] = useState<string | null>(null)
+  const [tick, setTick] = useState(0)
+
+  // Simula progreso visual mientras la API trabaja en paralelo
+  useEffect(() => {
+    if (estado !== 'extrayendo') return
+    const id = setInterval(() => setTick(t => t + 1), 600)
+    return () => clearInterval(id)
+  }, [estado])
 
   useEffect(() => {
     let cancelado = false
@@ -33,7 +47,6 @@ export default function ImportadorArtefactos({ procesoId, procesoNombre }: Props
         setGuardados(d.guardados ?? 0)
         setFuente(d.fuente ?? '')
         setEstado('ok')
-        // Refrescar la página para mostrar los artefactos recién importados
         setTimeout(() => { if (!cancelado) router.refresh() }, 800)
       } catch (err) {
         if (!cancelado) {
@@ -48,33 +61,55 @@ export default function ImportadorArtefactos({ procesoId, procesoNombre }: Props
   }, [procesoId, router])
 
   if (estado === 'extrayendo') {
+    const totalLabels = ARTEFACTOS_LABELS.length
+    const activo = tick % totalLabels
+
     return (
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-8">
-        <div className="flex flex-col items-center gap-4 text-center">
-          <div className="relative">
-            <div className="w-16 h-16 rounded-2xl bg-purple-950/50 border border-purple-800/50 flex items-center justify-center">
-              <FileText className="w-8 h-8 text-purple-400" />
-            </div>
-            <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-slate-900 rounded-full flex items-center justify-center">
-              <Loader2 className="w-4 h-4 text-purple-400 animate-spin" />
-            </div>
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-8 space-y-6">
+        {/* Header */}
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 rounded-xl bg-purple-950/60 border border-purple-800/50 flex items-center justify-center shrink-0">
+            <Sparkles className="w-6 h-6 text-purple-400" />
           </div>
-          <div className="space-y-1">
-            <p className="text-white font-semibold">Extrayendo artefactos del documento</p>
-            <p className="text-slate-400 text-sm">{procesoNombre}</p>
-            <p className="text-slate-600 text-xs mt-2">
-              Analizando el documento y estructurando SIPOC, AS-IS, RACI y más...
-            </p>
+          <div>
+            <p className="text-white font-semibold">Extrayendo artefactos metodológicos</p>
+            <p className="text-slate-500 text-sm truncate max-w-sm">{procesoNombre}</p>
           </div>
-          <div className="flex gap-1.5 mt-2">
-            {[0,1,2].map(i => (
-              <div
-                key={i}
-                className="w-2 h-2 bg-purple-600 rounded-full animate-bounce"
-                style={{ animationDelay: `${i * 0.15}s` }}
-              />
-            ))}
+        </div>
+
+        {/* Grid de chips — se iluminan uno a uno */}
+        <div className="flex flex-wrap gap-2">
+          {ARTEFACTOS_LABELS.map((label, i) => {
+            const completado = i < activo
+            const enProceso = i === activo
+            return (
+              <span
+                key={label}
+                className={`text-xs px-3 py-1 rounded-full border font-medium transition-all duration-300 ${
+                  completado
+                    ? 'bg-purple-900/60 border-purple-700 text-purple-200'
+                    : enProceso
+                    ? 'bg-purple-950 border-purple-500 text-purple-300 shadow-[0_0_8px_rgba(168,85,247,0.4)]'
+                    : 'bg-slate-800/40 border-slate-700/40 text-slate-600'
+                }`}
+              >
+                {completado ? '✓ ' : enProceso ? '⟳ ' : ''}{label}
+              </span>
+            )
+          })}
+        </div>
+
+        {/* Barra de progreso */}
+        <div className="space-y-1.5">
+          <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-gradient-to-r from-purple-600 to-purple-400 rounded-full transition-all duration-500"
+              style={{ width: `${Math.min(((activo + 1) / totalLabels) * 100, 95)}%` }}
+            />
           </div>
+          <p className="text-slate-600 text-xs text-right">
+            Procesando en paralelo — esto toma unos segundos
+          </p>
         </div>
       </div>
     )
@@ -91,16 +126,14 @@ export default function ImportadorArtefactos({ procesoId, procesoNombre }: Props
             </p>
             <p className="text-slate-500 text-xs mt-0.5">
               {fuente === 'documento' ? 'Extraídos del texto del documento' : 'Generados desde el análisis IA del documento'}
-              {' · '}Recargando vista...
+              {' · '}Cargando artefactos...
             </p>
           </div>
-          <Loader2 className="w-4 h-4 text-slate-600 animate-spin ml-auto" />
         </div>
       </div>
     )
   }
 
-  // error
   return (
     <div className="bg-red-950/20 border border-red-800/40 rounded-2xl p-6 space-y-4">
       <div className="flex items-start gap-3">
@@ -111,7 +144,11 @@ export default function ImportadorArtefactos({ procesoId, procesoNombre }: Props
         </div>
       </div>
       <p className="text-slate-500 text-sm">
-        Puedes generarlos individualmente con el botón <span className="text-purple-400 inline-flex items-center gap-1"><Sparkles className="w-3 h-3" /> IA</span> en cada artefacto, o contactar a soporte.
+        Puedes generarlos individualmente con el botón{' '}
+        <span className="text-purple-400 inline-flex items-center gap-1">
+          <Sparkles className="w-3 h-3" /> IA
+        </span>{' '}
+        en cada artefacto, o contactar a soporte.
       </p>
     </div>
   )

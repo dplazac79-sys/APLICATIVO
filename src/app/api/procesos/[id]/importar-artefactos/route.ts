@@ -150,30 +150,26 @@ DOCUMENTO: ${doc.nombre_archivo as string}`
   const groq = new Groq({ apiKey: process.env.GROQ_API_KEY! })
   const modelos = ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant']
 
-  const resultados: Record<string, unknown> = {}
-  const errores: string[] = []
+  const esqueleton = (tipo: TipoArtefacto) => ({
+    titulo: proceso.nombre,
+    descripcion: `Diagrama ${tipo === 'bpmn' ? 'BPMN' : 'de flujo'} — ${proceso.nombre}`,
+    nodes: [
+      { id: '1', type: 'input', position: { x: 250, y: 50 }, data: { label: 'Inicio' } },
+      { id: '2', type: 'default', position: { x: 250, y: 150 }, data: { label: proceso.nombre } },
+      { id: '3', type: 'output', position: { x: 250, y: 250 }, data: { label: 'Fin' } },
+    ],
+    edges: [
+      { id: 'e1-2', source: '1', target: '2', animated: true },
+      { id: 'e2-3', source: '2', target: '3', animated: true },
+    ],
+  })
 
-  for (const tipo of ORDEN_GENERACION) {
-    const promptExtraccion = PROMPT_EXTRACCION[tipo]
-    if (!promptExtraccion) continue
-
-    // No extraer BPMN/flujograma desde texto — generarlos vacíos
+  async function extraerArtefacto(tipo: TipoArtefacto): Promise<{ tipo: TipoArtefacto; contenido: unknown; ok: boolean }> {
     if (tipo === 'bpmn' || tipo === 'flujograma') {
-      resultados[tipo] = {
-        titulo: proceso.nombre,
-        descripcion: `Diagrama ${tipo === 'bpmn' ? 'BPMN' : 'de flujo'} — ${proceso.nombre}`,
-        nodes: [
-          { id: '1', type: 'input', position: { x: 250, y: 50 }, data: { label: 'Inicio' } },
-          { id: '2', type: 'default', position: { x: 250, y: 150 }, data: { label: proceso.nombre } },
-          { id: '3', type: 'output', position: { x: 250, y: 250 }, data: { label: 'Fin' } },
-        ],
-        edges: [
-          { id: 'e1-2', source: '1', target: '2', animated: true },
-          { id: 'e2-3', source: '2', target: '3', animated: true },
-        ],
-      }
-      continue
+      return { tipo, contenido: esqueleton(tipo), ok: true }
     }
+    const promptExtraccion = PROMPT_EXTRACCION[tipo]
+    if (!promptExtraccion) return { tipo, contenido: null, ok: false }
 
     const prompt = `${contextoEmpresa}
 
@@ -185,12 +181,11 @@ TAREA: ${promptExtraccion}
 Extrae la información DIRECTAMENTE del documento. Si el documento no contiene esta información, construye el artefacto basándote en el contexto disponible.
 Responde ÚNICAMENTE con el JSON solicitado, sin texto adicional.`
 
-    let exito = false
     for (const modelo of modelos) {
       try {
         const completion = await groq.chat.completions.create({
           model: modelo,
-          max_tokens: 3000,
+          max_tokens: 2000,
           temperature: 0.1,
           messages: [{ role: 'user', content: prompt }],
           response_format: { type: 'json_object' },
@@ -198,14 +193,21 @@ Responde ÚNICAMENTE con el JSON solicitado, sin texto adicional.`
         const text = completion.choices[0]?.message?.content ?? ''
         if (!text) continue
         const parsed = JSON.parse(text)
-        resultados[tipo] = (parsed.resultado ?? parsed) as Record<string, unknown>
-        exito = true
-        break
+        return { tipo, contenido: (parsed.resultado ?? parsed) as Record<string, unknown>, ok: true }
       } catch {
         continue
       }
     }
-    if (!exito) errores.push(tipo)
+    return { tipo, contenido: null, ok: false }
+  }
+
+  // Ejecutar todas las extracciones en paralelo (5x más rápido)
+  const resultadosArr = await Promise.all(ORDEN_GENERACION.map(tipo => extraerArtefacto(tipo)))
+  const resultados: Record<string, unknown> = {}
+  const errores: string[] = []
+  for (const r of resultadosArr) {
+    if (r.ok && r.contenido !== null) resultados[r.tipo] = r.contenido
+    else errores.push(r.tipo)
   }
 
   // Guardar todos los artefactos extraídos en BD
