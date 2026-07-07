@@ -344,9 +344,57 @@ Devuelve: {"duracion_total_semanas":12,"metodologia":"metodología sugerida","fa
     guardados++
   }
 
+  // ── Explicación de negocio si hay gap ────────────────────────────────────
+  let explicacion_gap: Record<string, unknown> | null = null
+  if (guardados < ORDEN_GENERACION.length && errores.length > 0) {
+    const tiposExitosos = resultados.filter(r => r.ok).map(r => r.tipo)
+    const tiposFallidos = errores
+    const promptGap = `Eres un consultor senior de AICOUNTS Consultores explicando a un cliente ejecutivo por qué no todos los artefactos metodológicos pudieron extraerse automáticamente de un documento de proceso.
+
+Proceso: "${procesoNombre}"
+Empresa: ${empresa}
+Artefactos generados exitosamente (${tiposExitosos.length}): ${tiposExitosos.join(', ')}
+Artefactos no generados (${tiposFallidos.length}): ${tiposFallidos.join(', ')}
+
+Contexto del análisis del proceso:
+${iaStr.slice(0, 2000)}
+
+Genera una explicación ejecutiva breve y positiva en español para el cliente. IMPORTANTE:
+- NO menciones errores técnicos, timeouts, ni problemas de sistema
+- Explica en lenguaje de negocio por qué algunos artefactos requieren información adicional o validación
+- Menciona que los artefactos generados son los más críticos para este tipo de proceso
+- Sugiere que los faltantes se pueden completar con información adicional del cliente
+- Tono: profesional, tranquilizador, orientado a valor
+
+Devuelve: {
+  "titulo": "título breve de la explicación",
+  "mensaje_principal": "2-3 oraciones explicando la situación positivamente",
+  "artefactos_criticos": ["lista de 3-4 artefactos generados más importantes para este proceso"],
+  "artefactos_pendientes_razon": "1-2 oraciones explicando por qué los restantes requieren revisión adicional",
+  "siguiente_paso": "recomendación concreta para el cliente"
+}`
+
+    try {
+      const groqGap = new Groq({ apiKey: process.env.GROQ_API_KEY! })
+      const comp = await groqGap.chat.completions.create({
+        model: 'llama-3.1-8b-instant',
+        max_tokens: 800,
+        temperature: 0.3,
+        messages: [
+          { role: 'system', content: 'Eres consultor senior de procesos. Responde SOLO con JSON válido, sin texto adicional.' },
+          { role: 'user', content: promptGap },
+        ],
+        response_format: { type: 'json_object' },
+      })
+      const text = comp.choices[0]?.message?.content ?? ''
+      if (text) explicacion_gap = JSON.parse(text)
+    } catch { /* no bloquear el response */ }
+  }
+
   return NextResponse.json({
     ok: true, guardados, total: ORDEN_GENERACION.length,
     errores, fuente: textoDoc ? 'documento' : 'analisis_ia',
     documento: doc.nombre_archivo,
+    explicacion_gap,
   })
 }

@@ -26,6 +26,14 @@ export default function ImportadorArtefactos({ procesoId, procesoNombre }: Props
   const [guardados, setGuardados] = useState(0)
   const [fuente, setFuente] = useState<string>('')
   const [error, setError] = useState<string | null>(null)
+  const [explicacionGap, setExplicacionGap] = useState<{
+    titulo: string
+    mensaje_principal: string
+    artefactos_criticos: string[]
+    artefactos_pendientes_razon: string
+    siguiente_paso: string
+  } | null>(null)
+  const [total, setTotal] = useState(0)
   const [elapsed, setElapsed] = useState(0)
   const startRef = useRef(Date.now())
 
@@ -52,7 +60,9 @@ export default function ImportadorArtefactos({ procesoId, procesoNombre }: Props
         const d = await res.json()
         if (!res.ok) throw new Error(d.error ?? 'Error importando artefactos')
         setGuardados(d.guardados ?? 0)
+        setTotal(d.total ?? ARTEFACTOS_LABELS.length)
         setFuente(d.fuente ?? '')
+        if (d.explicacion_gap) setExplicacionGap(d.explicacion_gap)
         setEstado('ok')
         setTimeout(() => { if (!cancelado) router.refresh() }, 600)
       } catch (err) {
@@ -134,20 +144,72 @@ export default function ImportadorArtefactos({ procesoId, procesoNombre }: Props
 
   if (estado === 'ok') {
     const tiempoReal = Math.floor((Date.now() - startRef.current) / 1000)
+    const hayGap = guardados < total && explicacionGap
+
     return (
-      <div className="bg-emerald-950/20 border border-emerald-800/40 rounded-2xl p-5">
-        <div className="flex items-center gap-3">
-          <CheckCircle className="w-5 h-5 text-emerald-400 shrink-0" />
-          <div>
-            <p className="text-emerald-300 font-medium text-sm">
-              {guardados} artefactos extraídos en {tiempoReal}s
-            </p>
-            <p className="text-slate-500 text-xs mt-0.5">
-              {fuente === 'documento' ? 'Desde el texto del documento' : 'Desde el análisis IA del documento'}
-              {' · '}Cargando...
-            </p>
+      <div className="space-y-3">
+        {/* Banner de éxito */}
+        <div className="bg-emerald-950/20 border border-emerald-800/40 rounded-2xl p-5">
+          <div className="flex items-center gap-3">
+            <CheckCircle className="w-5 h-5 text-emerald-400 shrink-0" />
+            <div>
+              <p className="text-emerald-300 font-medium text-sm">
+                {guardados} de {total} artefactos extraídos en {tiempoReal}s
+              </p>
+              <p className="text-slate-500 text-xs mt-0.5">
+                {fuente === 'documento' ? 'Desde el texto del documento' : 'Desde el análisis del documento'}
+                {' · '}Actualizando vista...
+              </p>
+            </div>
           </div>
         </div>
+
+        {/* Explicación de gap cuando hay artefactos faltantes */}
+        {hayGap && (
+          <div className="bg-blue-950/20 border border-blue-800/40 rounded-2xl p-5 space-y-4">
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 rounded-lg bg-blue-900/50 border border-blue-700/50 flex items-center justify-center shrink-0 mt-0.5">
+                <span className="text-blue-300 text-sm">i</span>
+              </div>
+              <div className="min-w-0">
+                <p className="text-blue-200 font-semibold text-sm">{explicacionGap.titulo}</p>
+                <p className="text-slate-400 text-xs mt-1.5 leading-relaxed">
+                  {explicacionGap.mensaje_principal}
+                </p>
+              </div>
+            </div>
+
+            {/* Artefactos críticos generados */}
+            {explicacionGap.artefactos_criticos?.length > 0 && (
+              <div className="space-y-1.5">
+                <p className="text-slate-500 text-xs font-medium uppercase tracking-wide">
+                  Artefactos clave generados para este proceso
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {explicacionGap.artefactos_criticos.map((a, i) => (
+                    <span key={i} className="text-xs px-2.5 py-1 rounded-full bg-emerald-900/30 border border-emerald-700/40 text-emerald-300">
+                      ✓ {a}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Razón de los pendientes */}
+            <div className="bg-slate-900/50 rounded-xl p-3 border border-slate-800/60">
+              <p className="text-slate-500 text-xs font-medium mb-1">Artefactos pendientes</p>
+              <p className="text-slate-400 text-xs leading-relaxed">
+                {explicacionGap.artefactos_pendientes_razon}
+              </p>
+            </div>
+
+            {/* Siguiente paso */}
+            <div className="flex items-start gap-2">
+              <span className="text-amber-400 text-xs shrink-0 mt-0.5">→</span>
+              <p className="text-amber-300/80 text-xs leading-relaxed">{explicacionGap.siguiente_paso}</p>
+            </div>
+          </div>
+        )}
       </div>
     )
   }
