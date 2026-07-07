@@ -6,22 +6,11 @@ import { extraerTextoPDF, extraerTextoDOCX } from '@/lib/extract-text'
 import { ORDEN_GENERACION } from '@/lib/artefactos-meta'
 import type { TipoArtefacto } from '@/types/database'
 
-// Ejecuta promesas en lotes secuenciales para evitar rate limits
-async function enLotes<T>(items: T[], tamano: number, fn: (item: T) => Promise<unknown>, delayMs = 800) {
-  const resultados: unknown[] = []
-  for (let i = 0; i < items.length; i += tamano) {
-    const lote = items.slice(i, i + tamano)
-    const res = await Promise.all(lote.map(fn))
-    resultados.push(...res)
-    if (i + tamano < items.length) await new Promise(r => setTimeout(r, delayMs))
-  }
-  return resultados
-}
-
 async function llamarGroq(
   groq: Groq,
   modelos: string[],
-  prompt: string,
+  systemPrompt: string,
+  userPrompt: string,
   maxTokens = 3000
 ): Promise<Record<string, unknown> | null> {
   for (const modelo of modelos) {
@@ -31,13 +20,10 @@ async function llamarGroq(
           model: modelo,
           max_tokens: maxTokens,
           temperature: 0.1,
-          messages: [{
-            role: 'system',
-            content: 'Eres un consultor senior de procesos. Responde ÚNICAMENTE con JSON válido y completo. Sin texto adicional, sin markdown, sin explicaciones.'
-          }, {
-            role: 'user',
-            content: prompt
-          }],
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userPrompt },
+          ],
           response_format: { type: 'json_object' },
         })
         const text = completion.choices[0]?.message?.content ?? ''
@@ -47,7 +33,7 @@ async function llamarGroq(
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : String(err)
         if (msg.includes('rate') || msg.includes('429')) {
-          await new Promise(r => setTimeout(r, 2000 * (intento + 1)))
+          await new Promise(r => setTimeout(r, 3000 * (intento + 1)))
           continue
         }
         break
@@ -77,26 +63,16 @@ export async function POST(
 
   const proyecto = proceso.proyecto as Record<string, unknown>
   const cliente = proyecto?.cliente as Record<string, unknown>
+  const empresa = String(cliente?.razon_social ?? 'N/A')
+  const industria = String(cliente?.industria ?? 'N/A')
+  const procesoNombre = proceso.nombre as string
 
   // Buscar documento origen
   let docId: string | null = proceso.documento_origen_id as string | null
   if (!docId) {
     const { data: docs } = await admin
-      .from('documento')
-      .select('id, nombre_archivo')
-      .eq('proyecto_id', proceso.proyecto_id)
-      .not('analisis_ia', 'is', null)
-      .ilike('nombre_archivo', `%${proceso.nombre.split(' ')[0]}%`)
-      .limit(1)
-    docId = docs?.[0]?.id ?? null
-  }
-  if (!docId) {
-    const { data: docs } = await admin
-      .from('documento')
-      .select('id')
-      .eq('proyecto_id', proceso.proyecto_id)
-      .not('analisis_ia', 'is', null)
-      .limit(1)
+      .from('documento').select('id').eq('proyecto_id', proceso.proyecto_id)
+      .not('analisis_ia', 'is', null).limit(1)
     docId = docs?.[0]?.id ?? null
   }
   if (!docId) return NextResponse.json({ error: 'No hay documentos procesados para este proceso' }, { status: 404 })
@@ -104,213 +80,264 @@ export async function POST(
   const { data: doc } = await admin.from('documento').select('*').eq('id', docId).single()
   if (!doc) return NextResponse.json({ error: 'Documento no encontrado' }, { status: 404 })
 
-  // Extraer TEXTO COMPLETO del documento (sin truncar la sección)
-  let textoCompleto = ''
+  // ── Fuentes de datos ──────────────────────────────────────────────────────
+  // 1. analisis_ia: ya estructurado, compacto, preciso (FUENTE PRIMARIA)
+  const ia = ((doc.analisis_ia as Record<string, unknown>)?.analisis
+    ?? doc.analisis_ia) as Record<string, unknown> | null
+
+  const iaStr = ia ? JSON.stringify(ia).slice(0, 6000) : ''
+
+  // 2. Extracto breve del documento (primeras 3000 chars) para contexto adicional
+  let textoDoc = ''
   try {
     const { data: fileData } = await admin.storage.from('documentos').download(doc.url_storage as string)
     if (fileData) {
       const buffer = Buffer.from(await fileData.arrayBuffer())
       const nombre = (doc.nombre_archivo as string).toLowerCase()
-      if (nombre.endsWith('.docx') || nombre.endsWith('.doc')) textoCompleto = await extraerTextoDOCX(buffer)
-      else if (nombre.endsWith('.pdf')) textoCompleto = await extraerTextoPDF(buffer)
+      if (nombre.endsWith('.docx') || nombre.endsWith('.doc')) textoDoc = (await extraerTextoDOCX(buffer)).slice(0, 4000)
+      else if (nombre.endsWith('.pdf')) textoDoc = (await extraerTextoPDF(buffer)).slice(0, 4000)
     }
-  } catch (err) {
-    console.error('[importar] Error extrayendo texto:', err)
+  } catch { /* continuar con analisis_ia */ }
+
+  if (!iaStr && !textoDoc) {
+    return NextResponse.json({ error: 'No se pudo obtener contenido del documento' }, { status: 400 })
   }
-
-  // Fallback: usar analisis_ia
-  const ia = ((doc.analisis_ia as Record<string, unknown>)?.analisis ?? doc.analisis_ia) as Record<string, unknown> | null
-  const textoFallback = ia ? [
-    ia['resumen_ejecutivo'] ? `Resumen: ${ia['resumen_ejecutivo']}` : '',
-    ia['diagnostico_operacional'] ? `Estado operacional: ${ia['diagnostico_operacional']}` : '',
-    ia['hallazgos_criticos'] ? `Hallazgos: ${JSON.stringify(ia['hallazgos_criticos'])}` : '',
-    ia['roles_y_responsabilidades'] ? `Roles: ${JSON.stringify(ia['roles_y_responsabilidades'])}` : '',
-    ia['procesos_identificados'] ? `Procesos: ${JSON.stringify(ia['procesos_identificados'])}` : '',
-    ia['oportunidades_valor'] ? `Oportunidades: ${JSON.stringify(ia['oportunidades_valor'])}` : '',
-    ia['quick_wins'] ? `Quick wins: ${JSON.stringify(ia['quick_wins'])}` : '',
-  ].filter(Boolean).join('\n') : ''
-
-  const textoBase = textoCompleto || textoFallback
-  if (!textoBase) return NextResponse.json({ error: 'No se pudo obtener contenido del documento' }, { status: 400 })
-
-  const empresa = String(cliente?.razon_social ?? 'N/A')
-  const industria = String(cliente?.industria ?? 'N/A')
-  const procesoNombre = proceso.nombre as string
-  const procesoDesc = (proceso.descripcion as string) ?? ''
-
-  // Contexto base reutilizable (sin el texto completo para no repetirlo)
-  const ctx = `EMPRESA: ${empresa} | INDUSTRIA: ${industria}
-PROCESO: ${procesoNombre}${procesoDesc ? ` — ${procesoDesc}` : ''}
-DOCUMENTO FUENTE: ${doc.nombre_archivo as string}`
-
-  // Texto acotado para prompts individuales (primeros 18000 chars)
-  const texto = textoBase.slice(0, 18000)
 
   const groq = new Groq({ apiKey: process.env.GROQ_API_KEY! })
   const modelos = ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant']
 
-  // Prompts detallados y específicos por tipo
-  function buildPrompt(tipo: TipoArtefacto): string {
-    const base = `${ctx}\n\nCONTENIDO DEL DOCUMENTO:\n${texto}\n\n`
+  // ── System prompt base ────────────────────────────────────────────────────
+  const SYSTEM = `Eres un consultor senior de procesos de AICOUNTS Consultores especializado en metodología de procesos para industria ${industria}.
+Empresa: ${empresa} | Proceso: ${procesoNombre}
+REGLA CRÍTICA: Devuelve ÚNICAMENTE JSON válido y completo. Sin texto adicional, sin markdown.`
 
-    switch (tipo) {
-      case 'sipoc':
-        return base + `Extrae el SIPOC completo del proceso "${procesoNombre}".
-Devuelve JSON con esta estructura exacta:
-{"proveedores":["lista de proveedores reales del proceso"],"entradas":["lista de entradas/inputs reales"],"proceso":"descripción del proceso central en 1-2 oraciones","salidas":["lista de salidas/outputs reales"],"clientes":["lista de clientes/receptores reales"],"notas":"contexto adicional importante","limite_entrada":"descripción de qué dispara el proceso","limite_salida":"descripción de cuándo termina el proceso"}`
+  // ── Prompts específicos por tipo ──────────────────────────────────────────
+  const PROMPTS: Record<TipoArtefacto, { prompt: string; tokens: number }> = {
 
-      case 'as_is':
-        return base + `Extrae el estado actual AS-IS del proceso "${procesoNombre}".
-Devuelve JSON:
-{"descripcion_estado_actual":"descripción completa del estado actual","actores":["lista de actores/roles involucrados"],"sistemas_involucrados":["sistemas tecnológicos usados"],"pasos":[{"orden":1,"descripcion":"descripción del paso","responsable":"rol responsable","duracion_estimada":"tiempo estimado","sistema":"sistema usado si aplica"}],"puntos_dolor":["problemas y fricciones identificados"],"tiempo_ciclo_actual":"tiempo total del proceso","volumen_transacciones":"estimado de transacciones por período"}`
+    sipoc: {
+      tokens: 2000,
+      prompt: `Con base en este análisis del proceso:
+${iaStr}
+${textoDoc ? `\nContexto del documento:\n${textoDoc}` : ''}
 
-      case 'bpmn':
-        return base + `Extrae el flujo BPMN del proceso "${procesoNombre}" con TODOS sus pasos reales.
-Genera un diagrama React Flow completo. Reglas:
-- Nodo inicial tipo "start" (id="1", y=50), nodo final tipo "end"
-- Nodos de tareas tipo "task", decisiones tipo "decision"
-- Posicionar verticalmente: y aumenta 130px por nivel, x=400 flujo principal, x=680 ramales derecha, x=120 ramales izquierda
-- Mínimo 7 nodos, máximo 14 nodos
-- Labels descriptivos pero cortos (máx 40 chars)
-Devuelve JSON:
-{"titulo":"${procesoNombre}","nodes":[{"id":"1","type":"start","position":{"x":400,"y":50},"data":{"label":"Inicio"}},{"id":"2","type":"task","position":{"x":400,"y":180},"data":{"label":"Paso real del proceso"}},...],"edges":[{"id":"e1-2","source":"1","target":"2","animated":true},...]}`
+Genera el SIPOC completo de "${procesoNombre}". Extrae proveedores, entradas, pasos clave del proceso, salidas y clientes REALES del documento.
+Devuelve: {"proveedores":["proveedor real 1","proveedor real 2"],"entradas":["entrada real 1"],"proceso":"descripción del proceso en 2-3 oraciones","salidas":["salida real 1"],"clientes":["cliente/receptor real 1"],"notas":"contexto adicional","limite_entrada":"qué dispara el proceso","limite_salida":"cuándo termina el proceso"}`
+    },
 
-      case 'flujograma':
-        return base + `Extrae el flujograma detallado del proceso "${procesoNombre}".
-Similar al BPMN pero enfocado en el flujo operativo con todas las decisiones y ramificaciones.
-Devuelve JSON:
-{"titulo":"${procesoNombre}","nodes":[{"id":"1","type":"start","position":{"x":400,"y":50},"data":{"label":"Inicio"}},...],"edges":[{"id":"e1-2","source":"1","target":"2","animated":true},...]}`
+    as_is: {
+      tokens: 3000,
+      prompt: `Con base en este análisis del proceso:
+${iaStr}
 
-      case 'historias_usuario':
-        return base + `Extrae o construye las historias de usuario del proceso "${procesoNombre}".
-Devuelve JSON:
-{"historias":[{"id":"HU-01","rol":"rol del usuario","necesidad":"qué necesita hacer","beneficio":"para qué / cuál es el valor","prioridad":"alta|media|baja","criterios_aceptacion":["criterio 1","criterio 2"],"puntos_historia":3,"estado":"pendiente"}]}`
+Genera el AS-IS (estado actual) completo de "${procesoNombre}".
+Devuelve: {"descripcion_estado_actual":"descripción detallada del estado actual","actores":["actores reales del documento"],"sistemas_involucrados":["sistemas actuales usados"],"pasos":[{"orden":1,"descripcion":"paso real","responsable":"rol real","duracion_estimada":"tiempo estimado","sistema":"sistema usado"}],"puntos_dolor":["problemas reales del hallazgos_criticos"],"tiempo_ciclo_actual":"tiempo total estimado","volumen_transacciones":"frecuencia/volumen"}`
+    },
 
-      case 'raci':
-        return base + `Extrae la matriz RACI del proceso "${procesoNombre}".
-Devuelve JSON:
-{"actividades":["lista de actividades del proceso"],"roles":["lista de roles/actores"],"matriz":{"Actividad 1":{"Rol A":"R","Rol B":"A","Rol C":"C"},...},"leyenda":{"R":"Responsable de ejecutar","A":"Aprobador","C":"Consultado","I":"Informado"}}`
+    bpmn: {
+      tokens: 3000,
+      prompt: `Con base en este análisis del proceso "${procesoNombre}":
+${iaStr}
+${textoDoc ? `\nContexto documento:\n${textoDoc}` : ''}
 
-      case 'riesgo_control':
-        return base + `Extrae los riesgos y controles del proceso "${procesoNombre}".
-Devuelve JSON:
-{"riesgos":[{"id":"R-01","descripcion":"descripción del riesgo","categoria":"operacional|financiero|regulatorio|tecnológico","probabilidad":"alta|media|baja","impacto":"alto|medio|bajo","nivel_riesgo":"alto|medio|bajo","control":"control mitigante","tipo_control":"preventivo|detectivo|correctivo","responsable":"rol responsable","estado":"activo|mitigado"}]}`
+Genera un diagrama BPMN COMPLETO Y DETALLADO para React Flow. OBLIGATORIO: mínimo 8 nodos, máximo 12 nodos. Incluye TODOS los pasos reales del proceso, con decisiones donde corresponda.
 
-      case 'kpi_sla':
-        return base + `Extrae los KPIs y SLAs del proceso "${procesoNombre}".
-Devuelve JSON:
-{"indicadores":[{"nombre":"nombre del KPI","descripcion":"qué mide","formula":"cómo se calcula","unidad":"%|días|N°|$","linea_base":"valor actual","meta":"valor objetivo","frecuencia":"diaria|semanal|mensual","dueno":"rol responsable","fuente_dato":"sistema fuente","sla":"acuerdo de nivel de servicio si aplica","tipo":"eficiencia|calidad|tiempo|costo"}],"financiero":{"ahorro_estimado":"","roi_estimado":""}}`
+Tipos de nodo: "start" (verde, 1 solo al inicio), "task" (azul, pasos del proceso), "decision" (índigo, gateways/decisiones), "end" (rojo, 1 solo al final).
+Posicionamiento: x=400 flujo principal, x=680 ramal derecho, x=120 ramal izquierdo. y empieza en 50, aumenta 130px por nivel.
+Labels: descriptivos, máx 40 caracteres.
 
-      case 'diagnostico':
-        return base + `Realiza el diagnóstico FODA y nivel de madurez del proceso "${procesoNombre}".
-Devuelve JSON:
-{"nivel_madurez":2,"nivel_madurez_descripcion":"descripción del nivel (1=inicial, 2=repetible, 3=definido, 4=gestionado, 5=optimizado)","fortalezas":["fortaleza 1"],"debilidades":["debilidad 1"],"oportunidades":["oportunidad 1"],"amenazas":["amenaza 1"],"brechas_criticas":["brecha prioritaria 1"],"recomendaciones_prioritarias":["recomendación 1"],"conclusion":"resumen ejecutivo del diagnóstico"}`
+Devuelve EXACTAMENTE:
+{"titulo":"${procesoNombre}","nodes":[
+{"id":"1","type":"start","position":{"x":400,"y":50},"data":{"label":"Inicio"}},
+{"id":"2","type":"task","position":{"x":400,"y":180},"data":{"label":"paso real 1"}},
+{"id":"3","type":"task","position":{"x":400,"y":310},"data":{"label":"paso real 2"}},
+...más pasos reales...,
+{"id":"N","type":"end","position":{"x":400,"y":YY},"data":{"label":"Fin"}}
+],"edges":[{"id":"e1-2","source":"1","target":"2","animated":true},...]}`
+    },
 
-      case 'to_be':
-        return base + `Extrae o construye el estado futuro TO-BE del proceso "${procesoNombre}".
-Devuelve JSON:
-{"descripcion_estado_futuro":"descripción completa del estado futuro deseado","actores":["actores en el nuevo modelo"],"sistemas_requeridos":["sistemas necesarios"],"pasos":[{"orden":1,"descripcion":"paso mejorado","responsable":"rol","automatizado":false,"herramienta":"","mejora_vs_asis":"qué mejora respecto al AS-IS"}],"metricas_objetivo":[{"nombre":"KPI","valor_actual":"","valor_objetivo":"","plazo":""}],"mejoras_respecto_asis":["mejora concreta 1"],"tiempo_ciclo_objetivo":"","reduccion_estimada":""}`
+    flujograma: {
+      tokens: 2500,
+      prompt: `Con base en este análisis del proceso "${procesoNombre}":
+${iaStr}
 
-      case 'dashboard_brechas':
-        return base + `Construye el dashboard de brechas AS-IS vs TO-BE del proceso "${procesoNombre}".
-Devuelve JSON:
-{"resumen_ejecutivo":"análisis ejecutivo de brechas","comparativo":[{"dimension":"dimensión evaluada","valor_asis":"situación actual","valor_tobe":"situación futura","brecha":"descripción de la brecha","impacto":"alto|medio|bajo","iniciativa":"iniciativa para cerrar la brecha","esfuerzo":"alto|medio|bajo"}],"quick_wins":["acción de impacto rápido 1"],"indice_brecha_global":65,"conclusion":"conclusión y priorización"}`
+Genera un flujograma operativo COMPLETO con todos los pasos y decisiones del proceso. Mínimo 7 nodos.
+Tipos: "start", "task", "decision", "end". Misma estructura de coordenadas que BPMN (x=400, y aumenta 130px).
+Devuelve: {"titulo":"${procesoNombre}","nodes":[{"id":"1","type":"start","position":{"x":400,"y":50},"data":{"label":"Inicio"}},...],"edges":[{"id":"e1-2","source":"1","target":"2","animated":true},...]}`
+    },
 
-      case 'cierre_ejecutivo':
-        return base + `Extrae el resumen ejecutivo de cierre del proceso "${procesoNombre}".
-Devuelve JSON:
-{"titulo_proyecto":"título del proyecto","resumen_proyecto":"resumen ejecutivo completo","procesos_transformados":1,"reduccion_tiempo_ciclo_estimada":"X%","ahorro_estimado":"$X","roi_estimado":"X%","logros_principales":["logro 1"],"proximos_pasos":["paso 1"],"recomendacion_ceo":"recomendación estratégica para la dirección","fecha_cierre":"","clasificacion_exito":"exitoso|parcial|en_progreso"}`
+    historias_usuario: {
+      tokens: 2500,
+      prompt: `Con base en los roles y procesos del análisis:
+${iaStr}
 
-      case 'checklist':
-        return base + `Extrae los checklists operacionales por rol del proceso "${procesoNombre}".
-Devuelve JSON:
-{"frecuencia_uso":"por_transaccion|diario|semanal","checklists":[{"rol":"nombre del rol","descripcion_rol":"qué hace este rol en el proceso","items":[{"descripcion":"tarea específica a verificar","fase":"preparacion|ejecucion|cierre|revision","critico":true,"nota":"observación si aplica"}]}]}`
+Genera historias de usuario para "${procesoNombre}". Mínimo 5 historias con criterios de aceptación concretos.
+Devuelve: {"historias":[{"id":"HU-01","rol":"rol real","necesidad":"qué necesita","beneficio":"valor que obtiene","prioridad":"alta|media|baja","criterios_aceptacion":["criterio concreto 1","criterio 2"],"puntos_historia":3,"estado":"pendiente"}]}`
+    },
 
-      case 'backlog':
-        return base + `Extrae el backlog priorizado de mejoras e iniciativas del proceso "${procesoNombre}".
-Devuelve JSON:
-{"resumen":{"total_quick_wins":0,"total_proyectos_medios":0,"total_proyectos_mayores":0,"esfuerzo_total_semanas":0},"iniciativas":[{"id":"I-01","titulo":"nombre de la iniciativa","descripcion":"descripción detallada","categoria":"quick_win|proyecto_medio|proyecto_mayor","impacto":4,"esfuerzo":2,"tiempo_estimado":"2 semanas","responsable_sugerido":"rol","beneficio_esperado":"descripción del beneficio","dependencias":[]}]}`
+    raci: {
+      tokens: 2500,
+      prompt: `Con base en los roles y responsabilidades del análisis:
+${iaStr}
 
-      case 'cinco_porques':
-        return base + `Aplica el análisis de 5 Porqués a los problemas principales del proceso "${procesoNombre}".
-Devuelve JSON:
-{"analisis":[{"problema":"descripción del problema principal","impacto":"impacto en el proceso/negocio","cadena":[{"porque":"1er porqué"},{"porque":"2do porqué"},{"porque":"3er porqué"},{"porque":"4to porqué"},{"porque":"5to porqué — causa raíz"}],"causa_raiz":"causa raíz identificada","tipo_causa":"proceso|persona|tecnología|datos|proveedor","accion_correctiva":"acción para eliminar la causa raíz","responsable":"rol responsable","plazo":"estimado de implementación"}],"conclusion_sistemica":"patrones sistémicos identificados"}`
+Genera la matriz RACI COMPLETA para "${procesoNombre}". Usa los roles reales del documento.
+Devuelve: {"actividades":["actividad real 1","actividad real 2"],"roles":["Rol A","Rol B","Rol C"],"matriz":{"actividad real 1":{"Rol A":"R","Rol B":"A","Rol C":"I"}},"leyenda":{"R":"Responsable de ejecutar","A":"Aprobador/Accountable","C":"Consultado","I":"Informado"}}`
+    },
 
-      case 'acta_inicio':
-        return base + `Extrae el Acta de Inicio del proyecto/proceso "${procesoNombre}".
-Devuelve JSON:
-{"titulo_proyecto":"título formal","proposito":"propósito y justificación del proyecto","fecha_inicio":"","fecha_fin_estimada":"","presupuesto_estimado":"","patrocinador":"nombre o rol del sponsor","director_proyecto":"","alcance":{"incluye":["entregable 1"],"excluye":["exclusión 1"]},"objetivos":[{"descripcion":"objetivo","metrica":"cómo se mide","meta":"valor objetivo"}],"supuestos":["supuesto 1"],"restricciones":["restricción 1"],"criterios_exito":["criterio 1"],"firmas_requeridas":["rol 1"]}`
+    riesgo_control: {
+      tokens: 2500,
+      prompt: `Con base en los riesgos críticos del análisis:
+${iaStr}
 
-      case 'plan_pruebas':
-        return base + `Construye el plan de pruebas del proceso "${procesoNombre}".
-Devuelve JSON:
-{"resumen":"descripción del plan de pruebas","ambiente_pruebas":"descripción del ambiente","responsable_pruebas":"rol responsable","casos":[{"id":"CP-01","nombre":"nombre del caso","tipo":"funcional|integración|regresión|usuario","prioridad":"alta|media|baja","precondicion":"condición previa","pasos":["paso 1","paso 2"],"resultado_esperado":"qué debe ocurrir","criterio_falla":"cuándo falla"}],"criterios_aprobacion":["criterio global 1"],"plan_contingencia":"qué hacer si las pruebas fallan"}`
+Genera la matriz de riesgos y controles para "${procesoNombre}". Usa los riesgos reales del documento.
+Devuelve: {"riesgos":[{"id":"R-01","descripcion":"riesgo real del documento","categoria":"operacional|financiero|regulatorio|tecnológico","probabilidad":"alta|media|baja","impacto":"alto|medio|bajo","nivel_riesgo":"alto|medio|bajo","control":"control mitigante específico","tipo_control":"preventivo|detectivo|correctivo","responsable":"rol responsable","estado":"activo"}]}`
+    },
 
-      case 'roadmap':
-        return base + `Extrae el roadmap de implementación del proceso "${procesoNombre}".
-Devuelve JSON:
-{"duracion_total_semanas":12,"metodologia":"metodología de implementación","fases":[{"nombre":"nombre de la fase","objetivo":"objetivo de esta fase","semana_inicio":1,"semana_fin":4,"duracion_semanas":4,"actividades":["actividad 1"],"entregables":["entregable 1"],"hitos":["hito clave"]}],"factores_exito":["factor crítico 1"],"riesgos_implementacion":["riesgo 1"]}`
+    kpi_sla: {
+      tokens: 2500,
+      prompt: `Con base en el análisis del proceso:
+${iaStr}
 
-      default:
-        return base + `Extrae información sobre "${tipo}" del proceso "${procesoNombre}". Devuelve un JSON estructurado con la información relevante encontrada en el documento.`
-    }
+Genera los KPIs y SLAs para "${procesoNombre}". Mínimo 5 indicadores con valores concretos.
+Devuelve: {"indicadores":[{"nombre":"nombre del KPI","descripcion":"qué mide","formula":"cómo se calcula","unidad":"%|días|N°|$","linea_base":"valor actual estimado","meta":"valor objetivo","frecuencia":"mensual","dueno":"rol responsable","fuente_dato":"sistema fuente","sla":"acuerdo de nivel si aplica","tipo":"eficiencia|calidad|tiempo|costo"}],"financiero":{"ahorro_estimado":"","roi_estimado":""}}`
+    },
+
+    diagnostico: {
+      tokens: 2500,
+      prompt: `Con base en el análisis de madurez y brechas:
+${iaStr}
+
+Genera el diagnóstico FODA completo de "${procesoNombre}".
+Devuelve: {"nivel_madurez":${ia?.['nivel_madurez_amo'] ?? 2},"nivel_madurez_descripcion":"${ia?.['nivel_madurez_nombre'] ?? ''}","fortalezas":["fortaleza real 1"],"debilidades":["debilidad real del documento"],"oportunidades":["oportunidad real"],"amenazas":["amenaza real"],"brechas_criticas":["brecha crítica real"],"recomendaciones_prioritarias":["recomendación concreta"],"conclusion":"resumen ejecutivo del diagnóstico"}`
+    },
+
+    to_be: {
+      tokens: 2500,
+      prompt: `Con base en las oportunidades y próximos pasos del análisis:
+${iaStr}
+
+Genera el estado futuro TO-BE de "${procesoNombre}". Mínimo 6 pasos mejorados.
+Devuelve: {"descripcion_estado_futuro":"descripción del estado futuro","actores":["actores en el nuevo modelo"],"sistemas_requeridos":["sistemas necesarios"],"pasos":[{"orden":1,"descripcion":"paso mejorado concreto","responsable":"rol","automatizado":false,"herramienta":"","mejora_vs_asis":"qué mejora"}],"metricas_objetivo":[{"nombre":"KPI","valor_actual":"","valor_objetivo":"","plazo":""}],"mejoras_respecto_asis":["mejora concreta 1"],"tiempo_ciclo_objetivo":"","reduccion_estimada":""}`
+    },
+
+    dashboard_brechas: {
+      tokens: 2500,
+      prompt: `Con base en las brechas del análisis:
+${iaStr}
+
+Genera el dashboard de brechas AS-IS vs TO-BE de "${procesoNombre}".
+Devuelve: {"resumen_ejecutivo":"análisis ejecutivo","comparativo":[{"dimension":"dimensión evaluada","valor_asis":"situación actual","valor_tobe":"situación futura","brecha":"descripción","impacto":"alto|medio|bajo","iniciativa":"iniciativa para cerrar","esfuerzo":"alto|medio|bajo"}],"quick_wins":["acción rápida 1"],"indice_brecha_global":65,"conclusion":"priorización"}`
+    },
+
+    cierre_ejecutivo: {
+      tokens: 2000,
+      prompt: `Con base en el análisis ejecutivo:
+${iaStr}
+
+Genera el resumen ejecutivo de cierre de "${procesoNombre}".
+Devuelve: {"titulo_proyecto":"título formal","resumen_proyecto":"resumen ejecutivo completo en 3-4 oraciones","procesos_transformados":1,"reduccion_tiempo_ciclo_estimada":"X%","ahorro_estimado":"estimado","roi_estimado":"X%","logros_principales":["logro 1"],"proximos_pasos":["paso 1"],"recomendacion_ceo":"recomendación estratégica","fecha_cierre":"","clasificacion_exito":"exitoso|parcial|en_progreso"}`
+    },
+
+    checklist: {
+      tokens: 2500,
+      prompt: `Con base en los roles y procesos del análisis:
+${iaStr}
+
+Genera checklists operacionales por rol para "${procesoNombre}". Al menos 2 roles con 5+ ítems cada uno.
+Devuelve: {"frecuencia_uso":"por_transaccion|diario|semanal","checklists":[{"rol":"nombre del rol real","descripcion_rol":"función en el proceso","items":[{"descripcion":"tarea específica","fase":"preparacion|ejecucion|cierre|revision","critico":true,"nota":"observación"}]}]}`
+    },
+
+    backlog: {
+      tokens: 2000,
+      prompt: `Con base en quick wins y oportunidades del análisis:
+${iaStr}
+
+Genera el backlog priorizado de mejoras de "${procesoNombre}". Mínimo 6 iniciativas.
+Devuelve: {"resumen":{"total_quick_wins":0,"total_proyectos_medios":0,"total_proyectos_mayores":0,"esfuerzo_total_semanas":0},"iniciativas":[{"id":"I-01","titulo":"nombre concreto","descripcion":"descripción detallada","categoria":"quick_win|proyecto_medio|proyecto_mayor","impacto":4,"esfuerzo":2,"tiempo_estimado":"2 semanas","responsable_sugerido":"rol","beneficio_esperado":"beneficio concreto","dependencias":[]}]}`
+    },
+
+    cinco_porques: {
+      tokens: 2000,
+      prompt: `Con base en los hallazgos críticos del análisis:
+${iaStr}
+
+Aplica el análisis de 5 Porqués a los principales problemas de "${procesoNombre}".
+Devuelve: {"analisis":[{"problema":"problema real del documento","impacto":"impacto en el negocio","cadena":[{"porque":"1er porqué"},{"porque":"2do porqué"},{"porque":"3er porqué"},{"porque":"4to porqué"},{"porque":"5to porqué - causa raíz"}],"causa_raiz":"causa raíz identificada","tipo_causa":"proceso|persona|tecnología|datos|proveedor","accion_correctiva":"acción concreta","responsable":"rol","plazo":"estimado"}],"conclusion_sistemica":"patrones sistémicos"}`
+    },
+
+    acta_inicio: {
+      tokens: 2500,
+      prompt: `Con base en el análisis del proceso:
+${iaStr}
+
+Genera el Acta de Inicio del proyecto de mejora de "${procesoNombre}".
+Devuelve: {"titulo_proyecto":"título formal","proposito":"propósito y justificación","fecha_inicio":"","fecha_fin_estimada":"","presupuesto_estimado":"","patrocinador":"rol del sponsor","director_proyecto":"","alcance":{"incluye":["entregable 1"],"excluye":["exclusión 1"]},"objetivos":[{"descripcion":"objetivo","metrica":"cómo se mide","meta":"valor objetivo"}],"supuestos":["supuesto 1"],"restricciones":["restricción 1"],"criterios_exito":["criterio 1"],"firmas_requeridas":["Patrocinador","Director de Proyecto"]}`
+    },
+
+    plan_pruebas: {
+      tokens: 2500,
+      prompt: `Con base en el análisis del proceso:
+${iaStr}
+
+Genera el plan de pruebas para "${procesoNombre}". Mínimo 5 casos de prueba.
+Devuelve: {"resumen":"descripción del plan","ambiente_pruebas":"ambiente necesario","responsable_pruebas":"rol","casos":[{"id":"CP-01","nombre":"nombre del caso","tipo":"funcional|integración|usuario","prioridad":"alta|media|baja","precondicion":"condición previa","pasos":["paso 1","paso 2"],"resultado_esperado":"qué debe ocurrir","criterio_falla":"cuándo falla"}],"criterios_aprobacion":["criterio global 1"],"plan_contingencia":"qué hacer si fallan"}`
+    },
+
+    roadmap: {
+      tokens: 2500,
+      prompt: `Con base en las recomendaciones y próximos pasos del análisis:
+${iaStr}
+
+Genera el roadmap de implementación de mejoras de "${procesoNombre}". Mínimo 3 fases.
+Devuelve: {"duracion_total_semanas":12,"metodologia":"metodología sugerida","fases":[{"nombre":"nombre de la fase","objetivo":"objetivo","semana_inicio":1,"semana_fin":4,"duracion_semanas":4,"actividades":["actividad concreta 1"],"entregables":["entregable 1"],"hitos":["hito clave"]}],"factores_exito":["factor crítico 1"],"riesgos_implementacion":["riesgo de implementación 1"]}`
+    },
   }
 
-  // Extraer un artefacto con reintentos
-  async function extraerArtefacto(tipo: TipoArtefacto): Promise<{ tipo: TipoArtefacto; contenido: unknown; ok: boolean }> {
-    const prompt = buildPrompt(tipo)
-    const contenido = await llamarGroq(groq, modelos, prompt, 3500)
-    if (contenido) return { tipo, contenido, ok: true }
-    return { tipo, contenido: null, ok: false }
+  // ── Ejecutar en lotes de 6 con 800ms entre lotes ──────────────────────────
+  const resultados: Array<{ tipo: TipoArtefacto; contenido: unknown; ok: boolean }> = []
+
+  for (let i = 0; i < ORDEN_GENERACION.length; i += 6) {
+    const lote = ORDEN_GENERACION.slice(i, i + 6)
+    const loteRes = await Promise.all(
+      lote.map(async (tipo) => {
+        const cfg = PROMPTS[tipo]
+        if (!cfg) return { tipo, contenido: null, ok: false }
+        const contenido = await llamarGroq(groq, modelos, SYSTEM, cfg.prompt, cfg.tokens)
+        return { tipo, contenido, ok: contenido !== null }
+      })
+    )
+    resultados.push(...loteRes)
+    if (i + 6 < ORDEN_GENERACION.length) await new Promise(r => setTimeout(r, 800))
   }
 
-  // Ejecutar en lotes de 4 para no saturar el rate limit de Groq
-  const resultadosArr = await enLotes(
-    ORDEN_GENERACION,
-    4,
-    (tipo) => extraerArtefacto(tipo as TipoArtefacto),
-    1000
-  ) as Array<{ tipo: TipoArtefacto; contenido: unknown; ok: boolean }>
-
-  const errores: string[] = []
+  // ── Guardar en BD ─────────────────────────────────────────────────────────
   let guardados = 0
+  const errores: string[] = []
 
-  for (const r of resultadosArr) {
+  for (const r of resultados) {
     if (!r.ok || r.contenido === null) { errores.push(r.tipo); continue }
 
     const { data: existing } = await admin
-      .from('artefacto')
-      .select('id, version')
-      .eq('proceso_id', params.id)
-      .eq('tipo', r.tipo)
-      .single()
+      .from('artefacto').select('id, version')
+      .eq('proceso_id', params.id).eq('tipo', r.tipo).single()
 
     if (existing) {
       await admin.from('artefacto').update({
-        contenido: r.contenido,
-        version: (existing.version ?? 1) + 1,
-        estado_validacion: 'pendiente',
-        generado_por_ia: true,
+        contenido: r.contenido, version: (existing.version ?? 1) + 1,
+        estado_validacion: 'pendiente', generado_por_ia: true,
       }).eq('id', existing.id)
     } else {
       await admin.from('artefacto').insert({
-        proceso_id: params.id,
-        proyecto_id: proceso.proyecto_id,
-        tipo: r.tipo,
-        contenido: r.contenido,
-        estado_validacion: 'pendiente',
-        generado_por_ia: true,
+        proceso_id: params.id, proyecto_id: proceso.proyecto_id,
+        tipo: r.tipo, contenido: r.contenido,
+        estado_validacion: 'pendiente', generado_por_ia: true,
       })
     }
     guardados++
   }
 
   return NextResponse.json({
-    ok: true,
-    guardados,
-    total: ORDEN_GENERACION.length,
-    errores,
-    fuente: textoCompleto ? 'documento' : 'analisis_ia',
+    ok: true, guardados, total: ORDEN_GENERACION.length,
+    errores, fuente: textoDoc ? 'documento' : 'analisis_ia',
     documento: doc.nombre_archivo,
   })
 }
