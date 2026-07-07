@@ -32,10 +32,11 @@ export default async function ArtefactosPage() {
     .select('id, nombre, cliente(razon_social)')
     .eq('estado_general', 'activo')
 
+  // Cargar todos los procesos del proyecto — el macroproceso puede estar en 'propuesto'
+  // pero sus hijos en 'aceptado'; necesitamos todo el árbol para renderizarlo correctamente
   const { data: procesosRaw } = await admin
     .from('proceso')
     .select('*')
-    .eq('estado_oferta', 'aceptado')
     .order('nivel')
     .order('orden')
 
@@ -103,7 +104,7 @@ export default async function ArtefactosPage() {
     })
   }
 
-  const totalProcesosAceptados = procesos.length
+  const totalProcesosAceptados = procesos.filter(p => p.estado_oferta === 'aceptado').length
   const totalArtefactos = artefactos.length
   const totalPublicados = artefactos.filter(a => a.estado_validacion === 'publicado').length
   const cobertura = totalProcesosAceptados
