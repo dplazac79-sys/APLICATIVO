@@ -544,7 +544,13 @@ function MejoraIAPanel({
               {/* Diff campo a campo */}
               {diff.length > 0 && (
                 <div className="space-y-2">
-                  <p className="text-slate-400 text-xs uppercase tracking-wider font-medium">Cambios detectados</p>
+                  <div className="flex items-center justify-between">
+                    <p className="text-slate-400 text-xs uppercase tracking-wider font-medium">Cambios detectados</p>
+                    <div className="flex items-center gap-3 text-xs">
+                      <span className="flex items-center gap-1 text-red-400"><span className="font-bold">−</span> Se elimina</span>
+                      <span className="flex items-center gap-1 text-emerald-400"><span className="font-bold">+</span> Se agrega</span>
+                    </div>
+                  </div>
                   {diff.map((d) => {
                     if (d.esArray) {
                       const antesArr = d.antes as string[]
