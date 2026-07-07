@@ -32,11 +32,10 @@ export default async function ArtefactosPage() {
     .select('id, nombre, cliente(razon_social)')
     .eq('estado_general', 'activo')
 
-  // Cargar todos los procesos del proyecto — el macroproceso puede estar en 'propuesto'
-  // pero sus hijos en 'aceptado'; necesitamos todo el árbol para renderizarlo correctamente
+  // Cargar procesos con su documento origen para derivar el código (SC01, CS02, etc.)
   const { data: procesosRaw } = await admin
     .from('proceso')
-    .select('*')
+    .select('*, documento_origen:documento_origen_id(nombre_archivo)')
     .order('nivel')
     .order('orden')
 
@@ -60,6 +59,31 @@ export default async function ArtefactosPage() {
     procesos: procesos.filter(pr => pr.proyecto_id === p.id),
   }))
 
+  // Deriva el código del proceso desde el nombre del documento origen (SC01.pdf → SC01)
+  // o desde el orden dentro del macroproceso padre (orden 1 → SC01 si el padre es SC)
+  function derivarCodigo(p: Proceso & { documento_origen?: { nombre_archivo: string } | null }, lista: Proceso[]): string | null {
+    // 1. Del documento origen: extrae el código del nombre del archivo
+    const docNombre = (p as any).documento_origen?.nombre_archivo as string | undefined
+    if (docNombre) {
+      const match = docNombre.match(/^([A-Za-z]{1,6}[0-9]{1,3})/i)
+      if (match) return match[1].toUpperCase()
+    }
+    // 2. Del padre: tomar iniciales del padre + orden con padding
+    if (p.padre_id) {
+      const padre = lista.find(x => x.id === p.padre_id)
+      if (padre) {
+        const siglas = padre.nombre
+          .split(' ')
+          .filter(w => w.length > 2)
+          .map(w => w[0].toUpperCase())
+          .join('')
+          .slice(0, 3)
+        return `${siglas}${String(p.orden).padStart(2, '0')}`
+      }
+    }
+    return null
+  }
+
   function renderArbol(lista: Proceso[], padreId: string | null, nivel: number): React.ReactNode {
     const hijos = lista.filter(p => p.padre_id === padreId)
     if (!hijos.length) return null
@@ -70,6 +94,7 @@ export default async function ArtefactosPage() {
       const generados = arts.length
       const publicados = arts.filter(a => a.estado_validacion === 'publicado').length
       const hayIncompletos = generados < total
+      const codigo = derivarCodigo(p as any, lista)
 
       return (
         <div key={p.id} style={{ marginLeft: `${Math.min(nivel * 12, 48)}px` }}>
@@ -77,8 +102,13 @@ export default async function ArtefactosPage() {
             <div className={`flex items-center justify-between rounded-lg border px-3 py-2 mb-1.5 hover:opacity-80 transition-opacity cursor-pointer ${cfg.bg}`}>
               <div className="flex items-center gap-2 min-w-0">
                 <ChevronRight className={`w-3.5 h-3.5 shrink-0 ${cfg.color}`} />
+                {codigo && (
+                  <span className={`text-xs font-mono font-bold shrink-0 px-1.5 py-0.5 rounded border ${cfg.bg} ${cfg.color}`}>
+                    {codigo}
+                  </span>
+                )}
                 <span className="text-slate-200 text-sm font-medium truncate">{p.nombre}</span>
-                <span className={`text-xs ${cfg.color} shrink-0`}>{cfg.label}</span>
+                <span className={`text-xs ${cfg.color} shrink-0 opacity-60`}>{cfg.label}</span>
               </div>
               <div className="flex items-center gap-3 shrink-0 ml-4">
                 {hayIncompletos && generados === 0 && (

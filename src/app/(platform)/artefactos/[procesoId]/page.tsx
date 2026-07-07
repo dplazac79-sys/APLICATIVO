@@ -16,7 +16,7 @@ export default async function ProcesoArtefactosPage({ params }: Props) {
 
   const { data: proceso } = await admin
     .from('proceso')
-    .select('*, proyecto(nombre, cliente(razon_social))')
+    .select('*, proyecto(nombre, cliente(razon_social)), documento_origen:documento_origen_id(nombre_archivo)')
     .eq('id', params.procesoId)
     .single()
 
@@ -36,6 +36,9 @@ export default async function ProcesoArtefactosPage({ params }: Props) {
 
   const proyecto = proceso.proyecto as Record<string, unknown>
   const cliente = proyecto?.cliente as Record<string, unknown>
+  const docNombre = (proceso.documento_origen as any)?.nombre_archivo as string | undefined
+  const codigoMatch = docNombre?.match(/^([A-Za-z]{1,6}[0-9]{1,3})/i)
+  const codigo = codigoMatch ? codigoMatch[1].toUpperCase() : null
   const totalGenerados = artefactos.length
   const totalPublicados = artefactos.filter(a => a.estado_validacion === 'publicado').length
   const totalValidados = artefactos.filter(a => a.estado_validacion === 'validado').length
@@ -56,6 +59,11 @@ export default async function ProcesoArtefactosPage({ params }: Props) {
           </Link>
           <h1 className="text-xl font-bold text-white flex items-center gap-2 truncate">
             <Layers className="w-5 h-5 text-purple-400 shrink-0" />
+            {codigo && (
+              <span className="text-xs font-mono font-bold px-2 py-0.5 rounded border bg-blue-950/50 border-blue-800/50 text-blue-400 shrink-0">
+                {codigo}
+              </span>
+            )}
             {proceso.nombre}
           </h1>
           <p className="text-slate-400 text-sm">
