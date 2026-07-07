@@ -1,12 +1,11 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { notFound } from 'next/navigation'
-import { Card, CardContent } from '@/components/ui/card'
-import { Layers, FileText, ChevronLeft, Printer } from 'lucide-react'
+import { Layers, ChevronLeft, Printer, FileCheck2 } from 'lucide-react'
 import Link from 'next/link'
 import type { Artefacto } from '@/types/database'
-import ArtefactoGenerador from '@/components/artefactos/ArtefactoGenerador'
 import ArtefactoCardEditor from '@/components/artefactos/ArtefactoCardEditor'
-import { LABEL_ARTEFACTO, ORDEN_GENERACION } from '@/lib/artefactos-meta'
+import ImportadorArtefactos from '@/components/artefactos/ImportadorArtefactos'
+import { ORDEN_GENERACION } from '@/lib/artefactos-meta'
 
 export const dynamic = 'force-dynamic'
 
@@ -27,6 +26,7 @@ export default async function ProcesoArtefactosPage({ params }: Props) {
     .from('artefacto')
     .select('*')
     .eq('proceso_id', params.procesoId)
+    .order('tipo')
 
   const artefactos = (artefactosRaw ?? []) as Artefacto[]
   const artefactosPorTipo = artefactos.reduce((acc, a) => {
@@ -38,94 +38,91 @@ export default async function ProcesoArtefactosPage({ params }: Props) {
   const cliente = proyecto?.cliente as Record<string, unknown>
   const totalGenerados = artefactos.length
   const totalPublicados = artefactos.filter(a => a.estado_validacion === 'publicado').length
+  const totalValidados = artefactos.filter(a => a.estado_validacion === 'validado').length
+  const totalPendientes = artefactos.filter(a => a.estado_validacion === 'pendiente').length
+
+  const sinArtefactos = totalGenerados === 0
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-start justify-between">
-        <div className="space-y-1">
+    <div className="space-y-5">
+      {/* ── Header ── */}
+      <div className="flex items-start justify-between gap-4">
+        <div className="space-y-1 min-w-0">
           <Link
             href="/artefactos"
             className="flex items-center gap-1 text-slate-500 hover:text-slate-300 text-xs transition-colors"
           >
             <ChevronLeft className="w-3.5 h-3.5" /> Process Architect
           </Link>
-          <h1 className="text-xl font-bold text-white flex items-center gap-2">
-            <Layers className="w-5 h-5 text-purple-400" />
+          <h1 className="text-xl font-bold text-white flex items-center gap-2 truncate">
+            <Layers className="w-5 h-5 text-purple-400 shrink-0" />
             {proceso.nombre}
           </h1>
           <p className="text-slate-400 text-sm">
-            {String(proyecto?.nombre ?? '')} · {String(cliente?.razon_social ?? '')}
-            <span className="ml-2 text-slate-600">Nivel {proceso.nivel} · {proceso.origen}</span>
+            {String(proyecto?.nombre ?? '')}
+            <span className="text-slate-600"> · {String(cliente?.razon_social ?? '')}</span>
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          {totalPublicados > 0 && (
-            <Link
-              href={`/artefactos/${params.procesoId}/print`}
-              className="flex items-center gap-1.5 text-sm text-slate-400 hover:text-slate-200 border border-slate-700 hover:border-slate-500 rounded-lg px-3 py-1.5 transition-colors"
-            >
-              <Printer className="w-3.5 h-3.5" />
-              Exportar PDF
-            </Link>
-          )}
-          <ArtefactoGenerador
-            procesoId={params.procesoId}
-            tieneArtefactos={totalGenerados > 0}
-          />
-        </div>
+        {totalPublicados > 0 && (
+          <Link
+            href={`/artefactos/${params.procesoId}/print`}
+            target="_blank"
+            className="flex items-center gap-1.5 text-sm text-slate-400 hover:text-slate-200 border border-slate-700 hover:border-slate-500 rounded-lg px-3 py-1.5 transition-colors shrink-0"
+          >
+            <Printer className="w-3.5 h-3.5" />
+            Exportar PDF
+          </Link>
+        )}
       </div>
 
-      {/* Stats */}
-      {totalGenerados > 0 && (
-        <div className="flex items-center gap-6 text-sm">
-          <span className="text-slate-400">{totalGenerados}/{ORDEN_GENERACION.length} artefactos generados</span>
-          <span className="text-blue-400">{totalPublicados} publicados</span>
-          <span className="text-amber-400">{artefactos.filter(a => a.estado_validacion === 'pendiente').length} pendientes revisión</span>
+      {/* ── Progress bar ── */}
+      {!sinArtefactos && (
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <FileCheck2 className="w-4 h-4 text-slate-400" />
+              <span className="text-slate-300 text-sm font-medium">Progreso de revisión</span>
+            </div>
+            <span className="text-slate-400 text-xs">
+              {totalGenerados}/{ORDEN_GENERACION.length} artefactos
+            </span>
+          </div>
+          <div className="h-2 bg-slate-800 rounded-full overflow-hidden flex gap-px">
+            <div
+              className="bg-blue-500 h-full rounded-l-full transition-all"
+              style={{ width: `${(totalPublicados / ORDEN_GENERACION.length) * 100}%` }}
+            />
+            <div
+              className="bg-emerald-500 h-full transition-all"
+              style={{ width: `${(totalValidados / ORDEN_GENERACION.length) * 100}%` }}
+            />
+            <div
+              className="bg-amber-600 h-full transition-all"
+              style={{ width: `${(totalPendientes / ORDEN_GENERACION.length) * 100}%` }}
+            />
+          </div>
+          <div className="flex gap-4 mt-2 text-xs text-slate-500">
+            {totalPublicados > 0 && <span className="flex items-center gap-1"><span className="w-2 h-2 bg-blue-500 rounded-full" />{totalPublicados} publicados</span>}
+            {totalValidados > 0 && <span className="flex items-center gap-1"><span className="w-2 h-2 bg-emerald-500 rounded-full" />{totalValidados} validados</span>}
+            {totalPendientes > 0 && <span className="flex items-center gap-1"><span className="w-2 h-2 bg-amber-600 rounded-full" />{totalPendientes} pendientes revisión</span>}
+          </div>
         </div>
       )}
 
-      {/* Sin artefactos */}
-      {totalGenerados === 0 && (
-        <Card className="bg-slate-900 border-slate-800">
-          <CardContent className="py-16 text-center space-y-3">
-            <FileText className="w-12 h-12 text-slate-700 mx-auto" />
-            <p className="text-slate-300 font-medium">Sin artefactos generados</p>
-            <p className="text-slate-500 text-sm">
-              Haz clic en &quot;Generar todos los artefactos&quot; para iniciar la generación con IA.
-              El proceso toma aproximadamente 5 minutos.
-            </p>
-          </CardContent>
-        </Card>
+      {/* ── Auto-importar si no hay artefactos ── */}
+      {sinArtefactos && (
+        <ImportadorArtefactos
+          procesoId={params.procesoId}
+          procesoNombre={proceso.nombre}
+        />
       )}
 
-      {/* Artefactos en orden metodológico */}
+      {/* ── Artefactos en orden metodológico ── */}
       {ORDEN_GENERACION.map(tipo => {
         const art = artefactosPorTipo[tipo]
-        if (art) {
-          return (
-            <div key={tipo}>
-              <ArtefactoCardEditor artefacto={art} procesoId={params.procesoId} />
-            </div>
-          )
-        }
-        // Sin artefacto generado aún — mostrar placeholder con botón de generar
+        if (!art) return null // Se están importando — el auto-refresh los mostrará
         return (
-          <Card key={tipo} className="bg-slate-900/50 border-slate-800/50 border-dashed">
-            <CardContent className="py-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <FileText className="w-4 h-4 text-slate-700" />
-                  <span className="text-slate-500 text-sm">{LABEL_ARTEFACTO[tipo]}</span>
-                </div>
-                <ArtefactoGenerador
-                  procesoId={params.procesoId}
-                  tipo={tipo}
-                  tieneArtefactos={false}
-                />
-              </div>
-            </CardContent>
-          </Card>
+          <ArtefactoCardEditor key={tipo} artefacto={art} procesoId={params.procesoId} />
         )
       })}
     </div>
