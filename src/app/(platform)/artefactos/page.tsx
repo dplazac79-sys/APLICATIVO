@@ -82,7 +82,7 @@ export default async function ArtefactosPage() {
               </div>
               <div className="flex items-center gap-3 shrink-0 ml-4">
                 {hayIncompletos && generados === 0 && (
-                  <span className="text-xs text-slate-500">Sin artefactos</span>
+                  <span className="text-xs text-slate-700">—</span>
                 )}
                 {generados > 0 && (
                   <span className="text-xs text-slate-400">{generados}/{total} generados</span>
