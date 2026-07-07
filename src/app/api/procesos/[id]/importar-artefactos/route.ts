@@ -166,6 +166,43 @@ DOCUMENTO: ${doc.nombre_archivo as string}`
 
   async function extraerArtefacto(tipo: TipoArtefacto): Promise<{ tipo: TipoArtefacto; contenido: unknown; ok: boolean }> {
     if (tipo === 'bpmn' || tipo === 'flujograma') {
+      // Generar nodos reales a partir de los pasos del proceso
+      const promptDiagrama = `${contextoEmpresa}
+
+CONTENIDO DEL DOCUMENTO:
+${textoBase}
+
+Extrae los pasos del proceso en orden y genera un diagrama de flujo JSON para React Flow.
+Devuelve ÚNICAMENTE este JSON:
+{
+  "titulo": "nombre del proceso",
+  "nodes": [
+    {"id":"1","type":"start","position":{"x":400,"y":50},"data":{"label":"Inicio"}},
+    {"id":"2","type":"task","position":{"x":400,"y":160},"data":{"label":"Paso 1: descripción breve"}},
+    ...más pasos...,
+    {"id":"N","type":"end","position":{"x":400,"y":YY},"data":{"label":"Fin"}}
+  ],
+  "edges": [
+    {"id":"e1-2","source":"1","target":"2"},
+    ...
+  ]
+}
+Tipos de nodo: "start" (inicio, 1 solo), "end" (fin, 1 solo), "task" (tarea normal), "decision" (rombo de decisión/gateway).
+Posiciona los nodos verticalmente con 130px de separación. Máximo 10 nodos. Labels cortos (máx 40 chars).`
+
+      for (const modelo of modelos) {
+        try {
+          const completion = await groq.chat.completions.create({
+            model: modelo, max_tokens: 2000, temperature: 0.1,
+            messages: [{ role: 'user', content: promptDiagrama }],
+            response_format: { type: 'json_object' },
+          })
+          const text = completion.choices[0]?.message?.content ?? ''
+          if (!text) continue
+          const parsed = JSON.parse(text)
+          if (parsed.nodes?.length > 1) return { tipo, contenido: parsed, ok: true }
+        } catch { continue }
+      }
       return { tipo, contenido: esqueleton(tipo), ok: true }
     }
     const promptExtraccion = PROMPT_EXTRACCION[tipo]
