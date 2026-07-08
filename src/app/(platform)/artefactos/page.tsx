@@ -1,4 +1,5 @@
 import { createAdminClient } from '@/lib/supabase/admin'
+import { createClient } from '@/lib/supabase/server'
 import {
   Layers, ChevronRight, FileText, CheckCircle, Globe, Clock,
   AlertTriangle, Brain, Zap, BarChart3, Shield, GitBranch, Users, Target, TrendingUp, ArrowUpRight
@@ -51,6 +52,16 @@ function derivarCodigo(p: Proceso & { documento_origen?: { nombre_archivo: strin
 
 export default async function ArtefactosPage() {
   const admin = createAdminClient()
+
+  // Obtener rol del usuario actual
+  const supabase = createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  const { data: usuarioData } = await admin
+    .from('usuario')
+    .select('rol')
+    .eq('id', user?.id ?? '')
+    .single()
+  const esSuperAdmin = usuarioData?.rol === 'super_admin'
 
   const { data: proyectos } = await admin
     .from('proyecto')
@@ -115,11 +126,11 @@ export default async function ArtefactosPage() {
       const hayIncompletos = generados < total && generados > 0
       const codigo = derivarCodigo(p as any, lista)
       const pct = total > 0 ? Math.round((generados / total) * 100) : 0
+      const esMacroproceso = p.tipo === 'macroproceso' || p.nivel === 0
+      const esClickable = esSuperAdmin || !esMacroproceso
 
-      return (
-        <div key={p.id} style={{ marginLeft: `${Math.min(nivel * 16, 56)}px` }}>
-          <Link href={`/artefactos/${p.id}`} className="block group">
-            <div className={`flex items-center justify-between rounded-xl border px-4 py-2.5 mb-1.5 transition-all duration-200 cursor-pointer ${cfg.bg}`}>
+      const cardContent = (
+            <div className={`flex items-center justify-between rounded-xl border px-4 py-2.5 mb-1.5 transition-all duration-200 ${esClickable ? 'cursor-pointer' : 'cursor-default'} ${cfg.bg}`}>
               <div className="flex items-center gap-3 min-w-0">
                 <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${cfg.dot}`} />
                 {codigo && (
@@ -155,10 +166,20 @@ export default async function ArtefactosPage() {
                 {hayIncompletos && (
                   <AlertTriangle className="w-3.5 h-3.5 text-amber-500/70" />
                 )}
-                <ArrowUpRight className={`w-3.5 h-3.5 text-slate-600 group-hover:text-slate-400 transition-colors`} />
+                {esClickable && (
+                  <ArrowUpRight className="w-3.5 h-3.5 text-slate-600 group-hover:text-slate-400 transition-colors" />
+                )}
               </div>
             </div>
-          </Link>
+      )
+
+      return (
+        <div key={p.id} style={{ marginLeft: `${Math.min(nivel * 16, 56)}px` }}>
+          {esClickable ? (
+            <Link href={`/artefactos/${p.id}`} className="block group">{cardContent}</Link>
+          ) : (
+            <div className="group">{cardContent}</div>
+          )}
           {renderArbol(lista, p.id, nivel + 1)}
         </div>
       )

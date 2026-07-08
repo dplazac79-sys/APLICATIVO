@@ -1,5 +1,6 @@
 import { createAdminClient } from '@/lib/supabase/admin'
-import { notFound } from 'next/navigation'
+import { createClient } from '@/lib/supabase/server'
+import { notFound, redirect } from 'next/navigation'
 import { Layers, ChevronLeft, Printer, FileCheck2 } from 'lucide-react'
 import Link from 'next/link'
 import type { Artefacto } from '@/types/database'
@@ -22,6 +23,15 @@ export default async function ProcesoArtefactosPage({ params }: Props) {
     .single()
 
   if (!proceso) notFound()
+
+  // Bloquear acceso a macroprocesos para roles que no sean super_admin
+  const esMacroproceso = proceso.tipo === 'macroproceso' || proceso.nivel === 0
+  if (esMacroproceso) {
+    const supabase = createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    const { data: usuarioData } = await admin.from('usuario').select('rol').eq('id', user?.id ?? '').single()
+    if (usuarioData?.rol !== 'super_admin') redirect('/artefactos')
+  }
 
   const { data: artefactosRaw } = await admin
     .from('artefacto')
