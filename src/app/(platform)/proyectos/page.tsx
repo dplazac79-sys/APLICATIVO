@@ -34,7 +34,7 @@ export default async function ProyectosPage() {
     .eq('id', user.id)
     .single()
 
-  if (usuario.rol !== 'super_admin') redirect('/dashboard')
+  if (usuario?.rol !== 'super_admin') redirect('/dashboard')
 
   const { data: proyectos } = await admin
     .from('proyecto')
