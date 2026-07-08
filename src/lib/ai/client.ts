@@ -17,6 +17,8 @@ export const togetherClient = TOGETHER_KEY
   ? new OpenAI({
       apiKey: TOGETHER_KEY,
       baseURL: 'https://api.together.xyz/v1',
+      timeout: 25000,   // 25s por request — fuerza retry antes del timeout de Railway
+      maxRetries: 0,    // manejamos retries manualmente
     })
   : null
 

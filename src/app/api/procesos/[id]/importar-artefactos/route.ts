@@ -29,16 +29,12 @@ async function llamarIA(
         if (!text) { await new Promise(r => setTimeout(r, 1000)); continue }
         const parsed = JSON.parse(text)
         return (parsed.resultado ?? parsed.contenido ?? parsed) as Record<string, unknown>
-      } catch (err: unknown) {
-        const msg = err instanceof Error ? err.message : String(err)
-        // Reintentar en rate limit, JSON inválido, o respuesta vacía
-        const esReintentable = msg.includes('rate') || msg.includes('429') ||
-          msg.includes('JSON') || msg.includes('SyntaxError') || msg.includes('Unexpected')
-        if (esReintentable) {
-          await new Promise(r => setTimeout(r, 2000 * (intento + 1)))
+      } catch {
+        // Reintentar siempre (timeout, rate limit, JSON inválido, red)
+        if (intento < 2) {
+          await new Promise(r => setTimeout(r, 2000))
           continue
         }
-        break
       }
     }
   }
@@ -318,56 +314,51 @@ REGLA: Devuelve ÚNICAMENTE JSON válido. Genera contenido profesional basado en
     roadmap: `Genera roadmap de implementación para "${procesoNombre}" en ${empresa}. Devuelve: {"duracion_total_semanas":16,"metodologia":"Implementación por fases con enfoque ágil, priorizando quick wins para demostrar valor temprano","fases":[{"nombre":"Fase 1: Fundamentos y Quick Wins","objetivo":"Digitalizar el proceso base y obtener victorias tempranas visibles","semana_inicio":1,"semana_fin":4,"duracion_semanas":4,"actividades":["Levantar y documentar proceso actual detallado","Digitalizar formularios y registros","Implementar notificaciones automáticas","Capacitar al equipo en herramientas digitales"],"entregables":["Proceso documentado en plataforma digital","Formularios digitales operativos","Equipo capacitado"],"hitos":["Proceso base digitalizado","Primera transacción 100% digital"]},{"nombre":"Fase 2: Automatización y Control","objetivo":"Implementar controles automáticos y optimizar flujos de trabajo","semana_inicio":5,"semana_fin":10,"duracion_semanas":6,"actividades":["Implementar motor de validaciones automáticas","Desarrollar dashboard de seguimiento","Integrar con sistemas ERP existentes","Configurar alertas y SLAs automáticos"],"entregables":["Motor de validaciones activo","Dashboard operativo","Integración ERP completada"],"hitos":["Reducción 50% en tiempo de validación","Eliminación de doble digitación"]},{"nombre":"Fase 3: Optimización y Escala","objetivo":"Optimizar el proceso basado en datos y preparar para escalar","semana_inicio":11,"semana_fin":16,"duracion_semanas":6,"actividades":["Análisis de datos y optimización de flujos","Implementar mejoras basadas en métricas","Documentar lecciones aprendidas","Transferencia de conocimiento al equipo"],"entregables":["Proceso optimizado con datos reales","Documentación final","Equipo autónomo en operación"],"hitos":["KPIs dentro de rango objetivo","Proceso autónomo sin soporte externo"]}],"factores_exito":["Compromiso de la alta dirección","Disponibilidad del equipo","Acceso oportuno a sistemas TI","Gestión del cambio efectiva"],"riesgos_implementacion":["Resistencia al cambio del equipo","Integración compleja con sistemas legacy","Disponibilidad limitada de recursos TI"]}`,
   }
 
-  // ── Lotes de 3 — limita concurrencia para evitar throttling del 70B en Together AI ─
-  const LOTE = 3
-  const resultados: Array<{ tipo: TipoArtefacto; contenido: Record<string, unknown> | null; ok: boolean }> = []
-
-  for (let i = 0; i < ORDEN_GENERACION.length; i += LOTE) {
-    const lote = ORDEN_GENERACION.slice(i, i + LOTE)
-    const resultadosLote = await Promise.all(
-      lote.map(async (tipo) => {
-        const cfg = PROMPTS[tipo]
-        if (!cfg) return { tipo, contenido: null, ok: false }
-
-        // Intento principal con contexto completo del documento
-        let contenido = await llamarIA(modelos, SYSTEM, cfg.prompt, cfg.tokens)
-
-        // Si falla, usar prompt base garantizado (siempre genera contenido válido)
-        if (!contenido && PROMPTS_FALLBACK[tipo]) {
-          contenido = await llamarIA(modelos, BASE, PROMPTS_FALLBACK[tipo]!, 2500)
-        }
-
-        return { tipo, contenido, ok: contenido !== null }
-      })
-    )
-    resultados.push(...resultadosLote)
-  }
-
-  // ── Guardar en BD ─────────────────────────────────────────────────────────
+  // ── Guardar función reutilizable ──────────────────────────────────────────
   let guardados = 0
   const errores: string[] = []
+  const mu = new Array(ORDEN_GENERACION.length).fill(false) // mutex por índice
 
-  for (const r of resultados) {
-    if (!r.ok || r.contenido === null) { errores.push(r.tipo); continue }
-
+  async function guardarArtefacto(tipo: TipoArtefacto, contenido: Record<string, unknown>) {
     const { data: existing } = await admin
       .from('artefacto').select('id, version')
-      .eq('proceso_id', params.id).eq('tipo', r.tipo).single()
-
+      .eq('proceso_id', params.id).eq('tipo', tipo).single()
     if (existing) {
       await admin.from('artefacto').update({
-        contenido: r.contenido, version: (existing.version ?? 1) + 1,
+        contenido, version: (existing.version ?? 1) + 1,
         estado_validacion: 'pendiente', generado_por_ia: true,
       }).eq('id', existing.id)
     } else {
       await admin.from('artefacto').insert({
         proceso_id: params.id, proyecto_id: proceso.proyecto_id,
-        tipo: r.tipo, contenido: r.contenido,
-        estado_validacion: 'pendiente', generado_por_ia: true,
+        tipo, contenido, estado_validacion: 'pendiente', generado_por_ia: true,
       })
     }
     guardados++
   }
+
+  // ── 18 llamadas en paralelo, cada una guarda en BD apenas termina ─────────
+  // Concurrencia real sin esperar al lote más lento — cada artefacto es independiente
+  await Promise.all(
+    ORDEN_GENERACION.map(async (tipo, idx) => {
+      const cfg = PROMPTS[tipo]
+      if (!cfg) { errores.push(tipo); return }
+
+      // Intento principal con contexto del documento
+      let contenido = await llamarIA(modelos, SYSTEM, cfg.prompt, cfg.tokens)
+
+      // Fallback garantizado — siempre genera contenido válido
+      if (!contenido && PROMPTS_FALLBACK[tipo]) {
+        contenido = await llamarIA([MODELOS.rapido], BASE, PROMPTS_FALLBACK[tipo]!, 2000)
+      }
+
+      if (!contenido) { errores.push(tipo); mu[idx] = true; return }
+
+      // Guardar inmediatamente sin esperar los demás
+      await guardarArtefacto(tipo, contenido)
+      mu[idx] = true
+    })
+  )
 
   return NextResponse.json({
     ok: true, guardados, total: ORDEN_GENERACION.length,
