@@ -58,6 +58,8 @@ export default function ImportadorArtefactos({ procesoId, procesoNombre, onCompl
         if (!cancelado) {
           setError(err instanceof Error ? err.message : 'Error desconocido')
           setEstado('error')
+          // Recargar de todas formas — puede haber artefactos guardados parcialmente
+          setTimeout(() => { if (!cancelado) window.location.reload() }, 3000)
         }
       }
     }

@@ -14,29 +14,24 @@ async function llamarIA(
   maxTokens = 3000
 ): Promise<Record<string, unknown> | null> {
   for (const modelo of modelos) {
-    for (let intento = 0; intento < 3; intento++) {
-      try {
-        const completion = await chatCompletion({
-          model: modelo,
-          max_tokens: maxTokens,
-          temperature: 0.1,
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: userPrompt },
-          ],
-          response_format: { type: 'json_object' },
-        })
-        const text = completion.choices[0]?.message?.content ?? ''
-        if (!text) { await new Promise(r => setTimeout(r, 1000)); continue }
-        const parsed = JSON.parse(text)
-        return (parsed.resultado ?? parsed.contenido ?? parsed) as Record<string, unknown>
-      } catch {
-        // Reintentar siempre (timeout, rate limit, JSON inválido, red)
-        if (intento < 2) {
-          await new Promise(r => setTimeout(r, 2000))
-          continue
-        }
-      }
+    try {
+      const completion = await chatCompletion({
+        model: modelo,
+        max_tokens: maxTokens,
+        temperature: 0.1,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt },
+        ],
+        response_format: { type: 'json_object' },
+      })
+      const text = completion.choices[0]?.message?.content ?? ''
+      if (!text) continue
+      const parsed = JSON.parse(text)
+      return (parsed.resultado ?? parsed.contenido ?? parsed) as Record<string, unknown>
+    } catch {
+      // Fallo rápido — pasar al siguiente modelo o al template garantizado
+      continue
     }
   }
   return null
