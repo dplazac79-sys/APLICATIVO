@@ -174,7 +174,7 @@ export const TEMPLATES_GARANTIZADOS: Record<TipoArtefacto, Record<string, unknow
     reduccion_tiempo_ciclo_estimada: '70%',
     ahorro_estimado: '25% en costos operacionales',
     roi_estimado: '> 150% en 18 meses',
-    logros_principales: ['Diagnóstico completo del estado actual (AS-IS)', 'Identificación de brechas críticas y oportunidades', 'Diseño del estado futuro optimizado (TO-BE)', 'Roadmap de implementación en 3 fases', '18 artefactos metodológicos generados'],
+    logros_principales: ['Diagnóstico completo del estado actual (AS-IS)', 'Identificación de brechas críticas y oportunidades', 'Diseño del estado futuro optimizado (TO-BE)', 'Roadmap de implementación en 3 fases', '8 artefactos metodológicos generados'],
     proximos_pasos: ['Presentar hallazgos a la dirección', 'Aprobar el plan de implementación', 'Iniciar Fase 1: Quick Wins (primeras 4 semanas)'],
     recomendacion_ceo: 'Aprobar el plan de transformación e iniciar inmediatamente con los quick wins para capturar valor temprano y demostrar el ROI de la iniciativa.',
     fecha_cierre: '',

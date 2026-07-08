@@ -46,7 +46,7 @@ export async function getFasesProyecto(pid: string): Promise<{ proyecto: Record<
   const f1Done = !!proyecto                                          // Fase 1: Dashboard
   const f2Done = (docsTotal ?? 0) >= 1                              // Fase 2: Centro Documental
   const f3Done = (procesosAprobados ?? 0) >= 1 && (glosarioRoles ?? 0) >= 1 // Fase 3: Process Discovery
-  const f4Done = (artefactos ?? 0) >= 3                             // Fase 4: Artefactos
+  const f4Done = (artefactos ?? 0) >= 8                             // Fase 4: Artefactos (8 por proceso)
   const f5Done = (entregables ?? 0) >= 1 || (reuniones ?? 0) >= 1  // Fase 5: Control Center
   const f6Done = (simulaciones ?? 0) >= 1                           // Fase 6: Horizonte de Impacto
   const f7Done = (recomendaciones ?? 0) >= 1                        // Fase 7: Automation Studio
@@ -109,12 +109,12 @@ export async function getFasesProyecto(pid: string): Promise<{ proyecto: Record<
       color: 'amber',
       href: '/artefactos',
       status: !f3Done ? 'bloqueada' : f4Done ? 'completada' : 'activa',
-      progreso: !f3Done ? 0 : Math.min(100, Math.round(((artefactos ?? 0) / Math.max((procesosAprobados ?? 1) * 3, 3)) * 100)),
+      progreso: !f3Done ? 0 : Math.min(100, Math.round(((artefactos ?? 0) / Math.max((procesosAprobados ?? 1) * 8, 8)) * 100)),
       items: [
-        { label: `Artefactos generados (${artefactos ?? 0})`, done: (artefactos ?? 0) >= 3 },
+        { label: `Artefactos generados (${artefactos ?? 0})`, done: (artefactos ?? 0) >= 8 },
         { label: 'SIPOC completado', done: (artefactos ?? 0) >= 1 },
-        { label: 'Ficha de Proceso', done: (artefactos ?? 0) >= 2 },
-        { label: 'Matriz RACI', done: (artefactos ?? 0) >= 3 },
+        { label: 'AS-IS y BPMN', done: (artefactos ?? 0) >= 3 },
+        { label: 'RACI y Riesgo-Control', done: (artefactos ?? 0) >= 5 },
       ],
     },
     {
