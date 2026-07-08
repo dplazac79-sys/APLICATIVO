@@ -15,7 +15,7 @@ export async function GET(
     const admin = createAdminClient()
     const { data, error } = await admin
       .from('artefacto_historial')
-      .select('id, version, estado_validacion, motivo_cambio, modificado_por, created_at')
+      .select('id, version, estado_validacion, motivo_cambio, modificado_por, created_at, contenido')
       .eq('artefacto_id', params.id)
       .order('version', { ascending: false })
       .limit(20)
