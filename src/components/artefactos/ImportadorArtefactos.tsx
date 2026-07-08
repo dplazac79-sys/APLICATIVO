@@ -1,8 +1,7 @@
 'use client'
 
 import { useEffect, useState, useRef } from 'react'
-import { useRouter } from 'next/navigation'
-import { CheckCircle, AlertCircle, Sparkles, RefreshCw } from 'lucide-react'
+import { CheckCircle, AlertCircle, Sparkles } from 'lucide-react'
 
 interface Props {
   procesoId: string
@@ -13,32 +12,22 @@ interface Props {
 type Estado = 'extrayendo' | 'ok' | 'error'
 
 const ARTEFACTOS_LABELS = [
-  'SIPOC', 'AS-IS', 'BPMN', 'Flujograma', 'Historias de usuario',
-  'Matriz RACI', 'Riesgos y controles', 'KPIs y SLAs', 'Diagnóstico',
-  'TO-BE', 'Dashboard brechas', 'Cierre ejecutivo', 'Checklists',
-  'Backlog', '5 Porqués', 'Acta de inicio', 'Plan de pruebas', 'Roadmap',
+  'SIPOC', 'AS-IS', 'BPMN', 'Historias de Usuario', 'Flujograma',
+  'RACI', 'Riesgo-Control', 'KPI-SLA', 'Diagnóstico',
+  'TO-BE', 'Dashboard de Brechas', 'Cierre Ejecutivo', 'Checklists por Rol',
+  'Backlog Priorizado', '5 Porqués', 'Acta de Inicio', 'Plan de Pruebas', 'Roadmap',
 ]
 
-const TIEMPO_ESTIMADO = 35 // segundos estimados
+const TIEMPO_ESTIMADO = 60 // segundos estimados con lotes de 3
 
 export default function ImportadorArtefactos({ procesoId, procesoNombre, onComplete }: Props) {
-  const router = useRouter()
   const [estado, setEstado] = useState<Estado>('extrayendo')
   const [guardados, setGuardados] = useState(0)
-  const [fuente, setFuente] = useState<string>('')
-  const [error, setError] = useState<string | null>(null)
-  const [explicacionGap, setExplicacionGap] = useState<{
-    titulo: string
-    artefactos_pendientes: string[]
-    razon_negocio: string
-    valor_generado: string
-    siguiente_paso: string
-  } | null>(null)
   const [total, setTotal] = useState(0)
+  const [error, setError] = useState<string | null>(null)
   const [elapsed, setElapsed] = useState(0)
   const startRef = useRef(Date.now())
 
-  // Contador de tiempo real
   useEffect(() => {
     if (estado !== 'extrayendo') return
     const id = setInterval(() => {
@@ -60,17 +49,11 @@ export default function ImportadorArtefactos({ procesoId, procesoNombre, onCompl
         if (cancelado) return
         const d = await res.json()
         if (!res.ok) throw new Error(d.error ?? 'Error importando artefactos')
-        const guardadosN = d.guardados ?? 0
-        const totalN = d.total ?? ARTEFACTOS_LABELS.length
-        setGuardados(guardadosN)
-        setTotal(totalN)
-        setFuente(d.fuente ?? '')
-        if (d.explicacion_gap) setExplicacionGap(d.explicacion_gap)
+        setGuardados(d.guardados ?? 0)
+        setTotal(d.total ?? ARTEFACTOS_LABELS.length)
         setEstado('ok')
-        // Full reload garantiza datos frescos desde BD. Si hay gap, el usuario confirma antes.
-        if (guardadosN >= totalN) {
-          setTimeout(() => { if (!cancelado) window.location.reload() }, 1200)
-        }
+        // Reload garantiza datos frescos desde BD
+        setTimeout(() => { if (!cancelado) window.location.reload() }, 1200)
       } catch (err) {
         if (!cancelado) {
           setError(err instanceof Error ? err.message : 'Error desconocido')
@@ -81,30 +64,26 @@ export default function ImportadorArtefactos({ procesoId, procesoNombre, onCompl
 
     importar()
     return () => { cancelado = true }
-  }, [procesoId, router])
+  }, [procesoId])
 
   if (estado === 'extrayendo') {
-    const total = ARTEFACTOS_LABELS.length
     const pasado = elapsed > TIEMPO_ESTIMADO
-    // Hasta el estimado: avanza hasta 92%. Después: sube muy lento hacia 99%, nunca retrocede
     const pctEstimado = pasado
       ? Math.min(92 + (elapsed - TIEMPO_ESTIMADO) * 0.15, 99)
       : Math.min((elapsed / TIEMPO_ESTIMADO) * 92, 92)
-    const activo = Math.min(Math.floor((elapsed / TIEMPO_ESTIMADO) * total), total - 1)
+    const activo = Math.min(Math.floor((elapsed / TIEMPO_ESTIMADO) * ARTEFACTOS_LABELS.length), ARTEFACTOS_LABELS.length - 1)
     const restantes = Math.max(TIEMPO_ESTIMADO - elapsed, 0)
 
     return (
       <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-5">
-        {/* Header */}
         <div className="flex items-center gap-4">
           <div className="w-11 h-11 rounded-xl bg-purple-950/60 border border-purple-800/50 flex items-center justify-center shrink-0">
-            <Sparkles className="w-5 h-5 text-purple-400" />
+            <Sparkles className="w-5 h-5 text-purple-400 animate-pulse" />
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-white font-semibold text-sm">Extrayendo artefactos metodológicos</p>
             <p className="text-slate-500 text-xs truncate">{procesoNombre}</p>
           </div>
-          {/* % y tiempo */}
           <div className="text-right shrink-0">
             <p className="text-purple-300 text-xl font-bold tabular-nums">{Math.round(pctEstimado)}%</p>
             <p className="text-slate-600 text-xs">
@@ -113,17 +92,13 @@ export default function ImportadorArtefactos({ procesoId, procesoNombre, onCompl
           </div>
         </div>
 
-        {/* Barra de progreso real */}
-        <div className="space-y-1">
-          <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
-            <div
-              className="h-full bg-gradient-to-r from-purple-600 to-purple-400 rounded-full transition-all duration-500"
-              style={{ width: `${pctEstimado}%` }}
-            />
-          </div>
+        <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
+          <div
+            className="h-full bg-gradient-to-r from-purple-600 to-purple-400 rounded-full transition-all duration-500"
+            style={{ width: `${pctEstimado}%` }}
+          />
         </div>
 
-        {/* Chips de artefactos */}
         <div className="flex flex-wrap gap-1.5">
           {ARTEFACTOS_LABELS.map((label, i) => {
             const completado = i < activo
@@ -150,83 +125,27 @@ export default function ImportadorArtefactos({ procesoId, procesoNombre, onCompl
 
   if (estado === 'ok') {
     const tiempoReal = Math.floor((Date.now() - startRef.current) / 1000)
-    const hayGap = guardados < total && explicacionGap
-
     return (
-      <div className="space-y-3">
-        {/* Banner de éxito */}
-        <div className="bg-emerald-950/20 border border-emerald-800/40 rounded-2xl p-5">
-          <div className="flex items-center gap-3">
-            <CheckCircle className="w-5 h-5 text-emerald-400 shrink-0" />
-            <div className="flex-1">
-              <p className="text-emerald-300 font-medium text-sm">
-                {guardados} de {total} artefactos extraídos en {tiempoReal}s
-              </p>
-              <p className="text-slate-500 text-xs mt-0.5">
-                {fuente === 'documento' ? 'Desde el texto del documento' : 'Desde el análisis del documento'}
-              </p>
-            </div>
-            <button
-              onClick={() => { window.location.reload() }}
-              className="shrink-0 flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-emerald-900/50 hover:bg-emerald-800/50 border border-emerald-700/50 text-emerald-300 transition-colors"
-            >
-              <RefreshCw className="w-3 h-3" />
-              Ver artefactos
-            </button>
+      <div className="bg-emerald-950/20 border border-emerald-800/40 rounded-2xl p-5">
+        <div className="flex items-center gap-3">
+          <CheckCircle className="w-5 h-5 text-emerald-400 shrink-0" />
+          <div className="flex-1">
+            <p className="text-emerald-300 font-medium text-sm">
+              {guardados} de {total} artefactos generados en {tiempoReal}s
+            </p>
+            <p className="text-slate-500 text-xs mt-0.5">Cargando resultados...</p>
           </div>
         </div>
-
-        {/* Panel de gap */}
-        {guardados < total && (
-          <div className="bg-slate-900 border border-slate-700/60 rounded-2xl p-5 space-y-4">
-            {explicacionGap ? (
-              <>
-                <div>
-                  <p className="text-white font-semibold text-sm">{explicacionGap.titulo}</p>
-                  <p className="text-slate-400 text-xs mt-2 leading-relaxed">{explicacionGap.razon_negocio}</p>
-                </div>
-
-                {/* Artefactos pendientes nombrados exactamente */}
-                <div className="space-y-1.5">
-                  <p className="text-slate-500 text-xs font-medium uppercase tracking-wide">Requieren co-construcción con el equipo</p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {explicacionGap.artefactos_pendientes.map((a, i) => (
-                      <span key={i} className="text-xs px-2.5 py-1 rounded-full bg-amber-950/40 border border-amber-700/40 text-amber-300">
-                        {a}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="bg-emerald-950/20 border border-emerald-800/30 rounded-xl p-3">
-                  <p className="text-emerald-300 text-xs leading-relaxed">{explicacionGap.valor_generado}</p>
-                </div>
-
-                <div className="flex items-start gap-2">
-                  <span className="text-blue-400 text-xs shrink-0 mt-0.5">→</span>
-                  <p className="text-blue-300/80 text-xs leading-relaxed">{explicacionGap.siguiente_paso}</p>
-                </div>
-              </>
-            ) : (
-              <div>
-                <p className="text-slate-300 text-sm font-medium">{total - guardados} artefacto{total - guardados > 1 ? 's' : ''} requiere{total - guardados === 1 ? '' : 'n'} co-construcción</p>
-                <p className="text-slate-500 text-xs mt-1.5 leading-relaxed">
-                  Su definición depende de decisiones de gobierno y estructura organizacional que serán formalizadas en conjunto con el equipo en la siguiente etapa del proyecto.
-                </p>
-              </div>
-            )}
-          </div>
-        )}
       </div>
     )
   }
 
   return (
-    <div className="bg-red-950/20 border border-red-800/40 rounded-2xl p-5 space-y-3">
+    <div className="bg-red-950/20 border border-red-800/40 rounded-2xl p-5">
       <div className="flex items-start gap-3">
         <AlertCircle className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
         <div>
-          <p className="text-red-300 font-medium text-sm">No se pudo extraer los artefactos</p>
+          <p className="text-red-300 font-medium text-sm">No se pudo generar los artefactos</p>
           <p className="text-slate-500 text-xs mt-1">{error}</p>
         </div>
       </div>
