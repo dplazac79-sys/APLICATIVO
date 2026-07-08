@@ -50,7 +50,7 @@ export default async function VersionesPage() {
   // Todos los procesos aceptados, ordenados por orden y código
   const { data: procesosRaw } = await admin
     .from('proceso')
-    .select('id, nombre, codigo, orden, estado_oferta, created_at, updated_at, metadata_ia')
+    .select('id, nombre, codigo, orden, estado_oferta, created_at, updated_at, metadata_ia, documento_origen_id')
     .eq('proyecto_id', proyectoId)
     .eq('estado_oferta', 'aceptado')
     .order('orden')
@@ -64,7 +64,21 @@ export default async function VersionesPage() {
     created_at: string
     updated_at: string
     metadata_ia: Record<string, unknown> | null
+    documento_origen_id: string | null
   }>
+
+  // Fetch documento origen info for each proceso
+  const docIds = procesos.map(p => p.documento_origen_id).filter(Boolean) as string[]
+  let documentosMap: Record<string, { nombre_archivo: string; url_storage: string; tipo: string }> = {}
+  if (docIds.length > 0) {
+    const { data: docs } = await admin
+      .from('documento')
+      .select('id, nombre_archivo, url_storage, tipo')
+      .in('id', docIds)
+    for (const d of docs ?? []) {
+      documentosMap[d.id] = { nombre_archivo: d.nombre_archivo, url_storage: d.url_storage, tipo: d.tipo }
+    }
+  }
 
   if (procesos.length === 0) {
     return (
@@ -144,6 +158,7 @@ export default async function VersionesPage() {
       }>}
       historialArtefactos={historialArtefactosRaw}
       historialProcesos={historialProcesosRaw}
+      documentosMap={documentosMap}
       proyectoNombre={proyecto?.nombre ?? ''}
       clienteNombre={clienteNombre}
       rol={usuario.rol}
