@@ -16,14 +16,23 @@ export async function PATCH(
 
     const admin = createAdminClient()
     const { data: usuario } = await admin.from('usuario').select('rol').eq('id', user.id).single()
-    if (!usuario || !['super_admin', 'director_proyecto', 'consultor'].includes(usuario.rol)) {
-      return NextResponse.json({ error: 'Sin permisos para editar artefactos' }, { status: 403 })
-    }
+    if (!usuario) return NextResponse.json({ error: 'Sin permisos' }, { status: 403 })
 
     const body = await req.json()
     const { contenido, estado_validacion } = body as {
       contenido?: Record<string, unknown>
       estado_validacion?: EstadoValidacion
+    }
+
+    // sponsor_cliente y usuario_cliente solo pueden cambiar estado_validacion (validar/publicar)
+    // No pueden editar el contenido del artefacto
+    const rolesConsultor = ['super_admin', 'director_proyecto', 'consultor']
+    const puedeEditarContenido = rolesConsultor.includes(usuario.rol)
+    if (contenido !== undefined && !puedeEditarContenido) {
+      return NextResponse.json({ error: 'Sin permisos para editar contenido' }, { status: 403 })
+    }
+    if (!puedeEditarContenido && estado_validacion === undefined) {
+      return NextResponse.json({ error: 'Sin permisos' }, { status: 403 })
     }
 
     const { data: actual } = await admin
