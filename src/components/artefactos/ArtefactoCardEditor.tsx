@@ -26,10 +26,18 @@ const BADGE_LABEL: Record<EstadoValidacion, string> = {
   validado: 'Validado',
   publicado: 'Publicado',
 }
-const TRANSICION: Record<EstadoValidacion, { siguiente: EstadoValidacion; label: string } | null> = {
+// Transiciones según rol:
+// - Cliente (sponsor/usuario): solo puede Validar (pendiente → validado)
+// - Consultor/director/admin: puede además Entregar (validado → publicado) o revertir
+const TRANSICION_CLIENTE: Record<EstadoValidacion, { siguiente: EstadoValidacion; label: string } | null> = {
   pendiente: { siguiente: 'validado', label: 'Validar' },
-  validado: { siguiente: 'publicado', label: 'Publicar' },
-  publicado: { siguiente: 'validado', label: 'Despublicar' },
+  validado: null,   // ya aprobado — no hay acción siguiente para el cliente
+  publicado: null,
+}
+const TRANSICION_CONSULTOR: Record<EstadoValidacion, { siguiente: EstadoValidacion; label: string } | null> = {
+  pendiente: { siguiente: 'validado', label: 'Validar' },
+  validado:  { siguiente: 'publicado', label: 'Marcar entregado' },
+  publicado: { siguiente: 'validado', label: 'Revertir entrega' },
 }
 
 function formatDate(iso: string) {
@@ -855,9 +863,10 @@ interface Props {
   artefacto: Artefacto
   procesoId: string
   numero?: number
+  rol?: string
 }
 
-export default function ArtefactoCardEditor({ artefacto: artefactoInicial, procesoId, numero }: Props) {
+export default function ArtefactoCardEditor({ artefacto: artefactoInicial, procesoId, numero, rol }: Props) {
   const router = useRouter()
   const [artefacto, setArtefacto] = useState(artefactoInicial)
   const [modo, setModo] = useState<'vista' | 'editar'>('vista')
@@ -875,7 +884,8 @@ export default function ArtefactoCardEditor({ artefacto: artefactoInicial, proce
   const tipo = artefacto.tipo as TipoArtefacto
   const tipoLabel = LABEL_ARTEFACTO[tipo] ?? tipo
   const estado = artefacto.estado_validacion as EstadoValidacion
-  const transicion = TRANSICION[estado]
+  const esConsultor = ['super_admin', 'director_proyecto', 'consultor'].includes(rol ?? '')
+  const transicion = (esConsultor ? TRANSICION_CONSULTOR : TRANSICION_CLIENTE)[estado]
 
   function iniciarEdicion() {
     setContenidoEditado(artefacto.contenido)

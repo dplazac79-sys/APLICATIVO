@@ -24,14 +24,15 @@ export default async function ProcesoArtefactosPage({ params }: Props) {
 
   if (!proceso) notFound()
 
+  // Obtener rol del usuario actual (necesario para restricciones y para pasar al componente)
+  const supabase = createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  const { data: usuarioData } = await admin.from('usuario').select('rol').eq('id', user?.id ?? '').single()
+  const rolUsuario = usuarioData?.rol ?? 'usuario_cliente'
+
   // Bloquear acceso a macroprocesos para roles que no sean super_admin
   const esMacroproceso = proceso.tipo === 'macroproceso' || proceso.nivel === 0
-  if (esMacroproceso) {
-    const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    const { data: usuarioData } = await admin.from('usuario').select('rol').eq('id', user?.id ?? '').single()
-    if (usuarioData?.rol !== 'super_admin') redirect('/artefactos')
-  }
+  if (esMacroproceso && rolUsuario !== 'super_admin') redirect('/artefactos')
 
   const { data: artefactosRaw } = await admin
     .from('artefacto')
@@ -151,7 +152,7 @@ export default async function ProcesoArtefactosPage({ params }: Props) {
         const art = artefactosPorTipo[tipo]
         if (!art) return null
         return (
-          <ArtefactoCardEditor key={tipo} artefacto={art} procesoId={params.procesoId} numero={idx + 1} />
+          <ArtefactoCardEditor key={tipo} artefacto={art} procesoId={params.procesoId} numero={idx + 1} rol={rolUsuario} />
         )
       })}
     </div>
