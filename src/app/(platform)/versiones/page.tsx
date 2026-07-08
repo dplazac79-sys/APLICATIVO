@@ -47,37 +47,48 @@ export default async function VersionesPage() {
 
   const clienteNombre = ((proyecto?.cliente as unknown) as Record<string, string> | null)?.razon_social ?? ''
 
-  // Procesos aceptados
+  // Todos los procesos aceptados, ordenados por orden y código
   const { data: procesosRaw } = await admin
     .from('proceso')
-    .select('id, nombre, codigo')
+    .select('id, nombre, codigo, orden, estado_oferta, created_at, updated_at, metadata_ia')
     .eq('proyecto_id', proyectoId)
     .eq('estado_oferta', 'aceptado')
     .order('orden')
 
-  const procesos = (procesosRaw ?? []) as Array<{ id: string; nombre: string; codigo: string | null }>
+  const procesos = (procesosRaw ?? []) as Array<{
+    id: string
+    nombre: string
+    codigo: string | null
+    orden: number
+    estado_oferta: string
+    created_at: string
+    updated_at: string
+    metadata_ia: Record<string, unknown> | null
+  }>
 
   if (procesos.length === 0) {
     return (
-      <div className="flex items-center justify-center h-64 text-slate-500 text-sm">
-        No hay procesos aceptados en este proyecto.
+      <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center">
+        <div className="text-center space-y-3">
+          <p className="text-slate-400 text-sm">No hay procesos aceptados en este proyecto aún.</p>
+          <p className="text-slate-600 text-xs">Completa el Process Discovery primero.</p>
+        </div>
       </div>
     )
   }
 
   const procesoIds = procesos.map(p => p.id)
 
-  // Artefactos publicados (versión actual)
+  // TODOS los artefactos (todos los estados, no solo publicado)
   const { data: artefactosRaw } = await admin
     .from('artefacto')
-    .select('id, tipo, version, estado_validacion, updated_at, proceso_id')
+    .select('id, tipo, version, estado_validacion, updated_at, created_at, proceso_id, generado_por_ia')
     .in('proceso_id', procesoIds)
-    .eq('estado_validacion', 'publicado')
     .order('updated_at', { ascending: false })
 
-  // Historial de cambios
+  // Historial de artefactos
   const artefactoIds = (artefactosRaw ?? []).map(a => a.id)
-  let historialRaw: Array<{
+  let historialArtefactosRaw: Array<{
     id: string
     artefacto_id: string
     tipo: string
@@ -93,7 +104,29 @@ export default async function VersionesPage() {
       .select('id, artefacto_id, tipo, version, motivo_cambio, created_at, proceso_id')
       .in('artefacto_id', artefactoIds)
       .order('created_at', { ascending: false })
-    historialRaw = (h ?? []) as typeof historialRaw
+    historialArtefactosRaw = (h ?? []) as typeof historialArtefactosRaw
+  }
+
+  // Historial de procesos (tabla proceso_historial si existe)
+  let historialProcesosRaw: Array<{
+    id: string
+    proceso_id: string
+    version: number
+    tipo_cambio: string
+    descripcion: string
+    detalle: Record<string, unknown> | null
+    created_at: string
+  }> = []
+
+  try {
+    const { data: hp } = await admin
+      .from('proceso_historial')
+      .select('id, proceso_id, version, tipo_cambio, descripcion, detalle, created_at')
+      .in('proceso_id', procesoIds)
+      .order('created_at', { ascending: false })
+    historialProcesosRaw = (hp ?? []) as typeof historialProcesosRaw
+  } catch {
+    // tabla puede no existir aún — ignorar
   }
 
   return (
@@ -105,9 +138,12 @@ export default async function VersionesPage() {
         version: number
         estado_validacion: string
         updated_at: string
+        created_at: string
         proceso_id: string
+        generado_por_ia: boolean
       }>}
-      historial={historialRaw}
+      historialArtefactos={historialArtefactosRaw}
+      historialProcesos={historialProcesosRaw}
       proyectoNombre={proyecto?.nombre ?? ''}
       clienteNombre={clienteNombre}
       rol={usuario.rol}

@@ -37,12 +37,22 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-    await registrarAudit({
-      accion: 'UPDATE',
-      entidad: 'proceso',
-      entidad_id: params.id,
+    await registrarAudit({ accion: 'UPDATE', entidad: 'proceso', entidad_id: params.id, detalle: updates })
+
+    // Registrar en historial de versiones
+    const descripcionCambio = updates.estado_oferta
+      ? `Proceso marcado como ${updates.estado_oferta === 'aceptado' ? 'aceptado para implementación' : updates.estado_oferta}`
+      : updates.nombre ? `Nombre actualizado: "${updates.nombre}"` : 'Descripción del proceso actualizada'
+
+    await admin.from('proceso_historial').insert({
+      proceso_id: params.id,
+      proyecto_id: data.proyecto_id,
+      version: 1,
+      tipo_cambio: updates.estado_oferta ? 'estado_oferta' : 'edicion_manual',
+      descripcion: descripcionCambio,
       detalle: updates,
-    })
+      modificado_por: user.id,
+    }).then(() => null, () => null) // no bloquear si tabla no existe aún
 
     return NextResponse.json({ ok: true, proceso: data })
   } catch (err) {

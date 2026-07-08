@@ -98,5 +98,20 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
     .eq('id', params.id)
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  // Registrar en Control de Versiones
+  const { data: proc } = await admin.from('proceso').select('proyecto_id').eq('id', params.id).single()
+  if (proc) {
+    await admin.from('proceso_historial').insert({
+      proceso_id: params.id,
+      proyecto_id: proc.proyecto_id,
+      version: nuevaVersion.numero as number,
+      tipo_cambio: 'nueva_version',
+      descripcion: `Nueva versión v${nuevaVersion.numero}: ${nuevaVersion.descripcion}`,
+      detalle: { correcciones_aplicadas: atendidas.length, detalle_correcciones: detalleCorrecciones },
+      modificado_por: user.id,
+    }).then(() => null, () => null)
+  }
+
   return NextResponse.json({ ok: true, version: nuevaVersion, versiones: versionesNuevas })
 }
