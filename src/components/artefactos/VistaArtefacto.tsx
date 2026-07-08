@@ -6,6 +6,7 @@ import type { Artefacto } from '@/types/database'
 
 // React Flow solo corre en el cliente
 const DiagramaEditor = dynamic(() => import('./DiagramaEditor'), { ssr: false })
+const BpmnEditor = dynamic(() => import('./BpmnEditor'), { ssr: false })
 
 interface Props { artefacto: Artefacto }
 
@@ -16,7 +17,16 @@ export default function VistaArtefacto({ artefacto }: Props) {
   switch (artefacto.tipo) {
     case 'sipoc': return <VistaSIPOC c={c} />
     case 'as_is': return <VistaASIS c={c} />
-    case 'bpmn':
+    case 'bpmn': return (
+      <BpmnEditor
+        artefactoId={artefacto.id}
+        initialNodes={(c.nodes as never[]) ?? []}
+        initialEdges={(c.edges as never[]) ?? []}
+        lanes={(c.lanes as string[]) ?? []}
+        titulo={(c.titulo as string) ?? ''}
+        readonly={readonly}
+      />
+    )
     case 'flujograma': return (
       <DiagramaEditor
         artefactoId={artefacto.id}
