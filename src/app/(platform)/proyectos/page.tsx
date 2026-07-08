@@ -8,9 +8,6 @@ import type { WorkflowEstadoTipo } from '@/types/database'
 
 export const dynamic = 'force-dynamic'
 
-const ROLES_CLIENTE = ['sponsor_cliente', 'usuario_cliente']
-const ROLES_PERMITIDOS = ['super_admin', 'director_proyecto', 'consultor', ...ROLES_CLIENTE]
-
 const ESTADO_COLOR: Record<WorkflowEstadoTipo, string> = {
   'Scheduled':        'bg-slate-800 text-slate-400 border-slate-700',
   'Assigned':         'bg-blue-950 text-blue-400 border-blue-800',
@@ -37,28 +34,12 @@ export default async function ProyectosPage() {
     .eq('id', user.id)
     .single()
 
-  if (!usuario || !ROLES_PERMITIDOS.includes(usuario.rol)) redirect('/dashboard')
+  if (usuario.rol !== 'super_admin') redirect('/dashboard')
 
-  // Clientes: redirigir directo a su único proyecto
-  if (ROLES_CLIENTE.includes(usuario.rol)) {
-    const proyectoIds = (usuario.usuario_proyecto ?? []).map((up: { proyecto_id: string }) => up.proyecto_id)
-    if (proyectoIds.length === 1) redirect(`/proyectos/${proyectoIds[0]}`)
-    if (proyectoIds.length === 0) redirect('/dashboard')
-    // Si tiene más de un proyecto, cae al listado filtrado abajo
-  }
-
-  const esSuperAdmin = usuario.rol === 'super_admin'
-  const proyectoIds = (usuario.usuario_proyecto ?? []).map((up: { proyecto_id: string }) => up.proyecto_id)
-
-  // super_admin ve todos; el resto solo los suyos
-  const queryProyectos = admin
+  const { data: proyectos } = await admin
     .from('proyecto')
     .select('*, cliente(razon_social, industria)')
     .order('created_at', { ascending: false })
-
-  const { data: proyectos } = esSuperAdmin
-    ? await queryProyectos
-    : await queryProyectos.in('id', proyectoIds)
 
   const { data: workflows } = await admin
     .from('workflow_estado')
