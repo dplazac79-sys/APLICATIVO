@@ -950,7 +950,7 @@ export default function ArtefactoCardEditor({ artefacto: artefactoInicial, proce
 
   return (
     <>
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden transition-all">
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl transition-all">
         {/* ── Header ── */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-slate-800 gap-3">
           <div className="flex items-center gap-3 min-w-0">
