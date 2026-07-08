@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import {
   Layers, ChevronRight, FileText, CheckCircle, Globe, Clock,
   AlertTriangle, Brain, Zap, BarChart3, Shield, GitBranch, Users, Target, TrendingUp, ArrowUpRight,
-  FolderOpen, History, Info
+  FolderOpen, Info
 } from 'lucide-react'
 import Link from 'next/link'
 import type { Proceso, Artefacto } from '@/types/database'
@@ -270,27 +270,16 @@ export default async function ArtefactosPage() {
                 </div>
                 <div className="flex items-start gap-2.5">
                   <div className="w-7 h-7 rounded-lg bg-sky-900/50 border border-sky-800/40 flex items-center justify-center shrink-0">
-                    <History className="w-3.5 h-3.5 text-sky-400" />
-                  </div>
-                  <div>
-                    <p className="text-sky-100 text-xs font-medium">Historial de cambios en artefactos</p>
-                    <p className="text-slate-400 text-[11px] mt-0.5 leading-snug">
-                      Dentro de cada artefacto, el ícono <span className="text-white font-medium">🕐</span> muestra todas las versiones anteriores y qué cambió exactamente en cada edición.
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-2.5">
-                  <div className="w-7 h-7 rounded-lg bg-sky-900/50 border border-sky-800/40 flex items-center justify-center shrink-0">
                     <FolderOpen className="w-3.5 h-3.5 text-sky-400" />
                   </div>
                   <div>
-                    <p className="text-sky-100 text-xs font-medium">Control de versiones de documentos</p>
+                    <p className="text-sky-100 text-xs font-medium">Historial completo en Control de Versiones</p>
                     <p className="text-slate-400 text-[11px] mt-0.5 leading-snug">
-                      Si el documento fuente cambia, ve al{' '}
-                      <Link href="/documentos" className="text-sky-400 hover:text-sky-300 underline underline-offset-2 transition-colors">
-                        Centro Documental
+                      El historial detallado, diffs campo a campo y la restauración de versiones están disponibles en{' '}
+                      <Link href="/versiones" className="text-sky-400 hover:text-sky-300 underline underline-offset-2 transition-colors">
+                        Control de Versiones
                       </Link>
-                      {' '}y sube la nueva versión — el sistema la vincula automáticamente al original (v1 → v2 → v3…).
+                      {' '}— el módulo centralizado para toda la gestión de versiones.
                     </p>
                   </div>
                 </div>

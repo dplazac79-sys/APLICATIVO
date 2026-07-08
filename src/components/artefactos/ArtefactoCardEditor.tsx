@@ -4,12 +4,12 @@ import React, { useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import dynamic from 'next/dynamic'
 import {
-  Pencil, X, Save, Sparkles, Clock, RotateCcw, ChevronDown, ChevronUp,
+  Pencil, X, Save, Sparkles, ChevronDown, ChevronUp,
   Loader2, CheckCircle, Globe, AlertCircle, Plus, Trash2, GripVertical,
-  Download, Eye, History
+  Download, Eye
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import type { Artefacto, ArtefactoHistorial, EstadoValidacion, TipoArtefacto } from '@/types/database'
+import type { Artefacto, EstadoValidacion, TipoArtefacto } from '@/types/database'
 import { LABEL_ARTEFACTO } from '@/lib/artefactos-meta'
 
 const VistaArtefacto = dynamic(() => import('./VistaArtefacto'), { ssr: false })
@@ -499,189 +499,6 @@ function EditorRACI({ c, onChange }: { c: Record<string, unknown>; onChange: (v:
   )
 }
 
-// ─── Panel de historial ───────────────────────────────────────────────────────
-
-type HistorialEntry = ArtefactoHistorial & { contenido: Record<string, unknown> }
-
-function DiffInline({ diff }: { diff: DiffCampo[] }) {
-  if (diff.length === 0) return <p className="text-slate-600 text-xs italic">Sin cambios de contenido detectados</p>
-  return (
-    <div className="space-y-2">
-      {diff.map(d => (
-        <div key={d.campo} className="text-xs">
-          <span className="text-slate-500 font-medium uppercase tracking-wide text-[10px]">
-            {NOMBRE_CAMPO[d.campo] ?? d.campo}
-          </span>
-          {d.esArray ? (
-            <div className="mt-0.5 space-y-0.5">
-              {(d.antes as string[]).filter(x => !(d.despues as string[]).includes(x)).map((x, i) => (
-                <div key={i} className="flex gap-1 items-start">
-                  <span className="text-red-500 shrink-0 mt-0.5">−</span>
-                  <span className="text-red-400 line-through leading-snug">{x}</span>
-                </div>
-              ))}
-              {(d.despues as string[]).filter(x => !(d.antes as string[]).includes(x)).map((x, i) => (
-                <div key={i} className="flex gap-1 items-start">
-                  <span className="text-emerald-500 shrink-0 mt-0.5">+</span>
-                  <span className="text-emerald-400 leading-snug">{x}</span>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="mt-0.5 space-y-0.5">
-              {d.antes !== '—' && (
-                <div className="flex gap-1 items-start">
-                  <span className="text-red-500 shrink-0 mt-0.5">−</span>
-                  <span className="text-red-400/80 line-through leading-snug break-all">{d.antes as string}</span>
-                </div>
-              )}
-              <div className="flex gap-1 items-start">
-                <span className="text-emerald-500 shrink-0 mt-0.5">+</span>
-                <span className="text-emerald-400 leading-snug break-all">{d.despues as string}</span>
-              </div>
-            </div>
-          )}
-        </div>
-      ))}
-    </div>
-  )
-}
-
-function HistorialPanel({
-  artefactoId, contenidoActual, onRestaurar, onClose
-}: {
-  artefactoId: string
-  contenidoActual: Record<string, unknown>
-  onRestaurar: () => void
-  onClose: () => void
-}) {
-  const [historial, setHistorial] = useState<HistorialEntry[] | null>(null)
-  const [restaurando, setRestaurando] = useState<string | null>(null)
-  const [error, setError] = useState<string | null>(null)
-  const [diffsAbiertos, setDiffsAbiertos] = useState<Set<string>>(new Set())
-
-  useState(() => {
-    fetch(`/api/artefactos/${artefactoId}/historial`)
-      .then(r => r.json())
-      .then(d => setHistorial(d.historial ?? []))
-      .catch(() => setHistorial([]))
-  })
-
-  async function restaurar(histId: string) {
-    setRestaurando(histId)
-    setError(null)
-    try {
-      const res = await fetch(`/api/artefactos/${artefactoId}/historial`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ historial_id: histId }),
-      })
-      const d = await res.json()
-      if (!res.ok) throw new Error(d.error)
-      onRestaurar()
-      onClose()
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al restaurar')
-    } finally {
-      setRestaurando(null)
-    }
-  }
-
-  function toggleDiff(id: string) {
-    setDiffsAbiertos(prev => {
-      const next = new Set(prev)
-      next.has(id) ? next.delete(id) : next.add(id)
-      return next
-    })
-  }
-
-  // historial viene ordenado descendente (newest first)
-  // diff[i] = qué cambió al pasar de historial[i].contenido → historial[i-1].contenido (o contenidoActual para i=0)
-  function getDiff(index: number): DiffCampo[] {
-    if (!historial) return []
-    const antes = historial[index].contenido
-    const despues = index === 0 ? contenidoActual : historial[index - 1].contenido
-    return calcularDiff(antes, despues)
-  }
-
-  return (
-    <div className="fixed inset-0 z-50 flex">
-      <div className="flex-1 bg-black/60" onClick={onClose} />
-      <div className="w-96 bg-slate-900 border-l border-slate-700 flex flex-col">
-        <div className="flex items-center justify-between p-4 border-b border-slate-800">
-          <div className="flex items-center gap-2">
-            <History className="w-4 h-4 text-purple-400" />
-            <h3 className="text-white font-medium text-sm">Historial de versiones</h3>
-          </div>
-          <button onClick={onClose} className="text-slate-500 hover:text-slate-300 transition-colors">
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-        <div className="flex-1 overflow-y-auto p-3 space-y-2">
-          {historial === null && (
-            <div className="flex items-center justify-center py-8">
-              <Loader2 className="w-5 h-5 animate-spin text-slate-600" />
-            </div>
-          )}
-          {historial?.length === 0 && (
-            <p className="text-slate-500 text-sm text-center py-8">Sin historial aún.<br/>Los cambios futuros se registrarán aquí.</p>
-          )}
-          {historial?.map((h, idx) => {
-            const diff = getDiff(idx)
-            const diffAbierto = diffsAbiertos.has(h.id)
-            const nCambios = diff.length
-            return (
-              <div key={h.id} className="bg-slate-800 rounded-xl overflow-hidden">
-                <div className="p-3 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-slate-200 text-sm font-mono font-semibold">v{h.version}</span>
-                    <span className={`text-xs px-2 py-0.5 rounded-full border ${BADGE[h.estado_validacion as EstadoValidacion]}`}>
-                      {h.estado_validacion}
-                    </span>
-                  </div>
-                  {h.motivo_cambio && (
-                    <p className="text-slate-400 text-xs">{h.motivo_cambio}</p>
-                  )}
-                  <p className="text-slate-600 text-xs">{formatDate(h.created_at)}</p>
-
-                  {/* Botón para ver diff */}
-                  <button
-                    onClick={() => toggleDiff(h.id)}
-                    className="w-full flex items-center justify-between text-xs px-2 py-1.5 rounded-lg bg-slate-700/50 hover:bg-slate-700 transition-colors text-slate-400 hover:text-slate-200"
-                  >
-                    <span className="flex items-center gap-1.5">
-                      <Eye className="w-3 h-3" />
-                      {nCambios === 0 ? 'Sin cambios de contenido' : `${nCambios} campo${nCambios !== 1 ? 's' : ''} modificado${nCambios !== 1 ? 's' : ''}`}
-                    </span>
-                    {nCambios > 0 && (diffAbierto ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
-                  </button>
-
-                  <button
-                    onClick={() => restaurar(h.id)}
-                    disabled={restaurando === h.id}
-                    className="w-full flex items-center justify-center gap-1.5 text-xs text-slate-400 hover:text-white border border-slate-700 hover:border-slate-500 rounded-lg py-1.5 transition-colors"
-                  >
-                    {restaurando === h.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <RotateCcw className="w-3 h-3" />}
-                    Restaurar esta versión
-                  </button>
-                </div>
-
-                {/* Diff expandible */}
-                {diffAbierto && nCambios > 0 && (
-                  <div className="border-t border-slate-700/50 bg-slate-900/50 p-3">
-                    <DiffInline diff={diff} />
-                  </div>
-                )}
-              </div>
-            )
-          })}
-        </div>
-        {error && <p className="text-red-400 text-xs p-3">{error}</p>}
-      </div>
-    </div>
-  )
-}
-
 // ─── Panel de mejora IA ───────────────────────────────────────────────────────
 
 type DiffCampo = {
@@ -962,7 +779,7 @@ export default function ArtefactoCardEditor({ artefacto: artefactoInicial, proce
   const router = useRouter()
   const [artefacto, setArtefacto] = useState(artefactoInicial)
   const [modo, setModo] = useState<'vista' | 'editar'>('vista')
-  const [panelAbierto, setPanelAbierto] = useState<'historial' | 'ia' | null>(null)
+  const [panelAbierto, setPanelAbierto] = useState<'ia' | null>(null)
   const [contenidoEditado, setContenidoEditado] = useState(artefacto.contenido)
   const [motivoCambio, setMotivoCambio] = useState('')
   const [guardando, setGuardando] = useState(false)
@@ -1126,15 +943,6 @@ export default function ArtefactoCardEditor({ artefacto: artefactoInicial, proce
                     <Sparkles className="w-3 h-3" /> IA
                   </button>
                 </Tip>
-                {/* Historial */}
-                <Tip label="Ver historial">
-                  <button
-                    onClick={() => setPanelAbierto('historial')}
-                    className="h-7 w-7 flex items-center justify-center text-slate-500 hover:text-slate-300 border border-slate-700 hover:border-slate-500 rounded-lg transition-colors"
-                  >
-                    <Clock className="w-3.5 h-3.5" />
-                  </button>
-                </Tip>
                 {/* Editar */}
                 {estado !== 'publicado' && (
                   <Tip label="Editar contenido">
@@ -1282,14 +1090,6 @@ export default function ArtefactoCardEditor({ artefacto: artefactoInicial, proce
       </div>
 
       {/* ── Paneles laterales ── */}
-      {panelAbierto === 'historial' && (
-        <HistorialPanel
-          artefactoId={artefacto.id}
-          contenidoActual={artefacto.contenido as Record<string, unknown>}
-          onRestaurar={onRestaurar}
-          onClose={() => setPanelAbierto(null)}
-        />
-      )}
       {panelAbierto === 'ia' && (
         <MejoraIAPanel
           artefactoId={artefacto.id}

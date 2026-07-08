@@ -5,7 +5,7 @@ import { toast } from 'sonner'
 import {
   Upload, FileText, Loader2, CheckCircle2, XCircle,
   ChevronRight, ChevronLeft, AlertTriangle, TrendingUp,
-  Users, Monitor, BarChart3, Edit3, Shield, Zap, ArrowRight,
+  Users, Monitor, Edit3, Zap, ArrowRight,
   Clock, Star, Sparkles, Rocket, BookOpen, ChevronDown
 } from 'lucide-react'
 import Link from 'next/link'
@@ -189,8 +189,8 @@ function DocProcesandoCard({ doc }: { doc: DocProcesando }) {
   )
 }
 
-// ── Journey de un proceso (7 pasos condensados en 4 vistas) ──────────────────
-type JourneyStep = 'vista' | 'editor' | 'impacto' | 'aprobacion'
+// ── Journey de un proceso (3 vistas) ─────────────────────────────────────────
+type JourneyStep = 'vista' | 'editor' | 'aprobacion'
 
 function JourneyProceso({ procesoId, onCerrar }: { procesoId: string; onCerrar: () => void }) {
   const [proceso, setProceso] = useState<ProcesoCompleto | null>(null)
@@ -295,7 +295,6 @@ function JourneyProceso({ procesoId, onCerrar }: { procesoId: string; onCerrar: 
   const PASOS: Array<{ id: JourneyStep; label: string; icon: React.ReactNode }> = [
     { id: 'vista', label: 'Proceso', icon: <FileText className="w-4 h-4" /> },
     { id: 'editor', label: 'Editar', icon: <Edit3 className="w-4 h-4" /> },
-    { id: 'impacto', label: 'Impacto', icon: <BarChart3 className="w-4 h-4" /> },
     { id: 'aprobacion', label: 'Aprobar', icon: <CheckCircle2 className="w-4 h-4" /> },
   ]
 
@@ -478,86 +477,17 @@ function JourneyProceso({ procesoId, onCerrar }: { procesoId: string; onCerrar: 
                   {guardando ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
                   Guardar cambios
                 </button>
-                <button
-                  onClick={() => setPaso('impacto')}
+                <a
+                  href="/horizonte"
                   className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl text-sm font-medium transition-colors"
                 >
-                  Ver análisis de impacto <ArrowRight className="w-4 h-4" />
-                </button>
+                  Ver Horizonte de Impacto <ArrowRight className="w-4 h-4" />
+                </a>
               </div>
             </div>
           )}
 
-          {/* ③ Análisis de impacto */}
-          {paso === 'impacto' && (
-            <div className="space-y-6">
-              {/* KPIs */}
-              {proceso.kpis?.length > 0 && (
-                <div>
-                  <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-                    <BarChart3 className="w-5 h-5 text-amber-400" /> KPIs del proceso
-                  </h2>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {proceso.kpis.map((kpi, i) => (
-                      <div key={i} className="bg-slate-900 border border-slate-800 rounded-xl p-4">
-                        <p className="text-sm font-medium text-slate-200 mb-3">{kpi.nombre}</p>
-                        <div className="flex items-end justify-between gap-4">
-                          <div>
-                            <p className="text-xs text-slate-500">Actual</p>
-                            <p className="text-lg font-bold text-red-400">{kpi.valor_actual} <span className="text-xs text-slate-500">{kpi.unidad}</span></p>
-                          </div>
-                          <ArrowRight className="w-4 h-4 text-slate-600 mb-1" />
-                          <div>
-                            <p className="text-xs text-slate-500">Objetivo</p>
-                            <p className="text-lg font-bold text-emerald-400">{kpi.valor_objetivo} <span className="text-xs text-slate-500">{kpi.unidad}</span></p>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Riesgos */}
-              {proceso.riesgos?.length > 0 && (
-                <div>
-                  <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-                    <Shield className="w-5 h-5 text-red-400" /> Riesgos identificados
-                  </h2>
-                  <div className="space-y-3">
-                    {proceso.riesgos.map((r, i) => (
-                      <div key={i} className="bg-slate-900 border border-slate-800 rounded-xl p-4 flex items-start gap-3">
-                        <div className="flex-1">
-                          <p className="text-sm text-slate-200">{r.descripcion}</p>
-                        </div>
-                        <div className="flex flex-col gap-1 shrink-0 items-end">
-                          <span className={`text-xs border px-2 py-0.5 rounded-full ${IMPACTO_COLOR[r.impacto] ?? IMPACTO_COLOR.medio}`}>
-                            Impacto {r.impacto}
-                          </span>
-                          <span className={`text-xs ${PROB_COLOR[r.probabilidad] ?? 'text-slate-400'}`}>
-                            Prob. {r.probabilidad}
-                          </span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {!proceso.kpis?.length && !proceso.riesgos?.length && (
-                <p className="text-slate-500 text-sm">No se generaron KPIs o riesgos en este análisis.</p>
-              )}
-
-              <button
-                onClick={() => setPaso('aprobacion')}
-                className="w-full sm:w-auto flex items-center gap-2 justify-center bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-xl font-medium transition-colors"
-              >
-                Proceder a aprobación <ArrowRight className="w-4 h-4" />
-              </button>
-            </div>
-          )}
-
-          {/* ④ Aprobación digital */}
+          {/* ③ Aprobación digital */}
           {paso === 'aprobacion' && (
             <div className="space-y-6">
               {proceso.estado_aprobacion === 'aprobado' ? (

@@ -110,6 +110,7 @@ export default async function VersionesPage() {
       historial={historialRaw}
       proyectoNombre={proyecto?.nombre ?? ''}
       clienteNombre={clienteNombre}
+      rol={usuario.rol}
     />
   )
 }
