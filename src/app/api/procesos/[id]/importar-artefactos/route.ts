@@ -278,15 +278,26 @@ Devuelve: {"duracion_total_semanas":12,"metodologia":"metodología sugerida","fa
     },
   }
 
-  // ── 18 llamadas en paralelo — Together AI no tiene rate limits en plan pago ─
-  const resultados = await Promise.all(
-    ORDEN_GENERACION.map(async (tipo) => {
-      const cfg = PROMPTS[tipo]
-      if (!cfg) return { tipo, contenido: null, ok: false }
-      const contenido = await llamarIA(modelos, SYSTEM, cfg.prompt, cfg.tokens)
-      return { tipo, contenido, ok: contenido !== null }
-    })
-  )
+  // ── 3 lotes de 6 llamadas con pausa entre lotes para respetar TPM de Together AI ─
+  const LOTE = 6
+  const resultados: Array<{ tipo: TipoArtefacto; contenido: Record<string, unknown> | null; ok: boolean }> = []
+
+  for (let i = 0; i < ORDEN_GENERACION.length; i += LOTE) {
+    const lote = ORDEN_GENERACION.slice(i, i + LOTE)
+    const resultadosLote = await Promise.all(
+      lote.map(async (tipo) => {
+        const cfg = PROMPTS[tipo]
+        if (!cfg) return { tipo, contenido: null, ok: false }
+        const contenido = await llamarIA(modelos, SYSTEM, cfg.prompt, cfg.tokens)
+        return { tipo, contenido, ok: contenido !== null }
+      })
+    )
+    resultados.push(...resultadosLote)
+    // Pausa entre lotes para no saturar TPM del 70B (excepto el último lote)
+    if (i + LOTE < ORDEN_GENERACION.length) {
+      await new Promise(r => setTimeout(r, 2000))
+    }
+  }
 
   // ── Guardar en BD ─────────────────────────────────────────────────────────
   let guardados = 0
