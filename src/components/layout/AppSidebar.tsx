@@ -37,8 +37,8 @@ const navItems: NavItem[] = [
   { label: 'Process Discovery IA', href: '/discovery', icon: BrainCircuit, roles: ['super_admin', 'director_proyecto', 'consultor', 'sponsor_cliente'], badge: 'F3' },
   { label: 'Artefactos', href: '/artefactos', icon: Layers, roles: ['super_admin', 'director_proyecto', 'consultor', 'sponsor_cliente'], badge: 'F4' },
   { label: 'Project Control Center', href: '/proyectos', icon: Briefcase, roles: ['super_admin'], badge: 'F5' },
-  { label: 'Horizonte de Impacto', href: '/impacto', icon: BarChart3, roles: ['super_admin', 'director_proyecto', 'consultor', 'sponsor_cliente'], badge: 'F6' },
-  { label: 'Automation Studio', href: '/automation', icon: Zap, roles: ['super_admin', 'director_proyecto', 'consultor', 'sponsor_cliente'], badge: 'F7' },
+  { label: 'Horizonte de Impacto', href: '/impacto', icon: BarChart3, roles: ['super_admin', 'director_proyecto', 'consultor'], badge: 'F6' },
+  { label: 'Automation Studio', href: '/automation', icon: Zap, roles: ['super_admin', 'director_proyecto', 'consultor'], badge: 'F7' },
 ]
 
 const adminItems: NavItem[] = [
