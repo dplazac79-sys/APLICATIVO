@@ -39,19 +39,179 @@ function formatDate(iso: string) {
   })
 }
 
+// ─── Diccionarios de UI ──────────────────────────────────────────────────────
+
+const CAMPOS_OCULTOS = new Set([
+  'edges', 'id', 'animated', 'style', 'position', 'type',
+  'matriz', 'leyenda', 'resumen', 'financiero',
+])
+
+const NOMBRE_CAMPO: Record<string, string> = {
+  nodes: 'Pasos del diagrama',
+  titulo: 'Título',
+  proveedores: 'Proveedores',
+  entradas: 'Entradas',
+  proceso: 'Descripción del proceso',
+  salidas: 'Salidas',
+  clientes: 'Clientes / Destinatarios',
+  notas: 'Notas',
+  limite_entrada: 'Inicio del proceso',
+  limite_salida: 'Fin del proceso',
+  descripcion_estado_actual: 'Estado actual',
+  actores: 'Actores involucrados',
+  sistemas_involucrados: 'Sistemas utilizados',
+  pasos: 'Pasos del proceso',
+  puntos_dolor: 'Problemas actuales',
+  tiempo_ciclo_actual: 'Tiempo de ciclo actual',
+  volumen_transacciones: 'Volumen de transacciones',
+  descripcion_estado_futuro: 'Estado futuro',
+  sistemas_requeridos: 'Sistemas requeridos',
+  mejoras_respecto_asis: 'Mejoras respecto al estado actual',
+  tiempo_ciclo_objetivo: 'Tiempo de ciclo objetivo',
+  reduccion_estimada: 'Reducción estimada',
+  historias: 'Historias de usuario',
+  actividades: 'Actividades',
+  roles: 'Roles',
+  riesgos: 'Riesgos identificados',
+  indicadores: 'Indicadores (KPIs)',
+  nivel_madurez_descripcion: 'Nivel de madurez',
+  nivel_madurez: 'Nivel de madurez (1-5)',
+  fortalezas: 'Fortalezas',
+  debilidades: 'Debilidades',
+  oportunidades: 'Oportunidades',
+  amenazas: 'Amenazas',
+  brechas_criticas: 'Brechas críticas',
+  recomendaciones_prioritarias: 'Recomendaciones prioritarias',
+  conclusion: 'Conclusión',
+  conclusion_sistemica: 'Conclusión sistémica',
+  resumen_ejecutivo: 'Resumen ejecutivo',
+  comparativo: 'Comparativo AS-IS vs TO-BE',
+  quick_wins: 'Victorias tempranas (Quick Wins)',
+  logros_principales: 'Logros principales',
+  proximos_pasos: 'Próximos pasos',
+  recomendacion_ceo: 'Recomendación a la dirección',
+  titulo_proyecto: 'Título del proyecto',
+  proposito: 'Propósito',
+  fecha_inicio: 'Fecha de inicio',
+  fecha_fin_estimada: 'Fecha de término estimada',
+  presupuesto_estimado: 'Presupuesto estimado',
+  patrocinador: 'Patrocinador',
+  director_proyecto: 'Director del proyecto',
+  checklists: 'Checklists operacionales',
+  iniciativas: 'Iniciativas de mejora',
+  analisis: 'Análisis de causas raíz',
+  alcance: 'Alcance del proyecto',
+  objetivos: 'Objetivos',
+  supuestos: 'Supuestos',
+  restricciones: 'Restricciones',
+  criterios_exito: 'Criterios de éxito',
+  firmas_requeridas: 'Firmas requeridas',
+  casos: 'Casos de prueba',
+  criterios_aprobacion: 'Criterios de aprobación',
+  plan_contingencia: 'Plan de contingencia',
+  ambiente_pruebas: 'Ambiente de pruebas',
+  responsable_pruebas: 'Responsable de pruebas',
+  fases: 'Fases de implementación',
+  factores_exito: 'Factores de éxito',
+  riesgos_implementacion: 'Riesgos de implementación',
+  metodologia: 'Metodología',
+  duracion_total_semanas: 'Duración total (semanas)',
+  frecuencia_uso: 'Frecuencia de uso',
+  // Campos de objetos anidados
+  descripcion: 'Descripción',
+  nombre: 'Nombre',
+  responsable: 'Responsable',
+  duracion_estimada: 'Duración estimada',
+  sistema: 'Sistema utilizado',
+  automatizado: '¿Automatizado?',
+  herramienta: 'Herramienta',
+  mejora_vs_asis: 'Mejora vs estado actual',
+  rol: 'Rol',
+  descripcion_rol: 'Función en el proceso',
+  items: 'Ítems del checklist',
+  fase: 'Fase',
+  critico: '¿Crítico?',
+  nota: 'Nota',
+  categoria: 'Categoría',
+  probabilidad: 'Probabilidad',
+  impacto: 'Impacto',
+  nivel_riesgo: 'Nivel de riesgo',
+  control: 'Control mitigante',
+  tipo_control: 'Tipo de control',
+  estado: 'Estado',
+  formula: 'Fórmula de cálculo',
+  unidad: 'Unidad',
+  linea_base: 'Línea base (valor actual)',
+  meta: 'Meta',
+  frecuencia: 'Frecuencia de medición',
+  dueno: 'Dueño del indicador',
+  fuente_dato: 'Fuente del dato',
+  sla: 'Acuerdo de nivel de servicio',
+  tipo: 'Tipo',
+  dimension: 'Dimensión evaluada',
+  valor_asis: 'Situación actual (AS-IS)',
+  valor_tobe: 'Situación futura (TO-BE)',
+  brecha: 'Brecha identificada',
+  iniciativa: 'Iniciativa para cerrar',
+  esfuerzo: 'Nivel de esfuerzo',
+  problema: 'Problema identificado',
+  cadena: 'Cadena de porqués',
+  porque: 'Porqué',
+  causa_raiz: 'Causa raíz',
+  tipo_causa: 'Tipo de causa',
+  accion_correctiva: 'Acción correctiva',
+  plazo: 'Plazo estimado',
+  incluye: 'Qué incluye',
+  excluye: 'Qué excluye',
+  metrica: 'Métrica de medición',
+  nombre_caso: 'Nombre del caso',
+  precondicion: 'Condición previa',
+  resultado_esperado: 'Resultado esperado',
+  criterio_falla: 'Criterio de falla',
+  prioridad: 'Prioridad',
+  beneficio: 'Beneficio esperado',
+  necesidad: 'Necesidad',
+  criterios_aceptacion: 'Criterios de aceptación',
+  puntos_historia: 'Puntos de historia',
+  titulo_historia: 'Título',
+  id: '',
+  orden: 'N°',
+  semana_inicio: 'Semana de inicio',
+  semana_fin: 'Semana de fin',
+  duracion_semanas: 'Duración (semanas)',
+  entregables: 'Entregables',
+  hitos: 'Hitos clave',
+  objetivo: 'Objetivo de la fase',
+  tiempo_estimado: 'Tiempo estimado',
+  responsable_sugerido: 'Responsable sugerido',
+  beneficio_esperado: 'Beneficio esperado',
+  dependencias: 'Depende de',
+}
+
+// Extrae un título legible del primer campo descriptivo de un objeto
+function tituloObjeto(obj: Record<string, unknown>, idx: number): string {
+  for (const k of ['descripcion', 'nombre', 'titulo', 'problema', 'nombre_caso', 'dimension', 'rol']) {
+    if (typeof obj[k] === 'string' && obj[k]) return obj[k] as string
+  }
+  return `Ítem ${idx + 1}`
+}
+
 // ─── Editor universal de campos JSON ────────────────────────────────────────
 
 function CampoEditor({
-  label, value, onChange, nivel = 0
+  campoKey = '', value, onChange, nivel = 0
 }: {
-  label: string
+  campoKey?: string
   value: unknown
   onChange: (v: unknown) => void
   nivel?: number
 }) {
   const [expandido, setExpandido] = useState(true)
+  const label = NOMBRE_CAMPO[campoKey] ?? campoKey.replace(/_/g, ' ')
 
   if (value === null || value === undefined) return null
+  // Ocultar campo vacío con nombre vacío (id oculto, etc.)
+  if (label === '') return null
 
   // String
   if (typeof value === 'string') {
@@ -96,14 +256,14 @@ function CampoEditor({
   // Boolean
   if (typeof value === 'boolean') {
     return (
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-3">
         <button
           onClick={() => onChange(!value)}
-          className={`w-10 h-5 rounded-full transition-colors relative ${value ? 'bg-purple-600' : 'bg-slate-700'}`}
+          className={`w-10 h-5 rounded-full transition-colors relative shrink-0 ${value ? 'bg-purple-600' : 'bg-slate-700'}`}
         >
           <span className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${value ? 'translate-x-5' : 'translate-x-0.5'}`} />
         </button>
-        <label className="text-slate-400 text-xs uppercase tracking-wider font-medium">{label}</label>
+        <label className="text-slate-300 text-sm">{label}</label>
       </div>
     )
   }
@@ -116,21 +276,20 @@ function CampoEditor({
         <label className="text-slate-400 text-xs uppercase tracking-wider font-medium">{label}</label>
         <div className="space-y-1.5">
           {arr.map((item, i) => (
-            <div key={i} className="flex gap-2 items-start">
-              <GripVertical className="w-3.5 h-3.5 text-slate-600 mt-2 shrink-0" />
+            <div key={i} className="flex gap-2 items-center">
+              <GripVertical className="w-3.5 h-3.5 text-slate-600 shrink-0" />
               <input
                 type="text"
                 value={item}
                 onChange={e => {
-                  const next = [...arr]
-                  next[i] = e.target.value
-                  onChange(next)
+                  const next = [...arr]; next[i] = e.target.value; onChange(next)
                 }}
                 className="flex-1 bg-slate-800 border border-slate-600 rounded-lg px-3 py-1.5 text-slate-200 text-sm focus:outline-none focus:border-purple-500 transition-colors"
               />
               <button
                 onClick={() => onChange(arr.filter((_, j) => j !== i))}
-                className="text-slate-600 hover:text-red-400 transition-colors mt-1.5 shrink-0"
+                className="text-slate-600 hover:text-red-400 transition-colors shrink-0"
+                title="Eliminar"
               >
                 <Trash2 className="w-3.5 h-3.5" />
               </button>
@@ -138,9 +297,9 @@ function CampoEditor({
           ))}
           <button
             onClick={() => onChange([...arr, ''])}
-            className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-purple-400 transition-colors mt-1"
+            className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-purple-400 transition-colors mt-1 border border-dashed border-slate-700 hover:border-purple-600 rounded-lg px-3 py-1.5 w-full justify-center"
           >
-            <Plus className="w-3 h-3" /> Añadir ítem
+            <Plus className="w-3 h-3" /> Agregar {label.toLowerCase().replace(/s$/, '')}
           </button>
         </div>
       </div>
@@ -154,52 +313,59 @@ function CampoEditor({
       <div className="space-y-2">
         <div className="flex items-center justify-between">
           <label className="text-slate-400 text-xs uppercase tracking-wider font-medium">{label}</label>
-          <button
-            onClick={() => setExpandido(e => !e)}
-            className="text-slate-600 hover:text-slate-400 transition-colors"
-          >
+          <button onClick={() => setExpandido(e => !e)} className="text-slate-600 hover:text-slate-400 transition-colors">
             {expandido ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
           </button>
         </div>
         {expandido && (
           <div className="space-y-3">
             {arr.map((obj, i) => (
-              <div key={i} className="bg-slate-800/60 border border-slate-700 rounded-xl p-3 space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-slate-500 text-xs font-mono">#{i + 1}</span>
+              <div key={i} className="bg-slate-800/60 border border-slate-700 rounded-xl overflow-hidden">
+                <div className="flex items-center justify-between px-3 py-2 bg-slate-800 border-b border-slate-700/50">
+                  <span className="text-slate-300 text-xs font-medium truncate">{tituloObjeto(obj, i)}</span>
                   <button
                     onClick={() => onChange(arr.filter((_, j) => j !== i))}
-                    className="text-slate-600 hover:text-red-400 transition-colors"
+                    className="text-slate-600 hover:text-red-400 transition-colors shrink-0 ml-2"
+                    title="Eliminar"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
                 </div>
-                <div className="grid grid-cols-2 gap-3">
-                  {Object.entries(obj).map(([k, v]) => (
-                    <div key={k} className={typeof v === 'string' && v.length > 80 ? 'col-span-2' : ''}>
-                      <CampoEditor
-                        label={k.replace(/_/g, ' ')}
-                        value={v}
-                        nivel={nivel + 1}
-                        onChange={nv => {
-                          const next = [...arr]
-                          next[i] = { ...obj, [k]: nv }
-                          onChange(next)
-                        }}
-                      />
-                    </div>
-                  ))}
+                <div className="p-3 grid grid-cols-2 gap-3">
+                  {Object.entries(obj)
+                    .filter(([k]) => !CAMPOS_OCULTOS.has(k))
+                    .map(([k, v]) => (
+                      <div key={k} className={
+                        typeof v === 'string' && v.length > 60 ? 'col-span-2' :
+                        Array.isArray(v) ? 'col-span-2' :
+                        typeof v === 'object' && v !== null ? 'col-span-2' : ''
+                      }>
+                        <CampoEditor
+                          campoKey={k}
+                          value={v}
+                          nivel={nivel + 1}
+                          onChange={nv => {
+                            const next = [...arr]; next[i] = { ...obj, [k]: nv }; onChange(next)
+                          }}
+                        />
+                      </div>
+                    ))}
                 </div>
               </div>
             ))}
             <button
               onClick={() => {
-                const template = arr[0] ? Object.fromEntries(Object.keys(arr[0]).map(k => [k, typeof arr[0][k] === 'number' ? 0 : typeof arr[0][k] === 'boolean' ? false : Array.isArray(arr[0][k]) ? [] : ''])) : {}
-                onChange([...arr, template])
+                const tmpl = arr[0]
+                  ? Object.fromEntries(Object.keys(arr[0]).map(k => [k,
+                      typeof arr[0][k] === 'number' ? 0 :
+                      typeof arr[0][k] === 'boolean' ? false :
+                      Array.isArray(arr[0][k]) ? [] : '']))
+                  : {}
+                onChange([...arr, tmpl])
               }}
-              className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-purple-400 transition-colors"
+              className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-purple-400 transition-colors border border-dashed border-slate-700 hover:border-purple-600 rounded-lg px-3 py-2 w-full justify-center"
             >
-              <Plus className="w-3 h-3" /> Añadir {label.toLowerCase().replace(/s$/, '')}
+              <Plus className="w-3 h-3" /> Agregar {label.toLowerCase().replace(/s$/, '')}
             </button>
           </div>
         )}
@@ -219,16 +385,18 @@ function CampoEditor({
           </button>
         </div>
         {expandido && (
-          <div className={`border-l-2 border-slate-700 pl-3 space-y-3 ${nivel > 0 ? '' : ''}`}>
-            {Object.entries(obj).map(([k, v]) => (
-              <CampoEditor
-                key={k}
-                label={k.replace(/_/g, ' ')}
-                value={v}
-                nivel={nivel + 1}
-                onChange={nv => onChange({ ...obj, [k]: nv })}
-              />
-            ))}
+          <div className="border-l-2 border-slate-700 pl-3 space-y-3">
+            {Object.entries(obj)
+              .filter(([k]) => !CAMPOS_OCULTOS.has(k))
+              .map(([k, v]) => (
+                <CampoEditor
+                  key={k}
+                  campoKey={k}
+                  value={v}
+                  nivel={nivel + 1}
+                  onChange={nv => onChange({ ...obj, [k]: nv })}
+                />
+              ))}
           </div>
         )}
       </div>
@@ -261,8 +429,8 @@ function EditorRACI({ c, onChange }: { c: Record<string, unknown>; onChange: (v:
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
-        <CampoEditor label="actividades" value={actividades} onChange={v => onChange({ ...c, actividades: v })} />
-        <CampoEditor label="roles" value={roles} onChange={v => onChange({ ...c, roles: v })} />
+        <CampoEditor campoKey="actividades" value={actividades} onChange={v => onChange({ ...c, actividades: v })} />
+        <CampoEditor campoKey="roles" value={roles} onChange={v => onChange({ ...c, roles: v })} />
       </div>
       <div>
         <p className="text-slate-400 text-xs uppercase tracking-wider font-medium mb-2">Matriz (click para ciclar R→A→C→I→vacío)</p>
@@ -405,69 +573,6 @@ type DiffCampo = {
   esTexto: boolean
   antes: string | string[]
   despues: string | string[]
-}
-
-// Campos técnicos que no tienen valor para el cliente
-const CAMPOS_OCULTOS = new Set(['edges', 'id', 'animated', 'style'])
-
-// Traduce claves técnicas JSON a nombres legibles en español
-const NOMBRE_CAMPO: Record<string, string> = {
-  nodes: 'Pasos del diagrama',
-  titulo: 'Título',
-  proveedores: 'Proveedores',
-  entradas: 'Entradas',
-  proceso: 'Descripción del proceso',
-  salidas: 'Salidas',
-  clientes: 'Clientes / Destinatarios',
-  notas: 'Notas',
-  limite_entrada: 'Inicio del proceso',
-  limite_salida: 'Fin del proceso',
-  descripcion_estado_actual: 'Descripción del estado actual',
-  actores: 'Actores involucrados',
-  sistemas_involucrados: 'Sistemas utilizados',
-  pasos: 'Pasos del proceso',
-  puntos_dolor: 'Problemas actuales',
-  tiempo_ciclo_actual: 'Tiempo de ciclo actual',
-  volumen_transacciones: 'Volumen de transacciones',
-  descripcion_estado_futuro: 'Descripción del estado futuro',
-  sistemas_requeridos: 'Sistemas requeridos',
-  mejoras_respecto_asis: 'Mejoras respecto al estado actual',
-  tiempo_ciclo_objetivo: 'Tiempo de ciclo objetivo',
-  reduccion_estimada: 'Reducción estimada',
-  historias: 'Historias de usuario',
-  actividades: 'Actividades',
-  roles: 'Roles',
-  riesgos: 'Riesgos identificados',
-  indicadores: 'Indicadores (KPIs)',
-  nivel_madurez_descripcion: 'Nivel de madurez',
-  fortalezas: 'Fortalezas',
-  debilidades: 'Debilidades',
-  oportunidades: 'Oportunidades',
-  amenazas: 'Amenazas',
-  brechas_criticas: 'Brechas críticas',
-  recomendaciones_prioritarias: 'Recomendaciones prioritarias',
-  conclusion: 'Conclusión',
-  resumen_ejecutivo: 'Resumen ejecutivo',
-  comparativo: 'Comparativo AS-IS vs TO-BE',
-  quick_wins: 'Victorias tempranas (Quick Wins)',
-  logros_principales: 'Logros principales',
-  proximos_pasos: 'Próximos pasos',
-  recomendacion_ceo: 'Recomendación a la dirección',
-  checklists: 'Checklists operacionales',
-  iniciativas: 'Iniciativas de mejora',
-  analisis: 'Análisis de causas',
-  conclusion_sistemica: 'Conclusión sistémica',
-  alcance: 'Alcance del proyecto',
-  objetivos: 'Objetivos',
-  supuestos: 'Supuestos',
-  restricciones: 'Restricciones',
-  criterios_exito: 'Criterios de éxito',
-  casos: 'Casos de prueba',
-  criterios_aprobacion: 'Criterios de aprobación',
-  plan_contingencia: 'Plan de contingencia',
-  fases: 'Fases del roadmap',
-  factores_exito: 'Factores de éxito',
-  riesgos_implementacion: 'Riesgos de implementación',
 }
 
 function etiquetaLegible(item: unknown): string {
@@ -991,14 +1096,16 @@ export default function ArtefactoCardEditor({ artefacto: artefactoInicial, proce
                   />
                 ) : (
                   <div className="space-y-4">
-                    {Object.entries(contenidoEditado).map(([k, v]) => (
-                      <CampoEditor
-                        key={k}
-                        label={k.replace(/_/g, ' ')}
-                        value={v}
-                        onChange={nv => setContenidoEditado(prev => ({ ...prev, [k]: nv }))}
-                      />
-                    ))}
+                    {Object.entries(contenidoEditado)
+                      .filter(([k]) => !CAMPOS_OCULTOS.has(k))
+                      .map(([k, v]) => (
+                        <CampoEditor
+                          key={k}
+                          campoKey={k}
+                          value={v}
+                          onChange={nv => setContenidoEditado(prev => ({ ...prev, [k]: nv }))}
+                        />
+                      ))}
                   </div>
                 )}
 
