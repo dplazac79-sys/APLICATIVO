@@ -407,19 +407,99 @@ type DiffCampo = {
   despues: string | string[]
 }
 
+// Campos técnicos que no tienen valor para el cliente
+const CAMPOS_OCULTOS = new Set(['edges', 'id', 'animated', 'style'])
+
+// Traduce claves técnicas JSON a nombres legibles en español
+const NOMBRE_CAMPO: Record<string, string> = {
+  nodes: 'Pasos del diagrama',
+  titulo: 'Título',
+  proveedores: 'Proveedores',
+  entradas: 'Entradas',
+  proceso: 'Descripción del proceso',
+  salidas: 'Salidas',
+  clientes: 'Clientes / Destinatarios',
+  notas: 'Notas',
+  limite_entrada: 'Inicio del proceso',
+  limite_salida: 'Fin del proceso',
+  descripcion_estado_actual: 'Descripción del estado actual',
+  actores: 'Actores involucrados',
+  sistemas_involucrados: 'Sistemas utilizados',
+  pasos: 'Pasos del proceso',
+  puntos_dolor: 'Problemas actuales',
+  tiempo_ciclo_actual: 'Tiempo de ciclo actual',
+  volumen_transacciones: 'Volumen de transacciones',
+  descripcion_estado_futuro: 'Descripción del estado futuro',
+  sistemas_requeridos: 'Sistemas requeridos',
+  mejoras_respecto_asis: 'Mejoras respecto al estado actual',
+  tiempo_ciclo_objetivo: 'Tiempo de ciclo objetivo',
+  reduccion_estimada: 'Reducción estimada',
+  historias: 'Historias de usuario',
+  actividades: 'Actividades',
+  roles: 'Roles',
+  riesgos: 'Riesgos identificados',
+  indicadores: 'Indicadores (KPIs)',
+  nivel_madurez_descripcion: 'Nivel de madurez',
+  fortalezas: 'Fortalezas',
+  debilidades: 'Debilidades',
+  oportunidades: 'Oportunidades',
+  amenazas: 'Amenazas',
+  brechas_criticas: 'Brechas críticas',
+  recomendaciones_prioritarias: 'Recomendaciones prioritarias',
+  conclusion: 'Conclusión',
+  resumen_ejecutivo: 'Resumen ejecutivo',
+  comparativo: 'Comparativo AS-IS vs TO-BE',
+  quick_wins: 'Victorias tempranas (Quick Wins)',
+  logros_principales: 'Logros principales',
+  proximos_pasos: 'Próximos pasos',
+  recomendacion_ceo: 'Recomendación a la dirección',
+  checklists: 'Checklists operacionales',
+  iniciativas: 'Iniciativas de mejora',
+  analisis: 'Análisis de causas',
+  conclusion_sistemica: 'Conclusión sistémica',
+  alcance: 'Alcance del proyecto',
+  objetivos: 'Objetivos',
+  supuestos: 'Supuestos',
+  restricciones: 'Restricciones',
+  criterios_exito: 'Criterios de éxito',
+  casos: 'Casos de prueba',
+  criterios_aprobacion: 'Criterios de aprobación',
+  plan_contingencia: 'Plan de contingencia',
+  fases: 'Fases del roadmap',
+  factores_exito: 'Factores de éxito',
+  riesgos_implementacion: 'Riesgos de implementación',
+}
+
+function etiquetaLegible(item: unknown): string {
+  if (typeof item === 'string') return item
+  if (typeof item === 'object' && item !== null) {
+    const obj = item as Record<string, unknown>
+    // Para nodos BPMN/flujograma: mostrar el label del paso
+    if (obj.data && typeof obj.data === 'object') {
+      const data = obj.data as Record<string, unknown>
+      const label = data.label as string
+      const actor = data.actor as string | undefined
+      return actor ? `${label} (${actor})` : label
+    }
+    // Para edges: mostrar como "Origen → Destino" con condición si existe
+    if ('source' in obj && 'target' in obj) {
+      const label = obj.label ? ` [${obj.label}]` : ''
+      return `Paso ${obj.source} → Paso ${obj.target}${label}`
+    }
+    // Priorizar campos descriptivos comunes
+    for (const key of ['descripcion', 'nombre', 'titulo', 'label', 'rol', 'problema', 'nombre_kpi', 'dimension', 'actividad']) {
+      if (typeof obj[key] === 'string' && obj[key]) return obj[key] as string
+    }
+    // Fallback: tomar primer string
+    const vals = Object.values(obj).filter(x => typeof x === 'string' && x.length > 1)
+    return (vals[0] as string) ?? JSON.stringify(obj).slice(0, 80)
+  }
+  return String(item)
+}
+
 function valorALista(v: unknown): string[] {
   if (v === null || v === undefined) return []
-  if (Array.isArray(v)) {
-    return v.map(item => {
-      if (typeof item === 'string') return item
-      if (typeof item === 'object' && item !== null) {
-        // Tomar el primer valor string del objeto como label
-        const vals = Object.values(item as object).filter(x => typeof x === 'string')
-        return (vals[0] as string) ?? JSON.stringify(item).slice(0, 80)
-      }
-      return String(item)
-    }).filter(Boolean)
-  }
+  if (Array.isArray(v)) return v.map(etiquetaLegible).filter(Boolean)
   return []
 }
 
@@ -434,6 +514,7 @@ function calcularDiff(original: Record<string, unknown>, mejorado: Record<string
   const cambios: DiffCampo[] = []
   const todosCampos = Array.from(new Set([...Object.keys(original), ...Object.keys(mejorado)]))
   for (const campo of todosCampos) {
+    if (CAMPOS_OCULTOS.has(campo)) continue
     const vAntes = original[campo] ?? null
     const vDespues = mejorado[campo] ?? null
     if (JSON.stringify(vAntes) === JSON.stringify(vDespues)) continue
@@ -534,7 +615,7 @@ function MejoraIAPanel({
               {/* Resumen de cambios */}
               <div className="bg-emerald-950/30 border border-emerald-700/40 rounded-lg p-3">
                 <p className="text-emerald-400 text-xs font-semibold uppercase tracking-wider mb-1">
-                  ✓ {diff.length} campo{diff.length !== 1 ? 's' : ''} mejorado{diff.length !== 1 ? 's' : ''}
+                  ✓ {diff.length} sección{diff.length !== 1 ? 'es' : ''} con mejoras
                 </p>
                 <p className="text-slate-500 text-xs">
                   La versión actual se guardará automáticamente en historial.
@@ -552,6 +633,7 @@ function MejoraIAPanel({
                     </div>
                   </div>
                   {diff.map((d) => {
+                    const nombreVisible = NOMBRE_CAMPO[d.campo] ?? d.campo
                     if (d.esArray) {
                       const antesArr = d.antes as string[]
                       const despuesArr = d.despues as string[]
@@ -561,7 +643,7 @@ function MejoraIAPanel({
                       return (
                         <div key={d.campo} className="bg-slate-800/60 border border-slate-700/50 rounded-lg overflow-hidden">
                           <div className="px-3 py-1.5 bg-slate-800 border-b border-slate-700/50 flex items-center justify-between">
-                            <span className="text-slate-300 text-xs font-mono font-semibold">{d.campo}</span>
+                            <span className="text-slate-300 text-xs font-semibold">{nombreVisible}</span>
                             <span className="text-xs text-slate-500">{antesArr.length} → {despuesArr.length} elementos</span>
                           </div>
                           <div className="p-3 space-y-1">
@@ -594,7 +676,7 @@ function MejoraIAPanel({
                     return (
                       <div key={d.campo} className="bg-slate-800/60 border border-slate-700/50 rounded-lg overflow-hidden">
                         <div className="px-3 py-1.5 bg-slate-800 border-b border-slate-700/50">
-                          <span className="text-slate-300 text-xs font-mono font-semibold">{d.campo}</span>
+                          <span className="text-slate-300 text-xs font-semibold">{nombreVisible}</span>
                         </div>
                         <div className="p-3 space-y-2">
                           <div className="space-y-1">
@@ -634,7 +716,7 @@ function MejoraIAPanel({
                   disabled={diff.length === 0}
                   className="bg-purple-600 hover:bg-purple-700 disabled:opacity-40 text-white rounded-lg py-2 text-sm transition-colors flex items-center justify-center gap-1.5"
                 >
-                  <CheckCircle className="w-4 h-4" /> Aplicar {diff.length} cambio{diff.length !== 1 ? 's' : ''}
+                  <CheckCircle className="w-4 h-4" /> Aplicar mejoras
                 </button>
               </div>
             </div>
