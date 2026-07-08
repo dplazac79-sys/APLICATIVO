@@ -10,7 +10,7 @@ import ReactFlow, {
 import 'reactflow/dist/style.css'
 import {
   Mail, Clock, Zap, AlertTriangle, User, Settings, Send, Inbox,
-  Wrench, BookOpen, Plus, Save, Loader2, Trash2, GitBranch,
+  Wrench, BookOpen, Plus, Save, Loader2, Trash2, GitBranch, Info,
 } from 'lucide-react'
 
 // ─── Constantes de layout ────────────────────────────────────────────────────
@@ -31,8 +31,8 @@ const LANE_PALETTE = [
 
 // Evento (inicio / fin / intermedio)
 function EventNode({ data, type }: NodeProps) {
-  const isStart = type === 'startEvent'
-  const isEnd = type === 'endEvent'
+  const isStart = type === 'startEvent' || type === 'start'
+  const isEnd = type === 'endEvent' || type === 'end'
   const sub = (data.subtype as string) ?? ''
 
   const circleStyle = isStart
@@ -53,7 +53,7 @@ function EventNode({ data, type }: NodeProps) {
   }
 
   // double ring for intermediate
-  const ringStyle = type === 'intermediateEvent'
+  const ringStyle = type === 'intermediateEvent' || type === 'intermediate'
     ? { boxShadow: '0 0 0 3px #0f172a, 0 0 0 5px rgba(56,189,248,0.35)' }
     : {}
 
@@ -133,6 +133,9 @@ const GW_SYMBOL: Record<string, React.ReactNode> = {
   gatewayAND:   <span className="text-[15px] font-bold text-sky-300 leading-none">+</span>,
   gatewayOR:    <div className="w-3.5 h-3.5 rounded-full border-2 border-purple-300" />,
   gatewayEvent: <div className="w-3 h-3 rounded-full border border-slate-300" />,
+  // Legacy
+  decision:     <span className="text-[15px] font-bold text-yellow-300 leading-none">×</span>,
+  gateway:      <span className="text-[15px] font-bold text-yellow-300 leading-none">×</span>,
 }
 
 function GatewayNode({ data, type }: NodeProps) {
@@ -218,6 +221,7 @@ function LaneBgNode({ data }: NodeProps) {
 // ─── Registro de tipos ────────────────────────────────────────────────────────
 
 const NODE_TYPES = {
+  // BPMN 2.0
   startEvent:       EventNode,
   endEvent:         EventNode,
   intermediateEvent:EventNode,
@@ -235,6 +239,11 @@ const NODE_TYPES = {
   gatewayEvent:     GatewayNode,
   dataObject:       DataObjectNode,
   laneBg:           LaneBgNode,
+  // Legacy (formato anterior — backwards compat)
+  start:            EventNode,
+  end:              EventNode,
+  decision:         GatewayNode,
+  gateway:          GatewayNode,
 }
 
 // ─── Procesado de edges ───────────────────────────────────────────────────────
@@ -315,6 +324,51 @@ function LeyendaShape({ shape }: { shape: string }) {
   return null
 }
 
+// ─── Detección y normalización de formato legacy ─────────────────────────────
+
+const TIPOS_LEGACY: Record<string, string> = {
+  start:    'startEvent',
+  end:      'endEvent',
+  decision: 'gatewayXOR',
+  gateway:  'gatewayXOR',
+}
+
+function esFormatoLegacy(nodes: Node[]): boolean {
+  return nodes.some(n => n.type != null && n.type in TIPOS_LEGACY)
+}
+
+function normalizarTiposLegacy(nodes: Node[]): Node[] {
+  return nodes.map(n => ({
+    ...n,
+    type: TIPOS_LEGACY[n.type ?? ''] ?? n.type,
+  }))
+}
+
+function inferirLanesDesdActores(nodes: Node[]): string[] {
+  const seen = new Set<string>()
+  const order: string[] = []
+  nodes
+    .slice()
+    .sort((a, b) => (a.position?.y ?? 0) - (b.position?.y ?? 0))
+    .forEach(n => {
+      const actor = n.data?.actor as string | undefined
+      if (actor && !seen.has(actor)) { seen.add(actor); order.push(actor) }
+    })
+  return order
+}
+
+function autoLayoutHorizontal(nodes: Node[], lanes: string[]): Node[] {
+  const sorted = [...nodes].sort((a, b) => (a.position?.y ?? 0) - (b.position?.y ?? 0))
+  return sorted.map((n, i) => {
+    const actor = n.data?.actor as string | undefined
+    const laneIdx = actor ? Math.max(lanes.indexOf(actor), 0) : 0
+    return {
+      ...n,
+      position: { x: i * 230 + 60, y: laneIdx * LANE_UNIT + 60 },
+    }
+  })
+}
+
 // ─── Componente principal ─────────────────────────────────────────────────────
 
 interface Props {
@@ -329,15 +383,29 @@ interface Props {
 export default function BpmnEditor({
   artefactoId, initialNodes, initialEdges, lanes = [], titulo = '', readonly = false,
 }: Props) {
+  const esLegacy = useMemo(() => esFormatoLegacy(initialNodes), [initialNodes])
+
+  const lanesEfectivos = useMemo(() => {
+    if (lanes.length > 0) return lanes
+    if (esLegacy) return inferirLanesDesdActores(initialNodes)
+    return []
+  }, [lanes, esLegacy, initialNodes])
+
+  const nodosNormalizados = useMemo(() => {
+    if (!esLegacy) return initialNodes
+    const normalized = normalizarTiposLegacy(initialNodes)
+    return lanesEfectivos.length > 0 ? autoLayoutHorizontal(normalized, lanesEfectivos) : normalized
+  }, [esLegacy, initialNodes, lanesEfectivos])
+
   // Calcular ancho total estimado para las lanes de fondo
   const maxX = useMemo(() => {
-    const xs = initialNodes.map(n => (n.position?.x ?? 0) + 200)
+    const xs = nodosNormalizados.map(n => (n.position?.x ?? 0) + 200)
     return Math.max(...xs, 1200)
-  }, [initialNodes])
+  }, [nodosNormalizados])
 
-  const laneBgs = useMemo(() => crearLaneBgs(lanes, maxX), [lanes, maxX])
+  const laneBgs = useMemo(() => crearLaneBgs(lanesEfectivos, maxX), [lanesEfectivos, maxX])
 
-  const [nodes, setNodes, onNodesChange] = useNodesState([...laneBgs, ...initialNodes])
+  const [nodes, setNodes, onNodesChange] = useNodesState([...laneBgs, ...nodosNormalizados])
   const [edges, setEdges, onEdgesChange] = useEdgesState(procesarEdges(initialEdges))
   const [guardando, setGuardando] = useState(false)
   const [guardado,  setGuardado]  = useState(false)
@@ -382,14 +450,25 @@ export default function BpmnEditor({
   }
 
   const canvasHeight = Math.max(
-    lanes.length * LANE_UNIT + 80,
-    initialNodes.reduce((m, n) => Math.max(m, (n.position?.y ?? 0) + 200), 600)
+    lanesEfectivos.length * LANE_UNIT + 80,
+    nodosNormalizados.reduce((m, n) => Math.max(m, (n.position?.y ?? 0) + 200), 600)
   )
 
   return (
     <div className="space-y-2">
       {titulo && (
         <p className="text-slate-400 text-xs font-medium">{titulo}</p>
+      )}
+
+      {esLegacy && (
+        <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg bg-amber-950/30 border border-amber-700/40 text-amber-300/90 text-xs">
+          <Info className="w-3.5 h-3.5 mt-0.5 shrink-0 text-amber-400" />
+          <span>
+            Este diagrama fue generado con una versión anterior. Las swimlanes y símbolos BPMN 2.0 se han aplicado automáticamente.
+            Para obtener el diagrama completo con actores, actividades y flujo correcto, usa{' '}
+            <strong className="text-amber-200">Mejorar con IA</strong> para regenerarlo.
+          </span>
+        </div>
       )}
 
       {!readonly && (
@@ -437,9 +516,9 @@ export default function BpmnEditor({
           <Controls className="[&>button]:bg-slate-800 [&>button]:border-slate-700 [&>button]:text-slate-300" />
           <MiniMap
             nodeColor={n => {
-              if (n.type?.includes('gateway')) return '#ca8a04'
-              if (n.type === 'startEvent') return '#10b981'
-              if (n.type === 'endEvent')   return '#ef4444'
+              if (n.type?.includes('gateway') || n.type === 'decision') return '#ca8a04'
+              if (n.type === 'startEvent' || n.type === 'start') return '#10b981'
+              if (n.type === 'endEvent'   || n.type === 'end')   return '#ef4444'
               if (n.id.startsWith('__lane_')) return 'transparent'
               return '#3b82f6'
             }}
