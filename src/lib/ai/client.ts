@@ -25,16 +25,26 @@ export const togetherClient = TOGETHER_KEY
 // Cliente Groq (fallback sin Together AI)
 export const groqClient = GROQ_KEY ? new Groq({ apiKey: GROQ_KEY }) : null
 
+// Modelos serverless confirmados en Together AI
+export const MODELOS_TOGETHER = {
+  potente: 'meta-llama/Llama-3.3-70B-Instruct-Turbo',
+  rapido:  'meta-llama/Llama-3.3-70B-Instruct-Turbo-Free', // serverless gratuito como fallback
+} as const
+
+// Modelos Groq (fallback)
+export const MODELOS_GROQ = {
+  potente: 'llama-3.3-70b-versatile',
+  rapido:  'llama-3.1-8b-instant',
+} as const
+
 export const MODELOS = {
-  // Llama-3.3-70B: mejor modelo de Together AI para JSON estructurado complejo
-  potente: usesTogetherAI ? 'meta-llama/Llama-3.3-70B-Instruct-Turbo'      : 'llama-3.3-70b-versatile',
-  // Llama-3.1-8B: fallback rápido para tareas simples
-  rapido:  usesTogetherAI ? 'meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo'  : 'llama-3.1-8b-instant',
+  potente: usesTogetherAI ? MODELOS_TOGETHER.potente : MODELOS_GROQ.potente,
+  rapido:  usesTogetherAI ? MODELOS_TOGETHER.rapido  : MODELOS_GROQ.rapido,
 } as const
 
 /**
  * Llamada unificada de chat completion.
- * Usa Together AI si está configurado, si no usa Groq.
+ * Usa Together AI si está configurado; si falla, hace fallback automático a Groq.
  */
 export async function chatCompletion(params: {
   model: string
@@ -45,12 +55,28 @@ export async function chatCompletion(params: {
   tools?: OpenAI.Chat.Completions.ChatCompletionTool[]
   tool_choice?: OpenAI.Chat.Completions.ChatCompletionToolChoiceOption
 }): Promise<OpenAI.Chat.Completions.ChatCompletion> {
+  // Intentar Together AI primero
   if (togetherClient) {
-    return togetherClient.chat.completions.create(params as OpenAI.Chat.Completions.ChatCompletionCreateParamsNonStreaming)
+    try {
+      return await togetherClient.chat.completions.create(
+        params as OpenAI.Chat.Completions.ChatCompletionCreateParamsNonStreaming
+      )
+    } catch (err) {
+      // Si falla por modelo no-serverless o rate limit, hacer fallback a Groq
+      const msg = err instanceof Error ? err.message : String(err)
+      const esErrorRecuperable = msg.includes('non-serverless') || msg.includes('429') || msg.includes('rate') || msg.includes('timeout') || msg.includes('503')
+      if (!esErrorRecuperable) throw err // error de autenticación u otro — propagar
+      // Continuar al fallback de Groq
+    }
   }
+  // Fallback: Groq con modelo equivalente
   if (groqClient) {
-    // Groq SDK tiene la misma interfaz OpenAI-compatible
-    return groqClient.chat.completions.create(params as Parameters<typeof groqClient.chat.completions.create>[0]) as unknown as OpenAI.Chat.Completions.ChatCompletion
+    // Mapear modelo Together → Groq
+    const modeloGroq = params.model.includes('70B') ? MODELOS_GROQ.potente : MODELOS_GROQ.rapido
+    return groqClient.chat.completions.create({
+      ...params,
+      model: modeloGroq,
+    } as Parameters<typeof groqClient.chat.completions.create>[0]) as unknown as OpenAI.Chat.Completions.ChatCompletion
   }
   throw new Error('No hay proveedor de IA configurado. Configura TOGETHER_API_KEY o GROQ_API_KEY.')
 }
