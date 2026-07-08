@@ -320,15 +320,17 @@ REGLA: Devuelve ÚNICAMENTE JSON válido. Genera contenido profesional basado en
       .from('artefacto').select('id, version')
       .eq('proceso_id', params.id).eq('tipo', tipo).single()
     if (existing) {
-      await admin.from('artefacto').update({
+      const { error } = await admin.from('artefacto').update({
         contenido, version: (existing.version ?? 1) + 1,
         estado_validacion: 'pendiente', generado_por_ia: true,
       }).eq('id', existing.id)
+      if (error) throw new Error(`UPDATE ${tipo}: ${error.message}`)
     } else {
-      await admin.from('artefacto').insert({
+      const { error } = await admin.from('artefacto').insert({
         proceso_id: params.id, proyecto_id: proceso.proyecto_id,
         tipo, contenido, estado_validacion: 'pendiente', generado_por_ia: true,
       })
+      if (error) throw new Error(`INSERT ${tipo}: ${error.message}`)
     }
     guardados++
   }
@@ -363,8 +365,12 @@ REGLA: Devuelve ÚNICAMENTE JSON válido. Genera contenido profesional basado en
 
       if (!contenido) { errores.push(tipo); mu[idx] = true; return }
 
-      // Guardar inmediatamente sin esperar los demás
-      await guardarArtefacto(tipo, contenido)
+      // Guardar inmediatamente — errores de BD se capturan aquí
+      try {
+        await guardarArtefacto(tipo, contenido)
+      } catch (e) {
+        errores.push(`${tipo}:${e instanceof Error ? e.message : 'db-error'}`)
+      }
       mu[idx] = true
     })
   )
