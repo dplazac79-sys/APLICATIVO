@@ -2,8 +2,8 @@
 
 import { useState } from 'react'
 import {
-  FileText, Download, ChevronDown, ChevronUp, Clock, CheckCircle2,
-  GitBranch, Sparkles, Star, Package, AlertCircle,
+  FileText, Download, ChevronDown, ChevronUp, Clock,
+  GitBranch, Sparkles, Star, AlertCircle,
   FileCheck, History, ArrowRight,
 } from 'lucide-react'
 
@@ -326,7 +326,6 @@ function ProcesoCard({ proceso, artefactos, docInfo, historialProcesos }: {
   const codigo = scCode(proceso)
   const timeline = buildVersionTimeline(proceso, docInfo)
   const latestVersion = timeline[timeline.length - 1]
-  const artefactosPublicados = artefactos.filter(a => a.estado_validacion === 'publicado').length
   const totalArtefactos = artefactos.length
 
   return (
@@ -345,13 +344,7 @@ function ProcesoCard({ proceso, artefactos, docInfo, historialProcesos }: {
             {totalArtefactos > 0 && (
               <>
                 <span className="text-slate-700">·</span>
-                <span className="text-xs text-slate-500">{totalArtefactos} artefacto{totalArtefactos !== 1 ? 's' : ''}</span>
-              </>
-            )}
-            {artefactosPublicados > 0 && (
-              <>
-                <span className="text-slate-700">·</span>
-                <span className="text-xs text-emerald-400/70">{artefactosPublicados} publicado{artefactosPublicados !== 1 ? 's' : ''}</span>
+                <span className="text-xs text-slate-500">{totalArtefactos} documento{totalArtefactos !== 1 ? 's' : ''} generado{totalArtefactos !== 1 ? 's' : ''}</span>
               </>
             )}
           </div>
@@ -375,25 +368,6 @@ function ProcesoCard({ proceso, artefactos, docInfo, historialProcesos }: {
 
       {open && (
         <div className="px-5 pb-6">
-          {/* Artefacts bar */}
-          {totalArtefactos > 0 && (
-            <div className="mb-5 p-3 rounded-xl bg-white/[0.03] border border-white/[0.05] flex items-center gap-3">
-              <Package className="w-4 h-4 text-slate-500 flex-shrink-0" />
-              <div className="flex-1">
-                <div className="flex justify-between text-[11px] text-slate-500 mb-1.5">
-                  <span>Artefactos</span>
-                  <span className="text-slate-400">{artefactosPublicados} de {totalArtefactos} publicados</span>
-                </div>
-                <div className="h-1 rounded-full bg-white/[0.06]">
-                  <div
-                    className="h-1 rounded-full bg-emerald-500/50 transition-all"
-                    style={{ width: totalArtefactos > 0 ? `${Math.round(artefactosPublicados / totalArtefactos * 100)}%` : '0%' }}
-                  />
-                </div>
-              </div>
-            </div>
-          )}
-
           {/* Timeline header */}
           <div className="flex items-center gap-2 mb-4">
             <History className="w-3.5 h-3.5 text-slate-600" />
@@ -436,7 +410,6 @@ export default function VersionesCliente({
     const vs = ((p.metadata_ia?.versiones ?? []) as unknown[]).length
     return sum + 1 + vs
   }, 0)
-  const totalPublicados = artefactos.filter(a => a.estado_validacion === 'publicado').length
 
   return (
     <div className="min-h-screen bg-[#0a0a0f] text-white">
@@ -455,12 +428,10 @@ export default function VersionesCliente({
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 gap-3">
           {([
-            { label: 'Procesos', value: procesos.length, Icon: GitBranch, color: 'text-indigo-400' },
+            { label: 'Procesos activos', value: procesos.length, Icon: GitBranch, color: 'text-indigo-400' },
             { label: 'Versiones totales', value: totalVersiones, Icon: History, color: 'text-sky-400' },
-            { label: 'Artefactos', value: artefactos.length, Icon: Package, color: 'text-purple-400' },
-            { label: 'Publicados', value: totalPublicados, Icon: CheckCircle2, color: 'text-emerald-400' },
           ] as const).map(s => (
             <div key={s.label} className="bg-white/[0.03] border border-white/[0.06] rounded-2xl p-4 flex flex-col gap-2">
               <s.Icon className={`w-5 h-5 ${s.color}`} />
