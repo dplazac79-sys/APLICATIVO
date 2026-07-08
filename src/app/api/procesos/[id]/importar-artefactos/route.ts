@@ -4,6 +4,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { chatCompletion, MODELOS } from '@/lib/ai/client'
 import { extraerTextoPDF, extraerTextoDOCX } from '@/lib/extract-text'
 import { ORDEN_GENERACION } from '@/lib/artefactos-meta'
+import { TEMPLATES_GARANTIZADOS } from '@/lib/artefactos-templates'
 import type { TipoArtefacto } from '@/types/database'
 
 async function llamarIA(
@@ -347,9 +348,22 @@ REGLA: Devuelve ÚNICAMENTE JSON válido. Genera contenido profesional basado en
       // Intento principal con contexto del documento
       let contenido = await llamarIA(modelos, SYSTEM, cfg.prompt, cfg.tokens)
 
-      // Fallback garantizado — siempre genera contenido válido
+      // Fallback nivel 2 — llama a IA con prompt simplificado
       if (!contenido && PROMPTS_FALLBACK[tipo]) {
         contenido = await llamarIA([MODELOS.rapido], BASE, PROMPTS_FALLBACK[tipo]!, 2000)
+      }
+
+      // Fallback nivel 3 — template garantizado sin llamada a IA (18/18 garantizado)
+      if (!contenido) {
+        const tmpl = TEMPLATES_GARANTIZADOS[tipo]
+        if (tmpl) {
+          // Personalizar campos clave del template con datos reales del proceso
+          const tmplStr = JSON.stringify(tmpl)
+            .replace(/Proceso de gestión/g, procesoNombre)
+            .replace(/Transformación del Proceso — Entregable de Consultoría/g,
+              `Transformación: ${procesoNombre} — ${empresa}`)
+          contenido = JSON.parse(tmplStr) as Record<string, unknown>
+        }
       }
 
       if (!contenido) { errores.push(tipo); mu[idx] = true; return }
