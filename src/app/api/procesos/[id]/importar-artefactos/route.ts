@@ -357,7 +357,7 @@ Devuelve JSON:
 
     try {
       const comp = await chatCompletion({
-        model: MODELOS.rapido,
+        model: MODELOS.potente,
         max_tokens: 800,
         temperature: 0.3,
         messages: [

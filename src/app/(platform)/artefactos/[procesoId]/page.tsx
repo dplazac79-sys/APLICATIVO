@@ -136,8 +136,8 @@ export default async function ProcesoArtefactosPage({ params }: Props) {
         />
       )}
 
-      {/* ── Artefactos en orden metodológico (18 slots siempre visibles) ── */}
-      {ORDEN_GENERACION.map((tipo, idx) => {
+      {/* ── Artefactos en orden metodológico (18 slots — solo cuando ya hay artefactos) ── */}
+      {!sinArtefactos && ORDEN_GENERACION.map((tipo, idx) => {
         const art = artefactosPorTipo[tipo]
         const numero = idx + 1
         if (art) {
