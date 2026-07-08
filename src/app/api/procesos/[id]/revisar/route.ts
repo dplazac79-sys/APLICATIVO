@@ -20,9 +20,25 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     if (!['aceptado', 'rechazado'].includes(estado_oferta)) {
       return NextResponse.json({ error: 'estado_oferta inválido' }, { status: 400 })
     }
+
+    // Derive codigo from metadata_ia.documento_referencia if not already set
+    const { data: procesoActual } = await admin
+      .from('proceso')
+      .select('codigo, metadata_ia')
+      .eq('id', params.id)
+      .single()
+
+    const updates: Record<string, unknown> = { estado_oferta }
+    if (!procesoActual?.codigo) {
+      const docRef = (procesoActual?.metadata_ia as Record<string, unknown> | null)?.documento_referencia as string | null
+      if (docRef) {
+        updates.codigo = docRef.replace(/\.[^.]+$/, '').toUpperCase()
+      }
+    }
+
     const { data, error } = await admin
       .from('proceso')
-      .update({ estado_oferta })
+      .update(updates)
       .eq('id', params.id)
       .select()
       .single()

@@ -53,9 +53,24 @@ export default async function VersionesPage() {
     .select('id, nombre, codigo, orden, estado_oferta, created_at, updated_at, metadata_ia, documento_origen_id')
     .eq('proyecto_id', proyectoId)
     .eq('estado_oferta', 'aceptado')
-    .order('orden')
 
-  const procesos = (procesosRaw ?? []) as Array<{
+  // Sort by SC code number (same logic as Process Discovery)
+  function scNumero(p: { codigo: string | null; metadata_ia: Record<string, unknown> | null; orden: number }): number {
+    if (p.codigo) return parseInt(p.codigo.replace(/\D/g, ''), 10) || 9999
+    const docRef = (p.metadata_ia?.documento_referencia as string | null)
+    if (docRef) {
+      const m = docRef.match(/(\d+)/)
+      return m ? parseInt(m[1], 10) : 9999
+    }
+    return (p.orden ?? 0) + 1
+  }
+  const procesosOrdenados = [...(procesosRaw ?? [])].sort((a, b) => {
+    const aa = a as { codigo: string | null; metadata_ia: Record<string, unknown> | null; orden: number }
+    const bb = b as { codigo: string | null; metadata_ia: Record<string, unknown> | null; orden: number }
+    return scNumero(aa) - scNumero(bb)
+  })
+
+  const procesos = procesosOrdenados as Array<{
     id: string
     nombre: string
     codigo: string | null

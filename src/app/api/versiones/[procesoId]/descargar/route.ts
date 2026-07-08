@@ -25,7 +25,11 @@ export async function GET(
   const meta = (proceso.metadata_ia ?? {}) as Record<string, unknown>
   const versiones = (meta.versiones ?? []) as Array<Record<string, unknown>>
 
-  const codigo = proceso.codigo ?? `SC${String(proceso.orden ?? 0).padStart(2, '0')}`
+  const meta2 = (proceso.metadata_ia ?? {}) as Record<string, unknown>
+  const docRef = meta2.documento_referencia as string | null
+  const codigo = proceso.codigo
+    ?? (docRef ? docRef.replace(/\.[^.]+$/, '').toUpperCase() : null)
+    ?? `SC${String((proceso.orden ?? 0) + 1).padStart(2, '0')}`
 
   // Find the specific version
   const version = versionNum !== null

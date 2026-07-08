@@ -73,7 +73,11 @@ interface Props {
 
 function scCode(p: Proceso) {
   if (p.codigo) return p.codigo
-  return `SC${String(p.orden).padStart(2, '0')}`
+  // Same logic as Process Discovery: derive from documento_referencia filename
+  const docRef = (p.metadata_ia?.documento_referencia as string | null)
+  if (docRef) return docRef.replace(/\.[^.]+$/, '').toUpperCase()
+  // Last resort: orden is 0-indexed so add 1
+  return `SC${String((p.orden ?? 0) + 1).padStart(2, '0')}`
 }
 
 function fmtDate(iso: string) {
