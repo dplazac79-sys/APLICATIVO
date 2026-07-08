@@ -34,6 +34,15 @@ export interface Proyecto {
   estado_general: EstadoProyecto
   fase_actual: number
   discovery_resumen: Record<string, unknown> | null
+  // Campos añadidos en migraciones 020-021
+  descripcion: string | null
+  fecha_inicio: string | null
+  fecha_estimada_cierre: string | null
+  objetivos: string | null
+  n_procesos_estimados: number | null
+  alcance_incluye: string | null
+  alcance_excluye: string | null
+  contexto: string | null
   created_at: string
   updated_at: string
 }
@@ -86,6 +95,8 @@ export interface Proceso {
   riesgos_detectados: string[] | null
   metadata_ia: Record<string, unknown> | null
   orden: number
+  // Campo añadido en migración 025
+  codigo: string | null
   created_at: string
   updated_at: string
 }
