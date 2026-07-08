@@ -76,11 +76,11 @@ export default async function ArtefactosPage() {
 
   const { data: artefactosRaw } = await admin
     .from('artefacto')
-    .select('proceso_id, tipo, estado_validacion')
+    .select('proceso_id, tipo, estado_validacion, version, generado_por_ia')
     .in('tipo', ORDEN_GENERACION)
 
   const procesos = (procesosRaw ?? []) as Proceso[]
-  const artefactos = (artefactosRaw ?? []) as Pick<Artefacto, 'proceso_id' | 'tipo' | 'estado_validacion'>[]
+  const artefactos = (artefactosRaw ?? []) as Pick<Artefacto, 'proceso_id' | 'tipo' | 'estado_validacion' | 'version' | 'generado_por_ia'>[]
 
   const artefactosPorProceso = artefactos.reduce((acc, a) => {
     if (!acc[a.proceso_id]) acc[a.proceso_id] = []
@@ -100,11 +100,12 @@ export default async function ArtefactosPage() {
   // Solo contar artefactos de procesos aceptados
   const artefactosAceptados = artefactos.filter(a => idsAceptados.has(a.proceso_id))
   const totalArtefactos = artefactosAceptados.length
-  const totalAprobados = artefactosAceptados.filter(a => a.estado_validacion === 'validado' || a.estado_validacion === 'publicado').length
-  // Procesos aceptados con los 8 artefactos completos
-  const procesosCompletos = procesosAceptados.filter(
-    p => (artefactosPorProceso[p.id]?.length ?? 0) >= ORDEN_GENERACION.length
-  ).length
+  const aprobados = artefactosAceptados.filter(a => a.estado_validacion === 'validado' || a.estado_validacion === 'publicado')
+  const totalAprobados = aprobados.length
+  // Aprobados sin cambios (solo validó, no editó — version sigue en 1 y generado_por_ia true)
+  const aprobadosSinCambios = aprobados.filter(a => a.version === 1 && a.generado_por_ia).length
+  // Aprobados con modificaciones del cliente (version > 1 o generado_por_ia false)
+  const aprobadosConCambios = totalAprobados - aprobadosSinCambios
 
   function renderArbol(lista: Proceso[], padreId: string | null, nivel: number): React.ReactNode {
     const hijos = lista.filter(p => p.padre_id === padreId)
@@ -215,12 +216,14 @@ export default async function ArtefactosPage() {
       icon: <CheckCircle className="w-4 h-4 text-blue-400" />,
     },
     {
-      label: 'Procesos completos',
-      value: procesosCompletos,
+      label: 'Participación cliente',
+      value: aprobadosConCambios > 0 || aprobadosSinCambios > 0
+        ? `${aprobadosConCambios} editados · ${aprobadosSinCambios} sin cambios`
+        : '—',
       color: 'text-emerald-300',
       accent: 'from-slate-800/0 to-emerald-900/20',
       border: 'border-slate-800 hover:border-emerald-700/50',
-      desc: `Con los ${ORDEN_GENERACION.length} artefactos generados`,
+      desc: `De ${totalAprobados} artefactos aprobados por el cliente`,
       icon: <Target className="w-4 h-4 text-emerald-400" />,
     },
   ]
