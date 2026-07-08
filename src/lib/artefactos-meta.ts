@@ -4,21 +4,11 @@ export const ORDEN_GENERACION: TipoArtefacto[] = [
   'sipoc',
   'as_is',
   'bpmn',
-  'historias_usuario',
-  'flujograma',
   'raci',
   'riesgo_control',
   'kpi_sla',
   'diagnostico',
   'to_be',
-  'dashboard_brechas',
-  'cierre_ejecutivo',
-  'checklist',
-  'backlog',
-  'cinco_porques',
-  'acta_inicio',
-  'plan_pruebas',
-  'roadmap',
 ]
 
 export const LABEL_ARTEFACTO: Record<TipoArtefacto, string> = {

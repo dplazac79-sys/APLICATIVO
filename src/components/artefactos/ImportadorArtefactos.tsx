@@ -12,13 +12,11 @@ interface Props {
 type Estado = 'extrayendo' | 'ok' | 'error'
 
 const ARTEFACTOS_LABELS = [
-  'SIPOC', 'AS-IS', 'BPMN', 'Historias de Usuario', 'Flujograma',
-  'RACI', 'Riesgo-Control', 'KPI-SLA', 'Diagnóstico',
-  'TO-BE', 'Dashboard de Brechas', 'Cierre Ejecutivo', 'Checklists por Rol',
-  'Backlog Priorizado', '5 Porqués', 'Acta de Inicio', 'Plan de Pruebas', 'Roadmap',
+  'SIPOC', 'AS-IS', 'BPMN', 'RACI',
+  'Riesgo-Control', 'KPI-SLA', 'Diagnóstico', 'TO-BE',
 ]
 
-const TIEMPO_ESTIMADO = 60 // segundos estimados con lotes de 3
+const TIEMPO_ESTIMADO = 30 // segundos estimados
 
 export default function ImportadorArtefactos({ procesoId, procesoNombre, onComplete }: Props) {
   const [estado, setEstado] = useState<Estado>('extrayendo')
