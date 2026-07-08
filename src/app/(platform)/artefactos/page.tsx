@@ -2,7 +2,8 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
 import {
   Layers, ChevronRight, FileText, CheckCircle, Globe, Clock,
-  AlertTriangle, Brain, Zap, BarChart3, Shield, GitBranch, Users, Target, TrendingUp, ArrowUpRight
+  AlertTriangle, Brain, Zap, BarChart3, Shield, GitBranch, Users, Target, TrendingUp, ArrowUpRight,
+  FolderOpen, History, Info
 } from 'lucide-react'
 import Link from 'next/link'
 import type { Proceso, Artefacto } from '@/types/database'
@@ -61,7 +62,9 @@ export default async function ArtefactosPage() {
     .select('rol')
     .eq('id', user?.id ?? '')
     .single()
-  const esSuperAdmin = usuarioData?.rol === 'super_admin'
+  const rolUsuario = usuarioData?.rol ?? 'usuario_cliente'
+  const esSuperAdmin = rolUsuario === 'super_admin'
+  const esCliente = rolUsuario === 'sponsor_cliente' || rolUsuario === 'usuario_cliente'
 
   const { data: proyectos } = await admin
     .from('proyecto')
@@ -243,6 +246,59 @@ export default async function ArtefactosPage() {
           <p className="text-slate-500 text-sm pl-[42px]">Arquitectura de procesos y artefactos metodológicos generados por IA</p>
         </div>
       </div>
+
+      {/* Banner orientativo para clientes */}
+      {esCliente && (
+        <div className="rounded-2xl border border-sky-800/40 bg-sky-950/20 p-4">
+          <div className="flex gap-3">
+            <Info className="w-4 h-4 text-sky-400 shrink-0 mt-0.5" />
+            <div className="space-y-3 flex-1 min-w-0">
+              <p className="text-sky-200 text-sm font-medium leading-snug">
+                ¿Cómo trabajar con los artefactos?
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="flex items-start gap-2.5">
+                  <div className="w-7 h-7 rounded-lg bg-sky-900/50 border border-sky-800/40 flex items-center justify-center shrink-0">
+                    <CheckCircle className="w-3.5 h-3.5 text-sky-400" />
+                  </div>
+                  <div>
+                    <p className="text-sky-100 text-xs font-medium">Revisar y validar</p>
+                    <p className="text-slate-400 text-[11px] mt-0.5 leading-snug">
+                      Abre cualquier proceso (SC01–SC06), revisa cada artefacto y usa el botón <span className="text-white font-medium">Validar</span> para aprobarlo.
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-2.5">
+                  <div className="w-7 h-7 rounded-lg bg-sky-900/50 border border-sky-800/40 flex items-center justify-center shrink-0">
+                    <History className="w-3.5 h-3.5 text-sky-400" />
+                  </div>
+                  <div>
+                    <p className="text-sky-100 text-xs font-medium">Historial de cambios en artefactos</p>
+                    <p className="text-slate-400 text-[11px] mt-0.5 leading-snug">
+                      Dentro de cada artefacto, el ícono <span className="text-white font-medium">🕐</span> muestra todas las versiones anteriores y qué cambió exactamente en cada edición.
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-2.5">
+                  <div className="w-7 h-7 rounded-lg bg-sky-900/50 border border-sky-800/40 flex items-center justify-center shrink-0">
+                    <FolderOpen className="w-3.5 h-3.5 text-sky-400" />
+                  </div>
+                  <div>
+                    <p className="text-sky-100 text-xs font-medium">Control de versiones de documentos</p>
+                    <p className="text-slate-400 text-[11px] mt-0.5 leading-snug">
+                      Si el documento fuente cambia, ve al{' '}
+                      <Link href="/documentos" className="text-sky-400 hover:text-sky-300 underline underline-offset-2 transition-colors">
+                        Centro Documental
+                      </Link>
+                      {' '}y sube la nueva versión — el sistema la vincula automáticamente al original (v1 → v2 → v3…).
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
