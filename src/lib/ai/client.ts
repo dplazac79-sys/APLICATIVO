@@ -12,26 +12,28 @@ const GROQ_KEY     = process.env.GROQ_API_KEY
 
 export const usesTogetherAI = !!TOGETHER_KEY
 
-// Cliente Together AI (interfaz OpenAI)
+// Cliente Together AI — modelo pagado, sin límites de serverless
 export const togetherClient = TOGETHER_KEY
   ? new OpenAI({
       apiKey: TOGETHER_KEY,
       baseURL: 'https://api.together.xyz/v1',
-      timeout: 8000,    // 8s por request — falla rápido, el template garantiza el resultado
-      maxRetries: 0,    // manejamos retries manualmente
+      timeout: 90_000,  // 90s — prompts complejos (BPMN, discovery) pueden tardar
+      maxRetries: 0,    // reintentos manuales con backoff exponencial abajo
     })
   : null
 
-// Cliente Groq (fallback sin Together AI)
+// Cliente Groq (emergencia si Together AI está caído)
 export const groqClient = GROQ_KEY ? new Groq({ apiKey: GROQ_KEY }) : null
 
-// Modelos serverless confirmados en Together AI
+// Modelo pagado Together AI — aplica tanto a llamadas potentes como rápidas
+const MODELO_TOGETHER_PAGADO = 'meta-llama/Llama-3.3-70B-Instruct-Turbo'
+
 export const MODELOS_TOGETHER = {
-  potente: 'meta-llama/Llama-3.3-70B-Instruct-Turbo',
-  rapido:  'meta-llama/Llama-3.3-70B-Instruct-Turbo-Free', // serverless gratuito como fallback
+  potente: MODELO_TOGETHER_PAGADO,
+  rapido:  MODELO_TOGETHER_PAGADO,
 } as const
 
-// Modelos Groq (fallback)
+// Modelos Groq (emergencia)
 export const MODELOS_GROQ = {
   potente: 'llama-3.3-70b-versatile',
   rapido:  'llama-3.1-8b-instant',
@@ -42,9 +44,13 @@ export const MODELOS = {
   rapido:  usesTogetherAI ? MODELOS_TOGETHER.rapido  : MODELOS_GROQ.rapido,
 } as const
 
+/** Pausa en ms */
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
+
 /**
- * Llamada unificada de chat completion.
- * Usa Together AI si está configurado; si falla, hace fallback automático a Groq.
+ * Llamada unificada de chat completion con reintentos automáticos.
+ * Proveedor principal: Together AI (modelo pagado, sin rate limits).
+ * Fallback de emergencia: Groq (solo si Together AI está caído).
  */
 export async function chatCompletion(params: {
   model: string
@@ -55,28 +61,53 @@ export async function chatCompletion(params: {
   tools?: OpenAI.Chat.Completions.ChatCompletionTool[]
   tool_choice?: OpenAI.Chat.Completions.ChatCompletionToolChoiceOption
 }): Promise<OpenAI.Chat.Completions.ChatCompletion> {
-  // Intentar Together AI primero
+
   if (togetherClient) {
-    try {
-      return await togetherClient.chat.completions.create(
-        params as OpenAI.Chat.Completions.ChatCompletionCreateParamsNonStreaming
-      )
-    } catch (err) {
-      // Si falla por modelo no-serverless o rate limit, hacer fallback a Groq
-      const msg = err instanceof Error ? err.message : String(err)
-      const esErrorRecuperable = msg.includes('non-serverless') || msg.includes('429') || msg.includes('rate') || msg.includes('timeout') || msg.includes('503')
-      if (!esErrorRecuperable) throw err // error de autenticación u otro — propagar
-      // Continuar al fallback de Groq
+    const MAX_INTENTOS = 3
+    let ultimoError: unknown
+
+    for (let intento = 1; intento <= MAX_INTENTOS; intento++) {
+      try {
+        return await togetherClient.chat.completions.create(
+          params as OpenAI.Chat.Completions.ChatCompletionCreateParamsNonStreaming
+        )
+      } catch (err) {
+        ultimoError = err
+        const msg = err instanceof Error ? err.message : String(err)
+
+        // Errores no recuperables — no reintentar
+        if (msg.includes('401') || msg.includes('invalid_api_key') || msg.includes('403')) {
+          throw new Error(`Together AI: credenciales inválidas — ${msg}`)
+        }
+
+        // En el último intento no esperar
+        if (intento < MAX_INTENTOS) {
+          const espera = intento * 2000 // 2s, 4s
+          await sleep(espera)
+        }
+      }
     }
+
+    // Together AI falló 3 veces — intentar Groq como emergencia
+    if (groqClient) {
+      const modeloGroq = params.model.includes('70B') ? MODELOS_GROQ.potente : MODELOS_GROQ.rapido
+      return groqClient.chat.completions.create({
+        ...params,
+        model: modeloGroq,
+      } as Parameters<typeof groqClient.chat.completions.create>[0]) as unknown as OpenAI.Chat.Completions.ChatCompletion
+    }
+
+    throw ultimoError ?? new Error('Together AI no disponible')
   }
-  // Fallback: Groq con modelo equivalente
+
+  // Sin Together AI — usar Groq directamente
   if (groqClient) {
-    // Mapear modelo Together → Groq
     const modeloGroq = params.model.includes('70B') ? MODELOS_GROQ.potente : MODELOS_GROQ.rapido
     return groqClient.chat.completions.create({
       ...params,
       model: modeloGroq,
     } as Parameters<typeof groqClient.chat.completions.create>[0]) as unknown as OpenAI.Chat.Completions.ChatCompletion
   }
+
   throw new Error('No hay proveedor de IA configurado. Configura TOGETHER_API_KEY o GROQ_API_KEY.')
 }
