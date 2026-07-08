@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import React, { useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import dynamic from 'next/dynamic'
 import {
@@ -37,6 +37,23 @@ function formatDate(iso: string) {
     day: '2-digit', month: 'short', year: 'numeric',
     hour: '2-digit', minute: '2-digit',
   })
+}
+
+// ─── Tooltip ─────────────────────────────────────────────────────────────────
+
+function Tip({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="relative group/tip">
+      {children}
+      <div className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 z-50
+                      opacity-0 group-hover/tip:opacity-100 transition-opacity duration-150 delay-300">
+        <div className="bg-slate-700 text-white text-xs rounded px-2 py-1 whitespace-nowrap shadow-lg">
+          {label}
+        </div>
+        <div className="w-1.5 h-1.5 bg-slate-700 rotate-45 mx-auto -mt-0.5" />
+      </div>
+    </div>
+  )
 }
 
 // ─── Diccionarios de UI ──────────────────────────────────────────────────────
@@ -992,41 +1009,45 @@ export default function ArtefactoCardEditor({ artefacto: artefactoInicial, proce
                   </Button>
                 )}
                 {/* Mejorar IA */}
-                <button
-                  onClick={() => setPanelAbierto('ia')}
-                  title="Mejorar con IA"
-                  className="h-7 px-2.5 flex items-center gap-1 text-xs text-slate-400 hover:text-purple-400 border border-slate-700 hover:border-purple-600 rounded-lg transition-colors"
-                >
-                  <Sparkles className="w-3 h-3" /> IA
-                </button>
+                <Tip label="Mejorar con IA">
+                  <button
+                    onClick={() => setPanelAbierto('ia')}
+                    className="h-7 px-2.5 flex items-center gap-1 text-xs text-slate-400 hover:text-purple-400 border border-slate-700 hover:border-purple-600 rounded-lg transition-colors"
+                  >
+                    <Sparkles className="w-3 h-3" /> IA
+                  </button>
+                </Tip>
                 {/* Historial */}
-                <button
-                  onClick={() => setPanelAbierto('historial')}
-                  title="Ver historial"
-                  className="h-7 w-7 flex items-center justify-center text-slate-500 hover:text-slate-300 border border-slate-700 hover:border-slate-500 rounded-lg transition-colors"
-                >
-                  <Clock className="w-3.5 h-3.5" />
-                </button>
+                <Tip label="Ver historial">
+                  <button
+                    onClick={() => setPanelAbierto('historial')}
+                    className="h-7 w-7 flex items-center justify-center text-slate-500 hover:text-slate-300 border border-slate-700 hover:border-slate-500 rounded-lg transition-colors"
+                  >
+                    <Clock className="w-3.5 h-3.5" />
+                  </button>
+                </Tip>
                 {/* Editar */}
                 {estado !== 'publicado' && (
-                  <button
-                    onClick={iniciarEdicion}
-                    title="Editar"
-                    className="h-7 w-7 flex items-center justify-center text-slate-500 hover:text-white border border-slate-700 hover:border-slate-400 rounded-lg transition-colors"
-                  >
-                    <Pencil className="w-3.5 h-3.5" />
-                  </button>
+                  <Tip label="Editar contenido">
+                    <button
+                      onClick={iniciarEdicion}
+                      className="h-7 w-7 flex items-center justify-center text-slate-500 hover:text-white border border-slate-700 hover:border-slate-400 rounded-lg transition-colors"
+                    >
+                      <Pencil className="w-3.5 h-3.5" />
+                    </button>
+                  </Tip>
                 )}
                 {/* Descargar */}
-                <a
-                  href={`/artefactos/${procesoId}/print`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  title="Exportar"
-                  className="h-7 w-7 flex items-center justify-center text-slate-500 hover:text-white border border-slate-700 hover:border-slate-400 rounded-lg transition-colors"
-                >
-                  <Download className="w-3.5 h-3.5" />
-                </a>
+                <Tip label="Exportar PDF">
+                  <a
+                    href={`/artefactos/${procesoId}/print`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="h-7 w-7 flex items-center justify-center text-slate-500 hover:text-white border border-slate-700 hover:border-slate-400 rounded-lg transition-colors"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                  </a>
+                </Tip>
               </>
             ) : (
               <>
