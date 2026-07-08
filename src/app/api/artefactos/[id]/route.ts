@@ -24,9 +24,6 @@ export async function PATCH(
       estado_validacion?: EstadoValidacion
     }
 
-    const rolesConsultor = ['super_admin', 'director_proyecto', 'consultor']
-    const puedeEditarContenido = rolesConsultor.includes(usuario.rol)
-
     const { data: actual } = await admin
       .from('artefacto')
       .select('version, tipo, proceso_id, estado_validacion, contenido')
@@ -34,16 +31,6 @@ export async function PATCH(
       .single()
 
     if (!actual) return NextResponse.json({ error: 'Artefacto no encontrado' }, { status: 404 })
-
-    // Diagramas visuales (BPMN / flujograma): todos los roles pueden guardar el layout
-    const TIPOS_DIAGRAMA = ['bpmn', 'flujograma']
-    const esDiagrama = TIPOS_DIAGRAMA.includes(actual.tipo)
-    if (contenido !== undefined && !puedeEditarContenido && !esDiagrama) {
-      return NextResponse.json({ error: 'Sin permisos para editar contenido' }, { status: 403 })
-    }
-    if (!puedeEditarContenido && !esDiagrama && estado_validacion === undefined) {
-      return NextResponse.json({ error: 'Sin permisos' }, { status: 403 })
-    }
 
     // Validar transiciones de estado usando el fetch ya hecho (evita doble query — M4)
     if (estado_validacion) {
