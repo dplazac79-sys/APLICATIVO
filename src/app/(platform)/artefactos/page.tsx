@@ -246,7 +246,8 @@ export default async function ArtefactosPage() {
 
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        {stats.map(s => (
+        {/* Cards genéricas — las 3 primeras */}
+        {stats.slice(0, 3).map(s => (
           <div
             key={s.label}
             className={`relative rounded-2xl border bg-gradient-to-b ${s.accent} ${s.border} bg-slate-900 p-5 transition-all duration-200 overflow-hidden`}
@@ -259,6 +260,46 @@ export default async function ArtefactosPage() {
             <p className="text-slate-600 text-xs mt-1.5">{s.desc}</p>
           </div>
         ))}
+
+        {/* Card especial — Participación cliente */}
+        {(() => {
+          const total = aprobadosConCambios + aprobadosSinCambios
+          const pctEditados = total > 0 ? Math.round((aprobadosConCambios / total) * 100) : 0
+          return (
+            <div className="relative rounded-2xl border border-slate-800 hover:border-emerald-700/50 bg-gradient-to-b from-slate-800/0 to-emerald-900/20 bg-slate-900 p-5 transition-all duration-200 overflow-hidden">
+              <div className="flex items-center justify-between mb-4">
+                <p className="text-slate-500 text-xs font-medium uppercase tracking-wider">Participación cliente</p>
+                <Target className="w-4 h-4 text-emerald-400" />
+              </div>
+
+              {total === 0 ? (
+                <p className="text-slate-600 text-sm">Sin aprobaciones aún</p>
+              ) : (
+                <>
+                  {/* Barra de proporción */}
+                  <div className="h-1 rounded-full bg-slate-800 overflow-hidden mb-4">
+                    <div
+                      className="h-full rounded-full bg-emerald-500 transition-all duration-700"
+                      style={{ width: `${pctEditados}%` }}
+                    />
+                  </div>
+
+                  {/* Dos métricas */}
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <p className="text-2xl font-bold text-emerald-300 tracking-tight leading-none">{aprobadosConCambios}</p>
+                      <p className="text-slate-500 text-[11px] mt-1 leading-tight">con edición</p>
+                    </div>
+                    <div>
+                      <p className="text-2xl font-bold text-slate-400 tracking-tight leading-none">{aprobadosSinCambios}</p>
+                      <p className="text-slate-500 text-[11px] mt-1 leading-tight">sin cambios</p>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+          )
+        })()}
       </div>
 
       {/* Artefactos metodológicos */}
