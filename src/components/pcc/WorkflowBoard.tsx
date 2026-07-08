@@ -37,9 +37,10 @@ const NIVEL_BADGE: Record<string, string> = {
 interface Props {
   procesos: ProcesoWF[]
   proyectoId: string
+  readonly?: boolean
 }
 
-export default function WorkflowBoard({ procesos, proyectoId }: Props) {
+export default function WorkflowBoard({ procesos, proyectoId, readonly = false }: Props) {
   const router = useRouter()
   const [cargando, setCargando] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -105,13 +106,13 @@ export default function WorkflowBoard({ procesos, proyectoId }: Props) {
                   <span className="text-xs opacity-80">{estadoActual}</span>
                 )}
                 {cargando === p.id && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                {!wf && cargando !== p.id && (
+                {!readonly && !wf && cargando !== p.id && (
                   <Button size="sm" variant="ghost" onClick={() => inicializarWorkflow(p.id)}
                     className="h-6 px-2 text-xs bg-slate-700 hover:bg-slate-600 text-white">
                     <Plus className="w-3 h-3 mr-1" />Iniciar
                   </Button>
                 )}
-                {wf && siguientes.map(sig => (
+                {!readonly && wf && siguientes.map(sig => (
                   <Button key={sig} size="sm" variant="ghost" onClick={() => transicionar(p.id, sig)}
                     disabled={cargando === p.id}
                     className="h-6 px-2 text-xs bg-slate-700 hover:bg-slate-600 text-white">

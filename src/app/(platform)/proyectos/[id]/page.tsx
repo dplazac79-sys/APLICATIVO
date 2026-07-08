@@ -1,5 +1,6 @@
+import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { notFound } from 'next/navigation'
+import { notFound, redirect } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Briefcase, ChevronLeft, AlertTriangle, CheckCircle, Clock,
@@ -23,8 +24,29 @@ const NIVEL_RIESGO_COLOR: Record<string, string> = {
 
 interface Props { params: { id: string } }
 
+const ROLES_CLIENTE = ['sponsor_cliente', 'usuario_cliente']
+
 export default async function ProyectoDetallePage({ params }: Props) {
+  const supabase = createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect('/login')
+
   const admin = createAdminClient()
+
+  const { data: usuario } = await admin
+    .from('usuario')
+    .select('rol, usuario_proyecto(proyecto_id)')
+    .eq('id', user.id)
+    .single()
+
+  if (!usuario) redirect('/dashboard')
+
+  const esCliente = ROLES_CLIENTE.includes(usuario.rol)
+  const esSuperAdmin = usuario.rol === 'super_admin'
+  const proyectosUsuario = (usuario.usuario_proyecto ?? []).map((up: { proyecto_id: string }) => up.proyecto_id)
+
+  // Verificar acceso al proyecto (super_admin ve todo, resto solo los suyos)
+  if (!esSuperAdmin && !proyectosUsuario.includes(params.id)) redirect('/dashboard')
 
   const { data: proyecto } = await admin
     .from('proyecto')
@@ -152,6 +174,7 @@ export default async function ProyectoDetallePage({ params }: Props) {
                   workflow: wfPorProceso[p.id] ?? null,
                 }))}
                 proyectoId={params.id}
+                readonly={esCliente}
               />
             </CardContent>
           </Card>
@@ -192,7 +215,7 @@ export default async function ProyectoDetallePage({ params }: Props) {
                     <span className="text-xs bg-red-950 text-red-400 border border-red-800 px-1.5 py-0.5 rounded-full">{riesgosCriticos} crítico{riesgosCriticos > 1 ? 's' : ''}</span>
                   )}
                 </CardTitle>
-                <RiesgoForm proyectoId={params.id} />
+                {!esCliente && <RiesgoForm proyectoId={params.id} />}
               </div>
             </CardHeader>
             <CardContent className="space-y-2">
@@ -220,7 +243,7 @@ export default async function ProyectoDetallePage({ params }: Props) {
                 <CardTitle className="text-sm text-slate-400 flex items-center gap-2">
                   <BarChart3 className="w-4 h-4" /> KPIs de proyecto
                 </CardTitle>
-                <KpiForm proyectoId={params.id} />
+                {!esCliente && <KpiForm proyectoId={params.id} />}
               </div>
             </CardHeader>
             <CardContent className="space-y-3">
@@ -247,7 +270,7 @@ export default async function ProyectoDetallePage({ params }: Props) {
                 <CardTitle className="text-sm text-slate-400 flex items-center gap-2">
                   <Users className="w-4 h-4" /> Últimas reuniones
                 </CardTitle>
-                <ReunionForm proyectoId={params.id} />
+                {!esCliente && <ReunionForm proyectoId={params.id} />}
               </div>
             </CardHeader>
             <CardContent className="space-y-3">
