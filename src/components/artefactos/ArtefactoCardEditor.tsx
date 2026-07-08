@@ -868,6 +868,7 @@ export default function ArtefactoCardEditor({ artefacto: artefactoInicial, proce
   const [cambiandoEstado, setCambiandoEstado] = useState(false)
   const [errorGuardar, setErrorGuardar] = useState<string | null>(null)
   const [guardadoOk, setGuardadoOk] = useState(false)
+  const [estadoCambioOk, setEstadoCambioOk] = useState<string | null>(null)
   const [expandido, setExpandido] = useState(true)
   const [camposResaltados, setCamposResaltados] = useState<string[]>([])
 
@@ -924,6 +925,12 @@ export default function ArtefactoCardEditor({ artefacto: artefactoInicial, proce
       const d = await res.json()
       if (!res.ok) throw new Error(d.error)
       setArtefacto(d.artefacto)
+      const msg =
+        transicion.siguiente === 'validado' ? '✓ Artefacto validado correctamente' :
+        transicion.siguiente === 'publicado' ? '✓ Artefacto publicado y visible para el cliente' :
+        '✓ Estado actualizado'
+      setEstadoCambioOk(msg)
+      setTimeout(() => setEstadoCambioOk(null), 4000)
       router.refresh()
     } finally {
       setCambiandoEstado(false)
@@ -1075,6 +1082,22 @@ export default function ArtefactoCardEditor({ artefacto: artefactoInicial, proce
             )}
           </div>
         </div>
+
+        {/* ── Banner confirmación de cambio de estado ── */}
+        {estadoCambioOk && (
+          <div className="mx-4 mt-3 flex items-center gap-3 bg-emerald-950/60 border border-emerald-700/60 rounded-xl px-4 py-3 animate-in fade-in slide-in-from-top-1 duration-300">
+            <div className="w-7 h-7 rounded-full bg-emerald-900/80 border border-emerald-700 flex items-center justify-center shrink-0">
+              <CheckCircle className="w-4 h-4 text-emerald-400" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-emerald-300 text-sm font-medium">{estadoCambioOk}</p>
+              <p className="text-emerald-600 text-xs mt-0.5">El estado del artefacto ha sido actualizado</p>
+            </div>
+            <span className={`text-xs px-2.5 py-1 rounded-full border font-medium shrink-0 ${BADGE[estado]}`}>
+              {BADGE_LABEL[estado]}
+            </span>
+          </div>
+        )}
 
         {/* ── Cuerpo ── */}
         {expandido && (
