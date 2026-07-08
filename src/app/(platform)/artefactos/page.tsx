@@ -82,12 +82,17 @@ export default async function ArtefactosPage() {
     procesos: procesos.filter(pr => pr.proyecto_id === p.id),
   }))
 
-  const totalProcesosAceptados = procesos.filter(p => p.estado_oferta === 'aceptado').length
-  const totalArtefactos = artefactos.length
-  const totalAprobados = artefactos.filter(a => a.estado_validacion === 'validado' || a.estado_validacion === 'publicado').length
-  // Procesos con los 8 artefactos completos
-  const procesosCompletos = Object.values(artefactosPorProceso).filter(
-    arts => arts.length >= ORDEN_GENERACION.length
+  const procesosAceptados = procesos.filter(p => p.estado_oferta === 'aceptado')
+  const totalProcesosAceptados = procesosAceptados.length
+  const idsAceptados = new Set(procesosAceptados.map(p => p.id))
+
+  // Solo contar artefactos de procesos aceptados
+  const artefactosAceptados = artefactos.filter(a => idsAceptados.has(a.proceso_id))
+  const totalArtefactos = artefactosAceptados.length
+  const totalAprobados = artefactosAceptados.filter(a => a.estado_validacion === 'validado' || a.estado_validacion === 'publicado').length
+  // Procesos aceptados con los 8 artefactos completos
+  const procesosCompletos = procesosAceptados.filter(
+    p => (artefactosPorProceso[p.id]?.length ?? 0) >= ORDEN_GENERACION.length
   ).length
 
   function renderArbol(lista: Proceso[], padreId: string | null, nivel: number): React.ReactNode {
