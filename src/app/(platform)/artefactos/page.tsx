@@ -66,6 +66,7 @@ export default async function ArtefactosPage() {
   const { data: artefactosRaw } = await admin
     .from('artefacto')
     .select('proceso_id, tipo, estado_validacion')
+    .in('tipo', ORDEN_GENERACION)
 
   const procesos = (procesosRaw ?? []) as Proceso[]
   const artefactos = (artefactosRaw ?? []) as Pick<Artefacto, 'proceso_id' | 'tipo' | 'estado_validacion'>[]
@@ -83,10 +84,11 @@ export default async function ArtefactosPage() {
 
   const totalProcesosAceptados = procesos.filter(p => p.estado_oferta === 'aceptado').length
   const totalArtefactos = artefactos.length
-  const totalPublicados = artefactos.filter(a => a.estado_validacion === 'publicado').length
-  const cobertura = totalProcesosAceptados
-    ? Math.round((Object.keys(artefactosPorProceso).length / totalProcesosAceptados) * 100)
-    : 0
+  const totalAprobados = artefactos.filter(a => a.estado_validacion === 'validado' || a.estado_validacion === 'publicado').length
+  // Procesos con los 8 artefactos completos
+  const procesosCompletos = Object.values(artefactosPorProceso).filter(
+    arts => arts.length >= ORDEN_GENERACION.length
+  ).length
 
   function renderArbol(lista: Proceso[], padreId: string | null, nivel: number): React.ReactNode {
     const hijos = lista.filter(p => p.padre_id === padreId)
@@ -104,7 +106,7 @@ export default async function ArtefactosPage() {
       const arts = artefactosPorProceso[p.id] ?? []
       const total = ORDEN_GENERACION.length
       const generados = arts.length
-      const publicados = arts.filter(a => a.estado_validacion === 'publicado').length
+      const publicados = arts.filter(a => a.estado_validacion === 'validado' || a.estado_validacion === 'publicado').length
       const hayIncompletos = generados < total && generados > 0
       const codigo = derivarCodigo(p as any, lista)
       const pct = total > 0 ? Math.round((generados / total) * 100) : 0
@@ -142,7 +144,7 @@ export default async function ArtefactosPage() {
                 )}
                 {publicados > 0 && (
                   <span className="flex items-center gap-1 text-[11px] text-blue-400 font-medium">
-                    <Globe className="w-3 h-3" />{publicados}
+                    <CheckCircle className="w-3 h-3" />{publicados} aprobados
                   </span>
                 )}
                 {hayIncompletos && (
@@ -178,21 +180,21 @@ export default async function ArtefactosPage() {
       icon: <FileText className="w-4 h-4 text-violet-400" />,
     },
     {
-      label: 'Publicados',
-      value: totalPublicados,
+      label: 'Aprobados',
+      value: totalAprobados,
       color: 'text-blue-300',
       accent: 'from-slate-800/0 to-blue-900/20',
       border: 'border-slate-800 hover:border-blue-700/50',
-      desc: 'Validados y listos',
-      icon: <Globe className="w-4 h-4 text-blue-400" />,
+      desc: 'Revisados y listos para entrega',
+      icon: <CheckCircle className="w-4 h-4 text-blue-400" />,
     },
     {
-      label: 'Cobertura',
-      value: `${cobertura}%`,
+      label: 'Procesos completos',
+      value: procesosCompletos,
       color: 'text-emerald-300',
       accent: 'from-slate-800/0 to-emerald-900/20',
       border: 'border-slate-800 hover:border-emerald-700/50',
-      desc: 'Procesos con artefactos',
+      desc: `Con los ${ORDEN_GENERACION.length} artefactos generados`,
       icon: <Target className="w-4 h-4 text-emerald-400" />,
     },
   ]
@@ -291,7 +293,7 @@ export default async function ArtefactosPage() {
       <div className="flex items-center gap-5 px-1">
         {[
           { icon: <CheckCircle className="w-3 h-3 text-emerald-400" />, label: 'Validado' },
-          { icon: <Globe className="w-3 h-3 text-blue-400" />, label: 'Publicado' },
+          { icon: <CheckCircle className="w-3 h-3 text-blue-400" />, label: 'Aprobado' },
           { icon: <Clock className="w-3 h-3 text-amber-400" />, label: 'Pendiente' },
         ].map(({ icon, label }) => (
           <span key={label} className="flex items-center gap-1.5 text-[11px] text-slate-500">
