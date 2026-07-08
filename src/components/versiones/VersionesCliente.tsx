@@ -577,7 +577,7 @@ export default function VersionesCliente({
             Control de Versiones
           </h1>
           <p className="text-slate-500 text-sm max-w-xl">
-            Registro completo de cada artefacto entregado, historial de cambios con diff campo a campo{esInterno ? ' y restauración de versiones anteriores' : ', y descarga de la versión oficial'}.
+            Registro completo de cada artefacto entregado, historial detallado de qué cambió en cada versión{esInterno ? ' y restauración de versiones anteriores' : ', y descarga de la versión oficial'}.
           </p>
         </div>
 
