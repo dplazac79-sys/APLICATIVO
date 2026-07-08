@@ -133,6 +133,9 @@ export default async function ProcesoArtefactosPage({ params }: Props) {
           procesoNombre={proceso.nombre}
           totalActual={totalGenerados}
           totalEsperado={ORDEN_GENERACION.length}
+          artefactosFaltantes={ORDEN_GENERACION
+            .filter(t => !artefactosPorTipo[t])
+            .map(t => LABEL_ARTEFACTO[t])}
         />
       )}
 

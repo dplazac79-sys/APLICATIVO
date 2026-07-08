@@ -10,10 +10,10 @@ async function llamarIA(
   modelos: string[],
   systemPrompt: string,
   userPrompt: string,
-  maxTokens = 1800
+  maxTokens = 3000
 ): Promise<Record<string, unknown> | null> {
   for (const modelo of modelos) {
-    for (let intento = 0; intento < 2; intento++) {
+    for (let intento = 0; intento < 3; intento++) {
       try {
         const completion = await chatCompletion({
           model: modelo,
@@ -26,13 +26,16 @@ async function llamarIA(
           response_format: { type: 'json_object' },
         })
         const text = completion.choices[0]?.message?.content ?? ''
-        if (!text) continue
+        if (!text) { await new Promise(r => setTimeout(r, 1000)); continue }
         const parsed = JSON.parse(text)
         return (parsed.resultado ?? parsed.contenido ?? parsed) as Record<string, unknown>
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : String(err)
-        if (msg.includes('rate') || msg.includes('429')) {
-          await new Promise(r => setTimeout(r, 1500 * (intento + 1)))
+        // Reintentar en rate limit, JSON inválido, o respuesta vacía
+        const esReintentable = msg.includes('rate') || msg.includes('429') ||
+          msg.includes('JSON') || msg.includes('SyntaxError') || msg.includes('Unexpected')
+        if (esReintentable) {
+          await new Promise(r => setTimeout(r, 2000 * (intento + 1)))
           continue
         }
         break
@@ -103,7 +106,7 @@ REGLA CRÍTICA: Devuelve ÚNICAMENTE JSON válido y completo. Sin texto adiciona
   const PROMPTS: Record<TipoArtefacto, { prompt: string; tokens: number }> = {
 
     sipoc: {
-      tokens: 1200,
+      tokens: 2000,
       prompt: `Con base en este análisis del proceso:
 ${iaStr}
 
@@ -121,24 +124,34 @@ Devuelve: {"descripcion_estado_actual":"descripción detallada del estado actual
     },
 
     bpmn: {
-      tokens: 2000,
-      prompt: `Con base en este análisis del proceso "${procesoNombre}":
+      tokens: 4000,
+      prompt: `Eres un experto en modelado BPMN 2.0 y React Flow. Analiza este proceso y genera un diagrama BPMN completo y detallado.
+
+ANÁLISIS DEL PROCESO "${procesoNombre}":
 ${iaStr}
 
-Genera un diagrama BPMN COMPLETO Y DETALLADO para React Flow. OBLIGATORIO: mínimo 8 nodos, máximo 12 nodos. Incluye TODOS los pasos reales del proceso, con decisiones donde corresponda.
+INSTRUCCIONES OBLIGATORIAS:
+1. Extrae TODOS los pasos reales del proceso del análisis — mínimo 12 nodos, máximo 18 nodos
+2. Identifica los ACTORES reales (roles del proceso) y asigna cada tarea a su actor
+3. Incluye DECISIONES reales (gateways) donde el proceso tenga bifurcaciones
+4. El flujo debe ser lógico, secuencial y cubrir el proceso de inicio a fin
 
-Tipos de nodo: "start" (verde, 1 solo al inicio), "task" (azul, pasos del proceso), "decision" (índigo, gateways/decisiones), "end" (rojo, 1 solo al final).
-Posicionamiento: x=400 flujo principal, x=680 ramal derecho, x=120 ramal izquierdo. y empieza en 50, aumenta 130px por nivel.
-Labels: descriptivos, máx 40 caracteres.
+TIPOS DE NODOS:
+- "start": evento de inicio (SOLO 1, posición x=400, y=50, label="Inicio del Proceso")
+- "task": tarea ejecutada por un actor (label="Verbo + Objeto", máx 45 chars)
+- "decision": gateway de decisión (label="¿Condición?", máx 40 chars)
+- "end": evento de fin (SOLO 1, label="Fin del Proceso")
 
-Devuelve EXACTAMENTE:
-{"titulo":"${procesoNombre}","nodes":[
-{"id":"1","type":"start","position":{"x":400,"y":50},"data":{"label":"Inicio"}},
-{"id":"2","type":"task","position":{"x":400,"y":180},"data":{"label":"paso real 1"}},
-{"id":"3","type":"task","position":{"x":400,"y":310},"data":{"label":"paso real 2"}},
-...más pasos reales...,
-{"id":"N","type":"end","position":{"x":400,"y":YY},"data":{"label":"Fin"}}
-],"edges":[{"id":"e1-2","source":"1","target":"2","animated":true},...]}`
+POSICIONAMIENTO (usar EXACTAMENTE estas coordenadas):
+- Flujo principal: x=400, y aumenta de 150 en 150 (50, 200, 350, 500, 650, 800, 950, 1100, 1250, 1400, 1550, 1700...)
+- Ramal alternativo derecho: x=700
+- Ramal alternativo izquierdo: x=100
+- Nodo convergente después de decisión: x=400
+
+EDGES: conectar todos los nodos. Para edges de decisión incluir label="Sí"/"No" o la condición.
+
+Devuelve EXACTAMENTE este JSON (sin texto adicional):
+{"titulo":"${procesoNombre}","nodes":[{"id":"1","type":"start","position":{"x":400,"y":50},"data":{"label":"Inicio del Proceso"}},{"id":"2","type":"task","position":{"x":400,"y":200},"data":{"label":"[primer paso real del proceso]","actor":"[rol responsable]"}},{"id":"3","type":"task","position":{"x":400,"y":350},"data":{"label":"[segundo paso real]","actor":"[rol]"}},{"id":"4","type":"decision","position":{"x":400,"y":500},"data":{"label":"[¿condición real?]"}},{"id":"5","type":"task","position":{"x":700,"y":650},"data":{"label":"[paso si NO]","actor":"[rol]"}},{"id":"6","type":"task","position":{"x":400,"y":650},"data":{"label":"[paso si SÍ]","actor":"[rol]"}},{"id":"7","type":"task","position":{"x":400,"y":800},"data":{"label":"[continúa flujo...]","actor":"[rol]"}},{"id":"N","type":"end","position":{"x":400,"y":YYY},"data":{"label":"Fin del Proceso"}}],"edges":[{"id":"e1-2","source":"1","target":"2","animated":true},{"id":"e2-3","source":"2","target":"3"},{"id":"e3-4","source":"3","target":"4"},{"id":"e4-5","source":"4","target":"5","label":"No"},{"id":"e4-6","source":"4","target":"6","label":"Sí"},{"id":"e5-7","source":"5","target":"7"},{"id":"e6-7","source":"6","target":"7"}]}`
     },
 
     flujograma: {
@@ -215,7 +228,7 @@ Devuelve: {"resumen_ejecutivo":"análisis ejecutivo","comparativo":[{"dimension"
     },
 
     cierre_ejecutivo: {
-      tokens: 1200,
+      tokens: 2500,
       prompt: `Con base en el análisis ejecutivo:
 ${iaStr}
 
@@ -224,7 +237,7 @@ Devuelve: {"titulo_proyecto":"título formal","resumen_proyecto":"resumen ejecut
     },
 
     checklist: {
-      tokens: 1800,
+      tokens: 3500,
       prompt: `Con base en los roles y procesos del análisis:
 ${iaStr}
 
@@ -233,7 +246,7 @@ Devuelve: {"frecuencia_uso":"por_transaccion|diario|semanal","checklists":[{"rol
     },
 
     backlog: {
-      tokens: 1500,
+      tokens: 3500,
       prompt: `Con base en quick wins y oportunidades del análisis:
 ${iaStr}
 
@@ -242,7 +255,7 @@ Devuelve: {"resumen":{"total_quick_wins":0,"total_proyectos_medios":0,"total_pro
     },
 
     cinco_porques: {
-      tokens: 1500,
+      tokens: 3000,
       prompt: `Con base en los hallazgos críticos del análisis:
 ${iaStr}
 
@@ -251,7 +264,7 @@ Devuelve: {"analisis":[{"problema":"problema real del documento","impacto":"impa
     },
 
     acta_inicio: {
-      tokens: 1800,
+      tokens: 3000,
       prompt: `Con base en el análisis del proceso:
 ${iaStr}
 
@@ -260,7 +273,7 @@ Devuelve: {"titulo_proyecto":"título formal","proposito":"propósito y justific
     },
 
     plan_pruebas: {
-      tokens: 1800,
+      tokens: 3000,
       prompt: `Con base en el análisis del proceso:
 ${iaStr}
 
@@ -269,7 +282,7 @@ Devuelve: {"resumen":"descripción del plan","ambiente_pruebas":"ambiente necesa
     },
 
     roadmap: {
-      tokens: 1800,
+      tokens: 3000,
       prompt: `Con base en las recomendaciones y próximos pasos del análisis:
 ${iaStr}
 
@@ -278,8 +291,8 @@ Devuelve: {"duracion_total_semanas":12,"metodologia":"metodología sugerida","fa
     },
   }
 
-  // ── 3 lotes de 6 llamadas con pausa entre lotes para respetar TPM de Together AI ─
-  const LOTE = 6
+  // ── Lotes de 3 — limita concurrencia para evitar throttling del 70B en Together AI ─
+  const LOTE = 3
   const resultados: Array<{ tipo: TipoArtefacto; contenido: Record<string, unknown> | null; ok: boolean }> = []
 
   for (let i = 0; i < ORDEN_GENERACION.length; i += LOTE) {
@@ -293,10 +306,6 @@ Devuelve: {"duracion_total_semanas":12,"metodologia":"metodología sugerida","fa
       })
     )
     resultados.push(...resultadosLote)
-    // Pausa entre lotes para no saturar TPM del 70B (excepto el último lote)
-    if (i + LOTE < ORDEN_GENERACION.length) {
-      await new Promise(r => setTimeout(r, 2000))
-    }
   }
 
   // ── Guardar en BD ─────────────────────────────────────────────────────────
