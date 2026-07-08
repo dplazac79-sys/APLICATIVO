@@ -185,7 +185,7 @@ async function procesarArtefactosEnBackground(
       await admin.from('jobs').update({ estado: 'listo', resultado: { tipos_generados: tipos } }).eq('id', jobId)
     }
   } catch (err) {
-    console.error('[artefactos] Error generando:', err)
+
     if (jobId) {
       await admin.from('jobs').update({
         estado: 'error',

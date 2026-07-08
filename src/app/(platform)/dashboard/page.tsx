@@ -10,11 +10,12 @@ import { getFasesProyecto } from '@/lib/fases'
 export default async function DashboardPage() {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return null
 
   const { data: usuario } = await supabase
     .from('usuario')
     .select('nombre, rol, usuario_proyecto(proyecto_id)')
-    .eq('id', user!.id)
+    .eq('id', user.id)
     .single()
 
   const admin = createAdminClient()

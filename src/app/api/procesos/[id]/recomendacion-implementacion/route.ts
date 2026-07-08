@@ -1,8 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { chatCompletion, MODELOS } from '@/lib/ai/client'
 
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
+  const supabase = createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+
   const admin = createAdminClient()
   const { data: proceso } = await admin.from('proceso').select('metadata_ia').eq('id', params.id).single()
   if (!proceso) return NextResponse.json({ plan: null })
@@ -11,6 +16,10 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
 }
 
 export async function POST(_req: NextRequest, { params }: { params: { id: string } }) {
+  const supabase2 = createClient()
+  const { data: { user: user2 } } = await supabase2.auth.getUser()
+  if (!user2) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+
   const admin = createAdminClient()
 
   const { data: proceso } = await admin

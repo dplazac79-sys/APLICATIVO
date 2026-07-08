@@ -59,7 +59,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true, resultados })
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Error desconocido'
-    console.error('[buscar] Error:', err)
+
     return NextResponse.json({ error: msg }, { status: 500 })
   }
 }

@@ -67,7 +67,7 @@ export async function POST(
         }
       }
     } catch (err) {
-      console.error('[mejorar] Error cargando documento:', err)
+
     }
   }
 

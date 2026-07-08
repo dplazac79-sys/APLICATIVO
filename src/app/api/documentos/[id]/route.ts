@@ -17,7 +17,7 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
   // Eliminar del storage
   if (doc.url_storage) {
     const { error: errStorage } = await admin.storage.from('documentos').remove([doc.url_storage])
-    if (errStorage) console.error('Storage error:', errStorage.message)
+
   }
 
   // Eliminar de la BD

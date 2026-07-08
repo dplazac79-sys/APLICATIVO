@@ -81,20 +81,20 @@ export default function AutomationStudioPage() {
 
   // Cargar proyectos al montar
   useEffect(() => {
-    fetch('/api/proyectos').then(r => r.json()).then(d => setProyectos(d.proyectos ?? []))
+    fetch('/api/proyectos').then(r => r.json()).then(d => setProyectos(d.proyectos ?? [])).catch(() => {})
   }, [])
 
   // Al seleccionar proyecto: cargar procesos, simulaciones, recomendaciones y roadmaps
   useEffect(() => {
     if (!proyectoId) return
     fetch(`/api/simulaciones/contexto?proyecto_id=${proyectoId}`)
-      .then(r => r.json()).then(d => setProcesos(d.procesos ?? []))
+      .then(r => r.json()).then(d => setProcesos(d.procesos ?? [])).catch(() => {})
     fetch(`/api/simulaciones?proyecto_id=${proyectoId}`)
-      .then(r => r.json()).then(d => setSimulaciones(d.simulaciones ?? []))
+      .then(r => r.json()).then(d => setSimulaciones(d.simulaciones ?? [])).catch(() => {})
     fetch(`/api/automation/recomendar?proyecto_id=${proyectoId}`)
-      .then(r => r.json()).then(d => setRecomendaciones(d.recomendaciones ?? []))
+      .then(r => r.json()).then(d => setRecomendaciones(d.recomendaciones ?? [])).catch(() => {})
     fetch(`/api/automation/roadmap?proyecto_id=${proyectoId}`)
-      .then(r => r.json()).then(d => setRoadmaps(d.roadmaps ?? []))
+      .then(r => r.json()).then(d => setRoadmaps(d.roadmaps ?? [])).catch(() => {})
   }, [proyectoId])
 
   const recargarRecs = useCallback(() => {
