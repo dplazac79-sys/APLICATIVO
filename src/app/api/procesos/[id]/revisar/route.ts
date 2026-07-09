@@ -13,7 +13,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     const { data: usuario } = await admin.from('usuario').select('rol').eq('id', user.id).single()
     const rolesAutorizados = ['super_admin', 'director_proyecto', 'consultor', 'sponsor_cliente', 'usuario_cliente']
     if (!usuario || !rolesAutorizados.includes(usuario.rol)) {
-      return NextResponse.json({ error: 'Solo Consultor, Director de Proyecto o Super Administrador pueden revisar propuestas de procesos' }, { status: 403 })
+      return NextResponse.json({ error: 'Sin permisos para revisar propuestas de procesos' }, { status: 403 })
     }
 
     const { estado_oferta } = await req.json()

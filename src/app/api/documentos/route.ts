@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { registrarAudit } from '@/lib/audit'
 
 export async function POST(req: NextRequest) {
@@ -11,6 +12,26 @@ export async function POST(req: NextRequest) {
     const { proyecto_id, nombre_archivo, tipo, url_storage, documento_padre_id } = await req.json()
     if (!proyecto_id || !nombre_archivo || !url_storage) {
       return NextResponse.json({ error: 'Faltan campos requeridos' }, { status: 400 })
+    }
+
+    // Verificar que el usuario pertenece al proyecto antes de cualquier operación
+    const admin = createAdminClient()
+    const { data: usuarioInfo } = await admin
+      .from('usuario')
+      .select('rol')
+      .eq('id', user.id)
+      .single()
+
+    if (usuarioInfo?.rol !== 'super_admin') {
+      const { data: membership } = await admin
+        .from('usuario_proyecto')
+        .select('proyecto_id')
+        .eq('usuario_id', user.id)
+        .eq('proyecto_id', proyecto_id)
+        .single()
+      if (!membership) {
+        return NextResponse.json({ error: 'Sin acceso al proyecto' }, { status: 403 })
+      }
     }
 
     // Calcular versión si es una actualización de documento existente
