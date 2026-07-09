@@ -558,9 +558,7 @@ export default function HorizonteSimulador({ procesos, artefactosPorProceso, pro
   const artefactos = artefactosPorProceso[procesoId] ?? []
 
   useEffect(() => {
-    const presel = artefactos
-      .filter(a => ['to_be', 'kpi_sla', 'as_is', 'diagnostico', 'riesgo_control'].includes(a.tipo))
-      .map(a => a.id)
+    const presel = artefactos.map(a => a.id)
     setArtefactoIds(presel)
     setSimulacion(null)
     setError(null)
