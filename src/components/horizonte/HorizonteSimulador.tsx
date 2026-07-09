@@ -63,6 +63,12 @@ function useAnimatedNumber(target: number, active: boolean, duration = 1800) {
   return val
 }
 
+function formatKpiVal(v: string): string {
+  const n = parseFloat(v.replace(/[^\d.-]/g, ''))
+  if (isNaN(n)) return v
+  return n.toLocaleString('es-CL')
+}
+
 function formatCLP(n: number) {
   if (n >= 1_000_000_000) return `$${Math.round(n / 1_000_000_000).toLocaleString('es-CL')} mil millones`
   if (n >= 1_000_000) return `$${Math.round(n / 1_000_000).toLocaleString('es-CL')} millones`
@@ -350,12 +356,12 @@ function Resultado({ sim }: { sim: SimulacionResult }) {
               <div key={i} className="grid grid-cols-[1fr_auto_auto_auto] items-center gap-4 px-6 py-4 hover:bg-white/[0.015] transition-colors">
                 <p className="text-sm text-slate-300">{kpi.nombre}</p>
                 <div className="text-right">
-                  <p className="text-sm font-bold text-slate-500 tabular-nums">{kpi.antes}</p>
+                  <p className="text-sm font-bold text-slate-500 tabular-nums">{formatKpiVal(kpi.antes)}</p>
                   <p className="text-[9px] text-slate-700 uppercase tracking-wider">Actual</p>
                 </div>
                 <ArrowRight className="w-4 h-4 text-indigo-500/50" />
                 <div className="text-right min-w-[60px]">
-                  <p className="text-sm font-bold text-emerald-400 tabular-nums">{kpi.despues}</p>
+                  <p className="text-sm font-bold text-emerald-400 tabular-nums">{formatKpiVal(kpi.despues)}</p>
                   <p className="text-[9px] text-slate-600 uppercase tracking-wider">{kpi.unidad}</p>
                 </div>
               </div>
