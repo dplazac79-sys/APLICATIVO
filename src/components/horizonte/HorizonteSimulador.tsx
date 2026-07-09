@@ -192,39 +192,54 @@ function ProcesoSelector({ procesos, value, onChange }: {
   onChange: (id: string) => void
 }) {
   const [open, setOpen] = useState(false)
-  const ref = useRef<HTMLDivElement>(null)
   const btnRef = useRef<HTMLButtonElement>(null)
-  const [dropdownStyle, setDropdownStyle] = useState<React.CSSProperties>({})
+  const listRef = useRef<HTMLDivElement>(null)
+  const [rect, setRect] = useState<DOMRect | null>(null)
   const selected = procesos.find(p => p.id === value)
 
+  // Cerrar al hacer click fuera — escucha en el documento
   useEffect(() => {
+    if (!open) return
     function handle(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+      const target = e.target as Node
+      if (!btnRef.current?.contains(target) && !listRef.current?.contains(target)) {
+        setOpen(false)
+      }
     }
+    // mousedown para capturar antes del click de las opciones
     document.addEventListener('mousedown', handle)
     return () => document.removeEventListener('mousedown', handle)
-  }, [])
+  }, [open])
 
-  function handleOpen() {
-    if (btnRef.current) {
-      const rect = btnRef.current.getBoundingClientRect()
-      setDropdownStyle({
-        position: 'fixed',
-        top: rect.bottom + 8,
-        left: rect.left,
-        width: rect.width,
-        zIndex: 9999,
-      })
-    }
+  // Cerrar al hacer scroll
+  useEffect(() => {
+    if (!open) return
+    const handle = () => setOpen(false)
+    window.addEventListener('scroll', handle, true)
+    return () => window.removeEventListener('scroll', handle, true)
+  }, [open])
+
+  function toggle() {
+    if (!open && btnRef.current) setRect(btnRef.current.getBoundingClientRect())
     setOpen(o => !o)
   }
 
+  const dropStyle: React.CSSProperties = rect ? {
+    position: 'fixed',
+    top: rect.bottom + 6,
+    left: rect.left,
+    width: rect.width,
+    zIndex: 9999,
+    maxHeight: 280,
+    overflowY: 'auto',
+  } : {}
+
   return (
-    <div ref={ref}>
+    <div>
       <button
         ref={btnRef}
-        onClick={handleOpen}
-        className="w-full flex items-center justify-between gap-3 px-5 py-4 rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-sm text-left hover:border-indigo-500/40 hover:bg-white/[0.07] transition-all"
+        onClick={toggle}
+        className="w-full flex items-center justify-between gap-3 px-5 py-4 rounded-2xl border border-white/10 bg-white/[0.04] text-left hover:border-indigo-500/40 hover:bg-white/[0.07] transition-all"
       >
         <div className="flex items-center gap-3 min-w-0">
           {selected ? (
@@ -241,18 +256,19 @@ function ProcesoSelector({ procesos, value, onChange }: {
         <ChevronDown className={`w-4 h-4 text-slate-500 shrink-0 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
       </button>
 
-      {open && (
-        <div style={dropdownStyle} className="rounded-2xl border border-white/10 bg-[#0d0d14]/98 backdrop-blur-2xl shadow-2xl overflow-hidden max-h-72 overflow-y-auto">
+      {open && rect && (
+        <div ref={listRef} style={dropStyle} className="rounded-2xl border border-white/10 bg-[#0c0c14] shadow-2xl">
           {procesos.map((p, i) => (
             <button
               key={p.id}
+              onMouseDown={e => e.preventDefault()} // evita que click-outside dispare antes
               onClick={() => { onChange(p.id); setOpen(false) }}
-              className={`w-full flex items-center gap-3 px-5 py-3.5 text-left transition-colors hover:bg-white/[0.05] ${p.id === value ? 'bg-indigo-500/10' : ''} ${i > 0 ? 'border-t border-white/[0.04]' : ''}`}
+              className={`w-full flex items-center gap-3 px-5 py-3.5 text-left transition-colors hover:bg-white/[0.06] ${p.id === value ? 'bg-indigo-500/10' : ''} ${i > 0 ? 'border-t border-white/[0.04]' : ''}`}
             >
               <span className={`text-xs font-mono font-bold shrink-0 px-2 py-0.5 rounded-lg border ${p.id === value ? 'text-indigo-300 bg-indigo-500/20 border-indigo-500/30' : 'text-slate-500 bg-white/[0.03] border-white/10'}`}>
                 {p.codigo}
               </span>
-              <span className={`text-sm truncate ${p.id === value ? 'text-white' : 'text-slate-400'}`}>{p.nombre}</span>
+              <span className={`text-sm truncate ${p.id === value ? 'text-white font-medium' : 'text-slate-400'}`}>{p.nombre}</span>
               {p.id === value && <CheckCircle2 className="w-4 h-4 text-indigo-400 shrink-0 ml-auto" />}
             </button>
           ))}
