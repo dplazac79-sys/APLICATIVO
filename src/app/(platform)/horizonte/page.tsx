@@ -5,6 +5,20 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
 import HorizonteSimulador from '@/components/horizonte/HorizonteSimulador'
 
+function scNumero(p: { codigo: string | null; metadata_ia: Record<string, unknown> | null; orden: number }): number {
+  if (p.codigo) return parseInt(p.codigo.replace(/\D/g, ''), 10) || 9999
+  const docRef = (p.metadata_ia?.documento_referencia as string | null)
+  if (docRef) { const m = docRef.match(/(\d+)/); return m ? parseInt(m[1], 10) : 9999 }
+  return (p.orden ?? 0) + 1
+}
+
+function scCode(p: { codigo: string | null; metadata_ia: Record<string, unknown> | null; orden: number }): string {
+  if (p.codigo) return p.codigo
+  const docRef = (p.metadata_ia?.documento_referencia as string | null)
+  if (docRef) return docRef.replace(/\.[^.]+$/, '').toUpperCase()
+  return `SC${String((p.orden ?? 0) + 1).padStart(2, '0')}`
+}
+
 export default async function HorizontePage() {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -20,7 +34,6 @@ export default async function HorizontePage() {
 
   if (!usuario) redirect('/dashboard')
 
-  // Determinar proyecto activo
   const esSuperAdmin = usuario.rol === 'super_admin'
   const proyectoIds = (usuario.usuario_proyecto ?? []).map((up: { proyecto_id: string }) => up.proyecto_id)
 
@@ -40,24 +53,32 @@ export default async function HorizontePage() {
     )
   }
 
-  // Cargar datos del proyecto
   const { data: proyecto } = await admin
     .from('proyecto')
-    .select('nombre, cliente:cliente_id(razon_social)')
+    .select('nombre, cliente:cliente_id(razon_social, industria)')
     .eq('id', proyectoId)
     .single()
 
-  const clienteNombre = ((proyecto?.cliente as unknown) as Record<string, string> | null)?.razon_social ?? ''
+  const clienteInfo = (proyecto?.cliente as unknown) as Record<string, string> | null
+  const clienteNombre = clienteInfo?.razon_social ?? ''
+  const industria = clienteInfo?.industria ?? ''
 
-  // Procesos aceptados del proyecto
   const { data: procesosRaw } = await admin
     .from('proceso')
-    .select('id, nombre, codigo')
+    .select('id, nombre, codigo, orden, metadata_ia')
     .eq('proyecto_id', proyectoId)
     .eq('estado_oferta', 'aceptado')
-    .order('orden')
 
-  const procesos = (procesosRaw ?? []) as Array<{ id: string; nombre: string; codigo: string | null }>
+  const procesosOrdenados = [...(procesosRaw ?? [])].sort((a, b) => {
+    const aa = a as { codigo: string | null; metadata_ia: Record<string, unknown> | null; orden: number }
+    const bb = b as { codigo: string | null; metadata_ia: Record<string, unknown> | null; orden: number }
+    return scNumero(aa) - scNumero(bb)
+  })
+
+  const procesos = procesosOrdenados.map(p => {
+    const pp = p as { id: string; nombre: string; codigo: string | null; metadata_ia: Record<string, unknown> | null; orden: number }
+    return { id: pp.id, nombre: pp.nombre, codigo: scCode(pp) }
+  })
 
   if (procesos.length === 0) {
     return (
@@ -67,13 +88,12 @@ export default async function HorizontePage() {
     )
   }
 
-  // Artefactos por proceso
   const procesoIds = procesos.map(p => p.id)
   const { data: artefactosRaw } = await admin
     .from('artefacto')
     .select('id, tipo, version, proceso_id')
     .in('proceso_id', procesoIds)
-    .eq('estado_validacion', 'publicado')
+    .in('estado_validacion', ['publicado', 'validado'])
     .order('version', { ascending: false })
 
   const artefactosPorProceso: Record<string, Array<{ id: string; tipo: string; version: number }>> = {}
@@ -85,10 +105,11 @@ export default async function HorizontePage() {
 
   return (
     <HorizonteSimulador
-      procesos={procesos.map(p => ({ id: p.id, nombre: p.nombre, codigo: p.codigo }))}
+      procesos={procesos}
       artefactosPorProceso={artefactosPorProceso}
       proyectoNombre={proyecto?.nombre ?? ''}
       clienteNombre={clienteNombre}
+      industria={industria}
     />
   )
 }

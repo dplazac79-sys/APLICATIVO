@@ -141,7 +141,23 @@ Responde SOLO con este JSON (sin markdown):
   ],
   "impacto_organizacional": "<2-3 oraciones sobre cómo cambia la organización: roles, cultura, capacidades>",
   "nivel_confianza": "<alto|medio>",
-  "nota_consultor": "<1 oración de advertencia o condición crítica para el éxito>"
+  "nota_consultor": "<1 oración de advertencia o condición crítica para el éxito>",
+  "sin_implementacion": {
+    "headline": "<frase de 8-10 palabras describiendo el riesgo de no actuar>",
+    "costo_inaccion_anual_clp": <costo estimado de NO implementar: pérdidas, ineficiencias, multas en CLP>,
+    "deterioro_en_meses": <número de meses en que la situación se vuelve crítica sin cambios>,
+    "consecuencias": [
+      "<consecuencia grave y específica 1 de no implementar>",
+      "<consecuencia 2>",
+      "<consecuencia 3>",
+      "<consecuencia 4>"
+    ],
+    "riesgos_escalados": [
+      "<riesgo del análisis que se agravará con el tiempo>",
+      "<riesgo 2 que escala>"
+    ],
+    "competitividad": "<1-2 oraciones sobre cómo la organización quedará rezagada frente al mercado si no actúa>"
+  }
 }`
 
   try {
