@@ -188,6 +188,16 @@ function LoadingState() {
 
 // ── Resultado ─────────────────────────────────────────────────────────────────
 
+function ProgressBar({ value, max = 100, color }: { value: number; max?: number; color: string }) {
+  const [w, setW] = useState(0)
+  useEffect(() => { const t = setTimeout(() => setW(Math.round((value / max) * 100)), 200); return () => clearTimeout(t) }, [value, max])
+  return (
+    <div className="h-1.5 rounded-full bg-white/5 overflow-hidden">
+      <div className={`h-full rounded-full transition-all duration-1000 ease-out ${color}`} style={{ width: `${w}%` }} />
+    </div>
+  )
+}
+
 function Resultado({ sim }: { sim: SimulacionResult }) {
   const [show, setShow] = useState(false)
   useEffect(() => { setTimeout(() => setShow(true), 80) }, [])
@@ -196,64 +206,98 @@ function Resultado({ sim }: { sim: SimulacionResult }) {
   const costo = useAnimatedNumber(sim.sin_implementacion?.costo_inaccion_anual_clp ?? 0, show, 2000)
 
   return (
-    <div className={`space-y-5 transition-all duration-700 ${show ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-5'}`}>
+    <div className={`space-y-4 transition-all duration-700 ${show ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-5'}`}>
 
-      {/* ── SCORE + HEADLINE ── */}
-      <Card accent="border-indigo-500/15" className="p-7">
-        <div className="flex items-start gap-5">
-          {/* Ring */}
-          <div className="relative shrink-0 flex items-center justify-center" style={{ width: 112, height: 112 }}>
-            <svg width="112" height="112" className="-rotate-90">
-              <circle cx="56" cy="56" r="44" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="7" />
-              <circle cx="56" cy="56" r="44" fill="none" stroke="url(#rg)" strokeWidth="7"
-                strokeLinecap="round"
-                strokeDasharray={`${(sim.impacto_global_score / 100) * 2 * Math.PI * 44} ${2 * Math.PI * 44}`}
-                style={{ transition: 'stroke-dasharray 2s ease-out' }} />
-              <defs>
-                <linearGradient id="rg" x1="0%" y1="0%" x2="100%" y2="0%">
-                  <stop offset="0%" stopColor="#818cf8" /><stop offset="100%" stopColor="#a78bfa" />
-                </linearGradient>
-              </defs>
-            </svg>
-            <div className="absolute inset-0 flex flex-col items-center justify-center">
-              <span className="text-3xl font-black text-white">{sim.impacto_global_score}</span>
-              <span className="text-[9px] text-slate-500 uppercase tracking-widest">/ 100</span>
+      {/* ── SCORE HERO ── */}
+      <Card accent="border-indigo-500/15" className="overflow-hidden">
+        <div className="relative px-7 py-6">
+          <div className="absolute inset-0 bg-gradient-to-br from-indigo-600/5 via-transparent to-violet-600/5 pointer-events-none" />
+          <div className="relative flex items-center gap-6">
+            {/* Score ring */}
+            <div className="relative shrink-0 flex items-center justify-center" style={{ width: 100, height: 100 }}>
+              <svg width="100" height="100" className="-rotate-90">
+                <circle cx="50" cy="50" r="40" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="6" />
+                <circle cx="50" cy="50" r="40" fill="none" stroke="url(#scoreGrad)" strokeWidth="6"
+                  strokeLinecap="round"
+                  strokeDasharray={`${show ? (sim.impacto_global_score / 100) * 2 * Math.PI * 40 : 0} ${2 * Math.PI * 40}`}
+                  style={{ transition: 'stroke-dasharray 1.8s cubic-bezier(0.4,0,0.2,1)' }} />
+                <defs>
+                  <linearGradient id="scoreGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" stopColor="#818cf8" /><stop offset="100%" stopColor="#a78bfa" />
+                  </linearGradient>
+                </defs>
+              </svg>
+              <div className="absolute inset-0 flex flex-col items-center justify-center">
+                <span className="text-3xl font-black text-white tabular-nums">{sim.impacto_global_score}</span>
+                <span className="text-[9px] text-slate-600 uppercase tracking-widest">/ 100</span>
+              </div>
+            </div>
+
+            <div className="flex-1 space-y-2">
+              <div className="flex flex-wrap gap-1.5">
+                <span className={`text-[10px] px-2 py-0.5 rounded-full border uppercase tracking-widest font-medium ${sim.nivel_confianza === 'alto' ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400' : 'border-amber-500/30 bg-amber-500/10 text-amber-400'}`}>
+                  Confianza {sim.nivel_confianza}
+                </span>
+                <span className="text-[10px] px-2 py-0.5 rounded-full border border-indigo-500/25 bg-indigo-500/8 text-indigo-400 uppercase tracking-widest">Proyección IA</span>
+              </div>
+              <h2 className="text-2xl font-black text-white leading-tight">{sim.headline}</h2>
+              <p className="text-slate-400 text-sm leading-relaxed">{sim.subtitulo}</p>
             </div>
           </div>
+        </div>
 
-          <div className="flex-1 pt-1 space-y-2">
-            <div className="flex flex-wrap gap-2">
-              <span className={`text-[10px] px-2.5 py-1 rounded-full border uppercase tracking-widest font-medium ${sim.nivel_confianza === 'alto' ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400' : 'border-amber-500/30 bg-amber-500/10 text-amber-400'}`}>
-                Confianza {sim.nivel_confianza}
-              </span>
-              <span className="text-[10px] px-2.5 py-1 rounded-full border border-indigo-500/30 bg-indigo-500/8 text-indigo-400 uppercase tracking-widest">
-                Proyección IA
-              </span>
+        {/* Métricas en barra inferior */}
+        <div className="grid grid-cols-4 divide-x divide-white/5 border-t border-white/5">
+          {[
+            { label: 'Ahorro anual', value: formatCLP(ahorro), sub: 'si se implementa', color: 'text-emerald-300' },
+            { label: 'Reducción tiempo', value: `${sim.reduccion_tiempo_porcentaje}%`, sub: 'menos tiempo operativo', color: 'text-violet-300' },
+            { label: 'ROI', value: `${sim.roi_meses} meses`, sub: 'retorno de inversión', color: 'text-amber-300' },
+            { label: 'Horas liberadas', value: `${sim.empleados_liberados_horas_mes}h/mes`, sub: 'capacidad recuperada', color: 'text-indigo-300' },
+          ].map((m, i) => (
+            <div key={i} className="px-5 py-4">
+              <p className="text-[10px] uppercase tracking-widest text-slate-600 mb-1">{m.label}</p>
+              <p className={`text-lg font-black tabular-nums ${m.color}`}>{m.value}</p>
+              <p className="text-[10px] text-slate-600 mt-0.5">{m.sub}</p>
             </div>
-            <p className="text-[10px] text-slate-600">Índice de impacto potencial: qué tan significativa es la mejora para tu organización (0–100)</p>
-            <h2 className="text-xl font-bold text-white leading-snug">{sim.headline}</h2>
-            <p className="text-slate-400 text-sm leading-relaxed">{sim.subtitulo}</p>
+          ))}
+        </div>
+      </Card>
+
+      {/* ── NARRATIVA — pull quote ── */}
+      <Card className="px-7 py-6 relative overflow-hidden">
+        <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-indigo-500 via-violet-500 to-indigo-500/0 rounded-full" />
+        <div className="flex items-start gap-4">
+          <Sparkles className="w-4 h-4 text-indigo-400 shrink-0 mt-1" />
+          <div>
+            <p className="text-[10px] uppercase tracking-widest text-slate-600 mb-2">Visión de transformación</p>
+            <p className="text-slate-200 text-sm leading-relaxed font-light">{sim.transformacion_narrativa}</p>
           </div>
         </div>
       </Card>
 
-      {/* ── DOS CAMINOS: implementar vs no implementar ── */}
+      {/* ── DOS CAMINOS LADO A LADO ── */}
       <div className="grid grid-cols-2 gap-4">
         {/* SI IMPLEMENTA */}
         <Card accent="border-emerald-500/15" className="overflow-hidden">
-          <div className="px-5 pt-5 pb-4 border-b border-emerald-500/10 bg-emerald-500/[0.04]">
-            <div className="flex items-center gap-2 mb-1">
+          <div className="px-5 pt-5 pb-4 border-b border-emerald-500/8 bg-gradient-to-br from-emerald-500/6 to-transparent">
+            <div className="flex items-center gap-2 mb-2">
               <TrendingUp className="w-4 h-4 text-emerald-400" />
               <p className="text-[10px] uppercase tracking-widest text-emerald-400/80 font-medium">Si se implementa</p>
             </div>
-            <p className="text-2xl font-black text-white">{formatCLP(ahorro)}</p>
+            <p className="text-3xl font-black text-white tabular-nums">{formatCLP(ahorro)}</p>
             <p className="text-xs text-slate-500 mt-0.5">ahorro anual estimado</p>
+            <div className="mt-3 space-y-1">
+              <div className="flex justify-between text-[10px] text-slate-500">
+                <span>Errores eliminados</span><span className="text-emerald-400">{sim.reduccion_errores_porcentaje}%</span>
+              </div>
+              <ProgressBar value={sim.reduccion_errores_porcentaje} color="bg-emerald-500/60" />
+            </div>
           </div>
           <ul className="p-4 space-y-2.5">
             {sim.despues.slice(0, 4).map((d, i) => (
-              <li key={i} className="flex items-start gap-2.5 text-xs text-slate-300">
+              <li key={i} className="flex items-start gap-2.5">
                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 mt-0.5 shrink-0" />
-                {d}
+                <span className="text-xs text-slate-300">{d}</span>
               </li>
             ))}
           </ul>
@@ -261,83 +305,58 @@ function Resultado({ sim }: { sim: SimulacionResult }) {
 
         {/* SI NO IMPLEMENTA */}
         <Card accent="border-rose-500/15" className="overflow-hidden">
-          <div className="px-5 pt-5 pb-4 border-b border-rose-500/10 bg-rose-500/[0.04]">
-            <div className="flex items-center gap-2 mb-1">
+          <div className="px-5 pt-5 pb-4 border-b border-rose-500/8 bg-gradient-to-br from-rose-500/6 to-transparent">
+            <div className="flex items-center gap-2 mb-2">
               <TrendingDown className="w-4 h-4 text-rose-400" />
               <p className="text-[10px] uppercase tracking-widest text-rose-400/80 font-medium">Si no se actúa</p>
             </div>
-            <p className="text-2xl font-black text-rose-400">{formatCLP(costo)}</p>
+            <p className="text-3xl font-black text-rose-400 tabular-nums">{formatCLP(costo)}</p>
             <p className="text-xs text-slate-500 mt-0.5">costo de inacción / año</p>
+            {sim.sin_implementacion?.deterioro_en_meses && (
+              <div className="mt-3 flex items-center gap-2">
+                <Clock className="w-3.5 h-3.5 text-rose-500/60" />
+                <span className="text-[11px] text-rose-400/70">Situación crítica en <strong className="text-rose-400">{sim.sin_implementacion.deterioro_en_meses} meses</strong></span>
+              </div>
+            )}
           </div>
           <ul className="p-4 space-y-2.5">
             {(sim.sin_implementacion?.consecuencias ?? []).slice(0, 4).map((c, i) => (
-              <li key={i} className="flex items-start gap-2.5 text-xs text-slate-400">
+              <li key={i} className="flex items-start gap-2.5">
                 <XCircle className="w-3.5 h-3.5 text-rose-500/70 mt-0.5 shrink-0" />
-                {c}
+                <span className="text-xs text-slate-400">{c}</span>
               </li>
             ))}
           </ul>
         </Card>
       </div>
 
-      {/* ── ALERTA INACCIÓN ── */}
-      {sim.sin_implementacion?.deterioro_en_meses && (
-        <div className="flex items-center gap-3 px-4 py-3.5 rounded-2xl border border-rose-500/20 bg-rose-500/[0.05]">
-          <Flame className="w-4 h-4 text-rose-400 shrink-0" />
-          <p className="text-sm text-slate-300">
-            Sin acción, la situación se vuelve <strong className="text-rose-300">crítica en {sim.sin_implementacion.deterioro_en_meses} meses.</strong>{' '}
-            <span className="text-slate-400">{sim.sin_implementacion.competitividad}</span>
-          </p>
+      {/* ── COMPETITIVIDAD ALERT ── */}
+      {sim.sin_implementacion?.competitividad && (
+        <div className="flex items-start gap-3 px-5 py-4 rounded-2xl border border-rose-500/15 bg-gradient-to-r from-rose-500/5 to-transparent">
+          <Flame className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+          <p className="text-sm text-slate-300 leading-relaxed">{sim.sin_implementacion.competitividad}</p>
         </div>
       )}
 
-      {/* ── MÉTRICAS BENTO ── */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {[
-          { label: 'Reducción de tiempo', value: sim.reduccion_tiempo_porcentaje, suffix: '%', color: 'text-violet-300', bg: 'border-violet-500/15' },
-          { label: 'Reducción de errores', value: sim.reduccion_errores_porcentaje, suffix: '%', color: 'text-emerald-300', bg: 'border-emerald-500/15' },
-          { label: 'ROI en', value: sim.roi_meses, suffix: ' meses', color: 'text-amber-300', bg: 'border-amber-500/15' },
-          { label: 'Horas/mes liberadas', value: sim.empleados_liberados_horas_mes, suffix: 'h', color: 'text-indigo-300', bg: 'border-indigo-500/15' },
-        ].map((m, i) => (
-          <Card key={i} accent={m.bg} className="p-4">
-            <p className="text-[10px] uppercase tracking-widest text-slate-500 mb-1">{m.label}</p>
-            <p className={`text-2xl font-black ${m.color} tabular-nums`}>
-              <AnimNum target={m.value} active={show} suffix={m.suffix} />
-            </p>
-          </Card>
-        ))}
-      </div>
-
-      {/* ── NARRATIVA ── */}
-      <Card className="p-6">
-        <div className="flex items-center gap-2 mb-3">
-          <Sparkles className="w-4 h-4 text-indigo-400" />
-          <p className="text-[10px] uppercase tracking-widest text-slate-500">Visión de transformación</p>
-        </div>
-        <p className="text-slate-300 text-sm leading-relaxed">{sim.transformacion_narrativa}</p>
-      </Card>
-
-      {/* ── KPIs ── */}
-      {sim.kpis_proyectados.length > 0 && (
-        <Card className="p-6">
-          <div className="flex items-center gap-2 mb-5">
+      {/* ── KPIs — tabla visual ── */}
+      {sim.kpis_proyectados.filter(k => k.nombre).length > 0 && (
+        <Card className="overflow-hidden">
+          <div className="flex items-center gap-2 px-6 pt-5 pb-4 border-b border-white/5">
             <BarChart3 className="w-4 h-4 text-indigo-400" />
             <p className="text-[10px] uppercase tracking-widest text-slate-500">KPIs proyectados</p>
           </div>
-          <div className="grid grid-cols-2 gap-5">
-            {sim.kpis_proyectados.map((kpi, i) => (
-              <div key={i} className="space-y-2">
-                <p className="text-xs text-slate-400">{kpi.nombre}</p>
-                <div className="flex items-center gap-3">
-                  <div className="text-center min-w-[44px]">
-                    <p className="text-base font-bold text-slate-500 tabular-nums">{kpi.antes}</p>
-                    <p className="text-[9px] text-slate-600 uppercase">Actual</p>
-                  </div>
-                  <ArrowRight className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
-                  <div className="text-center min-w-[44px]">
-                    <p className="text-base font-bold text-emerald-400 tabular-nums">{kpi.despues}</p>
-                    <p className="text-[9px] text-slate-500 uppercase">{kpi.unidad}</p>
-                  </div>
+          <div className="divide-y divide-white/5">
+            {sim.kpis_proyectados.filter(k => k.nombre).map((kpi, i) => (
+              <div key={i} className="grid grid-cols-[1fr_auto_auto_auto] items-center gap-4 px-6 py-4 hover:bg-white/[0.015] transition-colors">
+                <p className="text-sm text-slate-300">{kpi.nombre}</p>
+                <div className="text-right">
+                  <p className="text-sm font-bold text-slate-500 tabular-nums">{kpi.antes}</p>
+                  <p className="text-[9px] text-slate-700 uppercase tracking-wider">Actual</p>
+                </div>
+                <ArrowRight className="w-4 h-4 text-indigo-500/50" />
+                <div className="text-right min-w-[60px]">
+                  <p className="text-sm font-bold text-emerald-400 tabular-nums">{kpi.despues}</p>
+                  <p className="text-[9px] text-slate-600 uppercase tracking-wider">{kpi.unidad}</p>
                 </div>
               </div>
             ))}
@@ -345,27 +364,24 @@ function Resultado({ sim }: { sim: SimulacionResult }) {
         </Card>
       )}
 
-      {/* ── ROADMAP ── */}
+      {/* ── ROADMAP horizontal ── */}
       <Card className="p-6">
-        <div className="flex items-center gap-2 mb-5">
+        <div className="flex items-center gap-2 mb-6">
           <Target className="w-4 h-4 text-violet-400" />
           <p className="text-[10px] uppercase tracking-widest text-slate-500">Roadmap de implementación</p>
         </div>
         <div className="relative">
-          <div className="absolute left-[9px] top-2 bottom-2 w-px bg-gradient-to-b from-indigo-500/30 to-transparent" />
-          <div className="space-y-5">
+          {/* Línea conectora */}
+          <div className="absolute top-[18px] left-4 right-4 h-px bg-gradient-to-r from-indigo-500/30 via-violet-500/30 to-transparent" />
+          <div className="grid grid-cols-4 gap-3 relative">
             {sim.hitos.map((h, i) => (
-              <div key={i} className="flex items-start gap-4">
-                <div className="w-4 h-4 rounded-full border-2 border-indigo-500/50 bg-[#0a0a12] flex items-center justify-center shrink-0 mt-0.5">
-                  <div className="w-1.5 h-1.5 rounded-full bg-indigo-400" />
+              <div key={i} className="flex flex-col items-center text-center gap-2">
+                <div className="w-9 h-9 rounded-full border-2 border-indigo-500/40 bg-[#0a0a15] flex items-center justify-center z-10 shrink-0 shadow-[0_0_12px_rgba(99,102,241,0.15)]">
+                  <span className="text-[10px] font-black text-indigo-400">{h.mes}</span>
                 </div>
-                <div>
-                  <div className="flex items-center gap-2 mb-0.5">
-                    <span className="text-[10px] text-indigo-400 font-mono">MES {h.mes}</span>
-                    <span className="text-sm font-semibold text-white">{h.titulo}</span>
-                  </div>
-                  <p className="text-xs text-slate-500">{h.descripcion}</p>
-                </div>
+                <p className="text-[10px] text-indigo-400/60 font-mono">MES {h.mes}</p>
+                <p className="text-xs font-semibold text-white leading-tight">{h.titulo}</p>
+                {h.descripcion && <p className="text-[10px] text-slate-600 leading-relaxed">{h.descripcion}</p>}
               </div>
             ))}
           </div>
@@ -376,20 +392,23 @@ function Resultado({ sim }: { sim: SimulacionResult }) {
       <Card className="p-6">
         <div className="flex items-center gap-2 mb-4">
           <Zap className="w-4 h-4 text-amber-400" />
-          <p className="text-[10px] uppercase tracking-widest text-slate-500">Quick Wins — acciones inmediatas</p>
+          <p className="text-[10px] uppercase tracking-widest text-slate-500">Quick Wins — acciones con impacto inmediato</p>
         </div>
-        <div className="space-y-3">
-          {sim.quick_wins.map((qw, i) => (
-            <div key={i} className="flex items-start gap-3 rounded-xl border border-white/[0.05] bg-white/[0.02] p-4">
-              <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 text-xs font-bold ${qw.impacto === 'alto' ? 'bg-amber-500/15 text-amber-400' : 'bg-white/5 text-slate-500'}`}>
+        <div className="space-y-2.5">
+          {sim.quick_wins.filter(q => q.titulo).map((qw, i) => (
+            <div key={i} className="flex items-start gap-3 rounded-xl border border-white/[0.05] bg-white/[0.02] px-4 py-3.5 hover:bg-white/[0.04] transition-colors">
+              <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 text-xs font-black ${qw.impacto === 'alto' ? 'bg-amber-500/15 border border-amber-500/25 text-amber-400' : 'bg-white/5 border border-white/8 text-slate-500'}`}>
                 {i + 1}
               </div>
-              <div className="flex-1">
-                <div className="flex items-center justify-between gap-2 mb-1">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between gap-3 mb-0.5">
                   <p className="text-sm font-semibold text-white">{qw.titulo}</p>
-                  <span className="text-[10px] text-slate-600 font-mono shrink-0">{qw.plazo_dias}d</span>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    {qw.impacto === 'alto' && <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20 uppercase tracking-wide">alto impacto</span>}
+                    <span className="text-[10px] text-slate-600 font-mono">{qw.plazo_dias}d</span>
+                  </div>
                 </div>
-                <p className="text-xs text-slate-400">{qw.descripcion}</p>
+                <p className="text-xs text-slate-500">{qw.descripcion}</p>
               </div>
             </div>
           ))}
@@ -403,7 +422,7 @@ function Resultado({ sim }: { sim: SimulacionResult }) {
             <Shield className="w-4 h-4 text-rose-400" />
             <p className="text-[10px] uppercase tracking-widest text-slate-500">Riesgos eliminados</p>
           </div>
-          <ul className="space-y-2">
+          <ul className="space-y-2.5">
             {sim.riesgos_mitigados.map((r, i) => (
               <li key={i} className="flex items-start gap-2 text-xs text-slate-400">
                 <CheckCircle2 className="w-3.5 h-3.5 text-rose-400/60 mt-0.5 shrink-0" />{r}
@@ -416,21 +435,21 @@ function Resultado({ sim }: { sim: SimulacionResult }) {
             <Building2 className="w-4 h-4 text-sky-400" />
             <p className="text-[10px] uppercase tracking-widest text-slate-500">Impacto organizacional</p>
           </div>
-          <p className="text-xs text-slate-400 leading-relaxed">{sim.impacto_organizacional}</p>
+          <p className="text-sm text-slate-300 leading-relaxed">{sim.impacto_organizacional}</p>
         </Card>
       </div>
 
-      {/* ── RIESGOS QUE ESCALAN (si no implementa) ── */}
-      {(sim.sin_implementacion?.riesgos_escalados ?? []).length > 0 && (
-        <Card accent="border-rose-500/10" className="p-5">
+      {/* ── RIESGOS QUE ESCALAN ── */}
+      {(sim.sin_implementacion?.riesgos_escalados ?? []).filter(Boolean).length > 0 && (
+        <Card accent="border-amber-500/10" className="p-5">
           <div className="flex items-center gap-2 mb-4">
             <AlertCircle className="w-4 h-4 text-amber-400" />
             <p className="text-[10px] uppercase tracking-widest text-slate-500">Riesgos que se agravan si no se actúa</p>
           </div>
           <div className="grid grid-cols-2 gap-2">
-            {sim.sin_implementacion.riesgos_escalados.map((r, i) => (
-              <div key={i} className="flex items-start gap-2 text-xs text-slate-400 rounded-xl border border-rose-500/10 bg-rose-500/[0.03] px-3 py-2.5">
-                <AlertCircle className="w-3.5 h-3.5 text-amber-500/60 mt-0.5 shrink-0" />{r}
+            {sim.sin_implementacion.riesgos_escalados.filter(Boolean).map((r, i) => (
+              <div key={i} className="flex items-start gap-2 text-xs text-slate-400 rounded-xl border border-amber-500/10 bg-amber-500/[0.03] px-3 py-2.5">
+                <AlertCircle className="w-3.5 h-3.5 text-amber-500/50 mt-0.5 shrink-0" />{r}
               </div>
             ))}
           </div>
@@ -439,10 +458,10 @@ function Resultado({ sim }: { sim: SimulacionResult }) {
 
       {/* ── NOTA DEL CONSULTOR ── */}
       {sim.nota_consultor && (
-        <div className="flex items-start gap-3 px-4 py-3.5 rounded-2xl border border-amber-500/20 bg-amber-500/[0.04]">
+        <div className="flex items-start gap-3 px-5 py-4 rounded-2xl border border-amber-500/15 bg-amber-500/[0.04]">
           <AlertCircle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
-          <p className="text-xs text-amber-300/80 leading-relaxed">
-            <strong className="text-amber-300">Nota del consultor: </strong>{sim.nota_consultor}
+          <p className="text-sm text-amber-200/80 leading-relaxed">
+            <strong className="text-amber-300">Criterio clave: </strong>{sim.nota_consultor}
           </p>
         </div>
       )}
@@ -489,9 +508,25 @@ export default function HorizonteSimulador({ procesos, artefactosPorProceso, pro
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ proceso_id: procesoId, artefacto_ids: artefactoIds }),
       })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error ?? 'Error al proyectar')
-      setSim(data.simulacion)
+      if (!res.ok || !res.body) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error((data as { error?: string }).error ?? 'Error al proyectar')
+      }
+      // Consumir stream token a token
+      const reader = res.body.getReader()
+      const decoder = new TextDecoder()
+      let accumulated = ''
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        accumulated += decoder.decode(value, { stream: true })
+      }
+      if (accumulated.startsWith('__ERROR__:')) {
+        throw new Error(accumulated.replace('__ERROR__:', ''))
+      }
+      const jsonMatch = accumulated.match(/\{[\s\S]*\}/)
+      if (!jsonMatch) throw new Error('Respuesta inválida de la IA. Intenta de nuevo.')
+      setSim(JSON.parse(jsonMatch[0]) as SimulacionResult)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Error desconocido')
     } finally {

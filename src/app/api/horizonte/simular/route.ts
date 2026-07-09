@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { chatCompletion, MODELOS } from '@/lib/ai/client'
+import { togetherClient, groqClient, MODELOS_TOGETHER, MODELOS_GROQ, usesTogetherAI } from '@/lib/ai/client'
 
 export const maxDuration = 60
 
@@ -16,7 +16,6 @@ export async function POST(req: NextRequest) {
     artefacto_ids?: string[]
   }
 
-  // Cargar proceso + documento origen
   const { data: proceso } = await admin
     .from('proceso')
     .select('nombre, descripcion, roles_involucrados, metadata_ia, documento_origen_id, proyecto_id')
@@ -25,7 +24,6 @@ export async function POST(req: NextRequest) {
 
   if (!proceso) return NextResponse.json({ error: 'Proceso no encontrado' }, { status: 404 })
 
-  // Proyecto y cliente para contexto
   const { data: proyecto } = await admin
     .from('proyecto')
     .select('nombre, cliente:cliente_id(razon_social, industria)')
@@ -36,7 +34,6 @@ export async function POST(req: NextRequest) {
   const industria = cliente?.industria ?? 'empresa'
   const razonSocial = cliente?.razon_social ?? 'la organización'
 
-  // Análisis IA del documento origen
   let analisisIA: Record<string, unknown> = {}
   if (proceso.documento_origen_id) {
     const { data: doc } = await admin
@@ -50,14 +47,12 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // Artefactos seleccionados (TO-BE, KPI-SLA, etc.)
   let contenidoArtefactos = ''
   if (artefacto_ids?.length) {
     const { data: artefactos } = await admin
       .from('artefacto')
       .select('tipo, contenido')
       .in('id', artefacto_ids)
-
     for (const a of artefactos ?? []) {
       const c = a.contenido as Record<string, unknown>
       contenidoArtefactos += `\n\n[Artefacto: ${a.tipo}]\n${JSON.stringify(c).slice(0, 1200)}`
@@ -72,50 +67,142 @@ export async function POST(req: NextRequest) {
   const madurez = (analisisIA.nivel_madurez_amo as number) ?? 2
   const roles = (proceso.roles_involucrados as string[]) ?? []
 
-  const contexto = [
-    `Proceso: ${proceso.nombre}`,
-    `Empresa: ${razonSocial} | Industria: ${industria} | Madurez: ${madurez}/5`,
-    `Resumen: ${resumen.slice(0, 300)}`,
-    hallazgos.length ? `Hallazgos: ${hallazgos.slice(0, 3).join(' | ')}` : '',
-    riesgos.length ? `Riesgos: ${riesgos.slice(0, 3).map(r => r.riesgo).join(' | ')}` : '',
-    oportunidades.length ? `Oportunidades: ${oportunidades.slice(0, 3).map(o => o.oportunidad).join(' | ')}` : '',
-    contenidoArtefactos ? contenidoArtefactos.slice(0, 600) : '',
-  ].filter(Boolean).join('\n')
+  const prompt = `Eres un consultor senior de transformación empresarial con 20 años de experiencia. Tu tarea es generar una SIMULACIÓN DE IMPACTO para el proceso "${proceso.nombre}" de ${razonSocial} (industria: ${industria}).
 
-  const prompt = `Eres consultor senior de transformación empresarial. Genera una simulación de impacto realista para este proceso.
+═══ CONTEXTO DEL PROCESO ═══
+Resumen: ${resumen.slice(0, 600)}
+Nivel de madurez actual: ${madurez}/5
+Roles involucrados: ${roles.join(', ')}
 
-CONTEXTO:
-${contexto}
+Hallazgos críticos detectados:
+${hallazgos.slice(0, 5).map((h, i) => `${i + 1}. ${h}`).join('\n')}
 
-Responde SOLO con JSON válido (sin markdown, sin texto extra):
-{"impacto_global_score":<65-95>,"ahorro_anual_clp":<CLP realista>,"reduccion_tiempo_porcentaje":<15-70>,"reduccion_errores_porcentaje":<20-80>,"roi_meses":<6-36>,"empleados_liberados_horas_mes":<número>,"headline":"<8-10 palabras de impacto>","subtitulo":"<15 palabras>","transformacion_narrativa":"<3 oraciones sobre el futuro con implementación>","situacion_actual":"<2 oraciones sobre problemas actuales>","antes":["<problema 1>","<problema 2>","<problema 3>","<problema 4>"],"despues":["<mejora 1>","<mejora 2>","<mejora 3>","<mejora 4>"],"quick_wins":[{"titulo":"<acción>","descripcion":"<resultado>","plazo_dias":<30-90>,"impacto":"alto"},{"titulo":"","descripcion":"","plazo_dias":60,"impacto":"medio"},{"titulo":"","descripcion":"","plazo_dias":90,"impacto":"medio"}],"hitos":[{"mes":1,"titulo":"<hito>","descripcion":"<logro>"},{"mes":3,"titulo":"","descripcion":""},{"mes":6,"titulo":"","descripcion":""},{"mes":12,"titulo":"","descripcion":""}],"riesgos_mitigados":["<riesgo 1>","<riesgo 2>","<riesgo 3>"],"kpis_proyectados":[{"nombre":"<KPI>","antes":"<valor>","despues":"<valor>","unidad":"<unidad>"},{"nombre":"","antes":"","despues":"","unidad":""},{"nombre":"","antes":"","despues":"","unidad":""},{"nombre":"","antes":"","despues":"","unidad":""}],"impacto_organizacional":"<2 oraciones>","nivel_confianza":"alto","nota_consultor":"<1 oración clave>","sin_implementacion":{"headline":"<riesgo de no actuar 8 palabras>","costo_inaccion_anual_clp":<CLP>,"deterioro_en_meses":<6-24>,"consecuencias":["<consecuencia 1>","<consecuencia 2>","<consecuencia 3>","<consecuencia 4>"],"riesgos_escalados":["<riesgo que escala 1>","<riesgo que escala 2>"],"competitividad":"<1 oración sobre rezago competitivo>"}}`
+Riesgos identificados:
+${riesgos.slice(0, 4).map(r => `- [${r.impacto?.toUpperCase()}] ${r.riesgo}`).join('\n')}
 
-  const TIMEOUT_MS = 28000
-  const timeoutPromise = new Promise<never>((_, reject) =>
-    setTimeout(() => reject(new Error('TIMEOUT')), TIMEOUT_MS)
-  )
+Oportunidades de valor:
+${oportunidades.slice(0, 4).map(o => `- [${o.complejidad_implementacion}] ${o.oportunidad}`).join('\n')}
 
-  try {
-    const completion = await Promise.race([
-      chatCompletion({
-        model: MODELOS.rapido,
-        messages: [{ role: 'user', content: prompt }],
-        max_tokens: 1200,
-        temperature: 0.3,
-      }),
-      timeoutPromise,
-    ])
+Quick wins posibles: ${quickWins.slice(0, 3).join(' | ')}
 
-    const raw = completion.choices[0]?.message?.content ?? ''
-    const jsonMatch = raw.match(/\{[\s\S]*\}/)
-    if (!jsonMatch) return NextResponse.json({ error: 'Error al procesar la simulación' }, { status: 500 })
+${contenidoArtefactos ? `Artefactos del proceso:\n${contenidoArtefactos.slice(0, 1500)}` : ''}
 
-    const simulacion = JSON.parse(jsonMatch[0])
-    return NextResponse.json({ simulacion })
-  } catch (e) {
-    if (e instanceof Error && e.message === 'TIMEOUT') {
-      return NextResponse.json({ error: 'La proyección tardó demasiado. Intenta de nuevo.' }, { status: 504 })
-    }
-    return NextResponse.json({ error: e instanceof Error ? e.message : 'Error' }, { status: 500 })
+═══ INSTRUCCIÓN ═══
+Genera una simulación REALISTA y ESPECÍFICA de qué pasaría si este proceso se implementa exitosamente en ${razonSocial}. Los números deben ser creíbles para la industria ${industria}. Sé concreto, evita generalidades.
+
+Responde SOLO con este JSON (sin markdown):
+{
+  "impacto_global_score": <número 65-95 según la oportunidad real>,
+  "ahorro_anual_clp": <número realista en pesos chilenos>,
+  "reduccion_tiempo_porcentaje": <número 15-70>,
+  "reduccion_errores_porcentaje": <número 20-80>,
+  "roi_meses": <número 6-36>,
+  "empleados_liberados_horas_mes": <número de horas/mes liberadas>,
+  "headline": "<frase de impacto de 8-12 palabras, específica al proceso>",
+  "subtitulo": "<frase de 15-20 palabras describiendo la transformación>",
+  "transformacion_narrativa": "<párrafo de 4-5 oraciones describiendo el futuro con el proceso implementado. Usa el nombre de la empresa y del proceso explícitamente. Habla en tiempo futuro condicional.>",
+  "situacion_actual": "<2-3 oraciones describiendo los problemas actuales basados en los hallazgos>",
+  "antes": [
+    "<problema actual específico 1 basado en hallazgos>",
+    "<problema actual específico 2>",
+    "<problema actual específico 3>",
+    "<problema actual específico 4>"
+  ],
+  "despues": [
+    "<mejora concreta 1 post-implementación>",
+    "<mejora concreta 2>",
+    "<mejora concreta 3>",
+    "<mejora concreta 4>"
+  ],
+  "quick_wins": [
+    { "titulo": "<acción concreta>", "descripcion": "<resultado esperado>", "plazo_dias": <30-90>, "impacto": "<alto|medio>" },
+    { "titulo": "", "descripcion": "", "plazo_dias": 0, "impacto": "" },
+    { "titulo": "", "descripcion": "", "plazo_dias": 0, "impacto": "" }
+  ],
+  "hitos": [
+    { "mes": 1, "titulo": "<hito mes 1>", "descripcion": "<qué se logra>" },
+    { "mes": 3, "titulo": "<hito mes 3>", "descripcion": "" },
+    { "mes": 6, "titulo": "<hito mes 6>", "descripcion": "" },
+    { "mes": 12, "titulo": "<hito año 1>", "descripcion": "" }
+  ],
+  "riesgos_mitigados": [
+    "<riesgo específico del análisis que se elimina o reduce>",
+    "<riesgo 2>",
+    "<riesgo 3>"
+  ],
+  "kpis_proyectados": [
+    { "nombre": "<KPI relevante>", "antes": "<valor actual estimado>", "despues": "<valor proyectado>", "unidad": "<%, días, CLP, etc>" },
+    { "nombre": "", "antes": "", "despues": "", "unidad": "" },
+    { "nombre": "", "antes": "", "despues": "", "unidad": "" },
+    { "nombre": "", "antes": "", "despues": "", "unidad": "" }
+  ],
+  "impacto_organizacional": "<2-3 oraciones sobre cómo cambia la organización: roles, cultura, capacidades>",
+  "nivel_confianza": "<alto|medio>",
+  "nota_consultor": "<1 oración de advertencia o condición crítica para el éxito>",
+  "sin_implementacion": {
+    "headline": "<frase de 8-10 palabras describiendo el riesgo de no actuar>",
+    "costo_inaccion_anual_clp": <costo estimado de NO implementar: pérdidas, ineficiencias, multas en CLP>,
+    "deterioro_en_meses": <número de meses en que la situación se vuelve crítica sin cambios>,
+    "consecuencias": [
+      "<consecuencia grave y específica 1 de no implementar>",
+      "<consecuencia 2>",
+      "<consecuencia 3>",
+      "<consecuencia 4>"
+    ],
+    "riesgos_escalados": [
+      "<riesgo del análisis que se agravará con el tiempo>",
+      "<riesgo 2 que escala>"
+    ],
+    "competitividad": "<1-2 oraciones sobre cómo la organización quedará rezagada frente al mercado si no actúa>"
   }
+}`
+
+  const messages = [{ role: 'user' as const, content: prompt }]
+  const params = { messages, max_tokens: 2000, temperature: 0.3 }
+
+  const encoder = new TextEncoder()
+
+  // Streaming: Railway nunca corta porque hay datos fluyendo continuamente
+  const stream = new ReadableStream({
+    async start(controller) {
+      try {
+        if (usesTogetherAI && togetherClient) {
+          const streamResp = await togetherClient.chat.completions.create({
+            model: MODELOS_TOGETHER.potente,
+            ...params,
+            stream: true,
+          })
+          for await (const chunk of streamResp) {
+            const token = chunk.choices[0]?.delta?.content ?? ''
+            if (token) controller.enqueue(encoder.encode(token))
+          }
+        } else if (groqClient) {
+          const streamResp = await groqClient.chat.completions.create({
+            model: MODELOS_GROQ.potente,
+            ...params,
+            stream: true,
+          })
+          for await (const chunk of streamResp) {
+            const token = (chunk.choices[0]?.delta as { content?: string })?.content ?? ''
+            if (token) controller.enqueue(encoder.encode(token))
+          }
+        } else {
+          controller.enqueue(encoder.encode(JSON.stringify({ error: 'No hay proveedor de IA configurado' })))
+        }
+        controller.close()
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : 'Error'
+        controller.enqueue(encoder.encode(`__ERROR__:${msg}`))
+        controller.close()
+      }
+    }
+  })
+
+  return new Response(stream, {
+    headers: {
+      'Content-Type': 'text/plain; charset=utf-8',
+      'Transfer-Encoding': 'chunked',
+      'X-Accel-Buffering': 'no',
+    },
+  })
 }
