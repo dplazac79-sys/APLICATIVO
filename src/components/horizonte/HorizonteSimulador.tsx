@@ -191,89 +191,28 @@ function ProcesoSelector({ procesos, value, onChange }: {
   value: string
   onChange: (id: string) => void
 }) {
-  const [open, setOpen] = useState(false)
-  const btnRef = useRef<HTMLButtonElement>(null)
-  const listRef = useRef<HTMLDivElement>(null)
-  const [rect, setRect] = useState<DOMRect | null>(null)
   const selected = procesos.find(p => p.id === value)
-
-  // Cerrar al hacer click fuera — escucha en el documento
-  useEffect(() => {
-    if (!open) return
-    function handle(e: MouseEvent) {
-      const target = e.target as Node
-      if (!btnRef.current?.contains(target) && !listRef.current?.contains(target)) {
-        setOpen(false)
-      }
-    }
-    // mousedown para capturar antes del click de las opciones
-    document.addEventListener('mousedown', handle)
-    return () => document.removeEventListener('mousedown', handle)
-  }, [open])
-
-  // Cerrar al hacer scroll
-  useEffect(() => {
-    if (!open) return
-    const handle = () => setOpen(false)
-    window.addEventListener('scroll', handle, true)
-    return () => window.removeEventListener('scroll', handle, true)
-  }, [open])
-
-  function toggle() {
-    if (!open && btnRef.current) setRect(btnRef.current.getBoundingClientRect())
-    setOpen(o => !o)
-  }
-
-  const dropStyle: React.CSSProperties = rect ? {
-    position: 'fixed',
-    top: rect.bottom + 6,
-    left: rect.left,
-    width: rect.width,
-    zIndex: 9999,
-    maxHeight: 280,
-    overflowY: 'auto',
-  } : {}
-
   return (
-    <div>
-      <button
-        ref={btnRef}
-        onClick={toggle}
-        className="w-full flex items-center justify-between gap-3 px-5 py-4 rounded-2xl border border-white/10 bg-white/[0.04] text-left hover:border-indigo-500/40 hover:bg-white/[0.07] transition-all"
-      >
-        <div className="flex items-center gap-3 min-w-0">
-          {selected ? (
-            <>
-              <span className="text-xs font-mono font-bold text-indigo-400 shrink-0 bg-indigo-500/10 border border-indigo-500/20 px-2 py-0.5 rounded-lg">
-                {selected.codigo}
-              </span>
-              <span className="text-sm text-white truncate">{selected.nombre}</span>
-            </>
-          ) : (
-            <span className="text-sm text-slate-500">Selecciona un proceso…</span>
-          )}
-        </div>
-        <ChevronDown className={`w-4 h-4 text-slate-500 shrink-0 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
-      </button>
-
-      {open && rect && (
-        <div ref={listRef} style={dropStyle} className="rounded-2xl border border-white/10 bg-[#0c0c14] shadow-2xl">
-          {procesos.map((p, i) => (
-            <button
-              key={p.id}
-              onMouseDown={e => e.preventDefault()} // evita que click-outside dispare antes
-              onClick={() => { onChange(p.id); setOpen(false) }}
-              className={`w-full flex items-center gap-3 px-5 py-3.5 text-left transition-colors hover:bg-white/[0.06] ${p.id === value ? 'bg-indigo-500/10' : ''} ${i > 0 ? 'border-t border-white/[0.04]' : ''}`}
-            >
-              <span className={`text-xs font-mono font-bold shrink-0 px-2 py-0.5 rounded-lg border ${p.id === value ? 'text-indigo-300 bg-indigo-500/20 border-indigo-500/30' : 'text-slate-500 bg-white/[0.03] border-white/10'}`}>
-                {p.codigo}
-              </span>
-              <span className={`text-sm truncate ${p.id === value ? 'text-white font-medium' : 'text-slate-400'}`}>{p.nombre}</span>
-              {p.id === value && <CheckCircle2 className="w-4 h-4 text-indigo-400 shrink-0 ml-auto" />}
-            </button>
-          ))}
-        </div>
+    <div className="relative">
+      {/* Badge SC sobre el select */}
+      {selected && (
+        <span className="absolute left-4 top-1/2 -translate-y-1/2 z-10 text-xs font-mono font-bold text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 px-2 py-0.5 rounded-lg pointer-events-none">
+          {selected.codigo}
+        </span>
       )}
+      <select
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        className="w-full appearance-none pl-16 pr-10 py-4 rounded-2xl border border-white/10 bg-[#0f0f1a] text-white text-sm cursor-pointer hover:border-indigo-500/40 focus:outline-none focus:border-indigo-500/60 transition-all"
+        style={{ colorScheme: 'dark' }}
+      >
+        {procesos.map(p => (
+          <option key={p.id} value={p.id} className="bg-[#0f0f1a] text-white py-2">
+            {p.codigo} — {p.nombre}
+          </option>
+        ))}
+      </select>
+      <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
     </div>
   )
 }
