@@ -353,7 +353,7 @@ function VersionRow({ entry, codigoProceso, procesoId, isLast }: {
           </div>
 
           {/* Changes detail — always visible when there are changes */}
-          {isExpanded && (
+          {!entry.isOriginal && (
             <div className="border-t border-white/[0.05] px-4 pt-4 pb-4">
               <div className="flex items-center gap-2 mb-3">
                 <div className="w-1 h-4 rounded-full bg-sky-500/50" />
@@ -361,11 +361,24 @@ function VersionRow({ entry, codigoProceso, procesoId, isLast }: {
                   Qué cambió respecto a la versión anterior
                 </span>
               </div>
-              <div className="grid gap-2.5">
-                {entry.detalleCorrecciones.map((c, i) => (
-                  <CambioCard key={i} cambio={c} index={i} />
-                ))}
-              </div>
+              {totalCambios > 0 ? (
+                <div className="grid gap-2.5">
+                  {entry.detalleCorrecciones.map((c, i) => (
+                    <CambioCard key={i} cambio={c} index={i} />
+                  ))}
+                </div>
+              ) : (
+                /* Fallback for versions created before the detail structure was added */
+                <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] px-4 py-3 flex items-start gap-3">
+                  <GitBranch className="w-4 h-4 text-sky-400/60 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-xs text-slate-400 leading-relaxed">{entry.descripcion}</p>
+                    <p className="mt-1.5 text-[11px] text-slate-600">
+                      El detalle de cambios está disponible en versiones nuevas generadas desde esta actualización.
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
