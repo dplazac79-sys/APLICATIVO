@@ -162,13 +162,21 @@ Responde SOLO con este JSON (sin markdown):
   }
 }`
 
+  const TIMEOUT_MS = 28000
+  const timeoutPromise = new Promise<never>((_, reject) =>
+    setTimeout(() => reject(new Error('TIMEOUT')), TIMEOUT_MS)
+  )
+
   try {
-    const completion = await chatCompletion({
-      model: MODELOS.potente,
-      messages: [{ role: 'user', content: prompt }],
-      max_tokens: 2000,
-      temperature: 0.3,
-    })
+    const completion = await Promise.race([
+      chatCompletion({
+        model: MODELOS.potente,
+        messages: [{ role: 'user', content: prompt }],
+        max_tokens: 1800,
+        temperature: 0.3,
+      }),
+      timeoutPromise,
+    ])
 
     const raw = completion.choices[0]?.message?.content ?? ''
     const jsonMatch = raw.match(/\{[\s\S]*\}/)
@@ -177,6 +185,9 @@ Responde SOLO con este JSON (sin markdown):
     const simulacion = JSON.parse(jsonMatch[0])
     return NextResponse.json({ simulacion })
   } catch (e) {
+    if (e instanceof Error && e.message === 'TIMEOUT') {
+      return NextResponse.json({ error: 'La proyección tardó demasiado. Intenta de nuevo.' }, { status: 504 })
+    }
     return NextResponse.json({ error: e instanceof Error ? e.message : 'Error' }, { status: 500 })
   }
 }
