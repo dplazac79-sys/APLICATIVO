@@ -60,7 +60,9 @@ export async function POST(req: NextRequest) {
     )
 
     // Obtener emails de todos los responsables — 1 query en lugar de N
-    const responsableIds = [...new Set(aEscalar.map(e => e.wf.responsable_id).filter(Boolean))] as string[]
+    const responsableIdsSet: Record<string, true> = {}
+    aEscalar.forEach(e => { if (e.wf.responsable_id) responsableIdsSet[e.wf.responsable_id] = true })
+    const responsableIds = Object.keys(responsableIdsSet)
     const { data: responsables } = await admin
       .from('usuario').select('id, email').in('id', responsableIds)
     const emailMap = Object.fromEntries((responsables ?? []).map(r => [r.id, r.email as string]))
