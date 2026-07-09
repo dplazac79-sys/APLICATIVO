@@ -84,11 +84,11 @@ const TIPO_LABEL: Record<string, string> = {
 
 // ── Glass card ────────────────────────────────────────────────────────────────
 
-function Card({ children, className = '', accent = '' }: {
-  children: React.ReactNode; className?: string; accent?: string
+function Card({ children, className = '', accent = '', bg = 'bg-white/[0.04]' }: {
+  children: React.ReactNode; className?: string; accent?: string; bg?: string
 }) {
   return (
-    <div className={`rounded-2xl border bg-white/[0.04] backdrop-blur-xl ${accent || 'border-white/8'} ${className}`}>
+    <div className={`rounded-2xl border ${bg} backdrop-blur-xl ${accent || 'border-white/8'} ${className}`}>
       {children}
     </div>
   )
@@ -573,7 +573,7 @@ export default function HorizonteSimulador({ procesos, artefactosPorProceso, pro
         {/* ── EXPLICACIÓN DEL MÓDULO — visible siempre ── */}
         {!sim && !loading && (
           <div className="grid grid-cols-2 gap-4">
-            <Card accent="border-emerald-500/12" className="p-5">
+            <Card accent="border-emerald-500/20" bg="bg-emerald-950/[0.25]" className="p-5">
               <div className="flex items-center gap-2.5 mb-3">
                 <div className="w-8 h-8 rounded-xl bg-emerald-500/10 flex items-center justify-center">
                   <TrendingUp className="w-4 h-4 text-emerald-400" />
@@ -584,7 +584,7 @@ export default function HorizonteSimulador({ procesos, artefactosPorProceso, pro
                 La IA proyecta el ahorro financiero, reducción de tiempos, mejora de KPIs y el roadmap de implementación específico para este proceso en tu organización.
               </p>
             </Card>
-            <Card accent="border-rose-500/12" className="p-5">
+            <Card accent="border-rose-500/20" bg="bg-rose-950/[0.25]" className="p-5">
               <div className="flex items-center gap-2.5 mb-3">
                 <div className="w-8 h-8 rounded-xl bg-rose-500/10 flex items-center justify-center">
                   <TrendingDown className="w-4 h-4 text-rose-400" />
@@ -650,16 +650,21 @@ export default function HorizonteSimulador({ procesos, artefactosPorProceso, pro
             )}
 
             {/* CTA */}
-            <button onClick={proyectar} disabled={!procesoId || loading}
-              className="w-full flex items-center justify-center gap-3 py-4 rounded-2xl font-semibold text-sm transition-all
-                bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500
-                text-white shadow-[0_0_30px_rgba(99,102,241,0.18)] hover:shadow-[0_0_45px_rgba(99,102,241,0.30)]
-                disabled:opacity-35 disabled:cursor-not-allowed disabled:shadow-none active:scale-[0.99]">
-              <Brain className="w-4 h-4" />
-              {procesoActual
-                ? `Proyectar impacto de ${procesoActual.codigo} con IA`
-                : 'Proyectar impacto con IA'}
-            </button>
+            <div className="space-y-2">
+              <button onClick={proyectar} disabled={!procesoId || loading}
+                className="w-full flex items-center justify-center gap-3 py-4 rounded-2xl font-semibold text-sm transition-all
+                  bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500
+                  text-white shadow-[0_0_30px_rgba(99,102,241,0.18)] hover:shadow-[0_0_45px_rgba(99,102,241,0.30)]
+                  disabled:opacity-35 disabled:cursor-not-allowed disabled:shadow-none active:scale-[0.99]">
+                <Brain className="w-4 h-4" />
+                {procesoActual
+                  ? `Proyectar impacto de ${procesoActual.codigo} con IA`
+                  : 'Proyectar impacto con IA'}
+              </button>
+              {!procesoId && (
+                <p className="text-center text-[11px] text-slate-600">Selecciona un proceso para activar la proyección</p>
+              )}
+            </div>
           </Card>
         )}
 

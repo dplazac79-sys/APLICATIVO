@@ -423,11 +423,11 @@ function ProcesoCard({ proceso, artefactos, docInfo, historialProcesos }: {
         <div className="flex-1 min-w-0">
           <h3 className="text-sm font-semibold text-white truncate">{proceso.nombre}</h3>
           <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-            <span className="text-xs text-slate-500">{timeline.length} versión{timeline.length !== 1 ? 'es' : ''}</span>
+            <span className="text-xs text-slate-400">{timeline.length} versión{timeline.length !== 1 ? 'es' : ''}</span>
             {totalArtefactos > 0 && (
               <>
                 <span className="text-slate-700">·</span>
-                <span className="text-xs text-slate-500">{totalArtefactos} documento{totalArtefactos !== 1 ? 's' : ''} generado{totalArtefactos !== 1 ? 's' : ''}</span>
+                <span className="text-xs text-slate-400">{totalArtefactos} documento{totalArtefactos !== 1 ? 's' : ''} generado{totalArtefactos !== 1 ? 's' : ''}</span>
               </>
             )}
           </div>
@@ -440,8 +440,8 @@ function ProcesoCard({ proceso, artefactos, docInfo, historialProcesos }: {
             </span>
           )}
           <div className="text-right hidden sm:block">
-            <div className="text-xs font-medium text-slate-300">{latestVersion.label}</div>
-            <div className="text-[10px] text-slate-600">{fmtDateShort(latestVersion.fecha)}</div>
+            <div className={`text-xs font-semibold px-2 py-0.5 rounded-full ${latestVersion.isOriginal ? 'text-slate-500 bg-white/5' : 'text-indigo-300 bg-indigo-500/15 border border-indigo-500/25'}`}>{latestVersion.label}</div>
+            <div className="text-[10px] text-slate-500 mt-0.5 text-right">{fmtDateShort(latestVersion.fecha)}</div>
           </div>
           <div className={`transition-transform duration-200 ${open ? 'rotate-180' : ''}`}>
             <ChevronDown className="w-4 h-4 text-slate-500" />
@@ -506,7 +506,7 @@ export default function VersionesCliente({
 
   return (
     <div className="min-h-screen bg-[#0a0a0f] text-white">
-      <div className="max-w-4xl mx-auto px-4 py-10 space-y-6">
+      <div className="max-w-5xl mx-auto px-4 py-10 space-y-6">
 
         {/* Hero header card */}
         <div className="relative overflow-hidden rounded-3xl border border-white/[0.08] bg-white/[0.03]">

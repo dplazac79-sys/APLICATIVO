@@ -79,7 +79,7 @@ export default async function DashboardPage() {
       bg: 'bg-cyan-950/40 border-cyan-900/40',
       href: '/documentos',
       sub: stats.documentos === 0 ? 'Sin documentos aún' : `${stats.documentos} archivo${stats.documentos !== 1 ? 's' : ''}`,
-      subColor: stats.documentos === 0 ? 'text-amber-500' : 'text-slate-500',
+      subColor: stats.documentos === 0 ? 'text-amber-500' : 'text-slate-400',
     },
     {
       label: 'Procesos descubiertos',
@@ -89,7 +89,7 @@ export default async function DashboardPage() {
       bg: 'bg-emerald-950/40 border-emerald-900/40',
       href: '/discovery',
       sub: stats.procesosTotal > 0 ? `${stats.procesosAprobados} aprobados (${pctProcesos}%)` : 'Ejecuta Discovery AI',
-      subColor: stats.procesosTotal === 0 ? 'text-slate-500' : pctProcesos === 100 ? 'text-emerald-400' : 'text-slate-500',
+      subColor: stats.procesosTotal === 0 ? 'text-slate-400' : pctProcesos === 100 ? 'text-emerald-400' : 'text-slate-400',
     },
     {
       label: 'Artefactos generados',
@@ -99,7 +99,7 @@ export default async function DashboardPage() {
       bg: 'bg-violet-950/40 border-violet-900/40',
       href: '/artefactos',
       sub: stats.artefactos === 0 ? 'Sin artefactos aún' : `${stats.artefactos} artefacto${stats.artefactos !== 1 ? 's' : ''} metodológico${stats.artefactos !== 1 ? 's' : ''}`,
-      subColor: 'text-slate-500',
+      subColor: 'text-slate-400',
     },
     {
       label: 'Avance del proyecto',
@@ -109,7 +109,7 @@ export default async function DashboardPage() {
       bg: 'bg-indigo-950/40 border-indigo-900/40',
       href: null,
       sub: `${fasesCompletadas} de ${totalFases} fases completadas`,
-      subColor: 'text-slate-500',
+      subColor: 'text-slate-400',
     },
   ]
 

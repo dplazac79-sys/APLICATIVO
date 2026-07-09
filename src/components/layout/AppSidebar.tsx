@@ -79,12 +79,12 @@ export default function AppSidebar({ rol, open = false, onClose }: Props) {
         onClick={onClose}
         className={cn(
           'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors',
-          active ? 'bg-indigo-600/20 text-indigo-400 font-medium' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+          active ? 'bg-indigo-600/15 text-indigo-300 font-semibold border-l-2 border-indigo-500 pl-[10px]' : 'text-slate-400 hover:text-slate-200 hover:bg-white/[0.04] border-l-2 border-transparent pl-[10px]'
         )}
       >
         <Icon className="w-4 h-4 shrink-0" />
         <span className="flex-1">{item.label}</span>
-        {item.badge && <span className="text-xs text-slate-600 bg-slate-800 px-1.5 py-0.5 rounded">{item.badge}</span>}
+        {item.badge && <span className={`text-[10px] px-1.5 py-0.5 rounded font-mono ${active ? 'text-indigo-400 bg-indigo-500/10' : 'text-slate-600 bg-slate-800/60'}`}>{item.badge}</span>}
       </Link>
     )
   }

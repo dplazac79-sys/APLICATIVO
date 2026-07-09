@@ -479,7 +479,6 @@ export default function LoginPage() {
       `}</style>
 
       <BackgroundOrbs />
-      <ParticleCanvas />
 
       {/* ── Header — oculto en mobile (logo va dentro del form) ── */}
       <header className="login-header" style={{ borderBottom: '1px solid rgba(255,255,255,0.04)', padding: '16px 32px', display: isMobile ? 'none' : 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'relative', zIndex: 10 }}>
@@ -564,7 +563,7 @@ export default function LoginPage() {
 
             <p style={{
               animation: 'textIn 0.7s ease both', animationDelay: '0.5s',
-              color: '#64748b', fontSize: 16, lineHeight: 1.75, maxWidth: 520, margin: 0,
+              color: '#94a3b8', fontSize: 16, lineHeight: 1.75, maxWidth: 520, margin: 0,
             }}>
               La primera plataforma de inteligencia artificial que transforma
               documentación operacional dispersa en arquitecturas de procesos
@@ -589,7 +588,7 @@ export default function LoginPage() {
                   </div>
                   <div>
                     <p style={{ color: '#e2e8f0', fontSize: 14, fontWeight: 700, margin: '0 0 3px', letterSpacing: '-0.01em' }}>{item.title}</p>
-                    <p style={{ color: '#475569', fontSize: 12.5, lineHeight: 1.65, margin: 0 }}>{item.desc}</p>
+                    <p style={{ color: '#64748b', fontSize: 12.5, lineHeight: 1.65, margin: 0 }}>{item.desc}</p>
                   </div>
                 </div>
               ))}
@@ -601,8 +600,8 @@ export default function LoginPage() {
           {/* ── RIGHT — Formulario ── */}
           <div className="login-form-wrap" style={{ animation: 'textIn 0.8s ease both', animationDelay: '0.3s', width: isMobile ? '100%' : undefined }}>
             <div className="login-form-card" style={{
-              background: isMobile ? 'transparent' : 'rgba(8,12,24,0.85)',
-              border: isMobile ? 'none' : '1px solid rgba(255,255,255,0.08)',
+              background: isMobile ? 'transparent' : 'rgba(8,12,28,0.92)',
+              border: isMobile ? 'none' : '1px solid rgba(255,255,255,0.12)',
               borderRadius: isMobile ? 0 : 20,
               padding: isMobile ? '52px 28px 48px' : '36px 32px',
               backdropFilter: isMobile ? 'none' : 'blur(20px)',
@@ -690,7 +689,7 @@ export default function LoginPage() {
 
               <div style={{ marginBottom: isMobile ? 32 : 28 }}>
                 <h2 className="login-form-title" style={{ color: '#f8fafc', fontSize: isMobile ? 28 : 19, fontWeight: 800, margin: 0, letterSpacing: '-0.03em' }}>Acceso al portal</h2>
-                <p className="login-form-subtitle" style={{ color: '#475569', fontSize: isMobile ? 15 : 13, marginTop: 6, margin: '6px 0 0' }}>Ingresa tus credenciales corporativas</p>
+                <p className="login-form-subtitle" style={{ color: '#64748b', fontSize: isMobile ? 15 : 13, marginTop: 6, margin: '6px 0 0' }}>Ingresa tus credenciales corporativas</p>
               </div>
 
               {error && (

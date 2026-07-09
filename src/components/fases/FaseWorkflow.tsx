@@ -17,13 +17,13 @@ type Fase = {
   items: FaseItem[]
 }
 
-const COLOR_MAP: Record<string, { ring: string; bar: string; badge: string; text: string; glow: string }> = {
-  emerald: { ring: 'border-emerald-500/50', bar: 'bg-emerald-500', badge: 'bg-emerald-500/20 text-emerald-300', text: 'text-emerald-400', glow: 'shadow-emerald-500/20' },
-  blue:    { ring: 'border-blue-500/50',    bar: 'bg-blue-500',    badge: 'bg-blue-500/20 text-blue-300',    text: 'text-blue-400',    glow: 'shadow-blue-500/20' },
-  violet:  { ring: 'border-violet-500/50',  bar: 'bg-violet-500',  badge: 'bg-violet-500/20 text-violet-300',  text: 'text-violet-400',  glow: 'shadow-violet-500/20' },
-  amber:   { ring: 'border-amber-500/50',   bar: 'bg-amber-500',   badge: 'bg-amber-500/20 text-amber-300',   text: 'text-amber-400',   glow: 'shadow-amber-500/20' },
-  rose:    { ring: 'border-rose-500/50',    bar: 'bg-rose-500',    badge: 'bg-rose-500/20 text-rose-300',    text: 'text-rose-400',    glow: 'shadow-rose-500/20' },
-  cyan:    { ring: 'border-cyan-500/50',    bar: 'bg-cyan-500',    badge: 'bg-cyan-500/20 text-cyan-300',    text: 'text-cyan-400',    glow: 'shadow-cyan-500/20' },
+const COLOR_MAP: Record<string, { ring: string; bar: string; badge: string; text: string; glow: string; activeBg: string }> = {
+  emerald: { ring: 'border-emerald-500/50', bar: 'bg-emerald-500', badge: 'bg-emerald-500/20 text-emerald-300', text: 'text-emerald-400', glow: 'shadow-emerald-500/20', activeBg: 'bg-emerald-950/25' },
+  blue:    { ring: 'border-blue-500/50',    bar: 'bg-blue-500',    badge: 'bg-blue-500/20 text-blue-300',    text: 'text-blue-400',    glow: 'shadow-blue-500/20',    activeBg: 'bg-blue-950/25' },
+  violet:  { ring: 'border-violet-500/50',  bar: 'bg-violet-500',  badge: 'bg-violet-500/20 text-violet-300',  text: 'text-violet-400',  glow: 'shadow-violet-500/20',  activeBg: 'bg-violet-950/25' },
+  amber:   { ring: 'border-amber-500/50',   bar: 'bg-amber-500',   badge: 'bg-amber-500/20 text-amber-300',   text: 'text-amber-400',   glow: 'shadow-amber-500/20',   activeBg: 'bg-amber-950/25' },
+  rose:    { ring: 'border-rose-500/50',    bar: 'bg-rose-500',    badge: 'bg-rose-500/20 text-rose-300',    text: 'text-rose-400',    glow: 'shadow-rose-500/20',    activeBg: 'bg-rose-950/25' },
+  cyan:    { ring: 'border-cyan-500/50',    bar: 'bg-cyan-500',    badge: 'bg-cyan-500/20 text-cyan-300',    text: 'text-cyan-400',    glow: 'shadow-cyan-500/20',    activeBg: 'bg-cyan-950/25' },
 }
 
 export default function FaseWorkflow({ fases, compact }: { fases: Fase[]; compact?: boolean }) {
@@ -84,8 +84,8 @@ export default function FaseWorkflow({ fases, compact }: { fases: Fase[]; compac
               bloqueada
                 ? 'border-slate-800 bg-slate-900/50 opacity-60'
                 : completada
-                ? `border-slate-700 bg-slate-900 ${isOpen ? `${c.ring} shadow-lg ${c.glow}` : ''}`
-                : `${c.ring} bg-slate-900 shadow-lg ${c.glow}`
+                ? `border-slate-700/60 bg-slate-900 ${isOpen ? `${c.ring} shadow-lg ${c.glow}` : ''}`
+                : `${c.ring} ${c.activeBg} shadow-lg ${c.glow}`
             }`}
           >
             {/* Línea conectora solo en layout compacto (1 columna) */}
