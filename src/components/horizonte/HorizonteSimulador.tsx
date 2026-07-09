@@ -193,6 +193,8 @@ function ProcesoSelector({ procesos, value, onChange }: {
 }) {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
+  const btnRef = useRef<HTMLButtonElement>(null)
+  const [dropdownStyle, setDropdownStyle] = useState<React.CSSProperties>({})
   const selected = procesos.find(p => p.id === value)
 
   useEffect(() => {
@@ -203,11 +205,26 @@ function ProcesoSelector({ procesos, value, onChange }: {
     return () => document.removeEventListener('mousedown', handle)
   }, [])
 
+  function handleOpen() {
+    if (btnRef.current) {
+      const rect = btnRef.current.getBoundingClientRect()
+      setDropdownStyle({
+        position: 'fixed',
+        top: rect.bottom + 8,
+        left: rect.left,
+        width: rect.width,
+        zIndex: 9999,
+      })
+    }
+    setOpen(o => !o)
+  }
+
   return (
-    <div ref={ref} className="relative">
+    <div ref={ref}>
       <button
-        onClick={() => setOpen(o => !o)}
-        className="w-full flex items-center justify-between gap-3 px-5 py-4 rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-sm text-left hover:border-indigo-500/40 hover:bg-white/[0.07] transition-all group"
+        ref={btnRef}
+        onClick={handleOpen}
+        className="w-full flex items-center justify-between gap-3 px-5 py-4 rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-sm text-left hover:border-indigo-500/40 hover:bg-white/[0.07] transition-all"
       >
         <div className="flex items-center gap-3 min-w-0">
           {selected ? (
@@ -225,7 +242,7 @@ function ProcesoSelector({ procesos, value, onChange }: {
       </button>
 
       {open && (
-        <div className="absolute top-full left-0 right-0 mt-2 z-50 rounded-2xl border border-white/10 bg-slate-900/98 backdrop-blur-2xl shadow-2xl overflow-hidden">
+        <div style={dropdownStyle} className="rounded-2xl border border-white/10 bg-[#0d0d14]/98 backdrop-blur-2xl shadow-2xl overflow-hidden max-h-72 overflow-y-auto">
           {procesos.map((p, i) => (
             <button
               key={p.id}
