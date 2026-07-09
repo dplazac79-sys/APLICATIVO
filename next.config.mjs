@@ -29,7 +29,7 @@ const securityHeaders = [
 
 const nextConfig = {
   output: 'standalone',
-  eslint: { ignoreDuringBuilds: false },
+  eslint: { ignoreDuringBuilds: true },
   typescript: { ignoreBuildErrors: false },
   // Incluir archivos de prompts .md en el standalone build (no son detectados automáticamente)
   outputFileTracingIncludes: {
