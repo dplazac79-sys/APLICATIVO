@@ -206,6 +206,9 @@ function ProcesoSelector({ procesos, value, onChange }: {
         className="w-full appearance-none pl-16 pr-10 py-4 rounded-2xl border border-white/10 bg-[#0f0f1a] text-white text-sm cursor-pointer hover:border-indigo-500/40 focus:outline-none focus:border-indigo-500/60 transition-all"
         style={{ colorScheme: 'dark' }}
       >
+        <option value="" disabled className="bg-[#0f0f1a] text-slate-500">
+          Elige el proceso a simular…
+        </option>
         {procesos.map(p => (
           <option key={p.id} value={p.id} className="bg-[#0f0f1a] text-white py-2">
             {p.codigo} — {p.nombre}
