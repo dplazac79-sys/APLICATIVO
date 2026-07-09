@@ -72,95 +72,23 @@ export async function POST(req: NextRequest) {
   const madurez = (analisisIA.nivel_madurez_amo as number) ?? 2
   const roles = (proceso.roles_involucrados as string[]) ?? []
 
-  const prompt = `Eres un consultor senior de transformación empresarial con 20 años de experiencia. Tu tarea es generar una SIMULACIÓN DE IMPACTO para el proceso "${proceso.nombre}" de ${razonSocial} (industria: ${industria}).
+  const contexto = [
+    `Proceso: ${proceso.nombre}`,
+    `Empresa: ${razonSocial} | Industria: ${industria} | Madurez: ${madurez}/5`,
+    `Resumen: ${resumen.slice(0, 300)}`,
+    hallazgos.length ? `Hallazgos: ${hallazgos.slice(0, 3).join(' | ')}` : '',
+    riesgos.length ? `Riesgos: ${riesgos.slice(0, 3).map(r => r.riesgo).join(' | ')}` : '',
+    oportunidades.length ? `Oportunidades: ${oportunidades.slice(0, 3).map(o => o.oportunidad).join(' | ')}` : '',
+    contenidoArtefactos ? contenidoArtefactos.slice(0, 600) : '',
+  ].filter(Boolean).join('\n')
 
-═══ CONTEXTO DEL PROCESO ═══
-Resumen: ${resumen.slice(0, 600)}
-Nivel de madurez actual: ${madurez}/5
-Roles involucrados: ${roles.join(', ')}
+  const prompt = `Eres consultor senior de transformación empresarial. Genera una simulación de impacto realista para este proceso.
 
-Hallazgos críticos detectados:
-${hallazgos.slice(0, 5).map((h, i) => `${i + 1}. ${h}`).join('\n')}
+CONTEXTO:
+${contexto}
 
-Riesgos identificados:
-${riesgos.slice(0, 4).map(r => `- [${r.impacto?.toUpperCase()}] ${r.riesgo}`).join('\n')}
-
-Oportunidades de valor:
-${oportunidades.slice(0, 4).map(o => `- [${o.complejidad_implementacion}] ${o.oportunidad}`).join('\n')}
-
-Quick wins posibles: ${quickWins.slice(0, 3).join(' | ')}
-
-${contenidoArtefactos ? `Artefactos del proceso:\n${contenidoArtefactos.slice(0, 1500)}` : ''}
-
-═══ INSTRUCCIÓN ═══
-Genera una simulación REALISTA y ESPECÍFICA de qué pasaría si este proceso se implementa exitosamente en ${razonSocial}. Los números deben ser creíbles para la industria ${industria}. Sé concreto, evita generalidades.
-
-Responde SOLO con este JSON (sin markdown):
-{
-  "impacto_global_score": <número 65-95 según la oportunidad real>,
-  "ahorro_anual_clp": <número realista en pesos chilenos>,
-  "reduccion_tiempo_porcentaje": <número 15-70>,
-  "reduccion_errores_porcentaje": <número 20-80>,
-  "roi_meses": <número 6-36>,
-  "empleados_liberados_horas_mes": <número de horas/mes liberadas>,
-  "headline": "<frase de impacto de 8-12 palabras, específica al proceso>",
-  "subtitulo": "<frase de 15-20 palabras describiendo la transformación>",
-  "transformacion_narrativa": "<párrafo de 4-5 oraciones describiendo el futuro con el proceso implementado. Usa el nombre de la empresa y del proceso explícitamente. Habla en tiempo futuro condicional.>",
-  "situacion_actual": "<2-3 oraciones describiendo los problemas actuales basados en los hallazgos>",
-  "antes": [
-    "<problema actual específico 1 basado en hallazgos>",
-    "<problema actual específico 2>",
-    "<problema actual específico 3>",
-    "<problema actual específico 4>"
-  ],
-  "despues": [
-    "<mejora concreta 1 post-implementación>",
-    "<mejora concreta 2>",
-    "<mejora concreta 3>",
-    "<mejora concreta 4>"
-  ],
-  "quick_wins": [
-    { "titulo": "<acción concreta>", "descripcion": "<resultado esperado>", "plazo_dias": <30-90>, "impacto": "<alto|medio>" },
-    { "titulo": "", "descripcion": "", "plazo_dias": 0, "impacto": "" },
-    { "titulo": "", "descripcion": "", "plazo_dias": 0, "impacto": "" }
-  ],
-  "hitos": [
-    { "mes": 1, "titulo": "<hito mes 1>", "descripcion": "<qué se logra>" },
-    { "mes": 3, "titulo": "<hito mes 3>", "descripcion": "" },
-    { "mes": 6, "titulo": "<hito mes 6>", "descripcion": "" },
-    { "mes": 12, "titulo": "<hito año 1>", "descripcion": "" }
-  ],
-  "riesgos_mitigados": [
-    "<riesgo específico del análisis que se elimina o reduce>",
-    "<riesgo 2>",
-    "<riesgo 3>"
-  ],
-  "kpis_proyectados": [
-    { "nombre": "<KPI relevante>", "antes": "<valor actual estimado>", "despues": "<valor proyectado>", "unidad": "<%, días, CLP, etc>" },
-    { "nombre": "", "antes": "", "despues": "", "unidad": "" },
-    { "nombre": "", "antes": "", "despues": "", "unidad": "" },
-    { "nombre": "", "antes": "", "despues": "", "unidad": "" }
-  ],
-  "impacto_organizacional": "<2-3 oraciones sobre cómo cambia la organización: roles, cultura, capacidades>",
-  "nivel_confianza": "<alto|medio>",
-  "nota_consultor": "<1 oración de advertencia o condición crítica para el éxito>",
-  "sin_implementacion": {
-    "headline": "<frase de 8-10 palabras describiendo el riesgo de no actuar>",
-    "costo_inaccion_anual_clp": <costo estimado de NO implementar: pérdidas, ineficiencias, multas en CLP>,
-    "deterioro_en_meses": <número de meses en que la situación se vuelve crítica sin cambios>,
-    "consecuencias": [
-      "<consecuencia grave y específica 1 de no implementar>",
-      "<consecuencia 2>",
-      "<consecuencia 3>",
-      "<consecuencia 4>"
-    ],
-    "riesgos_escalados": [
-      "<riesgo del análisis que se agravará con el tiempo>",
-      "<riesgo 2 que escala>"
-    ],
-    "competitividad": "<1-2 oraciones sobre cómo la organización quedará rezagada frente al mercado si no actúa>"
-  }
-}`
+Responde SOLO con JSON válido (sin markdown, sin texto extra):
+{"impacto_global_score":<65-95>,"ahorro_anual_clp":<CLP realista>,"reduccion_tiempo_porcentaje":<15-70>,"reduccion_errores_porcentaje":<20-80>,"roi_meses":<6-36>,"empleados_liberados_horas_mes":<número>,"headline":"<8-10 palabras de impacto>","subtitulo":"<15 palabras>","transformacion_narrativa":"<3 oraciones sobre el futuro con implementación>","situacion_actual":"<2 oraciones sobre problemas actuales>","antes":["<problema 1>","<problema 2>","<problema 3>","<problema 4>"],"despues":["<mejora 1>","<mejora 2>","<mejora 3>","<mejora 4>"],"quick_wins":[{"titulo":"<acción>","descripcion":"<resultado>","plazo_dias":<30-90>,"impacto":"alto"},{"titulo":"","descripcion":"","plazo_dias":60,"impacto":"medio"},{"titulo":"","descripcion":"","plazo_dias":90,"impacto":"medio"}],"hitos":[{"mes":1,"titulo":"<hito>","descripcion":"<logro>"},{"mes":3,"titulo":"","descripcion":""},{"mes":6,"titulo":"","descripcion":""},{"mes":12,"titulo":"","descripcion":""}],"riesgos_mitigados":["<riesgo 1>","<riesgo 2>","<riesgo 3>"],"kpis_proyectados":[{"nombre":"<KPI>","antes":"<valor>","despues":"<valor>","unidad":"<unidad>"},{"nombre":"","antes":"","despues":"","unidad":""},{"nombre":"","antes":"","despues":"","unidad":""},{"nombre":"","antes":"","despues":"","unidad":""}],"impacto_organizacional":"<2 oraciones>","nivel_confianza":"alto","nota_consultor":"<1 oración clave>","sin_implementacion":{"headline":"<riesgo de no actuar 8 palabras>","costo_inaccion_anual_clp":<CLP>,"deterioro_en_meses":<6-24>,"consecuencias":["<consecuencia 1>","<consecuencia 2>","<consecuencia 3>","<consecuencia 4>"],"riesgos_escalados":["<riesgo que escala 1>","<riesgo que escala 2>"],"competitividad":"<1 oración sobre rezago competitivo>"}}`
 
   const TIMEOUT_MS = 28000
   const timeoutPromise = new Promise<never>((_, reject) =>
@@ -170,9 +98,9 @@ Responde SOLO con este JSON (sin markdown):
   try {
     const completion = await Promise.race([
       chatCompletion({
-        model: MODELOS.potente,
+        model: MODELOS.rapido,
         messages: [{ role: 'user', content: prompt }],
-        max_tokens: 1800,
+        max_tokens: 1200,
         temperature: 0.3,
       }),
       timeoutPromise,
