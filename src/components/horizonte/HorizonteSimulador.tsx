@@ -101,39 +101,87 @@ function AnimNum({ target, active, suffix = '', prefix = '', duration = 1800 }: 
 
 function LoadingState() {
   const steps = [
-    'Leyendo análisis del proceso…',
-    'Calculando impacto operacional…',
-    'Proyectando retorno financiero…',
-    'Evaluando riesgo de no actuar…',
-    'Generando proyección completa…',
+    { label: 'Leyendo análisis del proceso', icon: '📋' },
+    { label: 'Calculando impacto operacional', icon: '⚙️' },
+    { label: 'Proyectando retorno financiero', icon: '📈' },
+    { label: 'Evaluando riesgo de no actuar', icon: '⚠️' },
+    { label: 'Generando proyección completa', icon: '✦' },
   ]
   const [step, setStep] = useState(0)
   useEffect(() => {
-    const t = setInterval(() => setStep(s => Math.min(s + 1, steps.length - 1)), 1900)
+    const t = setInterval(() => setStep(s => Math.min(s + 1, steps.length - 1)), 2000)
     return () => clearInterval(t)
   }, [])
 
   return (
-    <Card className="py-20 px-8">
-      <div className="flex flex-col items-center gap-8 max-w-sm mx-auto text-center">
-        <div className="relative w-24 h-24">
-          <div className="absolute inset-0 rounded-full border border-indigo-500/20 animate-ping" />
-          <div className="absolute inset-3 rounded-full border border-violet-500/30 animate-ping" style={{ animationDelay: '0.5s' }} />
-          <div className="absolute inset-6 rounded-full border border-blue-400/40 animate-ping" style={{ animationDelay: '1s' }} />
-          <div className="absolute inset-0 flex items-center justify-center">
-            <Brain className="w-9 h-9 text-indigo-400 animate-pulse" />
+    <Card className="px-8 py-16 overflow-hidden relative">
+      {/* Fondo animado */}
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-indigo-600/5 rounded-full blur-[80px] animate-pulse" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] bg-violet-600/8 rounded-full blur-[60px] animate-pulse" style={{ animationDelay: '1s' }} />
+      </div>
+
+      <div className="relative flex flex-col items-center gap-10 max-w-md mx-auto text-center">
+
+        {/* Orbe central */}
+        <div className="relative flex items-center justify-center" style={{ width: 120, height: 120 }}>
+          {/* Anillos giratorios */}
+          <div className="absolute inset-0 rounded-full border border-indigo-500/20"
+            style={{ animation: 'spin 8s linear infinite' }} />
+          <div className="absolute inset-2 rounded-full border border-violet-500/15"
+            style={{ animation: 'spin 6s linear infinite reverse' }} />
+          <div className="absolute inset-4 rounded-full border border-indigo-400/10"
+            style={{ animation: 'spin 4s linear infinite' }} />
+
+          {/* Puntos orbitales */}
+          <div className="absolute inset-0" style={{ animation: 'spin 4s linear infinite' }}>
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-indigo-400 shadow-[0_0_8px_rgba(129,140,248,0.8)]" />
+          </div>
+          <div className="absolute inset-0" style={{ animation: 'spin 6s linear infinite reverse' }}>
+            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 w-1.5 h-1.5 rounded-full bg-violet-400 shadow-[0_0_6px_rgba(167,139,250,0.8)]" />
+          </div>
+
+          {/* Centro */}
+          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-600/30 to-violet-600/20 border border-indigo-500/30 flex items-center justify-center backdrop-blur-sm shadow-[0_0_30px_rgba(99,102,241,0.2)]">
+            <span className="text-2xl" style={{ animation: 'pulse 2s ease-in-out infinite' }}>
+              {steps[step].icon}
+            </span>
           </div>
         </div>
-        <div className="space-y-2">
-          <p className="text-white font-semibold text-lg">Proyectando con IA</p>
-          <p className="text-slate-400 text-sm h-5">{steps[step]}</p>
-          <div className="flex gap-1.5 justify-center pt-1">
-            {steps.map((_, i) => (
-              <div key={i} className={`h-1 rounded-full transition-all duration-500 ${i <= step ? 'bg-indigo-500 w-5' : 'bg-white/10 w-2'}`} />
+
+        {/* Texto */}
+        <div className="space-y-3 w-full">
+          <p className="text-white font-bold text-xl tracking-tight">Proyectando con IA</p>
+          <p key={step} className="text-slate-400 text-sm" style={{ animation: 'fadeIn 0.4s ease-out' }}>
+            {steps[step].label}…
+          </p>
+
+          {/* Progress steps */}
+          <div className="flex items-center gap-2 justify-center pt-2">
+            {steps.map((s, i) => (
+              <div key={i} className="flex items-center gap-2">
+                <div className={`transition-all duration-500 rounded-full flex items-center justify-center
+                  ${i < step ? 'w-5 h-5 bg-indigo-500/30 border border-indigo-500/50' :
+                    i === step ? 'w-6 h-6 bg-indigo-500/20 border border-indigo-500 shadow-[0_0_10px_rgba(99,102,241,0.4)]' :
+                    'w-3 h-3 bg-white/5 border border-white/10'}`}>
+                  {i < step && <span className="text-[8px] text-indigo-400">✓</span>}
+                  {i === step && <div className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse" />}
+                </div>
+                {i < steps.length - 1 && (
+                  <div className={`h-px w-4 transition-all duration-500 ${i < step ? 'bg-indigo-500/40' : 'bg-white/8'}`} />
+                )}
+              </div>
             ))}
           </div>
+
+          <p className="text-slate-600 text-xs">Esto puede tomar hasta 30 segundos</p>
         </div>
       </div>
+
+      <style>{`
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+      `}</style>
     </Card>
   )
 }
