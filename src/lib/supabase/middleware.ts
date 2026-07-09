@@ -28,7 +28,7 @@ export async function updateSession(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
 
   // Rutas públicas (no requieren autenticación)
-  const publicPaths = ['/login', '/auth/callback', '/auth/confirm', '/api/inngest', '/api/admin/reprocesar-documentos']
+  const publicPaths = ['/login', '/auth/callback', '/auth/confirm', '/api/inngest', '/api/admin/reprocesar-documentos', '/cambiar-password']
   const isPublic = publicPaths.some(p => request.nextUrl.pathname.startsWith(p))
 
   if (!user && !isPublic) {
@@ -37,40 +37,25 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  // Enforcement MFA: si el usuario tiene MFA enrollado (nextLevel = aal2)
-  // pero la sesión actual solo alcanzó AAL1, redirigir al challenge.
-  // Las rutas /mfa/* están exentas para no crear un loop de redirección.
   if (user) {
-    const mfaPaths = ['/mfa/enroll', '/mfa/challenge']
-    const isMfaRoute = mfaPaths.some(p => request.nextUrl.pathname.startsWith(p))
+    const pathname = request.nextUrl.pathname
 
-    if (!isMfaRoute) {
+    // Si el usuario debe cambiar contraseña, redirigir antes de cualquier otra cosa
+    if (user.user_metadata?.must_change_password === true && pathname !== '/cambiar-password') {
+      const url = request.nextUrl.clone()
+      url.pathname = '/cambiar-password'
+      return NextResponse.redirect(url)
+    }
+
+    if (pathname === '/') {
       const { data: usuario } = await supabase
         .from('usuario')
-        .select('rol, mfa_habilitado')
+        .select('rol')
         .eq('id', user.id)
         .single()
-
-      // Solo forzar MFA si el usuario lo tiene habilitado
-      if (usuario?.mfa_habilitado !== false) {
-        const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel()
-        if (aal && aal.nextLevel === 'aal2' && aal.nextLevel !== aal.currentLevel) {
-          const url = request.nextUrl.clone()
-          url.pathname = '/mfa/challenge'
-          return NextResponse.redirect(url)
-        }
-      }
-
-      const pathname = request.nextUrl.pathname
-      if (pathname === '/') {
-        const url = request.nextUrl.clone()
-        if (usuario?.rol === 'usuario_cliente') {
-          url.pathname = '/portal'
-        } else {
-          url.pathname = '/bienvenida'
-        }
-        return NextResponse.redirect(url)
-      }
+      const url = request.nextUrl.clone()
+      url.pathname = usuario?.rol === 'usuario_cliente' ? '/portal' : '/bienvenida'
+      return NextResponse.redirect(url)
     }
   }
 

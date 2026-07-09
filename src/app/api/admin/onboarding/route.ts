@@ -88,7 +88,7 @@ export async function POST(req: NextRequest) {
           email: miembro.email,
           password: miembro.password,
           email_confirm: true,
-          user_metadata: { full_name: miembro.nombre },
+          user_metadata: { full_name: miembro.nombre, must_change_password: true },
         })
 
         if (errCreate || !creado?.user) {

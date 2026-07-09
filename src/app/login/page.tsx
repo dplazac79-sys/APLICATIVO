@@ -345,16 +345,14 @@ export default function LoginPage() {
       setLoading(false)
       return
     }
-    const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel()
     const { data: { user } } = await supabase.auth.getUser()
+    // Si el admin le creó la contraseña, forzar cambio antes de entrar
+    if (user?.user_metadata?.must_change_password === true) {
+      router.push('/cambiar-password')
+      return
+    }
     const { data: usuario } = await supabase.from('usuario').select('rol').eq('id', user!.id).single()
-    const rolConMfa = ['super_admin', 'director_proyecto', 'consultor', 'sponsor_cliente'].includes(usuario?.rol ?? '')
-
-    if (aal?.nextLevel === 'aal2' && aal.currentLevel !== aal.nextLevel) {
-      router.push('/mfa/challenge')
-    } else if (aal?.nextLevel === 'aal1' && rolConMfa) {
-      router.push('/mfa/enroll')
-    } else if (usuario?.rol === 'usuario_cliente') {
+    if (usuario?.rol === 'usuario_cliente') {
       router.push('/portal')
     } else {
       router.push('/bienvenida')
@@ -756,7 +754,7 @@ export default function LoginPage() {
                     <svg width="11" height="11" viewBox="0 0 16 16" fill="none" style={{ color: '#38bdf8' }}>
                       <path d="M8 1L2 4v4c0 3.3 2.5 6.4 6 7 3.5-.6 6-3.7 6-7V4L8 1Z" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round"/>
                     </svg>
-                    <span style={{ color: '#38bdf8', fontSize: 11, fontWeight: 500 }}>MFA activo</span>
+                    <span style={{ color: '#38bdf8', fontSize: 11, fontWeight: 500 }}>Conexión segura</span>
                   </div>
                 </div>
 
