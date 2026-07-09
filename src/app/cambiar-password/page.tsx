@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
@@ -29,7 +29,7 @@ function strengthLevel(checks: PasswordCheck[]): { level: number; label: string;
 
 // ── Componente principal ───────────────────────────────────────────────────────
 
-export default function CambiarPasswordPage() {
+function CambiarPasswordForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const expired = searchParams.get('expired') === '1'
@@ -276,5 +276,15 @@ export default function CambiarPasswordPage() {
         <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
       </div>
     </div>
+  )
+}
+
+export default function CambiarPasswordPage() {
+  return (
+    <Suspense fallback={
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#04060f' }} />
+    }>
+      <CambiarPasswordForm />
+    </Suspense>
   )
 }
