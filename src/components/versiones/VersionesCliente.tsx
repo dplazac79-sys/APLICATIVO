@@ -88,15 +88,35 @@ function fmtDateShort(iso: string) {
   return new Date(iso).toLocaleDateString('es-CL', { day: '2-digit', month: 'short' })
 }
 
+interface CambioDetalle {
+  tipo: string
+  observacion: string
+  texto_original?: string
+  fecha?: string
+}
+
 interface VersionEntry {
   label: string
   numero: number
   fecha: string
   descripcion: string
-  cambios: string[]
+  detalleCorrecciones: CambioDetalle[]
   isLatest: boolean
   isOriginal: boolean
-  documentoId: string | null  // for original doc download via signed-url API
+  documentoId: string | null
+}
+
+const TIPO_LABELS: Record<string, { label: string; color: string; bg: string; border: string }> = {
+  hallazgo:  { label: 'Hallazgo',    color: 'text-amber-300',  bg: 'bg-amber-500/10',  border: 'border-amber-500/20' },
+  riesgo:    { label: 'Riesgo',      color: 'text-red-300',    bg: 'bg-red-500/10',    border: 'border-red-500/20'   },
+  brecha:    { label: 'Brecha',      color: 'text-orange-300', bg: 'bg-orange-500/10', border: 'border-orange-500/20'},
+  rol:       { label: 'Rol',         color: 'text-violet-300', bg: 'bg-violet-500/10', border: 'border-violet-500/20'},
+  proceso:   { label: 'Proceso',     color: 'text-sky-300',    bg: 'bg-sky-500/10',    border: 'border-sky-500/20'   },
+  otro:      { label: 'Cambio',      color: 'text-slate-300',  bg: 'bg-slate-500/10',  border: 'border-slate-500/20' },
+}
+
+function getTipo(tipo: string) {
+  return TIPO_LABELS[tipo?.toLowerCase()] ?? TIPO_LABELS.otro
 }
 
 function buildVersionTimeline(p: Proceso, docInfo: DocumentoInfo | undefined): VersionEntry[] {
@@ -111,7 +131,7 @@ function buildVersionTimeline(p: Proceso, docInfo: DocumentoInfo | undefined): V
     descripcion: docInfo
       ? `Documento base "${docInfo.nombre_archivo}" subido en Centro Documental.`
       : 'Documento base subido en Centro Documental.',
-    cambios: [],
+    detalleCorrecciones: [],
     isLatest: versiones.length === 0,
     isOriginal: true,
     documentoId: p.documento_origen_id ?? null,
@@ -119,18 +139,14 @@ function buildVersionTimeline(p: Proceso, docInfo: DocumentoInfo | undefined): V
 
   versiones.forEach((v, i) => {
     const numero = (v.numero as number) ?? (i + 1)
-    const detalle = (v.detalle_correcciones ?? []) as Array<{ tipo: string; observacion: string }>
-    const cambios = detalle.slice(0, 4).map(c =>
-      `${c.tipo.charAt(0).toUpperCase() + c.tipo.slice(1)}: ${(c.observacion ?? '').slice(0, 90)}${(c.observacion?.length ?? 0) > 90 ? '…' : ''}`
-    )
-    if (detalle.length > 4) cambios.push(`+${detalle.length - 4} cambio${detalle.length - 4 > 1 ? 's' : ''} más`)
+    const detalleCorrecciones = (v.detalle_correcciones ?? []) as CambioDetalle[]
 
     entries.push({
       label: `V${numero}`,
       numero,
       fecha: (v.fecha as string) ?? p.updated_at,
       descripcion: (v.descripcion as string) ?? `Versión ${numero}`,
-      cambios,
+      detalleCorrecciones,
       isLatest: i === versiones.length - 1,
       isOriginal: false,
       documentoId: null,
@@ -225,6 +241,44 @@ function DownloadBtn({ entry, codigoProceso, procesoId }: {
   )
 }
 
+// ─── Change Detail Card ────────────────────────────────────────────────────────
+
+function CambioCard({ cambio, index }: { cambio: CambioDetalle; index: number }) {
+  const cfg = getTipo(cambio.tipo)
+  return (
+    <div className={`rounded-xl border p-3.5 ${cfg.bg} ${cfg.border}`}>
+      <div className="flex items-start justify-between gap-2 mb-2">
+        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide ${cfg.color} ${cfg.bg} border ${cfg.border}`}>
+          {cfg.label}
+        </span>
+        <span className="text-[10px] text-slate-600 flex-shrink-0">#{index + 1}</span>
+      </div>
+
+      {cambio.texto_original && (
+        <div className="mb-2">
+          <div className="text-[10px] text-slate-600 uppercase tracking-wide mb-1 font-medium">Texto original</div>
+          <div className="text-[11px] text-slate-500 leading-relaxed bg-black/20 rounded-lg px-2.5 py-2 border border-white/[0.04] italic">
+            "{cambio.texto_original.slice(0, 200)}{cambio.texto_original.length > 200 ? '…' : ''}"
+          </div>
+        </div>
+      )}
+
+      <div>
+        <div className="text-[10px] text-slate-600 uppercase tracking-wide mb-1 font-medium">Observación del cliente</div>
+        <div className={`text-xs leading-relaxed font-medium ${cfg.color}`}>
+          {cambio.observacion}
+        </div>
+      </div>
+
+      {cambio.fecha && (
+        <div className="mt-2 text-[10px] text-slate-600">
+          Registrado: {new Date(cambio.fecha).toLocaleDateString('es-CL', { day: '2-digit', month: 'short', year: 'numeric' })}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ─── Version Row ───────────────────────────────────────────────────────────────
 
 function VersionRow({ entry, codigoProceso, procesoId, isLast }: {
@@ -233,7 +287,8 @@ function VersionRow({ entry, codigoProceso, procesoId, isLast }: {
   procesoId: string
   isLast: boolean
 }) {
-  const [expanded, setExpanded] = useState(false)
+  const totalCambios = entry.detalleCorrecciones.length
+  const isExpanded = !entry.isOriginal && totalCambios > 0
 
   return (
     <div className="relative flex gap-4">
@@ -241,7 +296,7 @@ function VersionRow({ entry, codigoProceso, procesoId, isLast }: {
         <div className="absolute left-[19px] top-10 bottom-0 w-px bg-white/[0.05]" />
       )}
 
-      {/* Dot */}
+      {/* Timeline dot */}
       <div className="flex-shrink-0 mt-1">
         {entry.isLatest && !entry.isOriginal ? (
           <div className="w-10 h-10 rounded-full bg-emerald-500/20 border-2 border-emerald-500/40 flex items-center justify-center">
@@ -260,52 +315,67 @@ function VersionRow({ entry, codigoProceso, procesoId, isLast }: {
 
       {/* Card */}
       <div className="flex-1 pb-5">
-        <div className={`rounded-xl border p-4 transition-all
+        <div className={`rounded-2xl border overflow-hidden transition-all
           ${entry.isLatest && !entry.isOriginal
-            ? 'bg-emerald-500/[0.05] border-emerald-500/20'
-            : 'bg-white/[0.025] border-white/[0.05] hover:bg-white/[0.04]'
+            ? 'bg-emerald-500/[0.04] border-emerald-500/20'
+            : 'bg-white/[0.025] border-white/[0.06]'
           }`}
         >
-          <div className="flex items-start justify-between gap-3 flex-wrap">
-            <div className="space-y-1.5">
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-sm font-semibold text-white">
-                  {codigoProceso} {entry.label}
-                </span>
-                <VersionBadge label={entry.label} isLatest={entry.isLatest} isOriginal={entry.isOriginal} />
-                {entry.isLatest && !entry.isOriginal && (
-                  <span className="text-[10px] text-emerald-400/60 font-medium">Para entrega tecnológica</span>
-                )}
+          {/* Version header */}
+          <div className="p-4">
+            <div className="flex items-start justify-between gap-3 flex-wrap">
+              <div className="space-y-1.5">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-sm font-bold text-white">{codigoProceso} {entry.label}</span>
+                  <VersionBadge label={entry.label} isLatest={entry.isLatest} isOriginal={entry.isOriginal} />
+                  {entry.isLatest && !entry.isOriginal && (
+                    <span className="text-[10px] text-emerald-400/70 font-semibold">Para entrega tecnológica</span>
+                  )}
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="flex items-center gap-1.5 text-xs text-slate-500">
+                    <Clock className="w-3 h-3" />
+                    {fmtDate(entry.fecha)}
+                  </span>
+                  {totalCambios > 0 && (
+                    <span className="flex items-center gap-1 text-[11px] text-sky-400/70 font-medium">
+                      <ChevronDown className="w-3 h-3" />
+                      {totalCambios} cambio{totalCambios !== 1 ? 's' : ''} incorporado{totalCambios !== 1 ? 's' : ''}
+                    </span>
+                  )}
+                </div>
               </div>
-              <div className="flex items-center gap-1.5 text-xs text-slate-500">
-                <Clock className="w-3 h-3" />
-                {fmtDate(entry.fecha)}
-              </div>
+              <DownloadBtn entry={entry} codigoProceso={codigoProceso} procesoId={procesoId} />
             </div>
-            <DownloadBtn entry={entry} codigoProceso={codigoProceso} procesoId={procesoId} />
+
+            {/* Version description */}
+            <p className="mt-2.5 text-xs text-slate-400 leading-relaxed">{entry.descripcion}</p>
           </div>
 
-          <p className="mt-2.5 text-xs text-slate-400 leading-relaxed">{entry.descripcion}</p>
+          {/* Changes detail — always visible when there are changes */}
+          {isExpanded && (
+            <div className="border-t border-white/[0.05] px-4 pt-4 pb-4">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-1 h-4 rounded-full bg-sky-500/50" />
+                <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-widest">
+                  Qué cambió respecto a la versión anterior
+                </span>
+              </div>
+              <div className="grid gap-2.5">
+                {entry.detalleCorrecciones.map((c, i) => (
+                  <CambioCard key={i} cambio={c} index={i} />
+                ))}
+              </div>
+            </div>
+          )}
 
-          {entry.cambios.length > 0 && (
-            <div className="mt-3">
-              <button
-                onClick={() => setExpanded(e => !e)}
-                className="flex items-center gap-1.5 text-[11px] text-slate-500 hover:text-slate-300 transition-colors"
-              >
-                {expanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-                {entry.cambios.filter(c => !c.startsWith('+')).length} cambio{entry.cambios.filter(c => !c.startsWith('+')).length !== 1 ? 's' : ''} respecto a la versión anterior
-              </button>
-              {expanded && (
-                <ul className="mt-2.5 space-y-1.5 pl-1">
-                  {entry.cambios.map((c, i) => (
-                    <li key={i} className="flex items-start gap-2 text-[11px] text-slate-400 leading-relaxed">
-                      <span className="mt-1 w-1 h-1 rounded-full bg-sky-400/50 flex-shrink-0" />
-                      {c}
-                    </li>
-                  ))}
-                </ul>
-              )}
+          {/* Original: no changes, just info */}
+          {entry.isOriginal && (
+            <div className="border-t border-white/[0.04] px-4 py-3 flex items-center gap-2">
+              <FileText className="w-3.5 h-3.5 text-slate-600 flex-shrink-0" />
+              <span className="text-[11px] text-slate-600">
+                Este es el documento de referencia. Las versiones V1, V2... reflejan los cambios validados.
+              </span>
             </div>
           )}
         </div>

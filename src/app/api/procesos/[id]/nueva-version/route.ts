@@ -68,7 +68,17 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
     fecha: new Date().toISOString(),
     correcciones_aplicadas: atendidas.length,
     descripcion: atendidas.length > 0
-      ? `${atendidas.length} mejora${atendidas.length > 1 ? 's' : ''} registrada${atendidas.length > 1 ? 's' : ''} por el cliente`
+      ? (() => {
+          const tipos = atendidas.map(c => c.tipo)
+          const conteo: Record<string, number> = {}
+          tipos.forEach(t => { conteo[t] = (conteo[t] ?? 0) + 1 })
+          const partes = Object.entries(conteo).map(([t, n]) => {
+            const labels: Record<string, string> = { hallazgo: 'hallazgo', riesgo: 'riesgo', brecha: 'brecha', rol: 'rol' }
+            const base = labels[t] ?? t
+            return `${n} ${base}${n > 1 ? 's' : ''}`
+          })
+          return `Se incorporaron ${partes.join(', ')} observado${atendidas.length > 1 ? 's' : ''} por el cliente`
+        })()
       : 'Nueva versión generada',
     detalle_correcciones: detalleCorrecciones,
     documento_id: proceso.documento_origen_id ?? null,
