@@ -3,6 +3,8 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { chatCompletion, MODELOS } from '@/lib/ai/client'
 
+export const maxDuration = 60
+
 export async function POST(req: NextRequest) {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -164,7 +166,7 @@ Responde SOLO con este JSON (sin markdown):
     const completion = await chatCompletion({
       model: MODELOS.potente,
       messages: [{ role: 'user', content: prompt }],
-      max_tokens: 3000,
+      max_tokens: 2000,
       temperature: 0.3,
     })
 
