@@ -93,7 +93,7 @@ export default async function HorizontePage() {
     .from('artefacto')
     .select('id, tipo, version, proceso_id')
     .in('proceso_id', procesoIds)
-    .in('estado_validacion', ['publicado', 'validado'])
+    .in('estado_validacion', ['publicado', 'validado', 'pendiente'])
     .order('version', { ascending: false })
 
   const artefactosPorProceso: Record<string, Array<{ id: string; tipo: string; version: number }>> = {}
