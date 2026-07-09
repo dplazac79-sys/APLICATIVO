@@ -457,8 +457,8 @@ function ProcesoCard({ proceso, artefactos, docInfo, historialProcesos }: {
             <span className="text-[11px] font-semibold text-slate-600 uppercase tracking-widest">Historial de versiones</span>
           </div>
 
-          {/* Timeline */}
-          {timeline.map((entry, i) => (
+          {/* Timeline — más reciente arriba, original abajo */}
+          {[...timeline].reverse().map((entry, i) => (
             <VersionRow
               key={entry.label}
               entry={entry}
