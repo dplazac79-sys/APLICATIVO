@@ -548,7 +548,7 @@ interface Props {
 }
 
 export default function HorizonteSimulador({ procesos, artefactosPorProceso, proyectoNombre, clienteNombre }: Props) {
-  const [procesoId, setProcesoId] = useState(procesos[0]?.id ?? '')
+  const [procesoId, setProcesoId] = useState('')
   const [artefactoIds, setArtefactoIds] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
   const [simulacion, setSimulacion] = useState<SimulacionResult | null>(null)
