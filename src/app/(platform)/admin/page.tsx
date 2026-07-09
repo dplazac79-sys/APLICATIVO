@@ -6,7 +6,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Users, Shield, Database, Activity, Plus } from 'lucide-react'
 import Link from 'next/link'
-import MfaToggle from './MfaToggle'
+import UnlockButton from './UnlockButton'
 
 const ROL_LABEL: Record<string, string> = {
   super_admin: 'Super Admin',
@@ -40,11 +40,15 @@ export default async function AdminPage() {
     { data: clientes },
     { data: auditRecientes },
   ] = await Promise.all([
-    admin.from('usuario').select('id, nombre, email, rol, mfa_habilitado, created_at').order('created_at', { ascending: false }).limit(100),
+    admin.from('usuario').select('id, nombre, email, rol, created_at').order('created_at', { ascending: false }).limit(100),
     admin.from('proyecto').select('id, nombre, estado_general, cliente:cliente_id(razon_social)').order('created_at', { ascending: false }).limit(10),
     admin.from('cliente').select('id, razon_social, industria').order('created_at', { ascending: false }).limit(10),
     admin.from('audit_log').select('id, accion, entidad, usuario_id, created_at').order('created_at', { ascending: false }).limit(20),
   ])
+
+  // Leer user_metadata de Supabase Auth para saber quiénes están bloqueados
+  const { data: { users: authUsers } } = await admin.auth.admin.listUsers({ perPage: 1000 })
+  const lockedMap = new Map(authUsers.map(u => [u.id, u.user_metadata?.locked === true]))
 
   const fecha = (s: string) =>
     new Date(s).toLocaleDateString('es-CL', { day: '2-digit', month: 'short', year: 'numeric' })
@@ -108,7 +112,7 @@ export default async function AdminPage() {
                   <p className="text-xs text-slate-500">{u.email}</p>
                 </div>
                 <div className="flex items-center gap-3">
-                  <MfaToggle usuarioId={u.id} habilitado={u.mfa_habilitado ?? true} />
+                  <UnlockButton usuarioId={u.id} locked={lockedMap.get(u.id) ?? false} />
                   <span className={`text-xs px-2 py-0.5 rounded border ${ROL_COLOR[u.rol] ?? ROL_COLOR.usuario_cliente}`}>
                     {ROL_LABEL[u.rol] ?? u.rol}
                   </span>
