@@ -79,11 +79,11 @@ const TIPO_LABEL: Record<string, string> = {
 
 // ── Primitivos visuales ───────────────────────────────────────────────────────
 
-function GlassCard({ children, className = '', glow = '' }: {
-  children: React.ReactNode; className?: string; glow?: string
+function GlassCard({ children, className = '', glow = '', overflow = 'hidden' }: {
+  children: React.ReactNode; className?: string; glow?: string; overflow?: 'hidden' | 'visible'
 }) {
   return (
-    <div className={`relative rounded-3xl border border-white/10 bg-white/[0.04] backdrop-blur-xl overflow-hidden ${glow} ${className}`}>
+    <div className={`relative rounded-3xl border border-white/10 bg-white/[0.04] backdrop-blur-xl overflow-${overflow} ${glow} ${className}`}>
       <div className="absolute inset-0 bg-gradient-to-br from-white/[0.03] to-transparent pointer-events-none" />
       <div className="relative z-10">{children}</div>
     </div>
@@ -650,7 +650,7 @@ export default function HorizonteSimulador({ procesos, artefactosPorProceso, pro
         </div>
 
         {/* Panel de selección */}
-        <GlassCard className="p-6">
+        <GlassCard className="p-6" overflow="visible">
           <div className="space-y-5">
             {/* Proceso selector */}
             <div>
