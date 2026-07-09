@@ -64,10 +64,10 @@ function useAnimatedNumber(target: number, active: boolean, duration = 1800) {
 }
 
 function formatCLP(n: number) {
-  if (n >= 1_000_000_000) return `$${(n / 1_000_000_000).toFixed(1)}B`
-  if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(1)}M`
-  if (n >= 1_000) return `$${(n / 1_000).toFixed(0)}K`
-  return `$${n}`
+  if (n >= 1_000_000_000) return `$${Math.round(n / 1_000_000_000).toLocaleString('es-CL')} mil millones`
+  if (n >= 1_000_000) return `$${Math.round(n / 1_000_000).toLocaleString('es-CL')} millones`
+  if (n >= 1_000) return `$${Math.round(n / 1_000).toLocaleString('es-CL')} mil`
+  return `$${n.toLocaleString('es-CL')}`
 }
 
 const TIPO_LABEL: Record<string, string> = {
@@ -169,7 +169,7 @@ function Resultado({ sim }: { sim: SimulacionResult }) {
             </svg>
             <div className="absolute inset-0 flex flex-col items-center justify-center">
               <span className="text-3xl font-black text-white">{sim.impacto_global_score}</span>
-              <span className="text-[9px] text-slate-500 uppercase tracking-widest">Score</span>
+              <span className="text-[9px] text-slate-500 uppercase tracking-widest">/ 100</span>
             </div>
           </div>
 
@@ -182,6 +182,7 @@ function Resultado({ sim }: { sim: SimulacionResult }) {
                 Proyección IA
               </span>
             </div>
+            <p className="text-[10px] text-slate-600">Índice de impacto potencial: qué tan significativa es la mejora para tu organización (0–100)</p>
             <h2 className="text-xl font-bold text-white leading-snug">{sim.headline}</h2>
             <p className="text-slate-400 text-sm leading-relaxed">{sim.subtitulo}</p>
           </div>
