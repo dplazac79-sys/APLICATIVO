@@ -21,9 +21,8 @@ export async function getFasesProyecto(pid: string): Promise<{ proyecto: Record<
     { data: proyecto },
     { count: docsTotal },
     { count: procesos },
-    { count: procesosAprobados },
+    { data: procesosAceptadosData },
     { count: glosarioRoles },
-    { count: artefactos },
     { count: entregables },
     { count: reuniones },
     { count: simulaciones },
@@ -32,14 +31,21 @@ export async function getFasesProyecto(pid: string): Promise<{ proyecto: Record<
     admin.from('proyecto').select('id, nombre, estado_general, cliente_id, discovery_resumen').eq('id', pid).single(),
     admin.from('documento').select('*', { count: 'exact', head: true }).eq('proyecto_id', pid),
     admin.from('proceso').select('*', { count: 'exact', head: true }).eq('proyecto_id', pid),
-    admin.from('proceso').select('*', { count: 'exact', head: true }).eq('proyecto_id', pid).eq('estado_oferta', 'aceptado'),
+    admin.from('proceso').select('id').eq('proyecto_id', pid).eq('estado_oferta', 'aceptado'),
     admin.from('glosario_roles_analisis').select('*', { count: 'exact', head: true }).eq('proyecto_id', pid).eq('estado', 'completado'),
-    admin.from('artefacto').select('*', { count: 'exact', head: true }).eq('proyecto_id', pid),
     admin.from('entregable').select('*', { count: 'exact', head: true }).eq('proyecto_id', pid),
     admin.from('reunion').select('*', { count: 'exact', head: true }).eq('proyecto_id', pid),
     admin.from('simulacion').select('*', { count: 'exact', head: true }).eq('proyecto_id', pid),
     admin.from('kg_recomendacion').select('*', { count: 'exact', head: true }).eq('proyecto_id', pid),
   ])
+
+  // Artefactos solo de procesos aceptados — misma convención que Process Architect,
+  // Dashboard y Bienvenida, para que "artefactos generados" signifique lo mismo en toda la app.
+  const idsAceptados = (procesosAceptadosData ?? []).map(p => p.id)
+  const procesosAprobados = idsAceptados.length
+  const { count: artefactos } = idsAceptados.length > 0
+    ? await admin.from('artefacto').select('*', { count: 'exact', head: true }).in('proceso_id', idsAceptados)
+    : { count: 0 }
 
   const hasDiscovery = !!(proyecto as { discovery_resumen?: unknown } | null)?.discovery_resumen
 
