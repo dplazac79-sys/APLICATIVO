@@ -122,7 +122,7 @@ export async function getFasesProyecto(pid: string): Promise<{ proyecto: Record<
       nombre: 'Project Control Center',
       descripcion: 'Gestión de entregables, reuniones, hitos y riesgos del proyecto.',
       icono: '📋',
-      color: 'rose',
+      color: 'teal',
       href: '/proyectos',
       status: !f4Done ? 'bloqueada' : f5Done ? 'completada' : 'activa',
       progreso: !f4Done ? 0 : f5Done ? 80 : 20,

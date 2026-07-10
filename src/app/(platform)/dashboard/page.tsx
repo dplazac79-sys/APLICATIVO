@@ -243,7 +243,7 @@ export default async function DashboardPage() {
             <div className="absolute right-0 top-0 w-32 h-32 bg-violet-500/10 rounded-full blur-2xl pointer-events-none" />
             <div className="relative flex items-center justify-between gap-6 flex-wrap">
               <div className="space-y-1">
-                <p className="text-xs text-violet-300 uppercase tracking-widest font-medium">Paso 3 · Fase 2 — {stats.docsListos} doc{stats.docsListos !== 1 ? 's' : ''} analizado{stats.docsListos !== 1 ? 's' : ''}</p>
+                <p className="text-xs text-violet-300 uppercase tracking-widest font-medium">Paso 1 · Fase 3 — {stats.docsListos} doc{stats.docsListos !== 1 ? 's' : ''} analizado{stats.docsListos !== 1 ? 's' : ''}</p>
                 <h3 className="text-white text-base font-semibold">Ejecuta el Process Discovery AI</h3>
                 <p className="text-slate-400 text-sm max-w-md">
                   Los documentos están analizados. Ahora ejecuta Discovery AI para que el sistema identifique automáticamente todos los procesos del negocio a partir del contenido.
@@ -261,7 +261,7 @@ export default async function DashboardPage() {
             <div className="absolute right-0 top-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none" />
             <div className="relative flex items-center justify-between gap-6 flex-wrap">
               <div className="space-y-1">
-                <p className="text-xs text-emerald-300 uppercase tracking-widest font-medium">Paso 3 de la Fase 2 · {stats.procesosAprobados}/{stats.procesosTotal} aprobados</p>
+                <p className="text-xs text-emerald-300 uppercase tracking-widest font-medium">Paso 2 de la Fase 3 · {stats.procesosAprobados}/{stats.procesosTotal} aprobados</p>
                 <h3 className="text-white text-base font-semibold">Revisa y aprueba los procesos descubiertos</h3>
                 <p className="text-slate-400 text-sm max-w-md">
                   La IA ya identificó {stats.procesosTotal} procesos. Revísalos, edítalos si es necesario y aprueba los que sean correctos para avanzar a la siguiente fase.
@@ -280,7 +280,7 @@ export default async function DashboardPage() {
       {proyectoMeta && fases ? (
         <div className="space-y-2">
           <h2 className="text-base font-semibold text-white">Workflow del proyecto</h2>
-          <FaseWorkflow fases={fases} />
+          <FaseWorkflow fases={fases} hideProgressHeader />
         </div>
       ) : (
         <div className="bg-slate-900 border border-slate-800 rounded-xl p-8 text-center">

@@ -22,11 +22,12 @@ const COLOR_MAP: Record<string, { ring: string; bar: string; badge: string; text
   blue:    { ring: 'border-blue-500/50',    bar: 'bg-blue-500',    badge: 'bg-blue-500/20 text-blue-300',    text: 'text-blue-400',    glow: 'shadow-blue-500/20',    activeBg: 'bg-blue-950/25' },
   violet:  { ring: 'border-violet-500/50',  bar: 'bg-violet-500',  badge: 'bg-violet-500/20 text-violet-300',  text: 'text-violet-400',  glow: 'shadow-violet-500/20',  activeBg: 'bg-violet-950/25' },
   amber:   { ring: 'border-amber-500/50',   bar: 'bg-amber-500',   badge: 'bg-amber-500/20 text-amber-300',   text: 'text-amber-400',   glow: 'shadow-amber-500/20',   activeBg: 'bg-amber-950/25' },
-  rose:    { ring: 'border-rose-500/50',    bar: 'bg-rose-500',    badge: 'bg-rose-500/20 text-rose-300',    text: 'text-rose-400',    glow: 'shadow-rose-500/20',    activeBg: 'bg-rose-950/25' },
   cyan:    { ring: 'border-cyan-500/50',    bar: 'bg-cyan-500',    badge: 'bg-cyan-500/20 text-cyan-300',    text: 'text-cyan-400',    glow: 'shadow-cyan-500/20',    activeBg: 'bg-cyan-950/25' },
+  teal:    { ring: 'border-teal-500/50',    bar: 'bg-teal-500',    badge: 'bg-teal-500/20 text-teal-300',    text: 'text-teal-400',    glow: 'shadow-teal-500/20',    activeBg: 'bg-teal-950/25' },
+  indigo:  { ring: 'border-indigo-500/50',  bar: 'bg-indigo-500',  badge: 'bg-indigo-500/20 text-indigo-300',  text: 'text-indigo-400',  glow: 'shadow-indigo-500/20',  activeBg: 'bg-indigo-950/25' },
 }
 
-export default function FaseWorkflow({ fases, compact }: { fases: Fase[]; compact?: boolean }) {
+export default function FaseWorkflow({ fases, compact, hideProgressHeader }: { fases: Fase[]; compact?: boolean; hideProgressHeader?: boolean }) {
   const [expanded, setExpanded] = useState<number | null>(
     fases.find(f => f.status === 'activa')?.id ?? null
   )
@@ -37,22 +38,26 @@ export default function FaseWorkflow({ fases, compact }: { fases: Fase[]; compac
 
   return (
     <div className="space-y-4">
-      {/* Barra de progreso global */}
+      {/* Barra de progreso global — omitida si la pantalla ya muestra este dato arriba */}
       <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
-        <div className="flex items-center justify-between mb-3">
-          <div>
-            <p className="text-sm font-medium text-white">Progreso del proyecto</p>
-            <p className="text-xs text-slate-500 mt-0.5">{completadas} de {totalFases} fases completadas</p>
+        {!hideProgressHeader && (
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <p className="text-sm font-medium text-white">Progreso del proyecto</p>
+              <p className="text-xs text-slate-500 mt-0.5">{completadas} de {totalFases} fases completadas</p>
+            </div>
+            <span className="text-2xl font-bold text-white">{pct}%</span>
           </div>
-          <span className="text-2xl font-bold text-white">{pct}%</span>
-        </div>
-        <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
-          <div
-            className="h-full bg-gradient-to-r from-indigo-500 via-violet-500 to-cyan-500 rounded-full transition-all duration-700"
-            style={{ width: `${pct}%` }}
-          />
-        </div>
-        <div className="flex mt-3 gap-1">
+        )}
+        {!hideProgressHeader && (
+          <div className="h-2 bg-slate-800 rounded-full overflow-hidden mb-3">
+            <div
+              className="h-full bg-gradient-to-r from-indigo-500 via-violet-500 to-cyan-500 rounded-full transition-all duration-700"
+              style={{ width: `${pct}%` }}
+            />
+          </div>
+        )}
+        <div className="flex gap-1">
           {fases.map(f => {
             const c = COLOR_MAP[f.color]
             return (
