@@ -16,9 +16,6 @@ export default async function PlatformLayout({
 
   if (!user) redirect('/login')
 
-  const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel()
-  if (aal?.nextLevel === 'aal2' && aal.currentLevel !== aal.nextLevel) redirect('/mfa/challenge')
-
   const admin = createAdminClient()
   let { data: usuario } = await admin
     .from('usuario')

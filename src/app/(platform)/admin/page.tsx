@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Users, Shield, Database, Activity, Plus } from 'lucide-react'
 import Link from 'next/link'
 import UnlockButton from './UnlockButton'
+import MfaCleanupButton from './MfaCleanupButton'
 
 const ROL_LABEL: Record<string, string> = {
   super_admin: 'Super Admin',
@@ -67,11 +68,14 @@ export default async function AdminPage() {
           <h1 className="text-2xl font-bold text-white">Administración del Sistema</h1>
           <p className="text-slate-400 text-sm mt-1">Gestión de usuarios, accesos y auditoría — Solo Super Administrador</p>
         </div>
-        <Link href="/admin/onboarding">
-          <button className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">
-            <Plus className="w-4 h-4" /> Nuevo cliente
-          </button>
-        </Link>
+        <div className="flex items-center gap-3">
+          <MfaCleanupButton />
+          <Link href="/admin/onboarding">
+            <button className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">
+              <Plus className="w-4 h-4" /> Nuevo cliente
+            </button>
+          </Link>
+        </div>
       </div>
 
       {/* Stats */}
