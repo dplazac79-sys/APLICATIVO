@@ -285,63 +285,71 @@ export default function LoginPage() {
     return () => window.removeEventListener('resize', check)
   }, [])
 
+  // Llama al endpoint de bloqueo sin dejar que un fallo de red tumbe el login completo
+  async function callLockout(action: 'check' | 'fail' | 'reset'): Promise<{ locked?: boolean; remaining?: number }> {
+    try {
+      const res = await fetch('/api/auth/lockout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action, email }),
+      })
+      if (!res.ok) return {}
+      return await res.json()
+    } catch {
+      return {}
+    }
+  }
+
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
     setError('')
 
-    // 1. Verificar bloqueo antes de intentar
-    const checkRes = await fetch('/api/auth/lockout', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'check', email }),
-    })
-    const lockData = await checkRes.json()
-    if (lockData.locked) {
-      setError('Tu cuenta está bloqueada por demasiados intentos fallidos. Contacta al administrador del sistema.')
-      setLoading(false)
-      return
-    }
-
-    // 2. Intentar login
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
-    if (error) {
-      // Registrar intento fallido
-      const failRes = await fetch('/api/auth/lockout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'fail', email }),
-      })
-      const failData = await failRes.json()
-      if (failData.locked) {
-        setError('Tu cuenta ha sido bloqueada por demasiados intentos fallidos. Contacta al administrador.')
-      } else {
-        const rem = failData.remaining ?? 0
-        setError(`Credenciales incorrectas.${rem > 0 ? ` Te queda${rem === 1 ? '' : 'n'} ${rem} intento${rem === 1 ? '' : 's'} antes del bloqueo.` : ''}`)
+    try {
+      // 1. Verificar bloqueo antes de intentar (si falla, no bloqueamos el intento)
+      const lockData = await callLockout('check')
+      if (lockData.locked) {
+        setError('Tu cuenta está bloqueada por demasiados intentos fallidos. Contacta al administrador del sistema.')
+        return
       }
+
+      // 2. Intentar login
+      const { error } = await supabase.auth.signInWithPassword({ email, password })
+      if (error) {
+        const failData = await callLockout('fail')
+        if (failData.locked) {
+          setError('Tu cuenta ha sido bloqueada por demasiados intentos fallidos. Contacta al administrador.')
+        } else {
+          const rem = failData.remaining ?? 0
+          setError(`Credenciales incorrectas.${rem > 0 ? ` Te queda${rem === 1 ? '' : 'n'} ${rem} intento${rem === 1 ? '' : 's'} antes del bloqueo.` : ''}`)
+        }
+        return
+      }
+
+      // 3. Login exitoso — resetear contador (no bloqueante)
+      callLockout('reset')
+
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        setError('No se pudo iniciar sesión. Intenta de nuevo.')
+        return
+      }
+
+      // 4. Forzar cambio de contraseña si es primer acceso o si caducó
+      if (user.user_metadata?.must_change_password === true) {
+        router.push('/cambiar-password')
+        return
+      }
+
+      // 5. Redirigir según rol
+      const { data: usuario } = await supabase.from('usuario').select('rol').eq('id', user.id).single()
+      router.push(usuario?.rol === 'usuario_cliente' ? '/portal' : '/bienvenida')
+      router.refresh()
+    } catch {
+      setError('Ocurrió un error inesperado. Intenta de nuevo.')
+    } finally {
       setLoading(false)
-      return
     }
-
-    // 3. Login exitoso — resetear contador
-    await fetch('/api/auth/lockout', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'reset', email }),
-    })
-
-    const { data: { user } } = await supabase.auth.getUser()
-
-    // 4. Forzar cambio de contraseña si es primer acceso o si caducó
-    if (user?.user_metadata?.must_change_password === true) {
-      router.push('/cambiar-password')
-      return
-    }
-
-    // 5. Redirigir según rol
-    const { data: usuario } = await supabase.from('usuario').select('rol').eq('id', user!.id).single()
-    router.push(usuario?.rol === 'usuario_cliente' ? '/portal' : '/bienvenida')
-    router.refresh()
   }
 
   return (
