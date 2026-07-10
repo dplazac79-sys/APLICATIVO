@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { registrarAudit } from '@/lib/audit'
+import { inngest } from '@/lib/inngest/client'
 
 export async function POST(req: NextRequest) {
   try {
@@ -66,6 +67,19 @@ export async function POST(req: NextRequest) {
       entidad_id: documento.id,
       detalle: { nombre_archivo, proyecto_id },
     })
+
+    // Disparar el procesamiento con IA — antes esto nunca se llamaba y el
+    // documento quedaba en 'pendiente' para siempre, con el toast prometiendo
+    // "procesando con IA" sin que ningún job arrancara jamás.
+    try {
+      await inngest.send({
+        name: 'documento/procesar',
+        data: { documento_id: documento.id, usuario_id: user.id },
+      })
+    } catch (sendErr) {
+      // No bloquear la subida si falla el disparo del job — pero sí dejarlo visible
+      console.error('Error al encolar procesamiento de documento', documento.id, sendErr)
+    }
 
     return NextResponse.json({ ok: true, documento })
   } catch (err) {
