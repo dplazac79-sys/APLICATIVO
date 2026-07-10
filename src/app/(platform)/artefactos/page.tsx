@@ -167,6 +167,11 @@ export default async function ArtefactosPage() {
                     <CheckCircle className="w-3 h-3" />{publicados} aprobados
                   </span>
                 )}
+                {generados === total && total > 0 && publicados === 0 && (
+                  <span className="flex items-center gap-1 text-[11px] text-slate-600 font-medium">
+                    <Clock className="w-3 h-3" />Sin aprobar
+                  </span>
+                )}
                 {hayIncompletos && (
                   <AlertTriangle className="w-3.5 h-3.5 text-amber-500/70" />
                 )}
@@ -404,12 +409,13 @@ export default async function ArtefactosPage() {
         })
       )}
 
-      {/* Leyenda estados */}
+      {/* Leyenda estados — refleja exactamente las señales usadas en el árbol de arriba */}
       <div className="flex items-center gap-5 px-1">
         {[
-          { icon: <CheckCircle className="w-3 h-3 text-emerald-400" />, label: 'Validado' },
-          { icon: <CheckCircle className="w-3 h-3 text-blue-400" />, label: 'Aprobado' },
-          { icon: <Clock className="w-3 h-3 text-amber-400" />, label: 'Pendiente' },
+          { icon: <div className="w-3 h-1 rounded-full bg-emerald-500" />, label: 'Generación completa (8/8)' },
+          { icon: <CheckCircle className="w-3 h-3 text-blue-400" />, label: 'Aprobado por el cliente' },
+          { icon: <Clock className="w-3 h-3 text-slate-500" />, label: 'Completo, sin aprobar' },
+          { icon: <AlertTriangle className="w-3 h-3 text-amber-500/70" />, label: 'Generación incompleta' },
         ].map(({ icon, label }) => (
           <span key={label} className="flex items-center gap-1.5 text-[11px] text-slate-500">
             {icon}{label}
