@@ -7,7 +7,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Users, Shield, Database, Activity, Plus } from 'lucide-react'
 import Link from 'next/link'
 import UnlockButton from './UnlockButton'
-import MfaCleanupButton from './MfaCleanupButton'
 
 const ROL_LABEL: Record<string, string> = {
   super_admin: 'Super Admin',
@@ -44,7 +43,7 @@ export default async function AdminPage() {
     admin.from('usuario').select('id, nombre, email, rol, created_at').order('created_at', { ascending: false }).limit(100),
     admin.from('proyecto').select('id, nombre, estado_general, cliente:cliente_id(razon_social)').order('created_at', { ascending: false }).limit(10),
     admin.from('cliente').select('id, razon_social, industria').order('created_at', { ascending: false }).limit(10),
-    admin.from('audit_log').select('id, accion, entidad, usuario_id, created_at').order('created_at', { ascending: false }).limit(20),
+    admin.from('audit_log').select('id, accion, entidad, detalle, created_at, usuario:usuario_id(nombre)').order('created_at', { ascending: false }).limit(20),
   ])
 
   // Leer user_metadata de Supabase Auth para saber quiénes están bloqueados
@@ -53,6 +52,21 @@ export default async function AdminPage() {
 
   const fecha = (s: string) =>
     new Date(s).toLocaleDateString('es-CL', { day: '2-digit', month: 'short', year: 'numeric' })
+
+  const accionVerbo: Record<string, string> = {
+    CREATE: 'Creó', UPDATE: 'Modificó', DELETE: 'Eliminó',
+    LOGIN: 'Inició sesión', EXPORT: 'Exportó', UPLOAD: 'Subió archivo',
+    RUN: 'Ejecutó', APPROVE: 'Aprobó', REJECT: 'Rechazó',
+  }
+  const entidadNombre: Record<string, string> = {
+    usuario: 'usuario', proyecto: 'proyecto', cliente: 'cliente',
+    proceso: 'proceso', artefacto: 'artefacto', documento: 'documento',
+    discovery_job: 'Discovery AI', fase: 'fase',
+  }
+  // Solo campos legibles y no técnicos en el detalle — nunca IDs, UUIDs ni claves internas
+  const esIdOInterno = (k: string, v: unknown) =>
+    k === 'id' || k.endsWith('_id') || k.startsWith('_') ||
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(v))
 
   const stats = [
     { label: 'Usuarios registrados', value: usuarios?.length ?? 0, icon: Users, color: 'text-indigo-400', bg: 'bg-indigo-950/50' },
@@ -68,14 +82,11 @@ export default async function AdminPage() {
           <h1 className="text-2xl font-bold text-white">Administración del Sistema</h1>
           <p className="text-slate-400 text-sm mt-1">Gestión de usuarios, accesos y auditoría — Solo Super Administrador</p>
         </div>
-        <div className="flex items-center gap-3">
-          <MfaCleanupButton />
-          <Link href="/admin/onboarding">
-            <button className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">
-              <Plus className="w-4 h-4" /> Nuevo cliente
-            </button>
-          </Link>
-        </div>
+        <Link href="/admin/onboarding">
+          <button className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">
+            <Plus className="w-4 h-4" /> Nuevo cliente
+          </button>
+        </Link>
       </div>
 
       {/* Stats */}
@@ -170,22 +181,35 @@ export default async function AdminPage() {
           <div className="divide-y divide-slate-800">
             {(auditRecientes ?? []).length === 0 ? (
               <p className="px-6 py-4 text-sm text-slate-500">Sin eventos registrados aún.</p>
-            ) : (auditRecientes ?? []).map(a => (
-              <div key={a.id} className="flex items-center justify-between px-6 py-2.5">
-                <div className="flex items-center gap-3">
-                  <span className={`text-xs font-mono px-1.5 py-0.5 rounded ${
-                    a.accion === 'DELETE' ? 'bg-red-900/40 text-red-300' :
-                    a.accion === 'CREATE' ? 'bg-emerald-900/40 text-emerald-300' :
-                    a.accion === 'EXPORT' ? 'bg-indigo-900/40 text-indigo-300' :
-                    'bg-slate-800 text-slate-400'
-                  }`}>
-                    {a.accion}
-                  </span>
-                  <span className="text-xs text-slate-400">{a.entidad}</span>
+            ) : (auditRecientes ?? []).map(a => {
+              const verbo = accionVerbo[a.accion] ?? a.accion
+              const entidad = entidadNombre[a.entidad] ?? a.entidad.replace(/_/g, ' ')
+              const detalle = (a.detalle ?? {}) as Record<string, unknown>
+              const camposBase = ['nombre', 'email', 'titulo', 'nombre_archivo']
+              const detNombre = String(detalle.nombre ?? detalle.email ?? detalle.titulo ?? detalle.nombre_archivo ?? '').slice(0, 50)
+              const extra = Object.entries(detalle)
+                .filter(([k, v]) => !camposBase.includes(k) && !esIdOInterno(k, v))
+                .slice(0, 2)
+              const usuarioNombre = (a.usuario as unknown as { nombre: string } | null)?.nombre ?? 'Sistema'
+              return (
+                <div key={a.id} className="flex items-center justify-between px-6 py-2.5 gap-3">
+                  <div className="min-w-0">
+                    <p className="text-sm leading-snug">
+                      <span className="font-medium text-slate-200">{usuarioNombre}</span>
+                      {' '}<span className="text-slate-400">{verbo}</span>{' '}
+                      <span className="text-slate-300">{entidad}</span>
+                      {detNombre && <span className="text-slate-500"> — {detNombre}</span>}
+                    </p>
+                    {extra.length > 0 && (
+                      <p className="text-xs text-slate-600 mt-0.5 truncate">
+                        {extra.map(([k, v]) => `${k.replace(/_/g, ' ')}: ${String(v).slice(0, 25)}`).join(' · ')}
+                      </p>
+                    )}
+                  </div>
+                  <span className="text-xs text-slate-600 shrink-0">{fecha(a.created_at)}</span>
                 </div>
-                <span className="text-xs text-slate-600">{fecha(a.created_at)}</span>
-              </div>
-            ))}
+              )
+            })}
           </div>
         </CardContent>
       </Card>
