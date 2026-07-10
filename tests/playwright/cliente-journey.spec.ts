@@ -21,9 +21,7 @@ async function loginAs(page: Page, email: string, password: string) {
   await page.locator('input[type="email"]').fill(email)
   await page.locator('input[type="password"]').fill(password)
   await page.locator('button[type="submit"]').click()
-  // Acepta dashboard, bienvenida, portal o mfa (flujo normal según rol y MFA)
-  await page.waitForURL(/\/(dashboard|bienvenida|portal|mfa)/, { timeout: 15_000 })
-  // Si cae en MFA enroll/challenge, lo consideramos login exitoso (token válido)
+  await page.waitForURL(/\/(dashboard|bienvenida|portal)/, { timeout: 15_000 })
 }
 
 async function medirTiempo(label: string, fn: () => Promise<void>): Promise<number> {
@@ -50,8 +48,7 @@ test.describe('1 · Login — UX, UI, Performance', () => {
     await expect(page.locator('input[type="email"]')).toBeVisible()
     await expect(page.locator('input[type="password"]')).toBeVisible()
     await expect(page.locator('button[type="submit"]')).toBeVisible()
-    await expect(page.locator('text=MFA activo')).toBeVisible()
-    await expect(page.locator('text=Recordar dispositivo')).toBeVisible()
+    await expect(page.locator('text=Conexión cifrada de extremo a extremo')).toBeVisible()
   })
 
   test('el carrusel animado rota automáticamente', async ({ page }) => {
@@ -85,8 +82,7 @@ test.describe('1 · Login — UX, UI, Performance', () => {
       await loginAs(page, CLIENTE_EMAIL, CLIENTE_PASSWORD)
     })
     expect(ms).toBeLessThan(8000)
-    // Portal o MFA (si tiene MFA configurado)
-    await expect(page).toHaveURL(/\/(portal|mfa|dashboard|bienvenida)/)
+    await expect(page).toHaveURL(/\/(portal|dashboard|bienvenida)/)
   })
 
 })
@@ -96,14 +92,9 @@ test.describe('2 · Portal Cliente — Journey completo', () => {
 
   test.beforeEach(async ({ page }) => {
     await loginAs(page, CLIENTE_EMAIL, CLIENTE_PASSWORD)
-    if (page.url().includes('/mfa')) await page.goto('/portal')
   })
 
   test('portal carga y muestra zona de carga de documentos', async ({ page }) => {
-    // Si quedó en MFA, ir directo al portal
-    if (page.url().includes('/mfa')) {
-      await page.goto('/portal')
-    }
     await expect(page).toHaveURL(/\/portal/)
     const ms = await medirTiempo('portal load', async () => {
       await expect(page.locator('text=/subir|cargar|documento/i').first()).toBeVisible({ timeout: 10_000 })
@@ -156,7 +147,6 @@ test.describe('3 · Admin — Flujo interno', () => {
 
   test.beforeEach(async ({ page }) => {
     await loginAs(page, ADMIN_EMAIL, ADMIN_PASSWORD)
-    if (page.url().includes('/mfa')) await page.goto('/dashboard')
   })
 
   test('dashboard carga en < 4s con métricas visibles', async ({ page }) => {

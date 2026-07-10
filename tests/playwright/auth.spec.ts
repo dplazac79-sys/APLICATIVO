@@ -1,6 +1,5 @@
 /**
  * E2E: Autenticación — login con email/password y redirección post-login
- * No prueba MFA TOTP porque requiere app de autenticador física.
  * Prueba: login OK → dashboard, login fallido → mensaje error.
  *
  * Variables requeridas en .env.local:
@@ -21,8 +20,7 @@ test.describe('Login', () => {
     await page.locator('input[type="password"]').fill(PASSWORD)
     await page.locator('button[type="submit"]').click()
 
-    // Acepta dashboard, bienvenida o mfa/challenge (si MFA activo)
-    await expect(page).toHaveURL(/\/(dashboard|bienvenida|mfa|portal)/, { timeout: 15_000 })
+    await expect(page).toHaveURL(/\/(dashboard|bienvenida|portal)/, { timeout: 15_000 })
   })
 
   test('credenciales incorrectas muestra error', async ({ page }) => {

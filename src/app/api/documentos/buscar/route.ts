@@ -41,8 +41,10 @@ export async function POST(req: NextRequest) {
         limite: 10,
       })
       resultadosSemanticos = data ?? []
-    } catch {
-      // Sin embeddings disponibles: solo búsqueda por nombre
+    } catch (err) {
+      // No bloquear la búsqueda por nombre si la semántica falla — pero visible en logs,
+      // nunca en silencio (así se pierde de vista un fallo sistémico de embeddings).
+      console.error('[buscar-semantico] Falló la búsqueda semántica, usando solo nombre:', err instanceof Error ? err.message : err)
     }
 
     // Combinar: nombre primero, luego semánticos que no estén ya incluidos

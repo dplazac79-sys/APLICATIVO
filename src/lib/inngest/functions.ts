@@ -68,7 +68,12 @@ export const procesarDocumento = inngest.createFunction(
       const textoParaEmbedding = resumen.resumen_ejecutivo
         ? `${resumen.resumen_ejecutivo}\n\n${resumen.diagnostico_operacional ?? ''}\n\n${(resumen.hallazgos_criticos ?? []).join(' ')}`
         : texto.slice(0, 4000)
-      const embedding = await generarEmbedding(textoParaEmbedding, 'document').catch(() => null)
+      const embedding = await generarEmbedding(textoParaEmbedding, 'document').catch(err => {
+        // No bloquear el procesamiento del documento si falla el embedding — pero
+        // NUNCA en silencio: esto rompe la búsqueda semántica sin dejar rastro.
+        console.error(`[embedding] Falló generarEmbedding para documento_id=${documento_id}:`, err instanceof Error ? err.message : err)
+        return null
+      })
       return { embedding, chunks }
     })
 
@@ -107,7 +112,10 @@ export const procesarDocumento = inngest.createFunction(
       await admin.from('documento_chunk').delete().eq('documento_id', documento_id)
       // Generar embeddings en batch para todos los chunks
       const textos = chunks.map((c: { texto: string }) => c.texto)
-      const embeddings = await generarEmbeddingsBatch(textos, 'document').catch(() => null)
+      const embeddings = await generarEmbeddingsBatch(textos, 'document').catch(err => {
+        console.error(`[embedding] Falló generarEmbeddingsBatch para documento_id=${documento_id} (${textos.length} chunks):`, err instanceof Error ? err.message : err)
+        return null
+      })
       const rows = chunks.map((c: { indice: number; titulo: string | null; texto: string; tokens_est: number }, i: number) => ({
         documento_id,
         proyecto_id: doc.proyecto_id,

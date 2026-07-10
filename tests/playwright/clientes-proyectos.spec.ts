@@ -1,6 +1,6 @@
 /**
  * E2E: Crear cliente y proyecto desde la UI
- * Requiere sesión activa de super_admin (sin MFA) o director_proyecto.
+ * Requiere sesión activa de super_admin o director_proyecto.
  */
 import { test, expect, Page } from '@playwright/test'
 
