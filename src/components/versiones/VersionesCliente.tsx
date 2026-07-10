@@ -427,7 +427,7 @@ function ProcesoCard({ proceso, artefactos, docInfo, historialProcesos }: {
             {totalArtefactos > 0 && (
               <>
                 <span className="text-slate-700">·</span>
-                <span className="text-xs text-slate-400">{totalArtefactos} documento{totalArtefactos !== 1 ? 's' : ''} generado{totalArtefactos !== 1 ? 's' : ''}</span>
+                <span className="text-xs text-slate-400">{totalArtefactos} artefacto{totalArtefactos !== 1 ? 's' : ''} generado{totalArtefactos !== 1 ? 's' : ''}</span>
               </>
             )}
           </div>
