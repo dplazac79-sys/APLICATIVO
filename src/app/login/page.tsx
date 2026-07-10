@@ -92,7 +92,7 @@ function ParticleCanvas() {
 function FlowDiagram() {
   const STEPS = [
     { label: 'Documento', sub: 'PDF / DOCX', color: '#38bdf8', delay: 0 },
-    { label: 'IA Analiza', sub: 'Claude AI', color: '#818cf8', delay: 0.4 },
+    { label: 'IA Analiza', sub: 'Motor IA', color: '#818cf8', delay: 0.4 },
     { label: 'Proceso', sub: 'Enriquecido', color: '#a78bfa', delay: 0.8 },
     { label: 'Aprobación', sub: 'Digital', color: '#34d399', delay: 1.2 },
     { label: 'Implementa', sub: 'ERP / RPA', color: '#fb923c', delay: 1.6 },
@@ -242,78 +242,28 @@ function BackgroundOrbs() {
 }
 
 // ── Página principal ──────────────────────────────────────────────────────────
-const TRUST_ITEMS = [
-  { icon: '⚡', label: 'Velocidad real', desc: 'Inventario de procesos completo en horas, no en semanas.' },
-  { icon: '🎯', label: 'ROI desde el día 1', desc: 'Cada proceso entrega su impacto financiero proyectado.' },
-  { icon: '🔒', label: 'Seguridad enterprise', desc: 'RBAC, MFA y auditoría completa en cada acción.' },
-  { icon: '🤖', label: 'IA que trabaja por ti', desc: 'Claude AI analiza, clasifica y enriquece sin intervención manual.' },
-  { icon: '📊', label: 'Decisiones basadas en datos', desc: 'KPIs, riesgos y oportunidades calculados automáticamente.' },
-]
 
-function TrustCarousel() {
-  const [active, setActive] = useState(0)
-  const [visible, setVisible] = useState(true)
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setVisible(false)
-      setTimeout(() => {
-        setActive(prev => (prev + 1) % TRUST_ITEMS.length)
-        setVisible(true)
-      }, 400)
-    }, 3200)
-    return () => clearInterval(interval)
-  }, [])
-
-  const item = TRUST_ITEMS[active]
-
+// Barra de confianza estática — afirmaciones concretas y verificables, sin rotación
+// (una promesa que compite por atención en vez de cinco que se diluyen entre sí)
+function TrustBar() {
+  const items = [
+    { icon: '🔐', label: 'Control de acceso por rol' },
+    { icon: '📋', label: 'Registro de auditoría en cada acción' },
+    { icon: '🔒', label: 'Datos cifrados en tránsito y en reposo' },
+  ]
   return (
-    <div className="login-trustbar" style={{ paddingTop: 8, animation: 'textIn 0.6s ease both', animationDelay: '1.05s' }}>
-      <style>{`
-        @keyframes trustFadeIn {
-          from { opacity: 0; transform: translateY(10px); }
-          to   { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes trustFadeOut {
-          from { opacity: 1; transform: translateY(0); }
-          to   { opacity: 0; transform: translateY(-10px); }
-        }
-      `}</style>
-
-      {/* Item animado */}
-      <div style={{
-        display: 'flex', alignItems: 'center', gap: 16,
-        padding: '16px 20px', borderRadius: 14,
-        background: 'rgba(255,255,255,0.03)',
-        border: '1px solid rgba(255,255,255,0.06)',
-        minHeight: 72, position: 'relative', overflow: 'hidden',
-        animation: visible ? 'trustFadeIn 0.4s ease both' : 'trustFadeOut 0.3s ease both',
-      }}>
-        {/* Línea top */}
-        <div style={{ position: 'absolute', top: 0, left: '20%', right: '20%', height: 1, background: 'linear-gradient(90deg, transparent, rgba(56,189,248,0.4), transparent)' }} />
-
-        <span style={{ fontSize: 28, flexShrink: 0 }}>{item.icon}</span>
-        <div>
-          <div style={{ color: '#e2e8f0', fontSize: 14, fontWeight: 700, letterSpacing: '-0.01em' }}>{item.label}</div>
-          <div style={{ color: '#475569', fontSize: 12, marginTop: 4, lineHeight: 1.5 }}>{item.desc}</div>
+    <div style={{
+      paddingTop: 8, animation: 'textIn 0.6s ease both', animationDelay: '0.95s',
+      display: 'flex', flexWrap: 'wrap', gap: '10px 20px',
+      padding: '14px 18px', borderRadius: 12,
+      background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)',
+    }}>
+      {items.map(item => (
+        <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+          <span style={{ fontSize: 13 }}>{item.icon}</span>
+          <span style={{ color: '#64748b', fontSize: 12 }}>{item.label}</span>
         </div>
-      </div>
-
-      {/* Dots */}
-      <div style={{ display: 'flex', gap: 6, justifyContent: 'center', marginTop: 12 }}>
-        {TRUST_ITEMS.map((_, i) => (
-          <button
-            key={i}
-            onClick={() => { setVisible(false); setTimeout(() => { setActive(i); setVisible(true) }, 300) }}
-            style={{
-              width: i === active ? 20 : 6, height: 6, borderRadius: 3,
-              background: i === active ? '#38bdf8' : 'rgba(255,255,255,0.12)',
-              border: 'none', cursor: 'pointer', padding: 0,
-              transition: 'all 0.3s ease',
-            }}
-          />
-        ))}
-      </div>
+      ))}
     </div>
   )
 }
@@ -402,7 +352,7 @@ export default function LoginPage() {
         .login-header-status { display: flex; }
         .login-flow { display: flex; }
         .login-grid { display: grid; grid-template-columns: 1fr auto; gap: 80px; }
-        .login-form-wrap { width: 420px; flex-shrink: 0; }
+        .login-form-wrap { width: 440px; flex-shrink: 0; }
         .login-footer { display: flex; }
         .login-footer-links { display: flex; }
         .login-input { padding-top: 12px !important; padding-bottom: 12px !important; font-size: 14px !important; }
@@ -544,21 +494,12 @@ export default function LoginPage() {
         </div>
         <div className="login-header-status" style={{ alignItems: 'center', gap: 6 }}>
           <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#22c55e', display: 'inline-block', boxShadow: '0 0 8px #22c55e', animation: 'ping 2.5s ease-in-out infinite' }} />
-          <span style={{ color: '#475569', fontSize: 11 }}>Sistemas operativos</span>
-          <span style={{ color: '#1e293b', margin: '0 8px' }}>|</span>
-          <span style={{ color: '#334155', fontSize: 11 }}>Enterprise Security</span>
+          <span style={{ color: '#475569', fontSize: 11 }}>Sistema operativo</span>
         </div>
       </header>
 
       {/* ── Main ── */}
       <main className="login-main" style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: isMobile ? 'stretch' : 'center', justifyContent: 'center', padding: isMobile ? '0' : '40px 32px', position: 'relative', zIndex: 10, gap: 48 }}>
-
-        {/* Diagrama de flujo animado — solo desktop */}
-        {!isMobile && (
-          <div className="login-flow" style={{ animation: 'textIn 0.8s ease both', animationDelay: '0.1s' }}>
-            <FlowDiagram />
-          </div>
-        )}
 
         {/* Contenido principal — dos columnas en desktop, una en móvil */}
         <div className="login-grid" style={{ width: '100%', maxWidth: isMobile ? '100%' : 1300, alignItems: 'center' }}>
@@ -595,19 +536,22 @@ export default function LoginPage() {
 
             <p style={{
               animation: 'textIn 0.7s ease both', animationDelay: '0.5s',
-              color: '#94a3b8', fontSize: 16, lineHeight: 1.75, maxWidth: 520, margin: 0,
+              color: '#94a3b8', fontSize: 16, lineHeight: 1.75, maxWidth: 480, margin: 0,
             }}>
-              La primera plataforma de inteligencia artificial que transforma
-              documentación operacional dispersa en arquitecturas de procesos
-              accionables — con impacto medible desde el primer día.
+              IA que convierte tu documentación operacional dispersa
+              en procesos claros, medibles y listos para ejecutar.
             </p>
 
-            {/* 3 capacidades */}
+            {/* Diagrama de flujo — soporta el titular, no compite con él */}
+            <div className="login-flow" style={{ animation: 'textIn 0.7s ease both', animationDelay: '0.6s' }}>
+              <FlowDiagram />
+            </div>
+
+            {/* 2 capacidades — foco, no catálogo */}
             <div className="login-left-caps" style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
               {[
-                { icon: '★', color: '#38bdf8', title: 'IA que documenta por ti.', desc: 'Carga tu documentación y la IA genera el inventario completo de procesos, detecta brechas y calcula oportunidades de mejora — en horas, no en meses.', delay: '0.6s' },
-                { icon: '→', color: '#818cf8', title: 'Del proceso al ROI en tiempo real.', desc: 'Cada proceso analizado entrega automáticamente su análisis de impacto financiero, riesgos operacionales y KPIs proyectados — aprobados digitalmente.', delay: '0.75s' },
-                { icon: '✓', color: '#34d399', title: 'Implementación lista para ejecutar.', desc: 'El sistema prioriza qué automatizar primero y genera el plan tecnológico con los sistemas exactos que necesita tu organización.', delay: '0.9s' },
+                { icon: '★', color: '#38bdf8', title: 'IA que documenta por ti.', desc: 'Sube tu documentación y en horas tienes el inventario completo de procesos, brechas y oportunidades de mejora.', delay: '0.75s' },
+                { icon: '→', color: '#818cf8', title: 'De proceso a ROI, automáticamente.', desc: 'Cada proceso analizado entrega su impacto financiero, riesgos y KPIs proyectados — listos para aprobar e implementar.', delay: '0.9s' },
               ].map((item) => (
                 <div key={item.title} style={{ display: 'flex', gap: 14, animation: 'textIn 0.6s ease both', animationDelay: item.delay }}>
                   <div style={{
@@ -626,17 +570,18 @@ export default function LoginPage() {
               ))}
             </div>
 
-            <TrustCarousel />
+            <TrustBar />
           </div>
 
           {/* ── RIGHT — Formulario ── */}
           <div className="login-form-wrap" style={{ animation: 'textIn 0.8s ease both', animationDelay: '0.3s', width: isMobile ? '100%' : undefined }}>
             <div className="login-form-card" style={{
-              background: isMobile ? 'transparent' : 'rgba(8,12,28,0.92)',
-              border: isMobile ? 'none' : '1px solid rgba(255,255,255,0.12)',
+              background: isMobile ? 'transparent' : 'rgba(8,12,28,0.94)',
+              border: isMobile ? 'none' : '1px solid rgba(255,255,255,0.14)',
               borderRadius: isMobile ? 0 : 20,
-              padding: isMobile ? '52px 28px 48px' : '36px 32px',
+              padding: isMobile ? '52px 28px 48px' : '40px 36px',
               backdropFilter: isMobile ? 'none' : 'blur(20px)',
+              boxShadow: isMobile ? 'none' : '0 24px 70px -20px rgba(0,0,0,0.6), 0 0 0 1px rgba(56,189,248,0.04)',
               position: 'relative', overflow: 'hidden',
             }}>
               {/* Línea superior */}
@@ -649,7 +594,7 @@ export default function LoginPage() {
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0, marginBottom: 32 }}>
                   {[
                     { label: 'Documento', sub: 'PDF/DOCX', color: '#38bdf8', icon: <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 2h7l3 3v9H3V2z" stroke="#38bdf8" strokeWidth="1.3"/><path d="M10 2v3h3" stroke="#38bdf8" strokeWidth="1.3"/></svg> },
-                    { label: 'IA', sub: 'Claude', color: '#818cf8', icon: <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="3" stroke="#818cf8" strokeWidth="1.3"/><path d="M8 2v1M8 13v1M2 8h1M13 8h1" stroke="#818cf8" strokeWidth="1.3" strokeLinecap="round"/></svg> },
+                    { label: 'IA', sub: 'Motor IA', color: '#818cf8', icon: <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="3" stroke="#818cf8" strokeWidth="1.3"/><path d="M8 2v1M8 13v1M2 8h1M13 8h1" stroke="#818cf8" strokeWidth="1.3" strokeLinecap="round"/></svg> },
                     { label: 'Proceso', sub: 'IA', color: '#a78bfa', icon: <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="2" y="2" width="5" height="5" rx="1" stroke="#a78bfa" strokeWidth="1.3"/><rect x="9" y="2" width="5" height="5" rx="1" stroke="#a78bfa" strokeWidth="1.3"/><rect x="2" y="9" width="5" height="5" rx="1" stroke="#a78bfa" strokeWidth="1.3"/><rect x="9" y="9" width="5" height="5" rx="1" stroke="#a78bfa" strokeWidth="1.3"/></svg> },
                     { label: 'Aprob.', sub: 'Digital', color: '#34d399', icon: <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="#34d399" strokeWidth="1.3"/><path d="M5 8l2 2 4-4" stroke="#34d399" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/></svg> },
                     { label: 'Implmta', sub: 'ERP/RPA', color: '#fb923c', icon: <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 2l2 4h4l-3.3 2.4 1.3 3.9L8 10l-3.9 2.3 1.3-3.9L2 6h4L8 2z" stroke="#fb923c" strokeWidth="1.3" strokeLinejoin="round"/></svg> },
@@ -779,17 +724,11 @@ export default function LoginPage() {
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
-                    <input type="checkbox" style={{ accentColor: '#38bdf8', width: 13, height: 13 }} />
-                    <span style={{ color: '#475569', fontSize: 12 }}>Recordar dispositivo</span>
-                  </label>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                    <svg width="11" height="11" viewBox="0 0 16 16" fill="none" style={{ color: '#38bdf8' }}>
-                      <path d="M8 1L2 4v4c0 3.3 2.5 6.4 6 7 3.5-.6 6-3.7 6-7V4L8 1Z" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round"/>
-                    </svg>
-                    <span style={{ color: '#38bdf8', fontSize: 11, fontWeight: 500 }}>Conexión segura</span>
-                  </div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
+                  <svg width="11" height="11" viewBox="0 0 16 16" fill="none" style={{ color: '#38bdf8', flexShrink: 0 }}>
+                    <path d="M8 1L2 4v4c0 3.3 2.5 6.4 6 7 3.5-.6 6-3.7 6-7V4L8 1Z" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round"/>
+                  </svg>
+                  <span style={{ color: '#38bdf8', fontSize: 11, fontWeight: 500 }}>Conexión cifrada de extremo a extremo</span>
                 </div>
 
                 <button type="submit" disabled={loading}
@@ -806,8 +745,8 @@ export default function LoginPage() {
               </form>
 
             </div>
-            {!isMobile && <p className="login-audit-note" style={{ textAlign: 'center', color: '#1e293b', fontSize: 11, marginTop: 16, lineHeight: 1.7 }}>
-              Acceso auditado bajo RBAC · <span style={{ fontFamily: 'monospace' }}>audit_log</span> activo
+            {!isMobile && <p className="login-audit-note" style={{ textAlign: 'center', color: '#334155', fontSize: 11.5, marginTop: 18, lineHeight: 1.7 }}>
+              ¿Problemas para ingresar? Contacta al administrador de tu organización.
             </p>}
           </div>
         </div>
