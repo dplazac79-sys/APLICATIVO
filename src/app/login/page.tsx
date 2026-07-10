@@ -400,7 +400,7 @@ export default function LoginPage() {
             }}>
               <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#38bdf8', boxShadow: '0 0 10px #38bdf8', animation: 'ping 2s ease-in-out infinite' }} />
               <span style={{ color: '#7dd3fc', fontSize: 12, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase' }}>
-                Consultoría Estratégica de Procesos
+                Enterprise Process Intelligence Platform
               </span>
             </div>
 
@@ -410,19 +410,15 @@ export default function LoginPage() {
               fontSize: 'clamp(36px, 4vw, 60px)', fontWeight: 900, lineHeight: 1.07,
               color: '#f8fafc', letterSpacing: '-0.03em', margin: 0,
             }}>
-              El estándar operativo<br />
-              de las organizaciones<br />
-              <span style={{ background: 'linear-gradient(90deg, #38bdf8, #818cf8)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-                que lideran.
-              </span>
+              Process<span style={{ background: 'linear-gradient(90deg, #38bdf8, #818cf8)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>OS</span>
             </h1>
 
             <p style={{
               animation: 'textIn 0.7s ease both', animationDelay: '0.5s',
               color: '#94a3b8', fontSize: 16, lineHeight: 1.75, maxWidth: 480, margin: 0,
             }}>
-              IA que convierte tu documentación operacional dispersa
-              en procesos claros, medibles y listos para ejecutar.
+              Transforma documentos, conocimiento y operación en procesos
+              ejecutables mediante Inteligencia Artificial.
             </p>
 
             {/* Diagrama de flujo — soporta el titular, no compite con él */}
