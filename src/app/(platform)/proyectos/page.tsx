@@ -99,13 +99,22 @@ export default async function ProyectosPage() {
                         {cliente?.industria ? ` · ${String(cliente.industria)}` : ''}
                       </p>
                       <div className="mt-3 space-y-1">
-                        <div className="flex justify-between text-xs text-slate-500">
-                          <span>Avance workflow</span>
-                          <span>{avance}% ({cerrados}/{total} procesos cerrados)</span>
-                        </div>
-                        <div className="w-full bg-slate-800 rounded-full h-1.5">
-                          <div className="bg-indigo-500 h-1.5 rounded-full" style={{ width: `${avance}%` }} />
-                        </div>
+                        {total > 0 ? (
+                          <>
+                            <div className="flex justify-between text-xs text-slate-500">
+                              <span>Avance workflow</span>
+                              <span>{avance}% ({cerrados}/{total} procesos cerrados)</span>
+                            </div>
+                            <div className="w-full bg-slate-800 rounded-full h-1.5">
+                              <div className="bg-indigo-500 h-1.5 rounded-full" style={{ width: `${avance}%` }} />
+                            </div>
+                          </>
+                        ) : (
+                          <div className="flex items-center gap-1.5 text-xs text-slate-600">
+                            <span className="w-1.5 h-1.5 rounded-full bg-slate-700 shrink-0" />
+                            Sin flujo de trabajo configurado aún
+                          </div>
+                        )}
                       </div>
                     </div>
                     <div className="flex items-center gap-3 shrink-0">
