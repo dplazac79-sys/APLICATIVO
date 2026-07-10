@@ -485,7 +485,7 @@ interface Props {
   industria?: string
 }
 
-export default function HorizonteSimulador({ procesos, artefactosPorProceso, proyectoNombre, clienteNombre }: Props) {
+export default function HorizonteSimulador({ procesos, artefactosPorProceso, proyectoNombre, clienteNombre, industria }: Props) {
   const [procesoId, setProcesoId] = useState('')
   const [artefactoIds, setArtefactoIds] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
@@ -560,7 +560,7 @@ export default function HorizonteSimulador({ procesos, artefactosPorProceso, pro
               <p className="text-[10px] text-slate-500 uppercase tracking-widest">Simulación de transformación</p>
             </div>
             <h1 className="text-3xl font-black text-white tracking-tight">Horizonte de Impacto</h1>
-            <p className="text-slate-500 text-sm mt-1">{clienteNombre} · {proyectoNombre}</p>
+            <p className="text-slate-500 text-sm mt-1">{clienteNombre} · {proyectoNombre}{industria ? ` · ${industria}` : ''}</p>
           </div>
           {sim && (
             <button onClick={() => { setSim(null); setError(null) }}
