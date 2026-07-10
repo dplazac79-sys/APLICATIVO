@@ -1,34 +1,43 @@
 'use client'
 
 import { useEffect } from 'react'
-import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
-// MFA desactivado — esta página desenrolla los factores activos y redirige al app
+// MFA desactivado — esta página limpia los factores del usuario vía API de
+// admin (no requiere AAL2, a diferencia del unenroll del lado del cliente,
+// que se queda colgado si la sesión todavía está en AAL1) y redirige al app.
 export default function MfaChallengePage() {
-  const router = useRouter()
   const supabase = createClient()
 
   useEffect(() => {
-    async function unenrollAndRedirect() {
+    let cancelled = false
+
+    async function cleanupAndRedirect() {
       try {
-        const { data } = await supabase.auth.mfa.listFactors()
-        const allFactors = data?.all ?? []
-        for (const factor of allFactors) {
-          await supabase.auth.mfa.unenroll({ factorId: factor.id })
-        }
+        await fetch('/api/auth/mfa-cleanup', { method: 'POST' })
       } catch {
-        // ignorar errores, igual redirigimos
+        // seguimos igual, no debe bloquear el acceso
       }
+      if (cancelled) return
+
       const { data: { user } } = await supabase.auth.getUser()
       const { data: usuario } = await supabase
         .from('usuario')
         .select('rol')
         .eq('id', user?.id ?? '')
         .single()
-      router.replace(usuario?.rol === 'usuario_cliente' ? '/portal' : '/bienvenida')
+
+      window.location.href = usuario?.rol === 'usuario_cliente' ? '/portal' : '/bienvenida'
     }
-    unenrollAndRedirect()
+
+    cleanupAndRedirect()
+
+    // Red de seguridad: si algo se cuelga, forzamos la salida igual
+    const fallback = setTimeout(() => {
+      if (!cancelled) window.location.href = '/bienvenida'
+    }, 6000)
+
+    return () => { cancelled = true; clearTimeout(fallback) }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
