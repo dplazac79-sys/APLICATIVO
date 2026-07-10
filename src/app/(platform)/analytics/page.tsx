@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { Network, AlertTriangle, Factory, ChevronUp, ChevronDown } from 'lucide-react'
 import type { KgNodo, KgNodoTipo, KgRelacionExpandida } from '@/lib/automation/tipos'
 
 const NODO_TIPO_LABEL: Record<KgNodoTipo, string> = {
@@ -59,7 +60,7 @@ function GrafoRelaciones({ industria }: { industria: string }) {
 
   return (
     <div className="col-span-full mt-4 pt-4 border-t border-slate-700">
-      <p className="text-xs text-slate-400 mb-3 uppercase tracking-wide font-medium">🕸️ Grafo de Relaciones</p>
+      <p className="text-xs text-slate-400 mb-3 uppercase tracking-wide font-medium flex items-center gap-1.5"><Network className="w-3.5 h-3.5" /> Grafo de Relaciones</p>
 
       {/* Nodos agrupados por tipo */}
       <div className="space-y-2 mb-4">
@@ -120,11 +121,11 @@ interface AnalyticsData {
 }
 
 const TIPO_LABEL: Record<string, string> = {
-  RPA: '🤖 RPA',
-  integracion: '🔗 Integración',
-  ia_generativa: '🧠 IA Generativa',
-  workflow: '📋 Workflow',
-  hibrida: '⚡ Híbrida',
+  RPA: 'RPA',
+  integracion: 'Integración',
+  ia_generativa: 'IA Generativa',
+  workflow: 'Workflow',
+  hibrida: 'Híbrida',
 }
 
 function KpiCard({ label, value, sub }: { label: string; value: string | number; sub?: string }) {
@@ -141,6 +142,24 @@ function BarChart({ items, colorClass = 'bg-indigo-600' }: {
   items: { label: string; value: number; max: number }[]
   colorClass?: string
 }) {
+  // Sin varianza (todos los valores iguales, ej. todo ocurrió 1 vez): una barra
+  // proporcional dibujaría el 100% en cada fila, sugiriendo una comparación que
+  // no existe. En ese caso se muestra como lista simple en vez de gráfico.
+  const sinVarianza = items.length > 1 && items.every(i => i.value === items[0].value)
+
+  if (sinVarianza) {
+    return (
+      <div className="space-y-1.5">
+        {items.map(item => (
+          <div key={item.label} className="flex items-center justify-between text-xs">
+            <span className="text-slate-400 truncate">{item.label}</span>
+            <span className="font-mono text-slate-500">{item.value}×</span>
+          </div>
+        ))}
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-2">
       {items.map(item => (
@@ -178,7 +197,7 @@ export default function AnalyticsPage() {
     return (
       <div className="flex items-center justify-center h-full">
         <div className="text-center text-slate-400">
-          <div className="text-4xl mb-3">⚠️</div>
+          <AlertTriangle className="w-10 h-10 mx-auto mb-3 text-amber-500" />
           <p>{error}</p>
         </div>
       </div>
@@ -213,8 +232,8 @@ export default function AnalyticsPage() {
         <KpiCard label="Aprobadas" value={data.resumen.recomendaciones_aprobadas} />
         <KpiCard
           label="Score impacto prom."
-          value={data.resumen.score_impacto_promedio}
-          sub="sobre 5"
+          value={data.resumen.total_recomendaciones > 0 ? data.resumen.score_impacto_promedio : '—'}
+          sub={data.resumen.total_recomendaciones > 0 ? 'sobre 5' : 'sin recomendaciones aún'}
         />
       </div>
 
@@ -232,14 +251,18 @@ export default function AnalyticsPage() {
         {/* Automatizaciones frecuentes */}
         <div className="bg-slate-900 border border-slate-700 rounded-lg p-4">
           <h2 className="text-sm font-medium text-slate-300 mb-4">Tipos de Automatización Recomendados</h2>
-          <BarChart
-            items={data.automatizaciones_frecuentes.map(a => ({
-              label: TIPO_LABEL[a.tipo] ?? a.tipo,
-              value: a.count,
-              max: maxAut,
-            }))}
-            colorClass="bg-purple-600"
-          />
+          {data.automatizaciones_frecuentes.length === 0 ? (
+            <p className="text-slate-500 text-sm">Sin recomendaciones de IA generadas todavía.</p>
+          ) : (
+            <BarChart
+              items={data.automatizaciones_frecuentes.map(a => ({
+                label: TIPO_LABEL[a.tipo] ?? a.tipo,
+                value: a.count,
+                max: maxAut,
+              }))}
+              colorClass="bg-purple-600"
+            />
+          )}
         </div>
 
         {/* Estado de proyectos */}
@@ -293,7 +316,7 @@ export default function AnalyticsPage() {
         <h2 className="text-lg font-medium text-slate-200 mb-4">Knowledge Graph Corporativo</h2>
         {data.knowledge_graph.length === 0 ? (
           <div className="bg-slate-900 border border-slate-700 rounded-lg p-8 text-center text-slate-500">
-            <div className="text-3xl mb-2 opacity-30">🕸️</div>
+            <Network className="w-8 h-8 mx-auto mb-2 text-slate-700" />
             <p>El Knowledge Graph se poblará al cerrar el primer proyecto.</p>
             <p className="text-xs mt-1">Usa el botón &quot;Cerrar proyecto&quot; en Administración.</p>
           </div>
@@ -306,13 +329,13 @@ export default function AnalyticsPage() {
                   onClick={() => setKgExpanded(kgExpanded === snap.industria ? null : snap.industria)}
                 >
                   <div className="flex items-center gap-3">
-                    <span className="text-lg">🏭</span>
+                    <Factory className="w-4 h-4 text-slate-500 shrink-0" />
                     <div>
                       <p className="font-medium text-slate-200">{snap.industria}</p>
                       <p className="text-xs text-slate-500">{snap.proyectos_cerrados} proyecto(s) cerrado(s)</p>
                     </div>
                   </div>
-                  <span className="text-slate-500">{kgExpanded === snap.industria ? '▲' : '▼'}</span>
+                  {kgExpanded === snap.industria ? <ChevronUp className="w-4 h-4 text-slate-500" /> : <ChevronDown className="w-4 h-4 text-slate-500" />}
                 </button>
                 {kgExpanded === snap.industria && (
                   <div className="p-4 border-t border-slate-700 grid md:grid-cols-2 gap-4">
