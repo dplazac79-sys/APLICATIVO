@@ -3722,12 +3722,12 @@ export default function DiscoveryExperiencia({
                 {
                   step: '3',
                   icon: CheckCircle,
-                  label: 'Revisión en curso',
+                  label: pendientes === 0 ? 'Revisión completa' : 'Revisión en curso',
                   desc: `${aceptados} aceptados · ${pendientes} pendientes. Acepta o rechaza cada proceso y profundiza con IA.`,
-                  color: 'text-blue-400',
-                  bg: 'bg-blue-950/30 border-blue-800/40',
+                  color: pendientes === 0 ? 'text-emerald-400' : 'text-blue-400',
+                  bg: pendientes === 0 ? 'bg-emerald-950/20 border-emerald-800/20' : 'bg-blue-950/30 border-blue-800/40',
                   href: null,
-                  done: false,
+                  done: pendientes === 0,
                 },
               ].map(({ step, icon: Icon, label, desc, color, bg, href, done }) => (
                 href ? (
@@ -3820,7 +3820,7 @@ export default function DiscoveryExperiencia({
               {t.label}
               {t.count > 0 && (
                 <span className={`text-xs px-1.5 py-0.5 rounded-full ${tab === t.id ? 'bg-amber-400/30 text-amber-200' : 'bg-amber-900/60 text-amber-300'}`}>
-                  {t.count} nuevo{t.count !== 1 ? 's' : ''}
+                  {t.count}
                 </span>
               )}
             </button>
@@ -3913,14 +3913,14 @@ export default function DiscoveryExperiencia({
             <div>
               <h3 className="text-white font-bold text-lg mb-2">Acepta procesos primero para ver roles detectados</h3>
               <p className="text-slate-400 text-sm max-w-md mx-auto leading-relaxed">
-                El Glosario de Roles se construye a partir de los roles involucrados en los procesos que hayas <span className="text-emerald-400 font-medium">aceptado</span>. Ve a la pestaña <span className="text-violet-300 font-medium">Inventario de Procesos</span> y valida los procesos relevantes para desbloquear este análisis.
+                El Glosario de Roles se construye a partir de los roles involucrados en los procesos que hayas <span className="text-emerald-400 font-medium">aceptado</span>. Ve a la pestaña <span className="text-violet-300 font-medium">Macroprocesos y Procesos</span> y valida los procesos relevantes para desbloquear este análisis.
               </p>
             </div>
             <div className="flex items-start gap-3 max-w-sm mx-auto bg-slate-800/50 border border-slate-700/50 rounded-xl p-4 text-left mt-2">
               <div className="space-y-2 text-xs text-slate-400">
                 <div className="flex items-center gap-2">
                   <span className="w-5 h-5 rounded-full bg-violet-600 text-white text-xs font-bold flex items-center justify-center shrink-0">1</span>
-                  Abre la pestaña <strong className="text-slate-300">Inventario de Procesos</strong>
+                  Abre la pestaña <strong className="text-slate-300">Macroprocesos y Procesos</strong>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="w-5 h-5 rounded-full bg-violet-600 text-white text-xs font-bold flex items-center justify-center shrink-0">2</span>
@@ -3936,7 +3936,7 @@ export default function DiscoveryExperiencia({
               onClick={() => setTab('procesos')}
               className="inline-flex items-center gap-2 mt-2 px-5 py-2.5 bg-violet-600 hover:bg-violet-500 text-white text-sm font-semibold rounded-xl transition-colors"
             >
-              <Activity className="w-4 h-4" /> Ver Inventario de Procesos
+              <Activity className="w-4 h-4" /> Ver Macroprocesos y Procesos
             </button>
           </div>
         ) : (
