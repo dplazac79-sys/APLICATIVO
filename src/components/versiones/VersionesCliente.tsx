@@ -496,8 +496,16 @@ export default function VersionesCliente({
   const procesosConCambios = procesos.filter(p =>
     ((p.metadata_ia?.versiones ?? []) as unknown[]).length > 0
   ).length
-  const ultimaActividad = procesos.reduce((latest, p) => {
-    const d = new Date(p.updated_at).getTime()
+  // Se calcula a partir de eventos reales y auditados (ediciones de artefactos,
+  // historial de artefactos/procesos) — NO desde proceso.updated_at, que puede
+  // ser tocado por migraciones o scripts sin pasar por ningún flujo auditado,
+  // mostrando una fecha de "actividad" que nunca ocurrió realmente en la app.
+  const ultimaActividad = [
+    ...artefactos.map(a => a.updated_at),
+    ...historialArtefactos.map(h => h.created_at),
+    ...historialProcesos.map(h => h.created_at),
+  ].reduce((latest, fecha) => {
+    const d = new Date(fecha).getTime()
     return d > latest ? d : latest
   }, 0)
   const ultimaActividadStr = ultimaActividad
