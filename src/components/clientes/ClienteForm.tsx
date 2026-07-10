@@ -15,7 +15,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import type { Cliente } from '@/types/database'
-import { titleCase, oracionCase } from '@/lib/normalizar'
+import { titleCase, oracionCase, formatRut, formatMiles, parseMiles } from '@/lib/normalizar'
 
 interface Props {
   cliente?: Cliente
@@ -37,11 +37,11 @@ export default function ClienteForm({ cliente }: Props) {
 
   const [form, setForm] = useState({
     razon_social: cliente?.razon_social ?? '',
-    rut: cliente?.rut ?? '',
+    rut: cliente?.rut ? formatRut(cliente.rut) : '',
     industria: cliente?.industria ?? '',
     tamano: cliente?.tamano ?? '',
-    facturacion: cliente?.facturacion?.toString() ?? '',
-    dotacion: cliente?.dotacion?.toString() ?? '',
+    facturacion: cliente?.facturacion ? formatMiles(cliente.facturacion.toString()) : '',
+    dotacion: cliente?.dotacion ? formatMiles(cliente.dotacion.toString()) : '',
     madurez_digital: cliente?.madurez_digital ?? '',
     objetivos_estrategicos: cliente?.objetivos_estrategicos ?? '',
     riesgos_declarados: cliente?.riesgos_declarados ?? '',
@@ -61,8 +61,8 @@ export default function ClienteForm({ cliente }: Props) {
       rut: form.rut || null,
       industria: form.industria || null,
       tamano: form.tamano || null,
-      facturacion: form.facturacion ? parseFloat(form.facturacion) : null,
-      dotacion: form.dotacion ? parseInt(form.dotacion) : null,
+      facturacion: parseMiles(form.facturacion),
+      dotacion: parseMiles(form.dotacion),
       madurez_digital: form.madurez_digital || null,
       objetivos_estrategicos: form.objetivos_estrategicos ? oracionCase(form.objetivos_estrategicos) : null,
       riesgos_declarados: form.riesgos_declarados ? oracionCase(form.riesgos_declarados) : null,
@@ -114,16 +114,17 @@ export default function ClienteForm({ cliente }: Props) {
             />
           </div>
           <div className="space-y-2">
-            <Label className="text-slate-300">RUT</Label>
+            <Label className="text-slate-300">RUT <span className="text-slate-500 font-normal">(opcional)</span></Label>
             <Input
               value={form.rut}
-              onChange={e => set('rut', e.target.value)}
+              onChange={e => set('rut', formatRut(e.target.value))}
               placeholder="76.123.456-7"
+              maxLength={12}
               className="bg-slate-800 border-slate-700 text-white"
             />
           </div>
           <div className="space-y-2">
-            <Label className="text-slate-300">Industria</Label>
+            <Label className="text-slate-300">Industria <span className="text-slate-500 font-normal">(opcional)</span></Label>
             <Select value={form.industria} onValueChange={(v) => v && set('industria', v)}>
               <SelectTrigger className="bg-slate-800 border-slate-700 text-white">
                 <SelectValue placeholder="Seleccionar..." />
@@ -136,7 +137,7 @@ export default function ClienteForm({ cliente }: Props) {
             </Select>
           </div>
           <div className="space-y-2">
-            <Label className="text-slate-300">Tamaño</Label>
+            <Label className="text-slate-300">Tamaño <span className="text-slate-500 font-normal">(opcional)</span></Label>
             <Select value={form.tamano} onValueChange={(v) => v && set('tamano', v)}>
               <SelectTrigger className="bg-slate-800 border-slate-700 text-white">
                 <SelectValue placeholder="Seleccionar..." />
@@ -149,7 +150,7 @@ export default function ClienteForm({ cliente }: Props) {
             </Select>
           </div>
           <div className="space-y-2">
-            <Label className="text-slate-300">Madurez digital</Label>
+            <Label className="text-slate-300">Madurez digital <span className="text-slate-500 font-normal">(opcional)</span></Label>
             <Select value={form.madurez_digital} onValueChange={(v) => v && set('madurez_digital', v)}>
               <SelectTrigger className="bg-slate-800 border-slate-700 text-white">
                 <SelectValue placeholder="Seleccionar..." />
@@ -162,21 +163,24 @@ export default function ClienteForm({ cliente }: Props) {
             </Select>
           </div>
           <div className="space-y-2">
-            <Label className="text-slate-300">Facturación anual (USD)</Label>
-            <Input
-              type="number"
-              value={form.facturacion}
-              onChange={e => set('facturacion', e.target.value)}
-              placeholder="1000000"
-              className="bg-slate-800 border-slate-700 text-white"
-            />
+            <Label className="text-slate-300">Facturación anual (USD) <span className="text-slate-500 font-normal">(opcional)</span></Label>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm pointer-events-none">$</span>
+              <Input
+                inputMode="numeric"
+                value={form.facturacion}
+                onChange={e => set('facturacion', formatMiles(e.target.value))}
+                placeholder="1.000.000"
+                className="bg-slate-800 border-slate-700 text-white pl-7"
+              />
+            </div>
           </div>
           <div className="space-y-2">
-            <Label className="text-slate-300">Dotación (personas)</Label>
+            <Label className="text-slate-300">Dotación (personas) <span className="text-slate-500 font-normal">(opcional)</span></Label>
             <Input
-              type="number"
+              inputMode="numeric"
               value={form.dotacion}
-              onChange={e => set('dotacion', e.target.value)}
+              onChange={e => set('dotacion', formatMiles(e.target.value))}
               placeholder="250"
               className="bg-slate-800 border-slate-700 text-white"
             />
@@ -188,10 +192,11 @@ export default function ClienteForm({ cliente }: Props) {
       <Card className="bg-slate-900 border-slate-800">
         <CardHeader>
           <CardTitle className="text-white text-base">Contexto empresarial</CardTitle>
+          <p className="text-slate-500 text-xs mt-1">La IA usa este contexto para personalizar el análisis de procesos de este cliente — cuanto más específico, mejor el resultado.</p>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label className="text-slate-300">Objetivos estratégicos</Label>
+            <Label className="text-slate-300">Objetivos estratégicos <span className="text-slate-500 font-normal">(opcional)</span></Label>
             <Textarea
               value={form.objetivos_estrategicos}
               onChange={e => set('objetivos_estrategicos', e.target.value)}
@@ -201,7 +206,7 @@ export default function ClienteForm({ cliente }: Props) {
             />
           </div>
           <div className="space-y-2">
-            <Label className="text-slate-300">Riesgos declarados</Label>
+            <Label className="text-slate-300">Riesgos declarados <span className="text-slate-500 font-normal">(opcional)</span></Label>
             <Textarea
               value={form.riesgos_declarados}
               onChange={e => set('riesgos_declarados', e.target.value)}

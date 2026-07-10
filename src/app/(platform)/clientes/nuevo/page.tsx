@@ -5,7 +5,7 @@ export default function NuevoClientePage() {
     <div className="max-w-3xl mx-auto space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-white">Nuevo cliente</h1>
-        <p className="text-slate-400 text-sm mt-1">Ficha 360° — M1 Clientes e Industrias</p>
+        <p className="text-slate-400 text-sm mt-1">Solo la razón social es obligatoria — puedes completar el resto o editarlo después.</p>
       </div>
       <ClienteForm />
     </div>
