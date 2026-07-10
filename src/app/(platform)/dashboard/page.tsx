@@ -6,6 +6,7 @@ import { FileText, FolderOpen, Brain, Layers, Sparkles, ArrowRight, AlertCircle,
 import Link from 'next/link'
 import FaseWorkflow from '@/components/fases/FaseWorkflow'
 import { getFasesProyecto } from '@/lib/fases'
+import { getProcesosAceptadosIds, contarArtefactosDeProcesosAceptados } from '@/lib/domain/procesos'
 
 export default async function DashboardPage() {
   const supabase = createClient()
@@ -49,23 +50,19 @@ export default async function DashboardPage() {
   // Stats del proyecto activo
   let stats = { documentos: 0, docsListos: 0, procesosTotal: 0, procesosAprobados: 0, artefactos: 0 }
   if (proyectoMeta) {
-    const [docsRes, docsListosRes, procesosRes] = await Promise.all([
+    const [docsRes, docsListosRes, procesosRes, aceptados, totalArtefactos] = await Promise.all([
       admin.from('documento').select('id', { count: 'exact', head: true }).eq('proyecto_id', proyectoMeta.id),
       admin.from('documento').select('id', { count: 'exact', head: true }).eq('proyecto_id', proyectoMeta.id).eq('estado_procesamiento', 'listo'),
-      admin.from('proceso').select('id, estado_oferta', { count: 'exact' }).eq('proyecto_id', proyectoMeta.id),
+      admin.from('proceso').select('id', { count: 'exact', head: true }).eq('proyecto_id', proyectoMeta.id),
+      getProcesosAceptadosIds(proyectoMeta.id),
+      contarArtefactosDeProcesosAceptados(proyectoMeta.id),
     ])
-    // Artefactos solo de procesos aceptados — misma convención que Process Architect
-    // y Bienvenida, para que "artefactos generados" signifique lo mismo en toda la app.
-    const idsAceptados = (procesosRes.data ?? []).filter((p: any) => p.estado_oferta === 'aceptado').map((p: any) => p.id)
-    const artefactosRes = idsAceptados.length > 0
-      ? await admin.from('artefacto').select('id', { count: 'exact', head: true }).in('proceso_id', idsAceptados)
-      : { count: 0 }
     stats = {
       documentos: docsRes.count ?? 0,
       docsListos: docsListosRes.count ?? 0,
       procesosTotal: procesosRes.count ?? 0,
-      procesosAprobados: idsAceptados.length,
-      artefactos: artefactosRes.count ?? 0,
+      procesosAprobados: aceptados.total,
+      artefactos: totalArtefactos,
     }
   }
 
