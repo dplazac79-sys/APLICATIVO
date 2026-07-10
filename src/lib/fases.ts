@@ -48,7 +48,7 @@ export async function getFasesProyecto(pid: string): Promise<{ proyecto: Record<
   const f3Done = (procesosAprobados ?? 0) >= 1 && (glosarioRoles ?? 0) >= 1 // Fase 3: Process Discovery
   const f4Done = (artefactos ?? 0) >= 8                             // Fase 4: Artefactos (8 por proceso)
   const f5Done = (entregables ?? 0) >= 1 || (reuniones ?? 0) >= 1  // Fase 5: Control Center
-  const f6Done = (simulaciones ?? 0) >= 1                           // Fase 6: Horizonte de Impacto
+  const f6Done = (simulaciones ?? 0) >= 1                           // Fase 6: Simulador de Escenarios
   const f7Done = (recomendaciones ?? 0) >= 1                        // Fase 7: Automation Studio
 
   const fases: Fase[] = [
@@ -134,8 +134,8 @@ export async function getFasesProyecto(pid: string): Promise<{ proyecto: Record<
     },
     {
       id: 6,
-      nombre: 'Horizonte de Impacto',
-      descripcion: 'Simulador ejecutivo: ROI, impacto operacional y organizacional.',
+      nombre: 'Simulador de Escenarios',
+      descripcion: 'Modela escenarios a medida: ROI, impacto operacional y organizacional.',
       icono: '📈',
       color: 'cyan',
       href: '/impacto',

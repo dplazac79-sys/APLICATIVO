@@ -224,8 +224,11 @@ export default function ImpactoPage() {
         <div className="px-4 py-4 border-b border-slate-800">
           <div className="flex items-center gap-2 mb-3">
             <BarChart3 className="w-4 h-4 text-indigo-400" />
-            <h1 className="text-sm font-semibold text-white">Horizonte de Impacto</h1>
+            <h1 className="text-sm font-semibold text-white">Simulador de Escenarios</h1>
           </div>
+          <p className="text-[11px] text-slate-500 -mt-2 mb-3 leading-relaxed">
+            Modela tus propios parámetros — distinto del Horizonte de Impacto con IA que ve el cliente.
+          </p>
           <select
             value={proyectoId}
             onChange={e => setProyectoId(e.target.value)}
@@ -809,7 +812,9 @@ function EmptyState({ onNew }: { onNew: () => void }) {
       <BarChart3 className="w-12 h-12 text-slate-700" />
       <div>
         <p className="text-slate-300 font-medium">Sin simulaciones para este proyecto</p>
-        <p className="text-slate-600 text-sm mt-1">Crea una simulación operacional, financiera u organizacional vinculada a un proceso.</p>
+        <p className="text-slate-600 text-sm mt-1 max-w-sm">
+          Ingresa tus propios parámetros operacionales, financieros u organizacionales y compara escenarios (conservador, base, TO-BE). Útil para modelar supuestos que el Horizonte de Impacto automático no cubre.
+        </p>
       </div>
       <button onClick={onNew} className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium px-4 py-2 rounded-lg">
         <Plus className="w-4 h-4" /> Nueva simulación

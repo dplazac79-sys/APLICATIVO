@@ -40,7 +40,7 @@ const navItems: NavItem[] = [
   { label: 'Control de Versiones', href: '/versiones', icon: GitBranch, roles: ['super_admin', 'director_proyecto', 'consultor', 'sponsor_cliente', 'usuario_cliente'], badge: 'F5' },
   { label: 'Horizonte de Impacto', href: '/horizonte', icon: BarChart3, roles: ['sponsor_cliente', 'usuario_cliente'], badge: 'F6' },
   { label: 'Project Control Center', href: '/proyectos', icon: Briefcase, roles: ['super_admin'], badge: 'F5' },
-  { label: 'Horizonte de Impacto', href: '/impacto', icon: BarChart3, roles: ['super_admin', 'director_proyecto', 'consultor'], badge: 'F6' },
+  { label: 'Simulador de Escenarios', href: '/impacto', icon: BarChart3, roles: ['super_admin', 'director_proyecto', 'consultor'], badge: 'F6' },
   { label: 'Automation Studio', href: '/automation', icon: Zap, roles: ['super_admin', 'director_proyecto', 'consultor'], badge: 'F7' },
 ]
 
