@@ -165,27 +165,29 @@ export default function DocumentosFiltroWrapper({ documentos, esInterno, rolActu
 
   return (
     <div className="space-y-4">
-      {/* Barra de búsqueda */}
-      <div className="flex items-center gap-2">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
-          <input
-            type="text"
-            value={busqueda}
-            onChange={e => setBusqueda(e.target.value)}
-            placeholder="Buscar por nombre de archivo..."
-            className="w-full bg-slate-800/60 border border-slate-700/50 rounded-xl pl-9 pr-9 py-2.5 text-sm text-slate-200 placeholder:text-slate-600 focus:outline-none focus:border-violet-600/50 transition-colors"
-          />
-          {busqueda && (
-            <button onClick={() => setBusqueda('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300">
-              <X className="w-3.5 h-3.5" />
-            </button>
-          )}
-        </div>
+      {/* Filtro rápido por nombre */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
+        <input
+          type="text"
+          value={busqueda}
+          onChange={e => setBusqueda(e.target.value)}
+          placeholder="Filtrar por nombre de archivo..."
+          className="w-full bg-slate-800/60 border border-slate-700/50 rounded-xl pl-9 pr-9 py-2.5 text-sm text-slate-200 placeholder:text-slate-600 focus:outline-none focus:border-slate-500/60 transition-colors"
+        />
+        {busqueda && (
+          <button onClick={() => setBusqueda('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300">
+            <X className="w-3.5 h-3.5" />
+          </button>
+        )}
+      </div>
+
+      {/* Búsqueda semántica con IA — herramienta distinta, no un segundo filtro */}
+      <div className="space-y-1.5">
         <BuscadorSemantico onFiltrar={setFiltroIds} />
         {filtroIds !== null && (
-          <button onClick={() => setFiltroIds(null)} className="text-xs text-violet-400 hover:text-violet-300 whitespace-nowrap">
-            Quitar filtro
+          <button onClick={() => setFiltroIds(null)} className="text-xs text-violet-400 hover:text-violet-300">
+            Quitar filtro de búsqueda IA
           </button>
         )}
       </div>

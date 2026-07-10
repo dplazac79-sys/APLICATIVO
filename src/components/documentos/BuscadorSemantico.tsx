@@ -58,16 +58,20 @@ export default function BuscadorSemantico({ onFiltrar }: Props) {
   }
 
   return (
-    <Card className="bg-slate-900 border-slate-800">
+    <Card className="bg-gradient-to-br from-violet-950/20 to-slate-900 border-violet-700/30">
       <CardContent className="p-4 space-y-3">
+        <div className="flex items-center gap-1.5">
+          <Sparkles className="w-3.5 h-3.5 text-violet-400" />
+          <p className="text-[10px] font-bold text-violet-400 uppercase tracking-widest">Búsqueda con IA en el contenido</p>
+        </div>
         <form onSubmit={buscar} className="flex items-center gap-2">
           <div className="relative flex-1">
-            <Search className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
+            <Sparkles className="w-4 h-4 text-violet-400/70 absolute left-3 top-1/2 -translate-y-1/2" />
             <Input
               value={query}
               onChange={e => setQuery(e.target.value)}
-              placeholder="Filtra por nombre o busca en contenido: ej. 'SC01' o 'riesgos de cadena de suministro'"
-              className="bg-slate-800 border-slate-700 text-white pl-9 pr-9"
+              placeholder="ej. 'riesgos de cadena de suministro' — busca dentro del texto, no solo en el nombre"
+              className="bg-slate-800 border-violet-700/30 text-white pl-9 pr-9 focus-visible:ring-violet-500/40"
             />
             {query && (
               <button
@@ -79,8 +83,8 @@ export default function BuscadorSemantico({ onFiltrar }: Props) {
               </button>
             )}
           </div>
-          <Button type="submit" disabled={buscando || !query.trim()} className="bg-indigo-600 hover:bg-indigo-700 shrink-0">
-            {buscando ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Buscar'}
+          <Button type="submit" disabled={buscando || !query.trim()} className="bg-violet-600 hover:bg-violet-500 shrink-0">
+            {buscando ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Buscar con IA'}
           </Button>
         </form>
 

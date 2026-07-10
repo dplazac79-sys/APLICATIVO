@@ -59,7 +59,7 @@ export default function OrganigramaUploader({ proyectos, proyectoPreseleccionado
   const [dragging, setDragging] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [expandido, setExpandido] = useState(true)
+  const [expandido, setExpandido] = useState(false)
   const [verMapeos, setVerMapeos] = useState(false)
   const [lanzando, setLanzando] = useState(false)
   const [organigramas, setOrganigramas] = useState<Organigrama[]>([])
