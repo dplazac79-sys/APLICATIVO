@@ -4,7 +4,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import Link from 'next/link'
-import { ArrowRight, Sparkles, CheckCircle2, Circle, Lock, ChevronRight } from 'lucide-react'
+import { ArrowRight, CheckCircle2, Circle, Lock, ChevronRight, FolderKanban } from 'lucide-react'
 import Saludo from './Saludo'
 import ResumenProyecto from './ResumenProyecto'
 import { getFasesProyecto } from '@/lib/fases'
@@ -104,18 +104,10 @@ export default async function BienvenidaPage() {
     <div className="max-w-5xl mx-auto space-y-6 py-2">
 
       {/* Header */}
-      <div className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-indigo-950/30 to-slate-900 border border-indigo-500/20 rounded-2xl p-6 md:p-8">
-        <div className="absolute inset-0 opacity-20 pointer-events-none">
-          <div className="absolute top-0 left-1/4 w-64 h-64 bg-indigo-500 rounded-full blur-3xl" />
-          <div className="absolute bottom-0 right-1/4 w-48 h-48 bg-violet-500 rounded-full blur-3xl" />
-        </div>
-        <div className="relative z-10">
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 md:p-7">
+        <div>
           <div className="flex items-start justify-between gap-4 flex-wrap">
             <div>
-              <div className="flex items-center gap-2 mb-3">
-                <Sparkles className="w-5 h-5 text-indigo-400" />
-                <span className="text-xs text-indigo-300 font-medium uppercase tracking-widest">ProcessOS — Aplicativo Consultivo</span>
-              </div>
               <Saludo nombre={nombre} />
               {proyectoMeta ? (
                 <p className="text-slate-400 mt-2 text-base">
@@ -133,7 +125,7 @@ export default async function BienvenidaPage() {
                 </Link>
               )}
               {esSuperAdmin && (
-                <Link href="/admin/onboarding" className="flex items-center gap-2 bg-slate-700 hover:bg-slate-600 text-white text-sm font-medium px-4 py-2.5 rounded-xl transition-colors">
+                <Link href="/admin/onboarding" className="flex items-center gap-2 text-slate-400 hover:text-slate-200 hover:bg-slate-800 border border-slate-800 text-sm font-medium px-4 py-2.5 rounded-xl transition-colors">
                   + Nuevo cliente
                 </Link>
               )}
@@ -220,7 +212,9 @@ export default async function BienvenidaPage() {
               <ResumenProyecto proyecto={proyectoMeta as any} cliente={cliente} equipo={equipo} rol={usuario?.rol ?? ''} stats={statsProyecto} faseActual={fases?.find(f => f.status === 'activa') ?? null} />
             ) : (
               <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 text-center space-y-3">
-                <div className="w-12 h-12 bg-indigo-950 rounded-2xl flex items-center justify-center mx-auto text-xl">🏗️</div>
+                <div className="w-12 h-12 bg-indigo-950 rounded-2xl flex items-center justify-center mx-auto">
+                  <FolderKanban className="w-5 h-5 text-indigo-400" />
+                </div>
                 <p className="text-white font-medium text-sm">Sin proyecto activo</p>
                 <p className="text-slate-400 text-xs">Crea un cliente y proyecto desde el onboarding.</p>
               </div>
@@ -266,15 +260,20 @@ export default async function BienvenidaPage() {
                             <span className="text-slate-300">{entidad}</span>
                             {detNombre && <span className="text-slate-500"> — {detNombre}</span>}
                           </p>
-                          {log.detalle && Object.keys(log.detalle).filter(k => !['nombre','email','titulo','nombre_archivo'].includes(k)).length > 0 && (
-                            <p className="text-xs text-slate-600 mt-0.5 truncate">
-                              {Object.entries(log.detalle)
-                                .filter(([k]) => !['nombre','email','titulo','nombre_archivo'].includes(k))
-                                .slice(0, 2)
-                                .map(([k, v]) => `${k}: ${String(v).slice(0,25)}`)
-                                .join(' · ')}
-                            </p>
-                          )}
+                          {(() => {
+                            // Solo campos legibles y no técnicos: nunca IDs, UUIDs ni claves internas
+                            const esIdOInterno = (k: string, v: unknown) =>
+                              k === 'id' || k.endsWith('_id') || k.startsWith('_') ||
+                              /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(v))
+                            const extra = Object.entries(log.detalle ?? {})
+                              .filter(([k, v]) => !['nombre','email','titulo','nombre_archivo'].includes(k) && !esIdOInterno(k, v))
+                              .slice(0, 2)
+                            return extra.length > 0 ? (
+                              <p className="text-xs text-slate-600 mt-0.5 truncate">
+                                {extra.map(([k, v]) => `${k.replace(/_/g, ' ')}: ${String(v).slice(0, 25)}`).join(' · ')}
+                              </p>
+                            ) : null
+                          })()}
                         </div>
                         <div className="text-right shrink-0 ml-2">
                           <p className="text-xs text-slate-500 whitespace-nowrap">{cuando}</p>
@@ -316,7 +315,9 @@ export default async function BienvenidaPage() {
         </div>
       ) : (
         <div className="bg-slate-900 border border-slate-800 rounded-xl p-8 text-center space-y-4">
-          <div className="w-14 h-14 bg-indigo-950 rounded-2xl flex items-center justify-center mx-auto text-2xl">🏗️</div>
+          <div className="w-14 h-14 bg-indigo-950 rounded-2xl flex items-center justify-center mx-auto">
+            <FolderKanban className="w-6 h-6 text-indigo-400" />
+          </div>
           <div>
             <h3 className="text-white font-semibold">Sin proyecto asignado</h3>
             <p className="text-slate-400 text-sm mt-1">Un administrador debe crear un proyecto y asignarte a él para comenzar.</p>
