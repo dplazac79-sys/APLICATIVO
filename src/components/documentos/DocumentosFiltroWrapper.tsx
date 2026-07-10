@@ -2,15 +2,24 @@
 
 import { useState } from 'react'
 import BuscadorSemantico from './BuscadorSemantico'
-import { Download, FileText, FileImage, FileSpreadsheet, File, ShieldCheck, User, Lock, Search, X, ChevronDown, ChevronUp, RefreshCw } from 'lucide-react'
+import { Download, FileText, FileImage, FileSpreadsheet, File, ShieldCheck, User, Lock, Search, X, ChevronDown, ChevronUp, RefreshCw, AlertTriangle } from 'lucide-react'
 import DocumentoAcciones from './DocumentoAcciones'
 
 const ESTADO_CONFIG = {
   pendiente:  { label: 'Procesando IA', class: 'bg-amber-950/60 text-amber-400 border-amber-800/40' },
   procesando: { label: 'Procesando...',  class: 'bg-blue-950/60 text-blue-400 border-blue-800/40' },
   listo:      { label: 'Disponible',     class: 'bg-emerald-950/60 text-emerald-400 border-emerald-800/40' },
-  error:      { label: 'Disponible',     class: 'bg-emerald-950/60 text-emerald-400 border-emerald-800/40' },
+  error:      { label: 'Error al procesar', class: 'bg-red-950/60 text-red-400 border-red-800/40' },
 } as const
+
+// Un documento que lleva demasiado tiempo en 'pendiente'/'procesando' probablemente
+// se quedó atascado — el procesamiento normal toma minutos, no horas.
+const HORAS_ANTES_DE_CONSIDERAR_ATASCADO = 6
+function estaAtascado(estado: string, fechaCreacion: string): boolean {
+  if (estado !== 'pendiente' && estado !== 'procesando') return false
+  const horas = (Date.now() - new Date(fechaCreacion).getTime()) / (1000 * 60 * 60)
+  return horas > HORAS_ANTES_DE_CONSIDERAR_ATASCADO
+}
 
 const ROL_INTERNO = ['super_admin', 'director_proyecto', 'consultor']
 
@@ -52,6 +61,7 @@ function DocFila({
 }) {
   const estadoKey = (doc.estado_procesamiento ?? 'pendiente') as keyof typeof ESTADO_CONFIG
   const estadoCfg = ESTADO_CONFIG[estadoKey] ?? ESTADO_CONFIG.listo
+  const atascado = estaAtascado(estadoKey, doc.created_at)
   const docSubidoPorInterno = ROL_INTERNO.includes(doc.subido_por?.rol ?? '')
   const puedeEliminar = esInterno || !docSubidoPorInterno
   const clasificacion = doc.clasificacion ?? {}
@@ -95,9 +105,15 @@ function DocFila({
             <User className="w-3 h-3" /> Cliente
           </span>
         )}
-        <span className={`text-xs px-2 py-0.5 rounded-full border font-medium ${estadoCfg.class}`}>
-          {estadoCfg.label}
-        </span>
+        {atascado ? (
+          <span className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border font-medium bg-rose-950/60 text-rose-400 border-rose-800/40" title="Lleva más de 6 horas en este estado — probablemente se atascó">
+            <AlertTriangle className="w-3 h-3" /> Posible error — tarda mucho
+          </span>
+        ) : (
+          <span className={`text-xs px-2 py-0.5 rounded-full border font-medium ${estadoCfg.class}`}>
+            {estadoCfg.label}
+          </span>
+        )}
       </div>
 
       <div className="flex items-center gap-1 shrink-0">
