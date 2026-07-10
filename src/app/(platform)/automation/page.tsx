@@ -10,6 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { Zap, Sparkles, ClipboardList, Bot, Download, CheckCircle2 } from 'lucide-react'
 
 // ── Tipos locales ─────────────────────────────────────────────────────────────
 
@@ -177,7 +178,7 @@ export default function AutomationStudioPage() {
       {/* Sidebar izquierdo */}
       <aside className="w-72 border-r border-slate-800 p-4 flex flex-col gap-4 shrink-0">
         <div className="flex items-center gap-2 mb-2">
-          <span className="text-lg">⚙️</span>
+          <Zap className="w-4 h-4 text-indigo-400" />
           <h1 className="font-semibold text-slate-100">Automation Studio</h1>
         </div>
 
@@ -222,9 +223,10 @@ export default function AutomationStudioPage() {
             <Button
               onClick={generarRecomendaciones}
               disabled={!procesoId || generando}
-              className="w-full bg-indigo-600 hover:bg-indigo-500"
+              className="w-full bg-indigo-600 hover:bg-indigo-500 gap-1.5"
             >
-              {generando ? 'Analizando con IA...' : '✨ Generar recomendaciones'}
+              <Sparkles className="w-3.5 h-3.5" />
+              {generando ? 'Analizando con IA...' : 'Generar recomendaciones'}
             </Button>
 
             <hr className="border-slate-700" />
@@ -243,9 +245,10 @@ export default function AutomationStudioPage() {
                 <Button
                   onClick={crearRoadmap}
                   disabled={!nombreRoadmap.trim() || creandoRoadmap}
-                  className="w-full bg-green-700 hover:bg-green-600 text-sm"
+                  className="w-full bg-green-700 hover:bg-green-600 text-sm gap-1.5"
                 >
-                  {creandoRoadmap ? 'Creando...' : '📋 Crear Roadmap'}
+                  <ClipboardList className="w-3.5 h-3.5" />
+                  {creandoRoadmap ? 'Creando...' : 'Crear Roadmap'}
                 </Button>
               </div>
             )}
@@ -276,7 +279,7 @@ export default function AutomationStudioPage() {
       <main className="flex-1 p-6 overflow-y-auto">
         {!proyectoId ? (
           <div className="flex flex-col items-center justify-center h-full gap-4 text-center">
-            <div className="text-6xl opacity-20">⚙️</div>
+            <Zap className="w-16 h-16 text-slate-700" />
             <p className="text-slate-400 text-lg">Selecciona un proyecto para comenzar</p>
             <p className="text-slate-500 text-sm max-w-md">
               El Automation Studio analiza el artefacto TO-BE y la simulación de impacto
@@ -316,7 +319,7 @@ export default function AutomationStudioPage() {
               <>
                 {recsOrdenadas.length === 0 ? (
                   <div className="text-center py-20 text-slate-500">
-                    <div className="text-4xl mb-3 opacity-30">🤖</div>
+                    <Bot className="w-10 h-10 mx-auto mb-3 text-slate-700" />
                     <p>Sin recomendaciones aún.</p>
                     <p className="text-sm mt-1">Selecciona un proceso y genera recomendaciones con IA.</p>
                   </div>
@@ -378,11 +381,11 @@ export default function AutomationStudioPage() {
 
                             <div className="flex items-center gap-6">
                               <div>
-                                <p className="text-xs text-slate-500 mb-1">Impacto</p>
+                                <p className="text-xs text-slate-500 mb-1">Impacto <span className="text-slate-600">(mayor mejor)</span></p>
                                 <ScoreDot value={rec.score_impacto} color="bg-green-500" />
                               </div>
                               <div>
-                                <p className="text-xs text-slate-500 mb-1">Esfuerzo</p>
+                                <p className="text-xs text-slate-500 mb-1">Esfuerzo <span className="text-slate-600">(menor mejor)</span></p>
                                 <ScoreDot value={rec.score_esfuerzo} color="bg-amber-500" />
                               </div>
                             </div>
@@ -427,7 +430,7 @@ export default function AutomationStudioPage() {
               <>
                 {roadmaps.length === 0 ? (
                   <div className="text-center py-20 text-slate-500">
-                    <div className="text-4xl mb-3 opacity-30">📋</div>
+                    <ClipboardList className="w-10 h-10 mx-auto mb-3 text-slate-700" />
                     <p>Sin roadmaps creados.</p>
                     <p className="text-sm mt-1">Selecciona recomendaciones y crea un roadmap.</p>
                   </div>
@@ -452,14 +455,15 @@ export default function AutomationStudioPage() {
                             {roadmap.estado !== 'exportado' && (
                               <Button
                                 onClick={() => exportarRoadmap(roadmap.id)}
-                                className="bg-slate-700 hover:bg-slate-600 text-sm"
+                                className="bg-slate-700 hover:bg-slate-600 text-sm gap-1.5"
                               >
-                                ⬇ Exportar como entregable
+                                <Download className="w-3.5 h-3.5" />
+                                Exportar como entregable
                               </Button>
                             )}
                             {roadmap.estado === 'exportado' && (
                               <span className="text-xs text-green-400 flex items-center gap-1">
-                                ✓ Entregable generado
+                                <CheckCircle2 className="w-3.5 h-3.5" /> Entregable generado
                               </span>
                             )}
                           </div>
@@ -471,8 +475,8 @@ export default function AutomationStudioPage() {
                                 <tr className="border-b border-slate-700 text-xs text-slate-500 uppercase tracking-wide">
                                   <th className="text-left pb-2 pr-4">Tipo</th>
                                   <th className="text-left pb-2 pr-4">Herramientas</th>
-                                  <th className="text-center pb-2 pr-4">Impacto</th>
-                                  <th className="text-center pb-2 pr-4">Esfuerzo</th>
+                                  <th className="text-center pb-2 pr-4">Impacto ↑</th>
+                                  <th className="text-center pb-2 pr-4">Esfuerzo ↓</th>
                                   <th className="text-center pb-2">Prioridad</th>
                                 </tr>
                               </thead>
