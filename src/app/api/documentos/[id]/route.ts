@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { jsonError } from '@/lib/http/errors'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { registrarAudit } from '@/lib/audit'
@@ -29,7 +30,7 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
 
   // Eliminar de la BD
   const { error } = await admin.from('documento').delete().eq('id', params.id)
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return jsonError(error)
 
   await registrarAudit({
     accion: 'DELETE',

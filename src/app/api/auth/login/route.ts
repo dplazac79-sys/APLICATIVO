@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { checkLoginRateLimit, getClientIp } from '@/lib/auth/rate-limit-login'
 
 const MAX_ATTEMPTS = 3
 
@@ -24,6 +25,12 @@ export async function POST(req: NextRequest) {
   const { email, password } = await req.json() as { email: string; password: string }
   if (!email || !password) {
     return NextResponse.json({ error: 'Correo y contraseña requeridos' }, { status: 400 })
+  }
+
+  const ip = getClientIp(req)
+  const rateLimit = await checkLoginRateLimit(ip)
+  if (!rateLimit.permitido) {
+    return NextResponse.json({ error: rateLimit.mensaje }, { status: 429 })
   }
 
   const supabase = createClient()

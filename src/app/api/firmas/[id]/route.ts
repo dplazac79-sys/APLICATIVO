@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { jsonError } from '@/lib/http/errors'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { headers } from 'next/headers'
 
@@ -44,6 +45,6 @@ export async function PATCH(
     .select()
     .single()
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return jsonError(error)
   return NextResponse.json(data)
 }

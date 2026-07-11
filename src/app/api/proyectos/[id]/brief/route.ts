@@ -1,14 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { jsonError } from '@/lib/http/errors'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { requireRole } from '@/lib/auth/tenant'
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
 
-  const { data: yo } = await supabase.from('usuario').select('rol').eq('id', user.id).single()
-  if (!['super_admin', 'director_proyecto', 'consultor'].includes(yo?.rol ?? '')) {
+    if (!(await requireRole(user.id, ['super_admin', 'director_proyecto', 'consultor']))) {
     return NextResponse.json({ error: 'Sin permiso' }, { status: 403 })
   }
 
@@ -26,6 +27,6 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     })
     .eq('id', params.id)
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return jsonError(error)
   return NextResponse.json({ ok: true })
 }

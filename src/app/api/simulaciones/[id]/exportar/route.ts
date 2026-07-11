@@ -2,15 +2,14 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { registrarAudit } from '@/lib/audit'
-import { assertProyectoAccess } from '@/lib/auth/tenant'
+import { assertProyectoAccess, requireRole } from '@/lib/auth/tenant'
 
 export async function POST(_req: NextRequest, { params }: { params: { id: string } }) {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
-  const { data: usuario } = await supabase.from('usuario').select('rol').eq('id', user.id).single()
-  if (!usuario || !['super_admin', 'director_proyecto', 'consultor'].includes(usuario.rol)) {
+    if (!(await requireRole(user.id, ['super_admin', 'director_proyecto', 'consultor']))) {
     return NextResponse.json({ error: 'Sin permisos' }, { status: 403 })
   }
 

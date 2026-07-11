@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { jsonError } from '@/lib/http/errors'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { assertProyectoAccess } from '@/lib/auth/tenant'
@@ -34,7 +35,7 @@ export async function POST(request: Request) {
     .select()
     .single()
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return jsonError(error)
   return NextResponse.json(data)
 }
 

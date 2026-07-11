@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { jsonError } from '@/lib/http/errors'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 
@@ -20,7 +21,7 @@ export async function GET(
       .order('version', { ascending: false })
       .limit(20)
 
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    if (error) return jsonError(error)
     return NextResponse.json({ historial: data ?? [] })
   } catch (err) {
     return NextResponse.json({ error: String(err) }, { status: 500 })

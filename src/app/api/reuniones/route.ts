@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { jsonError } from '@/lib/http/errors'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { registrarAudit } from '@/lib/audit'
+import { requireRole } from '@/lib/auth/tenant'
 
 export async function GET(req: NextRequest) {
   const supabase = createClient()
@@ -21,8 +23,7 @@ export async function POST(req: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
-  const { data: usuario } = await supabase.from('usuario').select('rol').eq('id', user.id).single()
-  if (!usuario || !['super_admin', 'director_proyecto', 'consultor'].includes(usuario.rol)) {
+    if (!(await requireRole(user.id, ['super_admin', 'director_proyecto', 'consultor']))) {
     return NextResponse.json({ error: 'Sin permisos para registrar reuniones' }, { status: 403 })
   }
 
@@ -41,7 +42,7 @@ export async function POST(req: NextRequest) {
     created_by: user.id,
   }).select().single()
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return jsonError(error)
   await registrarAudit({ accion: 'CREATE', entidad: 'reunion', entidad_id: data.id, detalle: { titulo, proyecto_id } })
   return NextResponse.json({ ok: true, reunion: data })
 }

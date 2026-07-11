@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { jsonError } from '@/lib/http/errors'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { registrarAudit } from '@/lib/audit'
+import { requireRole } from '@/lib/auth/tenant'
 import {
   generarArtefacto,
   ORDEN_GENERACION,
@@ -25,7 +27,7 @@ export async function GET(
       .select('*')
       .eq('proceso_id', params.id)
       .order('tipo')
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    if (error) return jsonError(error)
     return NextResponse.json({ artefactos: data ?? [] })
   } catch (err) {
     return NextResponse.json({ error: String(err) }, { status: 500 })
@@ -42,8 +44,7 @@ export async function POST(
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
   const admin = createAdminClient()
-  const { data: usuario } = await admin.from('usuario').select('rol').eq('id', user.id).single()
-  if (!usuario || !['super_admin', 'director_proyecto', 'consultor'].includes(usuario.rol)) {
+    if (!(await requireRole(user.id, ['super_admin', 'director_proyecto', 'consultor']))) {
     return NextResponse.json({ error: 'Sin permisos para generar artefactos' }, { status: 403 })
   }
 

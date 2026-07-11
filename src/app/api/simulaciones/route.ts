@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { jsonError } from '@/lib/http/errors'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { registrarAudit } from '@/lib/audit'
 import { simularOperacional } from '@/lib/simulacion/operacional'
 import { simularFinanciera } from '@/lib/simulacion/financiera'
 import { simularOrganizacional } from '@/lib/simulacion/organizacional'
+import { requireRole } from '@/lib/auth/tenant'
 import type {
   ParametrosOperacional,
   ParametrosFinanciera,
@@ -28,7 +30,7 @@ export async function GET(req: NextRequest) {
     .eq('proyecto_id', proyecto_id)
     .order('created_at', { ascending: false })
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return jsonError(error)
   return NextResponse.json({ simulaciones: data ?? [] })
 }
 
@@ -37,8 +39,7 @@ export async function POST(req: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
-  const { data: usuario } = await supabase.from('usuario').select('rol').eq('id', user.id).single()
-  if (!usuario || !['super_admin', 'director_proyecto', 'consultor'].includes(usuario.rol)) {
+    if (!(await requireRole(user.id, ['super_admin', 'director_proyecto', 'consultor']))) {
     return NextResponse.json({ error: 'Sin permisos para crear simulaciones' }, { status: 403 })
   }
 
@@ -77,7 +78,7 @@ export async function POST(req: NextRequest) {
   }
 
   const { data, error } = await admin.from('simulacion').insert(payload).select().single()
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return jsonError(error)
 
   await registrarAudit({
     accion: 'CREATE',

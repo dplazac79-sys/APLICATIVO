@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { jsonError } from '@/lib/http/errors'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { registrarAudit } from '@/lib/audit'
-import { assertProyectoAccess } from '@/lib/auth/tenant'
+import { assertProyectoAccess, requireRole } from '@/lib/auth/tenant'
 
 // Campos editables por PATCH — excluye explícitamente id/proyecto_id/creado_por
 // para evitar mass-assignment (el payload completo se pasaba directo a .update()).
@@ -15,8 +16,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
-  const { data: usuario } = await supabase.from('usuario').select('rol').eq('id', user.id).single()
-  if (!usuario || !['super_admin', 'director_proyecto', 'consultor'].includes(usuario.rol)) {
+    if (!(await requireRole(user.id, ['super_admin', 'director_proyecto', 'consultor']))) {
     return NextResponse.json({ error: 'Sin permisos para editar KPIs' }, { status: 403 })
   }
 
@@ -42,7 +42,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   }
 
   const { data, error } = await admin.from('kpi').update(updates).eq('id', params.id).select().single()
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return jsonError(error)
   await registrarAudit({ accion: 'UPDATE', entidad: 'kpi', entidad_id: params.id, detalle: updates })
   return NextResponse.json({ ok: true, kpi: data })
 }
@@ -52,8 +52,7 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
-  const { data: usuario } = await supabase.from('usuario').select('rol').eq('id', user.id).single()
-  if (!usuario || !['super_admin', 'director_proyecto', 'consultor'].includes(usuario.rol)) {
+    if (!(await requireRole(user.id, ['super_admin', 'director_proyecto', 'consultor']))) {
     return NextResponse.json({ error: 'Sin permisos para eliminar KPIs' }, { status: 403 })
   }
 
@@ -65,6 +64,6 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
   }
 
   const { error } = await admin.from('kpi').delete().eq('id', params.id)
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return jsonError(error)
   return NextResponse.json({ ok: true })
 }

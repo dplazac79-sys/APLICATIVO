@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { jsonError } from '@/lib/http/errors'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 
@@ -37,7 +38,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     .update({ contenido_editado })
     .eq('id', params.id)
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return jsonError(error)
   return NextResponse.json({ ok: true })
 }
 
@@ -75,7 +76,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     })
     .eq('id', params.id)
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return jsonError(error)
 
   // Notificar al equipo interno
   await admin.from('notificacion').insert({

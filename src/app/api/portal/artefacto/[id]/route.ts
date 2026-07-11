@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { jsonError } from '@/lib/http/errors'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { registrarAudit } from '@/lib/audit'
@@ -17,7 +18,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
       .eq('estado_validacion', 'publicado')
       .maybeSingle()
 
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    if (error) return jsonError(error)
     if (!data) return NextResponse.json({ error: 'Documento no disponible' }, { status: 404 })
 
     return NextResponse.json({ artefacto: data })

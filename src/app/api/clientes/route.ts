@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { jsonError } from '@/lib/http/errors'
 import { createClient } from '@/lib/supabase/server'
 import { registrarAudit } from '@/lib/audit'
+import { requireRole } from '@/lib/auth/tenant'
 
 export async function POST(req: NextRequest) {
   try {
@@ -8,8 +10,7 @@ export async function POST(req: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
-    const { data: usuario } = await supabase.from('usuario').select('rol').eq('id', user.id).single()
-    if (!['super_admin', 'admin'].includes(usuario?.rol ?? '')) {
+        if (!(await requireRole(user.id, ['super_admin', 'admin']))) {
       return NextResponse.json({ error: 'Solo admin o super_admin pueden crear clientes' }, { status: 403 })
     }
 
@@ -19,7 +20,7 @@ export async function POST(req: NextRequest) {
     }
 
     const { data: cliente, error } = await supabase.from('cliente').insert(payload).select().single()
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    if (error) return jsonError(error)
 
     await registrarAudit({
       accion: 'CREATE',

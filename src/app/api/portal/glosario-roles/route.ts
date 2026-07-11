@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { jsonError } from '@/lib/http/errors'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { inngest } from '@/lib/inngest/client'
@@ -113,7 +114,7 @@ export async function POST(req: NextRequest) {
     estado:            'generando',
   }).select().single()
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return jsonError(error)
 
   // Disparar job Inngest
   await inngest.send({

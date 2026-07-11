@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { jsonError } from '@/lib/http/errors'
 import { createClient } from '@/lib/supabase/server'
 import { registrarAudit } from '@/lib/audit'
 
@@ -12,7 +13,7 @@ export async function GET() {
     .select('id, nombre, cliente_id')
     .order('nombre')
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return jsonError(error)
   return NextResponse.json({ proyectos: data ?? [] })
 }
 
@@ -33,7 +34,7 @@ export async function POST(req: NextRequest) {
       alcance: alcance ?? null,
     }).select().single()
 
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    if (error) return jsonError(error)
 
     await registrarAudit({
       accion: 'CREATE',

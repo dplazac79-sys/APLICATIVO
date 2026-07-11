@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { registrarAudit } from '@/lib/audit'
 import { ejecutarCierreProyecto } from '@/lib/automation/job-cierre'
+import { requireRole } from '@/lib/auth/tenant'
 
 export async function POST(
   _req: NextRequest,
@@ -12,8 +13,7 @@ export async function POST(
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
-  const { data: usuario } = await supabase.from('usuario').select('rol').eq('id', user.id).single()
-  if (!['super_admin', 'director_proyecto'].includes(usuario?.rol ?? '')) {
+    if (!(await requireRole(user.id, ['super_admin', 'director_proyecto']))) {
     return NextResponse.json({ error: 'Solo super_admin o director_proyecto pueden cerrar proyectos' }, { status: 403 })
   }
 

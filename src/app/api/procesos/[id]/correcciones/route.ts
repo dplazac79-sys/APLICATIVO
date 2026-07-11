@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { jsonError } from '@/lib/http/errors'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 
@@ -34,7 +35,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     .select('proyecto_id')
     .single()
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return jsonError(error)
 
   const numCorrecciones = Array.isArray(body.correcciones)
     ? (body.correcciones as Array<{ estado: string }>).filter(c => c.estado === 'pendiente').length : 0

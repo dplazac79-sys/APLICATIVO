@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { jsonError } from '@/lib/http/errors'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { registrarAudit } from '@/lib/audit'
-import { assertProyectoAccess } from '@/lib/auth/tenant'
+import { assertProyectoAccess, requireRole } from '@/lib/auth/tenant'
 
 export async function PATCH(
   req: NextRequest,
@@ -12,8 +13,7 @@ export async function PATCH(
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
-  const { data: usuario } = await supabase.from('usuario').select('rol').eq('id', user.id).single()
-  if (!usuario || !['super_admin', 'director_proyecto', 'consultor'].includes(usuario.rol)) {
+    if (!(await requireRole(user.id, ['super_admin', 'director_proyecto', 'consultor']))) {
     return NextResponse.json({ error: 'Sin permisos' }, { status: 403 })
   }
 
@@ -45,7 +45,7 @@ export async function PATCH(
     .select()
     .single()
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return jsonError(error)
 
   await registrarAudit({
     accion: 'UPDATE',
@@ -65,8 +65,7 @@ export async function DELETE(
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
-  const { data: usuario } = await supabase.from('usuario').select('rol').eq('id', user.id).single()
-  if (!['super_admin', 'director_proyecto', 'consultor'].includes(usuario?.rol ?? '')) {
+    if (!(await requireRole(user.id, ['super_admin', 'director_proyecto', 'consultor']))) {
     return NextResponse.json({ error: 'Sin permisos' }, { status: 403 })
   }
 
@@ -78,7 +77,7 @@ export async function DELETE(
   }
 
   const { error } = await admin.from('kg_recomendacion').delete().eq('id', params.id)
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return jsonError(error)
 
   return NextResponse.json({ ok: true })
 }

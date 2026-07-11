@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { jsonError } from '@/lib/http/errors'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { registrarAudit } from '@/lib/audit'
 import type { Cliente } from '@/types/database'
+import { requireRole } from '@/lib/auth/tenant'
 
 // Campos editables por admin/super_admin — excluye explícitamente id/created_at/updated_at
 // para evitar mass-assignment vía payload arbitrario (ver auditoría).
@@ -17,8 +19,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
-  const { data: usuario } = await supabase.from('usuario').select('rol').eq('id', user.id).single()
-  if (!['super_admin', 'admin'].includes(usuario?.rol ?? '')) {
+    if (!(await requireRole(user.id, ['super_admin', 'admin']))) {
     return NextResponse.json({ error: 'Solo admin o super_admin pueden modificar clientes' }, { status: 403 })
   }
 
@@ -37,7 +38,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     .select()
     .single()
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return jsonError(error)
 
   await registrarAudit({
     accion: 'UPDATE',

@@ -23,3 +23,12 @@ export async function getRolUsuario(userId: string): Promise<string | null> {
   const { data: usuario } = await admin.from('usuario').select('rol').eq('id', userId).single()
   return usuario?.rol ?? null
 }
+
+// Reemplaza el boilerplate de "fetch rol + includes()" duplicado en ~30 routes
+// (cada uno reimplementaba su propia variante del mismo chequeo — mismo riesgo
+// de divergencia que la duplicación de "procesos aceptados" ya resuelta en
+// domain/procesos.ts).
+export async function requireRole(userId: string, rolesPermitidos: readonly string[]): Promise<boolean> {
+  const rol = await getRolUsuario(userId)
+  return rol !== null && rolesPermitidos.includes(rol)
+}

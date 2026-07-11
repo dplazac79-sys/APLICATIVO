@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { jsonError } from '@/lib/http/errors'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 
@@ -107,7 +108,7 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
     })
     .eq('id', params.id)
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return jsonError(error)
 
   // Registrar en Control de Versiones
   const { data: proc } = await admin.from('proceso').select('proyecto_id').eq('id', params.id).single()

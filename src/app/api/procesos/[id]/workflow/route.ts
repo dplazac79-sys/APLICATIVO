@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { jsonError } from '@/lib/http/errors'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { registrarAudit } from '@/lib/audit'
@@ -49,7 +50,7 @@ export async function POST(
     umbral_horas_n4: umbral_horas_n4 ?? 336,
   }).select().single()
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return jsonError(error)
 
   await registrarAudit({ accion: 'CREATE', entidad: 'workflow_estado', entidad_id: data.id, detalle: { proceso_id: params.id, estado_inicial: 'Scheduled' } })
   return NextResponse.json({ ok: true, workflow: data })
@@ -90,7 +91,7 @@ export async function PATCH(
     responsable_id: responsable_id ?? actual.responsable_id,
   }).eq('proceso_id', params.id).select().single()
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return jsonError(error)
 
   await registrarAudit({
     accion: nuevo_estado === 'Approved' ? 'APPROVE' : 'UPDATE',

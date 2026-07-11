@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { jsonError } from '@/lib/http/errors'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 
@@ -20,7 +21,7 @@ export async function GET(req: NextRequest) {
   if (ids && ids.length > 0) query = query.in('id', ids)
 
   const { data, error } = await query
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return jsonError(error)
 
   return NextResponse.json({ documentos: data ?? [] })
 }
