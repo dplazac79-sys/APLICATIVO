@@ -16,6 +16,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Faltan campos requeridos' }, { status: 400 })
     }
 
+    // url_storage es provisto por el cliente (viene del path que el propio
+    // navegador usó para subir el archivo a Storage) — sin esta validación,
+    // un usuario con acceso a proyecto_id "sabe/adivina" un path de otro
+    // proyecto y registra un documento cuyo storage real pertenece a otro
+    // tenant, exponiéndolo luego vía signed-url/pdf-proxy (que solo valida
+    // el proyecto_id de la fila, no que el path realmente le pertenezca).
+    if (!url_storage.startsWith(`${proyecto_id}/`)) {
+      return NextResponse.json({ error: 'url_storage no corresponde al proyecto indicado' }, { status: 400 })
+    }
+
     // Verificar que el usuario pertenece al proyecto antes de cualquier operación
     const admin = createAdminClient()
     const { data: usuarioInfo } = await admin

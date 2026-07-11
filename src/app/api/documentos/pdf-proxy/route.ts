@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { assertProyectoAccess } from '@/lib/auth/tenant'
 
 export async function GET(req: NextRequest) {
   const supabase = createClient()
@@ -20,17 +21,7 @@ export async function GET(req: NextRequest) {
   if (!doc) return NextResponse.json({ error: 'documento no encontrado' }, { status: 404 })
   if (!doc.url_storage) return NextResponse.json({ error: 'documento sin archivo asociado' }, { status: 404 })
 
-  // Verificar que el usuario tiene acceso al proyecto del documento
-  const { data: usuarioDB } = await admin
-    .from('usuario')
-    .select('rol, usuario_proyecto(proyecto_id)')
-    .eq('id', user.id)
-    .single()
-
-  const esSuperAdmin = usuarioDB?.rol === 'super_admin'
-  const proyectosUsuario = (usuarioDB?.usuario_proyecto ?? []).map((up: { proyecto_id: string }) => up.proyecto_id)
-
-  if (!esSuperAdmin && !proyectosUsuario.includes(doc.proyecto_id)) {
+  if (!(await assertProyectoAccess(user.id, doc.proyecto_id))) {
     return NextResponse.json({ error: 'Sin acceso a este documento' }, { status: 403 })
   }
 
@@ -46,10 +37,13 @@ export async function GET(req: NextRequest) {
   if (!pdfRes.ok) return NextResponse.json({ error: 'error al obtener PDF' }, { status: 502 })
 
   const buffer = await pdfRes.arrayBuffer()
+  // nombre_archivo es datos del usuario — encodeURIComponent evita que unas
+  // comillas o un salto de línea rompan el header Content-Disposition.
+  const nombreSeguro = encodeURIComponent(`${doc.nombre_archivo ?? 'documento'}.pdf`)
   return new NextResponse(buffer, {
     headers: {
       'Content-Type': 'application/pdf',
-      'Content-Disposition': `inline; filename="${doc.nombre_archivo ?? 'documento'}.pdf"`,
+      'Content-Disposition': `inline; filename*=UTF-8''${nombreSeguro}`,
       'Cache-Control': 'private, max-age=300',
     },
   })

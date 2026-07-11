@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { jsonError } from '@/lib/http/errors'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { assertProyectoAccess } from '@/lib/auth/tenant'
 
 export async function POST(request: Request) {
   const supabase = createClient()
@@ -13,6 +14,10 @@ export async function POST(request: Request) {
 
   if (!proyecto_id || !titulo) {
     return NextResponse.json({ error: 'proyecto_id y título son requeridos' }, { status: 400 })
+  }
+
+  if (!(await assertProyectoAccess(user.id, proyecto_id))) {
+    return NextResponse.json({ error: 'Sin acceso a este proyecto' }, { status: 403 })
   }
 
   const admin = createAdminClient()
@@ -43,9 +48,18 @@ export async function GET(request: Request) {
   const proyectoId = searchParams.get('proyecto_id')
   const artefactoId = searchParams.get('artefacto_id')
 
+  // proyecto_id es obligatorio: sin él, la query no tenía ningún filtro y
+  // devolvía las solicitudes de firma de TODOS los proyectos de TODOS los
+  // clientes a cualquier usuario autenticado.
+  if (!proyectoId) {
+    return NextResponse.json({ error: 'proyecto_id requerido' }, { status: 400 })
+  }
+  if (!(await assertProyectoAccess(user.id, proyectoId))) {
+    return NextResponse.json({ error: 'Sin acceso a este proyecto' }, { status: 403 })
+  }
+
   const admin = createAdminClient()
-  let query = admin.from('firma_solicitud').select('*').order('created_at', { ascending: false })
-  if (proyectoId) query = query.eq('proyecto_id', proyectoId)
+  let query = admin.from('firma_solicitud').select('*').eq('proyecto_id', proyectoId).order('created_at', { ascending: false })
   if (artefactoId) query = query.eq('artefacto_id', artefactoId)
 
   const { data, error } = await query
