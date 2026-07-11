@@ -51,7 +51,7 @@ export async function POST(
   // Ejecutar job de extracción de patrones asíncronamente (fire-and-forget)
   if (job) {
     ejecutarCierreProyecto(params.id, job.id).catch(err => {
-
+      console.error(`[cierre-proyecto] Falló job de cierre proyecto_id=${params.id} job_id=${job.id}:`, err instanceof Error ? err.message : err)
     })
   }
 

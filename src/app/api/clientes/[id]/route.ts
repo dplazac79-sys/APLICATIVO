@@ -2,6 +2,15 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { registrarAudit } from '@/lib/audit'
+import type { Cliente } from '@/types/database'
+
+// Campos editables por admin/super_admin — excluye explícitamente id/created_at/updated_at
+// para evitar mass-assignment vía payload arbitrario (ver auditoría).
+const CAMPOS_EDITABLES = [
+  'razon_social', 'rut', 'industria', 'tamano', 'facturacion', 'dotacion',
+  'objetivos_estrategicos', 'riesgos_declarados', 'madurez_digital',
+  'inteligencia_industria', 'activo',
+] as const satisfies readonly (keyof Cliente)[]
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   const supabase = createClient()
@@ -13,7 +22,12 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     return NextResponse.json({ error: 'Solo admin o super_admin pueden modificar clientes' }, { status: 403 })
   }
 
-  const payload = await req.json()
+  const rawPayload = await req.json()
+  const payload: Record<string, unknown> = {}
+  for (const campo of CAMPOS_EDITABLES) {
+    if (campo in rawPayload) payload[campo] = rawPayload[campo]
+  }
+
   const admin = createAdminClient()
 
   const { data, error } = await admin

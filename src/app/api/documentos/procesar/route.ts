@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { inngest } from '@/lib/inngest/client'
+import { assertProyectoAccess } from '@/lib/auth/tenant'
 
 export async function POST(req: NextRequest) {
   const supabase = createClient()
@@ -15,6 +16,10 @@ export async function POST(req: NextRequest) {
   const admin = createAdminClient()
   const { data: doc, error } = await admin.from('documento').select('id, proyecto_id').eq('id', documento_id).single()
   if (error || !doc) return NextResponse.json({ error: 'Documento no encontrado' }, { status: 404 })
+
+  if (!(await assertProyectoAccess(user.id, doc.proyecto_id))) {
+    return NextResponse.json({ error: 'Sin acceso a este documento' }, { status: 403 })
+  }
 
   // Marcar como encolado y disparar job async
   await admin.from('documento').update({ estado_procesamiento: 'procesando' }).eq('id', documento_id)

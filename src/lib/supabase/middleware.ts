@@ -27,8 +27,10 @@ export async function updateSession(request: NextRequest) {
 
   const { data: { user } } = await supabase.auth.getUser()
 
-  // Rutas públicas (no requieren autenticación)
-  const publicPaths = ['/login', '/api/auth/login', '/auth/callback', '/auth/confirm', '/api/inngest', '/api/admin/reprocesar-documentos', '/cambiar-password']
+  // Rutas públicas (no requieren autenticación). Nota: todo /api/admin/* ya está
+  // excluido de este middleware por el matcher en src/middleware.ts — cada route
+  // bajo /api/admin/ debe verificar su propia auth (bearer secret o sesión).
+  const publicPaths = ['/login', '/api/auth/login', '/auth/callback', '/auth/confirm', '/api/inngest', '/cambiar-password']
   const isPublic = publicPaths.some(p => request.nextUrl.pathname.startsWith(p))
 
   if (!user && !isPublic) {

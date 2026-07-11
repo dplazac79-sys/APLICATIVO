@@ -1,16 +1,38 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { assertProyectoAccess } from '@/lib/auth/tenant'
+
+// Escapa HTML para evitar XSS almacenado si algún campo analizado por IA
+// contiene marcado (ej. copiado de un documento fuente hostil).
+function esc(value: unknown): string {
+  if (value == null) return ''
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
 
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
+  const supabase = createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+
   const admin = createAdminClient()
 
   const { data: proceso } = await admin
     .from('proceso')
-    .select('id, nombre, descripcion, metadata_ia, documento_origen_id, roles_involucrados')
+    .select('id, nombre, descripcion, metadata_ia, documento_origen_id, roles_involucrados, proyecto_id')
     .eq('id', params.id)
     .single()
 
   if (!proceso) return NextResponse.json({ error: 'no_encontrado' }, { status: 404 })
+
+  if (!(await assertProyectoAccess(user.id, proceso.proyecto_id))) {
+    return NextResponse.json({ error: 'Sin acceso a este proceso' }, { status: 403 })
+  }
 
   let doc: { nombre_archivo: string; analisis_ia: Record<string, unknown> | null } | null = null
   if (proceso.documento_origen_id) {
@@ -71,66 +93,66 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
 <body>
 <div class="header">
   <div class="badge">ProcessOS · AICOUNTS Consultores</div>
-  <h1>${proceso.nombre}</h1>
-  <div class="meta">Versión ${versionActual} · ${formatDate(new Date().toISOString())} · Documento: ${doc?.nombre_archivo ?? 'N/A'}</div>
+  <h1>${esc(proceso.nombre)}</h1>
+  <div class="meta">Versión ${versionActual} · ${formatDate(new Date().toISOString())} · Documento: ${esc(doc?.nombre_archivo ?? 'N/A')}</div>
 </div>
 
-${proceso.descripcion ? `<h2>Descripción</h2><p>${proceso.descripcion}</p>` : ''}
+${proceso.descripcion ? `<h2>Descripción</h2><p>${esc(proceso.descripcion)}</p>` : ''}
 
-${ia.resumen_ejecutivo ? `<h2>Resumen Ejecutivo</h2><p>${ia.resumen_ejecutivo}</p>` : ''}
+${ia.resumen_ejecutivo ? `<h2>Resumen Ejecutivo</h2><p>${esc(ia.resumen_ejecutivo)}</p>` : ''}
 
-${ia.diagnostico_operacional ? `<h2>Diagnóstico Operacional</h2><p>${ia.diagnostico_operacional}</p>` : ''}
+${ia.diagnostico_operacional ? `<h2>Diagnóstico Operacional</h2><p>${esc(ia.diagnostico_operacional)}</p>` : ''}
 
 ${(ia.nivel_madurez_amo != null) ? `
 <h2>Nivel de Madurez</h2>
-<p><strong>${ia.nivel_madurez_amo}/5</strong> — ${ia.nivel_madurez_nombre ?? ''}</p>
+<p><strong>${esc(ia.nivel_madurez_amo)}/5</strong> — ${esc(ia.nivel_madurez_nombre ?? '')}</p>
 <div class="madurez-bar"><div class="madurez-fill" style="width:${((ia.nivel_madurez_amo as number)/5)*100}%"></div></div>
-${ia.nivel_madurez_evidencia ? `<p style="font-size:12px;color:#64748b;margin-top:4px">${ia.nivel_madurez_evidencia}</p>` : ''}
+${ia.nivel_madurez_evidencia ? `<p style="font-size:12px;color:#64748b;margin-top:4px">${esc(ia.nivel_madurez_evidencia)}</p>` : ''}
 ` : ''}
 
 ${Array.isArray(ia.riesgos_criticos) && (ia.riesgos_criticos as unknown[]).length > 0 ? `
 <h2>Riesgos Críticos</h2>
 ${(ia.riesgos_criticos as Array<{riesgo:string;impacto:string;evidencia:string}>).map(r => `
 <div class="risk">
-  <div class="risk-title">${r.riesgo}<span class="risk-imp">${r.impacto}</span></div>
-  ${r.evidencia ? `<div class="risk-evid">Evidencia: ${r.evidencia}</div>` : ''}
+  <div class="risk-title">${esc(r.riesgo)}<span class="risk-imp">${esc(r.impacto)}</span></div>
+  ${r.evidencia ? `<div class="risk-evid">Evidencia: ${esc(r.evidencia)}</div>` : ''}
 </div>`).join('')}` : ''}
 
 ${Array.isArray(ia.hallazgos_criticos) && (ia.hallazgos_criticos as unknown[]).length > 0 ? `
 <h2>Hallazgos Críticos</h2>
-<ul>${(ia.hallazgos_criticos as string[]).map(h => `<li>${h}</li>`).join('')}</ul>` : ''}
+<ul>${(ia.hallazgos_criticos as string[]).map(h => `<li>${esc(h)}</li>`).join('')}</ul>` : ''}
 
 ${Array.isArray(ia.quick_wins) && (ia.quick_wins as unknown[]).length > 0 ? `
 <h2>Quick Wins</h2>
-${(ia.quick_wins as string[]).map(q => `<div class="qw">${q}</div>`).join('')}` : ''}
+${(ia.quick_wins as string[]).map(q => `<div class="qw">${esc(q)}</div>`).join('')}` : ''}
 
 ${Array.isArray(ia.oportunidades_valor) && (ia.oportunidades_valor as unknown[]).length > 0 ? `
 <h2>Oportunidades de Valor</h2>
 ${(ia.oportunidades_valor as Array<{oportunidad:string;impacto_estimado:string;complejidad_implementacion:string}>).map(o => `
 <div class="opp">
-  <div class="opp-title">${o.oportunidad}</div>
-  ${o.impacto_estimado ? `<div class="opp-imp">${o.impacto_estimado}</div>` : ''}
+  <div class="opp-title">${esc(o.oportunidad)}</div>
+  ${o.impacto_estimado ? `<div class="opp-imp">${esc(o.impacto_estimado)}</div>` : ''}
 </div>`).join('')}` : ''}
 
-${ia.recomendacion_ejecutiva ? `<h2>Recomendación Ejecutiva</h2><p><strong>${ia.recomendacion_ejecutiva}</strong></p>` : ''}
+${ia.recomendacion_ejecutiva ? `<h2>Recomendación Ejecutiva</h2><p><strong>${esc(ia.recomendacion_ejecutiva)}</strong></p>` : ''}
 
 ${Array.isArray(proceso.roles_involucrados) && (proceso.roles_involucrados as string[]).length > 0 ? `
 <h2>Roles Involucrados</h2>
-<p>${(proceso.roles_involucrados as string[]).map(r => `<span class="rol-chip">${r}</span>`).join('')}</p>` : ''}
+<p>${(proceso.roles_involucrados as string[]).map(r => `<span class="rol-chip">${esc(r)}</span>`).join('')}</p>` : ''}
 
 ${atendidas.length > 0 ? `
 <h2>Correcciones Aplicadas (v${versionActual})</h2>
 ${atendidas.map(c => `
 <div class="corr">
   <div class="corr-type">${c.tipo === 'riesgo' ? 'Riesgo' : c.tipo === 'hallazgo' ? 'Hallazgo' : c.tipo === 'brecha' ? 'Brecha' : 'Rol'} · Atendido el ${formatDate(c.fecha)}</div>
-  ${c.observacion ? `<div class="corr-obs">${c.observacion}</div>` : '<div class="corr-obs" style="color:#94a3b8">Marcado como atendido sin observación adicional.</div>'}
+  ${c.observacion ? `<div class="corr-obs">${esc(c.observacion)}</div>` : '<div class="corr-obs" style="color:#94a3b8">Marcado como atendido sin observación adicional.</div>'}
 </div>`).join('')}` : ''}
 
 ${versiones.length > 0 ? `
 <h2>Historial de Versiones</h2>
 ${versiones.map(v => `
 <div class="version-hist">
-  <strong>v${v.numero}</strong> · ${formatDate(v.fecha)} · ${v.descripcion}
+  <strong>v${esc(v.numero)}</strong> · ${formatDate(v.fecha)} · ${esc(v.descripcion)}
 </div>`).join('')}` : ''}
 
 <div class="footer">

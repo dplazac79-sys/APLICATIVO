@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { registrarAudit } from '@/lib/audit'
+import { assertProyectoAccess } from '@/lib/auth/tenant'
 import type { EstadoValidacion } from '@/types/database'
 
 // PATCH: actualizar contenido o estado_validacion de un artefacto
@@ -26,11 +27,16 @@ export async function PATCH(
 
     const { data: actual } = await admin
       .from('artefacto')
-      .select('version, tipo, proceso_id, estado_validacion, contenido')
+      .select('version, tipo, proceso_id, estado_validacion, contenido, proceso:proceso_id(proyecto_id)')
       .eq('id', params.id)
       .single()
 
     if (!actual) return NextResponse.json({ error: 'Artefacto no encontrado' }, { status: 404 })
+
+    const proyectoId = (actual.proceso as unknown as { proyecto_id: string } | null)?.proyecto_id
+    if (!proyectoId || !(await assertProyectoAccess(user.id, proyectoId))) {
+      return NextResponse.json({ error: 'Sin acceso a este artefacto' }, { status: 403 })
+    }
 
     // Validar transiciones de estado usando el fetch ya hecho (evita doble query — M4)
     if (estado_validacion) {
