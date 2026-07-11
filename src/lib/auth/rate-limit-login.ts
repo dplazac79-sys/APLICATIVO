@@ -2,6 +2,8 @@ import { createAdminClient } from '@/lib/supabase/admin'
 
 const VENTANA_MS = 15 * 60 * 1000 // 15 minutos
 const MAX_INTENTOS_POR_IP = 20 // ~1.3 intentos/min sostenido — generoso para uso legítimo, corta fuerza bruta
+const RETENCION_MS = 7 * 24 * 60 * 60 * 1000 // 7 días
+const PROBABILIDAD_LIMPIEZA = 0.02 // ~1 de cada 50 requests dispara la limpieza — evita una query extra en cada login
 
 // Límite de volumen de intentos de login por IP, independiente del lockout
 // por cuenta (que ya existe en /api/auth/login). Sin esto, un atacante puede
@@ -22,6 +24,18 @@ export async function checkLoginRateLimit(ip: string): Promise<{ permitido: bool
   }
 
   await admin.from('login_intento_ip').insert({ ip })
+
+  // Sin esto la tabla crece sin límite (nunca hay un DELETE) — especialmente
+  // grave bajo el escenario que esta misma tabla defiende (fuerza bruta).
+  // Limpieza probabilística en vez de una query extra en cada request.
+  if (Math.random() < PROBABILIDAD_LIMPIEZA) {
+    const limite = new Date(Date.now() - RETENCION_MS).toISOString()
+    admin.from('login_intento_ip').delete().lt('created_at', limite).then(
+      () => {},
+      err => console.error('[rate-limit-login] Falló limpieza de intentos antiguos:', err instanceof Error ? err.message : err)
+    )
+  }
+
   return { permitido: true }
 }
 
