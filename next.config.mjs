@@ -9,22 +9,11 @@ const securityHeaders = [
     key: 'Strict-Transport-Security',
     value: 'max-age=63072000; includeSubDomains; preload',
   },
-  {
-    key: 'Content-Security-Policy',
-    value: [
-      "default-src 'self'",
-      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.sentry.io https://o4511589511528448.ingest.us.sentry.io",
-      "style-src 'self' 'unsafe-inline'",
-      "script-src 'self' 'unsafe-eval' 'unsafe-inline'",
-      "img-src 'self' data: blob: https://*.supabase.co",
-      "font-src 'self'",
-      "frame-src 'self' blob:",
-      "frame-ancestors 'none'",
-      "base-uri 'self'",
-      "form-action 'self'",
-      "worker-src 'self' blob:",
-    ].join('; '),
-  },
+  // Content-Security-Policy NO va acá: necesita un nonce distinto por
+  // request (script-src 'nonce-...' en vez de 'unsafe-inline'/'unsafe-eval'),
+  // y headers() de next.config es estático. Se genera en
+  // src/lib/supabase/middleware.ts (updateSession), que corre en cada
+  // request de página.
 ]
 
 const nextConfig = {
