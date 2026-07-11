@@ -5,6 +5,7 @@ import { registrarAudit } from '@/lib/audit'
 import { simularOperacional } from '@/lib/simulacion/operacional'
 import { simularFinanciera } from '@/lib/simulacion/financiera'
 import { simularOrganizacional } from '@/lib/simulacion/organizacional'
+import { assertProyectoAccess } from '@/lib/auth/tenant'
 import type { ParametrosOperacional, ParametrosFinanciera, ParametrosOrganizacional, TipoSimulacion, Escenario } from '@/lib/simulacion/tipos'
 
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
@@ -36,8 +37,12 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   const admin = createAdminClient()
 
   // Obtener simulación actual para saber el tipo
-  const { data: actual } = await admin.from('simulacion').select('tipo, parametros').eq('id', params.id).single()
+  const { data: actual } = await admin.from('simulacion').select('tipo, parametros, proyecto_id').eq('id', params.id).single()
   if (!actual) return NextResponse.json({ error: 'No encontrado' }, { status: 404 })
+
+  if (!(await assertProyectoAccess(user.id, actual.proyecto_id))) {
+    return NextResponse.json({ error: 'Sin acceso a esta simulación' }, { status: 403 })
+  }
 
   const updates: Record<string, unknown> = {}
   if (body.nombre !== undefined) updates.nombre = body.nombre
@@ -72,6 +77,12 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
   }
 
   const admin = createAdminClient()
+  const { data: sim } = await admin.from('simulacion').select('proyecto_id').eq('id', params.id).single()
+  if (!sim) return NextResponse.json({ error: 'No encontrado' }, { status: 404 })
+  if (!(await assertProyectoAccess(user.id, sim.proyecto_id))) {
+    return NextResponse.json({ error: 'Sin acceso a esta simulación' }, { status: 403 })
+  }
+
   const { error } = await admin.from('simulacion').delete().eq('id', params.id)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json({ ok: true })

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { registrarAudit } from '@/lib/audit'
+import { assertProyectoAccess } from '@/lib/auth/tenant'
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   const supabase = createClient()
@@ -14,6 +15,12 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   }
 
   const admin = createAdminClient()
+  const { data: reunionActual } = await admin.from('reunion').select('proyecto_id').eq('id', params.id).single()
+  if (!reunionActual) return NextResponse.json({ error: 'Reunión no encontrada' }, { status: 404 })
+  if (!(await assertProyectoAccess(user.id, reunionActual.proyecto_id))) {
+    return NextResponse.json({ error: 'Sin acceso a esta reunión' }, { status: 403 })
+  }
+
   const body = await req.json()
   const payload: Record<string, unknown> = {}
   if (body.titulo !== undefined) payload.titulo = body.titulo
@@ -37,6 +44,12 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
   }
 
   const admin = createAdminClient()
+  const { data: reunion } = await admin.from('reunion').select('proyecto_id').eq('id', params.id).single()
+  if (!reunion) return NextResponse.json({ error: 'Reunión no encontrada' }, { status: 404 })
+  if (!(await assertProyectoAccess(user.id, reunion.proyecto_id))) {
+    return NextResponse.json({ error: 'Sin acceso a esta reunión' }, { status: 403 })
+  }
+
   const { error } = await admin.from('reunion').delete().eq('id', params.id)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json({ ok: true })

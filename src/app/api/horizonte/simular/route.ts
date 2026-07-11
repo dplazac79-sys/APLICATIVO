@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { togetherClient, groqClient, MODELOS_TOGETHER, MODELOS_GROQ, usesTogetherAI } from '@/lib/ai/client'
+import { assertProyectoAccess } from '@/lib/auth/tenant'
 
 export const maxDuration = 60
 
@@ -23,6 +24,10 @@ export async function POST(req: NextRequest) {
     .single()
 
   if (!proceso) return NextResponse.json({ error: 'Proceso no encontrado' }, { status: 404 })
+
+  if (!(await assertProyectoAccess(user.id, proceso.proyecto_id))) {
+    return NextResponse.json({ error: 'Sin acceso a este proceso' }, { status: 403 })
+  }
 
   const { data: proyecto } = await admin
     .from('proyecto')

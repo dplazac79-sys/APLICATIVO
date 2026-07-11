@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { registrarAudit } from '@/lib/audit'
+import { assertProyectoAccess } from '@/lib/auth/tenant'
 
 export async function POST(
   _req: NextRequest,
@@ -27,6 +28,10 @@ export async function POST(
 
   if (errRoadmap || !roadmap) {
     return NextResponse.json({ error: 'Roadmap no encontrado' }, { status: 404 })
+  }
+
+  if (!(await assertProyectoAccess(user.id, roadmap.proyecto_id))) {
+    return NextResponse.json({ error: 'Sin acceso a este roadmap' }, { status: 403 })
   }
 
   // Crear entregable trazable

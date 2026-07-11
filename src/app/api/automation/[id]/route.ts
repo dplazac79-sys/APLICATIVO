@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { registrarAudit } from '@/lib/audit'
+import { assertProyectoAccess } from '@/lib/auth/tenant'
 
 export async function PATCH(
   req: NextRequest,
@@ -14,6 +15,13 @@ export async function PATCH(
   const { data: usuario } = await supabase.from('usuario').select('rol').eq('id', user.id).single()
   if (!usuario || !['super_admin', 'director_proyecto', 'consultor'].includes(usuario.rol)) {
     return NextResponse.json({ error: 'Sin permisos' }, { status: 403 })
+  }
+
+  const admin = createAdminClient()
+  const { data: recActual } = await admin.from('kg_recomendacion').select('proyecto_id').eq('id', params.id).single()
+  if (!recActual) return NextResponse.json({ error: 'Recomendación no encontrada' }, { status: 404 })
+  if (!(await assertProyectoAccess(user.id, recActual.proyecto_id))) {
+    return NextResponse.json({ error: 'Sin acceso a esta recomendación' }, { status: 403 })
   }
 
   const body = await req.json()
@@ -30,7 +38,6 @@ export async function PATCH(
   if (score_impacto !== undefined) updates.score_impacto = score_impacto
   if (score_esfuerzo !== undefined) updates.score_esfuerzo = score_esfuerzo
 
-  const admin = createAdminClient()
   const { data, error } = await admin
     .from('kg_recomendacion')
     .update(updates)
@@ -64,6 +71,12 @@ export async function DELETE(
   }
 
   const admin = createAdminClient()
+  const { data: rec } = await admin.from('kg_recomendacion').select('proyecto_id').eq('id', params.id).single()
+  if (!rec) return NextResponse.json({ error: 'Recomendación no encontrada' }, { status: 404 })
+  if (!(await assertProyectoAccess(user.id, rec.proyecto_id))) {
+    return NextResponse.json({ error: 'Sin acceso a esta recomendación' }, { status: 403 })
+  }
+
   const { error } = await admin.from('kg_recomendacion').delete().eq('id', params.id)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 

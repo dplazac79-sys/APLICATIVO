@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { registrarAudit } from '@/lib/audit'
 import { generarRecomendaciones } from '@/lib/automation/motor-recomendacion'
+import { assertProyectoAccess } from '@/lib/auth/tenant'
 
 export async function POST(req: NextRequest) {
   const supabase = createClient()
@@ -28,6 +29,10 @@ export async function POST(req: NextRequest) {
     .eq('id', proceso_id)
     .single()
   if (!proceso) return NextResponse.json({ error: 'Proceso no encontrado' }, { status: 404 })
+
+  if (!(await assertProyectoAccess(user.id, proceso.proyecto_id))) {
+    return NextResponse.json({ error: 'Sin acceso a este proceso' }, { status: 403 })
+  }
 
   // Cargar artefacto TO-BE del proceso
   const { data: artTobe } = await admin
@@ -149,6 +154,10 @@ export async function GET(req: NextRequest) {
   const proceso_id = searchParams.get('proceso_id')
 
   if (!proyecto_id) return NextResponse.json({ error: 'proyecto_id requerido' }, { status: 400 })
+
+  if (!(await assertProyectoAccess(user.id, proyecto_id))) {
+    return NextResponse.json({ error: 'Sin acceso a este proyecto' }, { status: 403 })
+  }
 
   let query = supabase
     .from('kg_recomendacion')

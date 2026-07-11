@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { registrarAudit } from '@/lib/audit'
+import { assertProyectoAccess } from '@/lib/auth/tenant'
 
 export async function POST(_req: NextRequest, { params }: { params: { id: string } }) {
   const supabase = createClient()
@@ -22,6 +23,10 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
     .single()
 
   if (simErr || !sim) return NextResponse.json({ error: 'Simulación no encontrada' }, { status: 404 })
+
+  if (!(await assertProyectoAccess(user.id, sim.proyecto_id))) {
+    return NextResponse.json({ error: 'Sin acceso a esta simulación' }, { status: 403 })
+  }
 
   // Crear entregable vinculado a la simulación
   const { data: entregable, error: entErr } = await admin

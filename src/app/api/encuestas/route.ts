@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { assertProyectoAccess } from '@/lib/auth/tenant'
 
 export async function POST(request: Request) {
   const supabase = createClient()
@@ -15,6 +16,9 @@ export async function POST(request: Request) {
   }
   if (puntuacion < 1 || puntuacion > 5) {
     return NextResponse.json({ error: 'Puntuación inválida' }, { status: 400 })
+  }
+  if (!(await assertProyectoAccess(user.id, proyecto_id))) {
+    return NextResponse.json({ error: 'Sin acceso a este proyecto' }, { status: 403 })
   }
 
   const admin = createAdminClient()

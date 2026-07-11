@@ -22,6 +22,21 @@ export const procesarDocumento = inngest.createFunction(
     const { documento_id, usuario_id } = event.data
     const admin = createAdminClient()
 
+    try {
+      return await procesarDocumentoBody({ documento_id, usuario_id, admin, step })
+    } catch (err) {
+      // Si el job falla tras agotar reintentos (o lanza en un paso sin manejo propio),
+      // el documento no debe quedar "procesando" para siempre — sin esto, la UI nunca
+      // muestra el fallo y el usuario no tiene forma de saber que debe reintentar.
+      console.error(`[procesar-documento] Falló job para documento_id=${documento_id}:`, err instanceof Error ? err.message : err)
+      await admin.from('documento').update({ estado_procesamiento: 'error' }).eq('id', documento_id)
+      throw err
+    }
+  }
+)
+
+async function procesarDocumentoBody({ documento_id, usuario_id, admin, step }: any) {
+  {
     const doc = await step.run('obtener-documento', async () => {
       const { data, error } = await admin.from('documento').select('*').eq('id', documento_id).single()
       if (error || !data) throw new Error('Documento no encontrado')
@@ -137,7 +152,7 @@ export const procesarDocumento = inngest.createFunction(
 
     return { ok: true, clasificacion, resumen: resumen.resumen_ejecutivo, total_chunks: chunks.length }
   }
-)
+}
 
 // ─── Job 2: Discovery AI ──────────────────────────────────────────────────────
 export const discoveryAI = inngest.createFunction(
@@ -159,6 +174,22 @@ export const discoveryAI = inngest.createFunction(
       await admin.from('jobs').update({ estado: 'error', error_mensaje: mensaje }).eq('id', job_id)
     }
 
+    try {
+      return await discoveryAIBody({ proyecto_id, usuario_id, documento_ids, job_id, admin, step, marcarError })
+    } catch (err) {
+      // Antes solo 'ejecutar-discovery' marcaba error — un fallo en cualquier otro
+      // paso (cargar-datos, guardar-procesos) dejaba jobs.estado sin actualizar
+      // para siempre, sin señal visible para el usuario.
+      const msg = err instanceof Error ? err.message : 'Error desconocido'
+      console.error(`[discovery-procesos] Falló job para proyecto_id=${proyecto_id}:`, msg)
+      await marcarError(msg)
+      throw err
+    }
+  }
+)
+
+async function discoveryAIBody({ proyecto_id, usuario_id, documento_ids, job_id, admin, step, marcarError }: any) {
+  {
     const datos = await step.run('cargar-datos', async () => {
       const limite = await verificarLimiteIA(proyecto_id, 'discovery')
       if (!limite.permitido) throw new Error(limite.mensaje)
@@ -257,7 +288,7 @@ export const discoveryAI = inngest.createFunction(
 
     return { ok: true, macroprocesos: resultado.macroprocesos.length }
   }
-)
+}
 
 // ─── Job 3: Enriquecer documento del cliente ──────────────────────────────────
 export const enriquecerDocumentoCliente = inngest.createFunction(
@@ -273,6 +304,19 @@ export const enriquecerDocumentoCliente = inngest.createFunction(
     const { documento_cliente_id, proyecto_id, usuario_id } = event.data
     const admin = createAdminClient()
 
+    try {
+      return await enriquecerDocumentoClienteBody({ documento_cliente_id, proyecto_id, usuario_id, admin, step })
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Error desconocido'
+      console.error(`[enriquecer-documento-cliente] Falló job para documento_cliente_id=${documento_cliente_id}:`, msg)
+      await admin.from('documento_cliente').update({ estado: 'error', error_mensaje: msg }).eq('id', documento_cliente_id)
+      throw err
+    }
+  }
+)
+
+async function enriquecerDocumentoClienteBody({ documento_cliente_id, proyecto_id, usuario_id, admin, step }: any) {
+  {
     // 1. Marcar como procesando
     await step.run('marcar-procesando', async () => {
       await admin.from('documento_cliente')
@@ -329,10 +373,10 @@ export const enriquecerDocumentoCliente = inngest.createFunction(
       let ctx = `Empresa: ${cliente.razon_social ?? 'N/A'}\nIndustria: ${cliente.industria ?? 'N/A'}\nProyecto: ${proyecto?.nombre ?? 'N/A'}\nAlcance: ${proyecto?.alcance ?? 'N/A'}\nObjetivos: ${cliente.objetivos_estrategicos ?? 'N/A'}\n`
 
       if (docs?.length) {
-        ctx += '\nDocumentos del proyecto:\n' + docs.map(d => `- ${d.nombre_archivo}: ${d.resumen_ejecutivo ?? 'Sin resumen'}`).join('\n')
+        ctx += '\nDocumentos del proyecto:\n' + docs.map((d: { nombre_archivo: string; resumen_ejecutivo: string | null }) => `- ${d.nombre_archivo}: ${d.resumen_ejecutivo ?? 'Sin resumen'}`).join('\n')
       }
       if (procesos?.length) {
-        ctx += '\nInventario de procesos identificados:\n' + procesos.map(p => `- [Nivel ${p.nivel}] ${p.nombre}: ${p.descripcion ?? ''}`).join('\n')
+        ctx += '\nInventario de procesos identificados:\n' + procesos.map((p: { nivel: number; nombre: string; descripcion: string | null }) => `- [Nivel ${p.nivel}] ${p.nombre}: ${p.descripcion ?? ''}`).join('\n')
       }
       return ctx
     })
@@ -346,8 +390,11 @@ export const enriquecerDocumentoCliente = inngest.createFunction(
       registrarUsoIA({ proyecto_id, usuario_id, tipo: 'resumir', tokens_input: 6000, tokens_output: 2000 })
     )
 
-    // 5. Guardar resultado
-    await step.run('guardar-resultado', async () => {
+    // 5. Guardar resultado — separado en dos steps: si 'marcar-enriquecido' falla y el
+    // job reintenta, Inngest memoiza el resultado de 'guardar-proceso-enriquecido' y NO
+    // vuelve a ejecutar el insert (antes ambos vivían en un solo step: un fallo entre el
+    // insert y el update duplicaba la fila de proceso_enriquecido en cada reintento).
+    await step.run('guardar-proceso-enriquecido', async () => {
       // Calcular posición real en el macroproceso desde BD (nunca dejar que la IA invente esto)
       const { count: totalMacro } = await admin.from('proceso_enriquecido')
         .select('id', { count: 'exact', head: true })
@@ -376,12 +423,15 @@ export const enriquecerDocumentoCliente = inngest.createFunction(
           con_proceso_beneficios: enriquecido.con_proceso_beneficios,
         },
       })
+    })
+
+    await step.run('marcar-enriquecido', async () => {
       await admin.from('documento_cliente').update({ estado: 'enriquecido' }).eq('id', documento_cliente_id)
     })
 
     return { ok: true, proceso: enriquecido.nombre_proceso }
   }
-)
+}
 
 // ─── Job 4: Analizar Glosario de Roles ───────────────────────────────────────
 export const analizarGlosarioRolesJob = inngest.createFunction(
@@ -396,6 +446,19 @@ export const analizarGlosarioRolesJob = inngest.createFunction(
     const { analisis_id, proyecto_id } = event.data
     const admin = createAdminClient()
 
+    try {
+      return await analizarGlosarioRolesBody({ analisis_id, proyecto_id, admin, step })
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Error desconocido'
+      console.error(`[analizar-glosario-roles] Falló job para analisis_id=${analisis_id}:`, msg)
+      await admin.from('glosario_roles_analisis').update({ estado: 'error', error_msg: msg }).eq('id', analisis_id)
+      throw err
+    }
+  }
+)
+
+async function analizarGlosarioRolesBody({ analisis_id, proyecto_id, admin, step }: any) {
+  {
     await step.run('marcar-procesando', async () => {
       await admin.from('glosario_roles_analisis').update({ estado: 'generando' }).eq('id', analisis_id)
     })
@@ -415,7 +478,7 @@ export const analizarGlosarioRolesJob = inngest.createFunction(
       return {
         roles: (analisis?.roles_en_procesos ?? []) as RolProceso[],
         textoOrganigrama: org?.texto_extraido ?? '',
-        personas: (cvs ?? []).map(c => ({ nombre: c.nombre_persona, cargo: c.cargo_actual ?? '', skills: c.texto_cv ?? '' })) as PersonaOrg[],
+        personas: (cvs ?? []).map((c: { nombre_persona: string; cargo_actual: string | null; texto_cv: string | null }) => ({ nombre: c.nombre_persona, cargo: c.cargo_actual ?? '', skills: c.texto_cv ?? '' })) as PersonaOrg[],
         nombreEmpresa: cliente?.razon_social ?? 'Empresa cliente',
         industria: cliente?.industria ?? 'No especificada',
         nombreProyecto: proy?.nombre ?? '',
@@ -450,4 +513,4 @@ export const analizarGlosarioRolesJob = inngest.createFunction(
 
     return { analisis_id, total: resultadoFinal.mapeos?.length ?? 0 }
   }
-)
+}
