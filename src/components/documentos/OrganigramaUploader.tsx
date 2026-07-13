@@ -68,6 +68,13 @@ export default function OrganigramaUploader({ proyectos, proyectoPreseleccionado
 
   const proyectoActual = proyectos.find(p => p.id === proyectoId) ?? null
 
+  // cargarDatos se llama tanto desde el effect (al cambiar de proyecto) como
+  // manualmente tras subir un archivo — este ref permite descartar respuestas
+  // de un fetch para un proyecto que ya no es el vigente (ej. usuario cambia
+  // de proyecto dos veces rápido), sin importar desde dónde se disparó el fetch.
+  const proyectoVigenteRef = useRef(proyectoId)
+  proyectoVigenteRef.current = proyectoId
+
   useEffect(() => {
     if (!proyectoId) return
     cargarDatos(proyectoId)
@@ -83,11 +90,12 @@ export default function OrganigramaUploader({ proyectos, proyectoPreseleccionado
       ])
       const orgData = await orgRes.json()
       const analData = await analRes.json()
+      if (proyectoVigenteRef.current !== pid) return
       setOrganigramas(orgData.organigramas ?? [])
       setAnalisis(analData.analisis ?? null)
       if (analData.analisis?.estado === 'generando') iniciarPolling(pid)
     } catch { /* silent */ }
-    finally { setCargando(false) }
+    finally { if (proyectoVigenteRef.current === pid) setCargando(false) }
   }
 
   function validarArchivo(file: File): string | null {

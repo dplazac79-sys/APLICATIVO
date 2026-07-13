@@ -119,10 +119,12 @@ export default function ImpactoPage() {
 
   useEffect(() => {
     if (!proyectoId) return
+    let cancelado = false
     setLoading(true)
     fetch(`/api/simulaciones?proyecto_id=${proyectoId}`)
       .then(r => r.json())
       .then(d => {
+        if (cancelado) return
         const sims = d.simulaciones ?? []
         setSimulaciones(sims)
         if (sims.length > 0 && !selected) setSelected(sims[0])
@@ -131,7 +133,8 @@ export default function ImpactoPage() {
     // Cargar procesos del proyecto para el formulario
     fetch(`/api/simulaciones/contexto?proyecto_id=${proyectoId}`)
       .then(r => r.json())
-      .then(d => setProcesos(d.procesos ?? []))
+      .then(d => { if (!cancelado) setProcesos(d.procesos ?? []) })
+    return () => { cancelado = true }
   }, [proyectoId])
 
   useEffect(() => {
@@ -141,10 +144,12 @@ export default function ImpactoPage() {
   // Al seleccionar proceso: cargar KPIs y artefactos para pre-poblar
   useEffect(() => {
     if (!formProcesoId) { setContextoArtefactos(null); return }
+    let cancelado = false
     setLoadingContexto(true)
     fetch(`/api/simulaciones/contexto?proceso_id=${formProcesoId}`)
       .then(r => r.json())
       .then(d => {
+        if (cancelado) return
         setContextoArtefactos(d.artefactos ?? null)
         if (d.artefactos?.asis) setFormAsisId(d.artefactos.asis.id)
         if (d.artefactos?.tobe) setFormTobeId(d.artefactos.tobe.id)
@@ -153,6 +158,7 @@ export default function ImpactoPage() {
         }
         setLoadingContexto(false)
       })
+    return () => { cancelado = true }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formProcesoId])
 

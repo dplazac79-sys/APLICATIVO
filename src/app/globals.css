@@ -56,4 +56,16 @@
     background-color: hsl(var(--background));
     color: hsl(var(--foreground));
   }
+
+  /* Fallback de foco visible — la mayoría de los inputs/botones fuera de
+     components/ui/* no traían ningún tratamiento de foco propio, o usaban
+     "focus:outline-none" sin sustituto (quita el outline del navegador sin
+     poner nada en su lugar). Esto cubre cualquier elemento interactivo que
+     no defina su propio estado de foco — WCAG 2.4.7. Los componentes en
+     components/ui/* que ya traen su propio focus-visible: no se ven
+     afectados (su regla más específica gana). */
+  *:focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+  }
 }

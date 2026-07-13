@@ -11,6 +11,7 @@ import {
 import { Button } from '@/components/ui/button'
 import type { Artefacto, EstadoValidacion, TipoArtefacto } from '@/types/database'
 import { LABEL_ARTEFACTO } from '@/lib/artefactos-meta'
+import { useEscapeToClose } from '@/hooks/useEscapeToClose'
 
 const VistaArtefacto = dynamic(() => import('./VistaArtefacto'), { ssr: false })
 
@@ -581,6 +582,8 @@ function MejoraIAPanel({
   const [diff, setDiff] = useState<DiffCampo[]>([])
   const [error, setError] = useState<string | null>(null)
 
+  useEscapeToClose(true, onClose)
+
   async function mejorar() {
     setMejorando(true)
     setError(null)
@@ -607,11 +610,11 @@ function MejoraIAPanel({
   return (
     <div className="fixed inset-0 z-50 flex">
       <div className="flex-1 bg-black/60" onClick={onClose} />
-      <div className="w-[440px] bg-slate-900 border-l border-slate-700 flex flex-col">
+      <div role="dialog" aria-modal="true" aria-labelledby="mejora-ia-titulo" className="w-[440px] bg-slate-900 border-l border-slate-700 flex flex-col">
         <div className="flex items-center justify-between p-4 border-b border-slate-800">
           <div className="flex items-center gap-2">
             <Sparkles className="w-4 h-4 text-purple-400" />
-            <h3 className="text-white font-medium text-sm">Mejorar con IA</h3>
+            <h3 id="mejora-ia-titulo" className="text-white font-medium text-sm">Mejorar con IA</h3>
           </div>
           <button onClick={onClose} className="text-slate-500 hover:text-slate-300 transition-colors">
             <X className="w-4 h-4" />

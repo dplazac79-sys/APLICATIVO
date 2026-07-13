@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Plus, Loader2, X } from 'lucide-react'
+import { useEscapeToClose } from '@/hooks/useEscapeToClose'
 
 interface Props {
   proyectoId: string
@@ -12,6 +13,7 @@ interface Props {
 export default function ReunionForm({ proyectoId }: Props) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
+  useEscapeToClose(open, () => setOpen(false))
   const [cargando, setCargando] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [titulo, setTitulo] = useState('')
@@ -58,9 +60,9 @@ export default function ReunionForm({ proyectoId }: Props) {
 
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => setOpen(false)}>
-          <div className="bg-slate-900 border border-slate-700 rounded-xl p-6 w-full max-w-md shadow-2xl" onClick={e => e.stopPropagation()}>
+          <div role="dialog" aria-modal="true" aria-labelledby="reunion-form-titulo" className="bg-slate-900 border border-slate-700 rounded-xl p-6 w-full max-w-md shadow-2xl" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-white font-semibold text-base">Nueva reunión</h2>
+              <h2 id="reunion-form-titulo" className="text-white font-semibold text-base">Nueva reunión</h2>
               <button onClick={() => setOpen(false)} className="text-slate-500 hover:text-slate-300">
                 <X className="w-4 h-4" />
               </button>
@@ -69,7 +71,7 @@ export default function ReunionForm({ proyectoId }: Props) {
             <div className="space-y-3">
               <div>
                 <label className="text-slate-400 text-xs mb-1 block">Título *</label>
-                <input value={titulo} onChange={e => setTitulo(e.target.value)}
+                <input autoFocus value={titulo} onChange={e => setTitulo(e.target.value)}
                   className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-600"
                   placeholder="Ej. Kick-off Proceso de Compras" />
               </div>

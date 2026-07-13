@@ -39,10 +39,12 @@ export default function IntelIndustriaEditor({ clienteId, inicial, industria }: 
   // Cargar Knowledge Graph de la industria si está disponible
   useEffect(() => {
     if (!industria) return
+    let cancelado = false
     fetch(`/api/kg/industria?industria=${encodeURIComponent(industria)}`)
       .then(r => r.json())
-      .then(d => { if (d.snapshot) setKgData(d.snapshot) })
+      .then(d => { if (!cancelado && d.snapshot) setKgData(d.snapshot) })
       .catch(() => null)
+    return () => { cancelado = true }
   }, [industria])
 
   async function guardar() {

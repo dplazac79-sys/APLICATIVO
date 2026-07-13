@@ -88,14 +88,16 @@ export default function AutomationStudioPage() {
   // Al seleccionar proyecto: cargar procesos, simulaciones, recomendaciones y roadmaps
   useEffect(() => {
     if (!proyectoId) return
+    let cancelado = false
     fetch(`/api/simulaciones/contexto?proyecto_id=${proyectoId}`)
-      .then(r => r.json()).then(d => setProcesos(d.procesos ?? [])).catch(() => {})
+      .then(r => r.json()).then(d => { if (!cancelado) setProcesos(d.procesos ?? []) }).catch(() => {})
     fetch(`/api/simulaciones?proyecto_id=${proyectoId}`)
-      .then(r => r.json()).then(d => setSimulaciones(d.simulaciones ?? [])).catch(() => {})
+      .then(r => r.json()).then(d => { if (!cancelado) setSimulaciones(d.simulaciones ?? []) }).catch(() => {})
     fetch(`/api/automation/recomendar?proyecto_id=${proyectoId}`)
-      .then(r => r.json()).then(d => setRecomendaciones(d.recomendaciones ?? [])).catch(() => {})
+      .then(r => r.json()).then(d => { if (!cancelado) setRecomendaciones(d.recomendaciones ?? []) }).catch(() => {})
     fetch(`/api/automation/roadmap?proyecto_id=${proyectoId}`)
-      .then(r => r.json()).then(d => setRoadmaps(d.roadmaps ?? [])).catch(() => {})
+      .then(r => r.json()).then(d => { if (!cancelado) setRoadmaps(d.roadmaps ?? []) }).catch(() => {})
+    return () => { cancelado = true }
   }, [proyectoId])
 
   const recargarRecs = useCallback(() => {

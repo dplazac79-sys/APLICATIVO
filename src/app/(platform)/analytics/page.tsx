@@ -32,9 +32,11 @@ function GrafoRelaciones({ industria }: { industria: string }) {
   const [relaciones, setRelaciones] = useState<KgRelacionExpandida[]>([])
 
   useEffect(() => {
+    let cancelado = false
     fetch(`/api/kg/grafo?industria=${encodeURIComponent(industria)}`)
       .then(r => r.json())
       .then(d => {
+        if (cancelado) return
         if (!d.error) {
           setNodos(d.nodos ?? [])
           setRelaciones(d.relaciones ?? [])
@@ -42,7 +44,8 @@ function GrafoRelaciones({ industria }: { industria: string }) {
           setNodos([])
         }
       })
-      .catch(() => setNodos([]))
+      .catch(() => { if (!cancelado) setNodos([]) })
+    return () => { cancelado = true }
   }, [industria])
 
   if (nodos === null) {

@@ -1,3 +1,4 @@
+import type { Metadata } from 'next'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { notFound } from 'next/navigation'
 import FirmaForm from './FirmaForm'
@@ -5,6 +6,20 @@ import FirmaForm from './FirmaForm'
 export const dynamic = 'force-dynamic'
 
 interface Props { params: { token: string } }
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const admin = createAdminClient()
+  const { data: firma } = await admin
+    .from('firma_solicitud')
+    .select('titulo')
+    .eq('token', params.token)
+    .single()
+
+  return {
+    title: firma?.titulo ? `Firmar: ${firma.titulo} — ProcessOS` : 'Solicitud de firma — ProcessOS',
+    description: 'Firma digital de documento de consultoría.',
+  }
+}
 
 export default async function FirmaPage({ params }: Props) {
   const admin = createAdminClient()
