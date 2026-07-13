@@ -1,3 +1,10 @@
+# Este es el ÚNICO archivo de config de Railway del repo. Antes coexistía
+# con railway.json (deploy.startCommand="npm start", ignoraba el output
+# 'standalone' de next.config.mjs) — verificado en los logs de build reales
+# de producción que Railway ejecuta el buildCommand de ESTE archivo (la
+# línea "mkdir -p .next/standalone/..." aparece tal cual en el log), así
+# que railway.json era config muerta y se eliminó. No recrear un
+# railway.json en paralelo sin verificar primero cuál gana.
 [build]
 builder = "nixpacks"
 buildCommand = "npm install && npm run build && mkdir -p .next/standalone/.next/static && cp -r .next/static/* .next/standalone/.next/static/"
@@ -10,4 +17,4 @@ restartPolicyType = "on_failure"
 restartPolicyMaxRetries = 3
 
 [[services]]
-name = "apip-web"
+name = "APLICATIVO"

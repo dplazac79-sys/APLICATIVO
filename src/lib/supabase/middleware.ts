@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { validarEnvCritico } from '@/lib/env'
 
 // CSP con nonce por request — reemplaza 'unsafe-inline'/'unsafe-eval' en
 // script-src. Se genera acá (no en next.config.mjs) porque el nonce debe
@@ -25,6 +26,8 @@ function construirCspConNonce(nonce: string): string {
 }
 
 export async function updateSession(request: NextRequest) {
+  validarEnvCritico()
+
   const nonce = Buffer.from(crypto.randomUUID()).toString('base64')
   const csp = construirCspConNonce(nonce)
 
@@ -71,7 +74,13 @@ export async function updateSession(request: NextRequest) {
   // Rutas públicas (no requieren autenticación). Nota: todo /api/admin/* ya está
   // excluido de este middleware por el matcher en src/middleware.ts — cada route
   // bajo /api/admin/ debe verificar su propia auth (bearer secret o sesión).
-  const publicPaths = ['/login', '/api/auth/login', '/auth/callback', '/auth/confirm', '/api/inngest', '/cambiar-password']
+  // /api/health: Railway (y cualquier monitor externo) le pega sin cookie
+  // de sesión — sin esto, el middleware lo redirigía (307) a /login antes
+  // de que el propio handler de /api/health corriera, así que el
+  // healthcheck de Railway "pasaba" solo porque /login devuelve 200 al
+  // seguir el redirect, sin ejecutar jamás el chequeo real de conectividad
+  // a la base de datos que existe en esa ruta.
+  const publicPaths = ['/login', '/api/auth/login', '/auth/callback', '/auth/confirm', '/api/inngest', '/api/health', '/cambiar-password']
   const isPublic = publicPaths.some(p => request.nextUrl.pathname.startsWith(p))
 
   if (!user && !isPublic) {
