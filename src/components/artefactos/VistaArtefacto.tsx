@@ -1,6 +1,6 @@
 'use client'
 
-import type { ReactNode } from 'react'
+import { memo, type ReactNode } from 'react'
 import dynamic from 'next/dynamic'
 import type { Artefacto } from '@/types/database'
 
@@ -10,7 +10,7 @@ const BpmnEditor = dynamic(() => import('./BpmnEditor'), { ssr: false })
 
 interface Props { artefacto: Artefacto }
 
-export default function VistaArtefacto({ artefacto }: Props) {
+function VistaArtefacto({ artefacto }: Props) {
   const c = artefacto.contenido
   const readonly = artefacto.estado_validacion === 'publicado'
 
@@ -52,6 +52,12 @@ export default function VistaArtefacto({ artefacto }: Props) {
     default: return <pre className="text-xs text-slate-400 overflow-auto">{JSON.stringify(c, null, 2)}</pre>
   }
 }
+
+// Memoizado — se monta vía dynamic() dentro de ArtefactoCardEditor, que tiene
+// su propio estado de edición (textarea de instrucción IA, toggles, etc.);
+// sin esto, cada keystroke del editor reconciliaba de nuevo todo el árbol de
+// la vista del artefacto (potencialmente decenas de nodos por cada Vista*).
+export default memo(VistaArtefacto)
 
 // ── Componentes de vista por tipo ────────────────────────────────────────────
 

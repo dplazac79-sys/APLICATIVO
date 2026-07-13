@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, memo } from 'react'
 import {
   TrendingUp, TrendingDown, Shield, BarChart3, CheckCircle2,
   Zap, Target, Building2, AlertCircle, XCircle, Flame,
@@ -204,7 +204,10 @@ function ProgressBar({ value, max = 100, color }: { value: number; max?: number;
   )
 }
 
-function Resultado({ sim }: { sim: SimulacionResult }) {
+// Memoizado — evita re-renderizar toda la tabla de KPIs/roadmap/quick-wins
+// (con sus varios .map) cuando el padre cambia estado no relacionado con el
+// resultado ya mostrado (ej. togglear un checkbox de artefactoIds).
+const Resultado = memo(function Resultado({ sim }: { sim: SimulacionResult }) {
   const [show, setShow] = useState(false)
   useEffect(() => { setTimeout(() => setShow(true), 80) }, [])
 
@@ -473,7 +476,7 @@ function Resultado({ sim }: { sim: SimulacionResult }) {
       )}
     </div>
   )
-}
+})
 
 // ── Componente principal ──────────────────────────────────────────────────────
 
