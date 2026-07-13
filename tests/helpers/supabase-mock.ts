@@ -21,6 +21,7 @@ export function fakeQuery<T>(result: T) {
     limit: vi.fn(() => builder),
     insert: vi.fn(() => builder),
     update: vi.fn(() => builder),
+    upsert: vi.fn(() => builder),
     delete: vi.fn(() => builder),
     single: vi.fn(() => Promise.resolve(result)),
     maybeSingle: vi.fn(() => Promise.resolve(result)),
