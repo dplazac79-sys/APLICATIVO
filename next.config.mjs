@@ -25,7 +25,13 @@ const nextConfig = {
     '/api/**': ['./src/lib/prompts/**'],
   },
   // Paquetes que NO deben bundlearse — se cargan como módulos nativos de Node en runtime
-  serverExternalPackages: ['pdf-parse', 'mammoth', '@xenova/transformers', 'onnxruntime-node', '@react-pdf/renderer'],
+  // @xenova/transformers y onnxruntime-node eran del motor de embeddings
+  // local (era de pre-Voyage AI) — sin uso en el código desde hace varias
+  // migraciones (ver supabase/migrations/004/006/033). onnxruntime-node ni
+  // siquiera es una dependencia directa. Quitados de acá y del
+  // dependency del propio @xenova/transformers en package.json — era la
+  // única fuente de una vulnerabilidad CRÍTICA de protobufjs (npm audit).
+  serverExternalPackages: ['pdf-parse', 'mammoth', '@react-pdf/renderer'],
   webpack: (config, { isServer }) => {
     if (isServer) {
       // Forzar externalización a nivel webpack — pdf-parse y mammoth son CJS nativos
