@@ -352,6 +352,21 @@ export default async function ArtefactosPage() {
         })()}
       </div>
 
+      {/* Alerta de cuello de botella en aprobación — antes esta información
+          (48 artefactos generados, solo 3 aprobados) quedaba enterrada en
+          números sueltos en las stat cards, sin ningún tratamiento visual
+          que la señalara como algo que requiere atención. Solo se muestra
+          cuando el atraso es significativo (más de la mitad sin aprobar). */}
+      {totalArtefactos > 0 && (totalArtefactos - totalAprobados) / totalArtefactos > 0.5 && (
+        <div className="rounded-2xl border border-amber-800/40 bg-amber-950/20 p-4 flex items-start gap-3">
+          <Clock className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+          <p className="text-amber-100 text-sm leading-snug">
+            <span className="font-semibold">{totalArtefactos - totalAprobados} de {totalArtefactos} artefactos</span>
+            {' '}siguen sin aprobación del cliente — la mayor parte del contenido generado está a la espera de revisión.
+          </p>
+        </div>
+      )}
+
       {/* Artefactos metodológicos */}
       <div className="rounded-2xl border border-slate-800 bg-slate-900/60 overflow-hidden">
         <div className="flex items-center gap-2.5 px-5 py-4 border-b border-slate-800/80">

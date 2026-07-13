@@ -80,9 +80,17 @@ export default function AutomationStudioPage() {
   const [nombreRoadmap, setNombreRoadmap]   = useState('')
   const [tab, setTab]                       = useState<'recomendaciones' | 'roadmap'>('recomendaciones')
 
-  // Cargar proyectos al montar
+  // Cargar proyectos al montar. Si hay exactamente uno, se auto-selecciona
+  // — mismo patrón que Discovery/Documentos/Dashboard/Bienvenida (todas
+  // "vista single-project"), que nunca piden elegir cuando solo hay un
+  // proyecto activo. Antes esta pantalla era la única que forzaba al
+  // usuario a elegir manualmente incluso sin ambigüedad real que resolver.
   useEffect(() => {
-    fetch('/api/proyectos').then(r => r.json()).then(d => setProyectos(d.proyectos ?? [])).catch(() => {})
+    fetch('/api/proyectos').then(r => r.json()).then(d => {
+      const lista: Proyecto[] = d.proyectos ?? []
+      setProyectos(lista)
+      if (lista.length === 1) setProyectoId(lista[0].id)
+    }).catch(() => {})
   }, [])
 
   // Al seleccionar proyecto: cargar procesos, simulaciones, recomendaciones y roadmaps
