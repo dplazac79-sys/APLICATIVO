@@ -220,7 +220,7 @@ export default function AnalyticsPage() {
   const maxProc = Math.max(...data.procesos_recurrentes.map(p => p.frecuencia), 1)
 
   return (
-    <div className="p-6 max-w-6xl mx-auto space-y-8 text-slate-100">
+    <div className="p-6 max-w-7xl mx-auto space-y-8 text-slate-100">
       <div>
         <h1 className="text-2xl font-semibold mb-1">Analytics Ejecutivo</h1>
         <p className="text-sm text-slate-400">Vista transversal de todos los proyectos — Solo Super Administrador</p>

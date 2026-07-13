@@ -103,7 +103,7 @@ export default async function BienvenidaPage() {
   }
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6 py-2">
+    <div className="max-w-7xl mx-auto space-y-6 py-2">
 
       {/* Header */}
       <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 md:p-7">
