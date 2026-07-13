@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { registrarAudit } from '@/lib/audit'
 import { requireRole } from '@/lib/auth/tenant'
+import { verificarLimiteIA, registrarUsoIA } from '@/lib/ai/rate-limit'
 import {
   generarArtefacto,
   ORDEN_GENERACION,
@@ -53,6 +54,13 @@ export async function POST(
 
   // Cargar proyecto_id para el job
   const { data: proceso } = await admin.from('proceso').select('proyecto_id').eq('id', params.id).single()
+
+  if (proceso?.proyecto_id) {
+    const limite = await verificarLimiteIA(proceso.proyecto_id, 'generacion')
+    if (!limite.permitido) {
+      return NextResponse.json({ error: limite.mensaje }, { status: 429 })
+    }
+  }
 
   // Crear job para tracking
   const { data: job } = await admin.from('jobs').insert({
@@ -147,6 +155,17 @@ async function procesarArtefactosEnBackground(
       const contenido = await generarArtefacto(tipo, ctx, docs, existentes)
       generados[tipo] = contenido
 
+      // generarArtefacto no expone el usage real del completion (su firma
+      // retorna solo el contenido parseado) — se estima el output a partir
+      // del tamaño del JSON generado. Igual que otras estimaciones de este
+      // módulo: sirve para las alertas de límite mensual, no es facturación exacta.
+      await registrarUsoIA({
+        proyecto_id: proceso.proyecto_id,
+        usuario_id: usuarioId,
+        tipo: 'generacion',
+        tokens_output: Math.ceil(JSON.stringify(contenido).length / 4),
+      }).catch(() => {})
+
       // Upsert en BD (único por proceso_id + tipo)
       const { data: existing } = await admin
         .from('artefacto')
@@ -186,7 +205,7 @@ async function procesarArtefactosEnBackground(
       await admin.from('jobs').update({ estado: 'listo', resultado: { tipos_generados: tipos } }).eq('id', jobId)
     }
   } catch (err) {
-
+    console.error(`[artefactos-generar] Falló job para proceso_id=${proceso_id}:`, err instanceof Error ? err.message : err)
     if (jobId) {
       await admin.from('jobs').update({
         estado: 'error',

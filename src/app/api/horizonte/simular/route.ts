@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { togetherClient, groqClient, MODELOS_TOGETHER, MODELOS_GROQ, usesTogetherAI } from '@/lib/ai/client'
 import { assertProyectoAccess } from '@/lib/auth/tenant'
+import { verificarLimiteIA, registrarUsoIA } from '@/lib/ai/rate-limit'
 
 export const maxDuration = 60
 
@@ -27,6 +28,11 @@ export async function POST(req: NextRequest) {
 
   if (!(await assertProyectoAccess(user.id, proceso.proyecto_id))) {
     return NextResponse.json({ error: 'Sin acceso a este proceso' }, { status: 403 })
+  }
+
+  const limite = await verificarLimiteIA(proceso.proyecto_id, 'generacion')
+  if (!limite.permitido) {
+    return NextResponse.json({ error: limite.mensaje }, { status: 429 })
   }
 
   const { data: proyecto } = await admin
@@ -167,34 +173,67 @@ Responde SOLO con este JSON (sin markdown):
 
   const encoder = new TextEncoder()
 
-  // Streaming: Railway nunca corta porque hay datos fluyendo continuamente
+  // Streaming: Railway nunca corta porque hay datos fluyendo continuamente.
+  // No pasa por chatCompletion() (que no soporta streaming) — por eso el
+  // fallback a Groq se implementa acá mismo, pero SOLO si Together AI falla
+  // antes de emitir ningún token. Si ya se enviaron tokens al cliente y la
+  // conexión se corta a mitad de camino, reintentar con otro proveedor
+  // produciría una respuesta duplicada/mezclada — en ese caso se propaga el
+  // error (ver __ERROR__ más abajo) y el cliente descarta el intento.
   const stream = new ReadableStream({
     async start(controller) {
+      let tokensEmitidos = 0
+      let textoCompleto = ''
+      const emitir = (token: string) => {
+        if (!token) return
+        tokensEmitidos++
+        textoCompleto += token
+        controller.enqueue(encoder.encode(token))
+      }
+
+      async function correrTogether() {
+        const streamResp = await togetherClient!.chat.completions.create({
+          model: MODELOS_TOGETHER.potente,
+          ...params,
+          stream: true,
+        })
+        for await (const chunk of streamResp) emitir(chunk.choices[0]?.delta?.content ?? '')
+      }
+
+      async function correrGroq() {
+        const streamResp = await groqClient!.chat.completions.create({
+          model: MODELOS_GROQ.potente,
+          ...params,
+          stream: true,
+        })
+        for await (const chunk of streamResp) emitir((chunk.choices[0]?.delta as { content?: string })?.content ?? '')
+      }
+
       try {
         if (usesTogetherAI && togetherClient) {
-          const streamResp = await togetherClient.chat.completions.create({
-            model: MODELOS_TOGETHER.potente,
-            ...params,
-            stream: true,
-          })
-          for await (const chunk of streamResp) {
-            const token = chunk.choices[0]?.delta?.content ?? ''
-            if (token) controller.enqueue(encoder.encode(token))
+          try {
+            await correrTogether()
+          } catch (e) {
+            if (tokensEmitidos > 0) throw e // ya se envió contenido — no reintentar con otro proveedor
+            if (groqClient) await correrGroq()
+            else throw e
           }
         } else if (groqClient) {
-          const streamResp = await groqClient.chat.completions.create({
-            model: MODELOS_GROQ.potente,
-            ...params,
-            stream: true,
-          })
-          for await (const chunk of streamResp) {
-            const token = (chunk.choices[0]?.delta as { content?: string })?.content ?? ''
-            if (token) controller.enqueue(encoder.encode(token))
-          }
+          await correrGroq()
         } else {
           controller.enqueue(encoder.encode(JSON.stringify({ error: 'No hay proveedor de IA configurado' })))
         }
         controller.close()
+
+        // Estimación de tokens (streaming no expone usage por chunk) —
+        // suficiente para las alertas de límite mensual, no es facturación exacta.
+        registrarUsoIA({
+          proyecto_id: proceso.proyecto_id,
+          usuario_id: user.id,
+          tipo: 'generacion',
+          tokens_input: Math.ceil(prompt.length / 4),
+          tokens_output: Math.ceil(textoCompleto.length / 4),
+        }).catch(() => {})
       } catch (e) {
         const msg = e instanceof Error ? e.message : 'Error'
         controller.enqueue(encoder.encode(`__ERROR__:${msg}`))

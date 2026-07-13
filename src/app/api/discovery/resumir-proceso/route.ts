@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { chatCompletion, MODELOS } from '@/lib/ai/client'
+import { verificarLimiteIA, registrarUsoIA } from '@/lib/ai/rate-limit'
 
 export async function POST(req: NextRequest) {
   const supabase = createClient()
@@ -25,6 +26,11 @@ export async function POST(req: NextRequest) {
   const proyectoId = proceso.proyecto_id
   const proyecto = proceso.proyecto as Record<string, unknown>
   const cliente = proyecto?.cliente as Record<string, unknown> | null
+
+  const limite = await verificarLimiteIA(proyectoId, 'generacion')
+  if (!limite.permitido) {
+    return NextResponse.json({ error: limite.mensaje }, { status: 429 })
+  }
 
   // 2. Cargar TODOS los documentos del proyecto con analisis_ia completo
   // Filtramos por analisis_ia not null en vez de estado='listo' porque a veces
@@ -217,6 +223,14 @@ Devuelve este JSON exacto:
         { role: 'user', content: userPrompt },
       ],
     })
+    await registrarUsoIA({
+      proyecto_id: proyectoId,
+      usuario_id: user.id,
+      tipo: 'generacion',
+      tokens_input: completion.usage?.prompt_tokens ?? 0,
+      tokens_output: completion.usage?.completion_tokens ?? 0,
+    }).catch(() => {})
+
     const text = completion.choices[0]?.message?.content ?? ''
     const match = text.match(/\{[\s\S]*\}/)
     try {

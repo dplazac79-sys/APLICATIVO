@@ -1,24 +1,40 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 
+export type TipoUsoIA = 'clasificar' | 'resumir' | 'discovery' | 'embedding' | 'generacion'
+
 // Límites mensuales por proyecto (tier gratuito por defecto)
-const LIMITES = {
+const LIMITES: Record<string, number> = {
   clasificaciones: 100,
   resumenes: 50,
   discoveries: 10,
   embeddings: 500,
+  // Cubre toda la generación estructurada que no tenía categoría propia y por
+  // eso nunca pasaba por este límite: proyección TO-BE, recomendaciones de
+  // implementación, importación de artefactos, resumen de discovery,
+  // mejora de artefactos con IA, simulación de horizonte de impacto,
+  // motor de recomendaciones de automatización.
+  generaciones: 200,
 }
 
-// Costo aproximado por tipo (USD) basado en claude-sonnet-4-6
-const COSTO_POR_TIPO: Record<string, (input: number, output: number) => number> = {
-  clasificar:  (i, o) => (i * 3 + o * 15) / 1_000_000,
-  resumir:     (i, o) => (i * 3 + o * 15) / 1_000_000,
-  discovery:   (i, o) => (i * 3 + o * 15) / 1_000_000,
+// Costo por tipo (USD) — Together AI cobra un único rate por token para
+// Llama-3.3-70B-Instruct-Turbo (no hay tarifa diferenciada input/output como
+// en otros proveedores). ~$0.88 por 1M tokens. Groq (fallback) tiene su
+// propio pricing pero no lo distinguimos acá: esto es una estimación de
+// costo para alertas de uso, no facturación exacta.
+const COSTO_POR_1M_TOKENS_USD = 0.88
+const costoGenerico = (i: number, o: number) => ((i + o) * COSTO_POR_1M_TOKENS_USD) / 1_000_000
+
+const COSTO_POR_TIPO: Record<TipoUsoIA, (input: number, output: number) => number> = {
+  clasificar:  costoGenerico,
+  resumir:     costoGenerico,
+  discovery:   costoGenerico,
+  generacion:  costoGenerico,
   embedding:   ()     => 0.00000015, // Voyage AI por token
 }
 
 export async function verificarLimiteIA(
   proyecto_id: string,
-  tipo: 'clasificar' | 'resumir' | 'discovery' | 'embedding'
+  tipo: TipoUsoIA
 ): Promise<{ permitido: boolean; mensaje?: string }> {
   const admin = createAdminClient()
 
@@ -33,6 +49,7 @@ export async function verificarLimiteIA(
   const limiteKey = tipo === 'clasificar' ? 'clasificaciones'
     : tipo === 'resumir' ? 'resumenes'
     : tipo === 'discovery' ? 'discoveries'
+    : tipo === 'generacion' ? 'generaciones'
     : 'embeddings'
 
   const uso = Number(data[limiteKey] ?? 0)
@@ -51,7 +68,7 @@ export async function verificarLimiteIA(
 export async function registrarUsoIA(params: {
   proyecto_id: string
   usuario_id: string
-  tipo: 'clasificar' | 'resumir' | 'discovery' | 'embedding'
+  tipo: TipoUsoIA
   tokens_input?: number
   tokens_output?: number
 }) {

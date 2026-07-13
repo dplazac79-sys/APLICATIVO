@@ -527,8 +527,14 @@ export default function HorizonteSimulador({ procesos, artefactosPorProceso, pro
         if (done) break
         accumulated += decoder.decode(value, { stream: true })
       }
-      if (accumulated.startsWith('__ERROR__:')) {
-        throw new Error(accumulated.replace('__ERROR__:', ''))
+      // El marcador de error puede venir al inicio (falló antes de emitir
+      // ningún token) o pegado al final (falló a mitad del streaming, con
+      // JSON parcial ya enviado) — antes solo se detectaba el primer caso,
+      // así que un fallo a mitad de camino mostraba un JSON corrupto o un
+      // error genérico de parseo en vez del mensaje real.
+      const errorIdx = accumulated.indexOf('__ERROR__:')
+      if (errorIdx !== -1) {
+        throw new Error(accumulated.slice(errorIdx + '__ERROR__:'.length) || 'La generación se interrumpió inesperadamente')
       }
       const jsonMatch = accumulated.match(/\{[\s\S]*\}/)
       if (!jsonMatch) throw new Error('Respuesta inválida de la IA. Intenta de nuevo.')

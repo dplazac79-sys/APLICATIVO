@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { chatCompletion, MODELOS } from '@/lib/ai/client'
+import { verificarLimiteIA, registrarUsoIA } from '@/lib/ai/rate-limit'
 import { LABEL_ARTEFACTO } from '@/lib/artefactos-meta'
 import { extraerTextoPDF, extraerTextoDOCX } from '@/lib/extract-text'
 import type { TipoArtefacto } from '@/types/database'
@@ -18,16 +19,22 @@ export async function POST(
 
   const { data: artefacto } = await admin
     .from('artefacto')
-    .select('*, proceso:proceso_id(nombre, descripcion, proyecto:proyecto_id(nombre, cliente:cliente_id(razon_social, industria)))')
+    .select('*, proceso:proceso_id(nombre, descripcion, proyecto_id, proyecto:proyecto_id(nombre, cliente:cliente_id(razon_social, industria)))')
     .eq('id', params.id)
     .single()
 
   if (!artefacto) return NextResponse.json({ error: 'Artefacto no encontrado' }, { status: 404 })
 
+  const proceso = artefacto.proceso as Record<string, unknown>
+  const proyectoId = proceso?.proyecto_id as string
+  const limite = await verificarLimiteIA(proyectoId, 'generacion')
+  if (!limite.permitido) {
+    return NextResponse.json({ error: limite.mensaje }, { status: 429 })
+  }
+
   const body = await req.json() as { instruccion?: string; campo?: string }
   const { instruccion, campo } = body
 
-  const proceso = artefacto.proceso as Record<string, unknown>
   const proyecto = proceso?.proyecto as Record<string, unknown>
   const cliente = proyecto?.cliente as Record<string, unknown>
   const tipoLabel = LABEL_ARTEFACTO[artefacto.tipo as TipoArtefacto] ?? artefacto.tipo
@@ -67,7 +74,9 @@ export async function POST(
         }
       }
     } catch (err) {
-
+      // No bloquear la mejora del artefacto si falla la extracción del documento
+      // de referencia — el diagrama se genera igual, solo sin ese contexto extra.
+      console.error(`[artefacto-mejorar] Falló extracción de texto para artefacto_id=${params.id}:`, err instanceof Error ? err.message : err)
     }
   }
 
@@ -135,6 +144,15 @@ Devuelve el JSON completo del artefacto mejorado, manteniendo exactamente la mis
       if (!text) { lastError = `${modelo}: vacío`; continue }
       const parsed = JSON.parse(text)
       const contenidoMejorado = (parsed.resultado ?? parsed.contenido ?? parsed) as Record<string, unknown>
+
+      await registrarUsoIA({
+        proyecto_id: proyectoId,
+        usuario_id: user.id,
+        tipo: 'generacion',
+        tokens_input: completion.usage?.prompt_tokens ?? 0,
+        tokens_output: completion.usage?.completion_tokens ?? 0,
+      }).catch(() => {})
+
       return NextResponse.json({ contenido: contenidoMejorado })
     } catch (err) {
       lastError = `${modelo}: ${err instanceof Error ? err.message.slice(0, 80) : String(err)}`

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { chatCompletion, MODELOS } from '@/lib/ai/client'
+import { verificarLimiteIA, registrarUsoIA } from '@/lib/ai/rate-limit'
 import { extraerTextoPDF, extraerTextoDOCX } from '@/lib/extract-text'
 import { ORDEN_GENERACION } from '@/lib/artefactos-meta'
 import { TEMPLATES_GARANTIZADOS } from '@/lib/artefactos-templates'
@@ -54,6 +55,11 @@ export async function POST(
     .single()
 
   if (!proceso) return NextResponse.json({ error: 'Proceso no encontrado' }, { status: 404 })
+
+  const limite = await verificarLimiteIA(proceso.proyecto_id, 'generacion')
+  if (!limite.permitido) {
+    return NextResponse.json({ error: limite.mensaje }, { status: 429 })
+  }
 
   const proyecto = proceso.proyecto as Record<string, unknown>
   const cliente = proyecto?.cliente as Record<string, unknown>
@@ -235,6 +241,8 @@ REGLA: Devuelve ÚNICAMENTE JSON válido. Genera contenido profesional basado en
     guardados++
   }
 
+  let outputEstimadoTotal = 0
+
   // ── 8 llamadas en paralelo, cada una guarda en BD apenas termina ────────────
   await Promise.all(
     ORDEN_GENERACION.map(async (tipo, idx) => {
@@ -248,6 +256,7 @@ REGLA: Devuelve ÚNICAMENTE JSON válido. Genera contenido profesional basado en
       if (!contenido && PROMPTS_FALLBACK[tipo]) {
         contenido = await llamarIA([MODELOS.rapido], BASE, PROMPTS_FALLBACK[tipo]!, 2000)
       }
+      if (contenido) outputEstimadoTotal += JSON.stringify(contenido).length
 
       // Fallback nivel 3 — template garantizado sin llamada a IA (18/18 garantizado)
       if (!contenido) {
@@ -273,6 +282,15 @@ REGLA: Devuelve ÚNICAMENTE JSON válido. Genera contenido profesional basado en
       mu[idx] = true
     })
   )
+
+  if (outputEstimadoTotal > 0) {
+    await registrarUsoIA({
+      proyecto_id: proceso.proyecto_id,
+      usuario_id: user.id,
+      tipo: 'generacion',
+      tokens_output: Math.ceil(outputEstimadoTotal / 4),
+    }).catch(() => {})
+  }
 
   return NextResponse.json({
     ok: true, guardados, total: ORDEN_GENERACION.length,

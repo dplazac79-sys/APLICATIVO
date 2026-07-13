@@ -75,7 +75,7 @@ function construirResumenDocumentos(docs: DocumentoResumen[]): string {
   ).join('\n\n').slice(0, 3000)
 }
 
-async function llamarGroq(
+async function generarConIA(
   systemPrompt: string,
   userPrompt: string
 ): Promise<Record<string, unknown>> {
@@ -116,7 +116,7 @@ export async function generarArtefacto(
   const ctxStr = construirContextoProceso(proceso)
   const docsStr = construirResumenDocumentos(documentos)
 
-  // System prompt = plantilla del tipo (cacheado por Anthropic entre calls del mismo tipo)
+  // System prompt = plantilla del tipo (estable entre calls del mismo tipo)
   // User prompt = contexto específico del proceso (varía por call)
   const anclaDocumental = documentos.length > 0
     ? '## ⚠️ INSTRUCCIÓN DE ANCLAJE\nTodo el contenido generado DEBE derivarse de la Inteligencia Documental adjunta. Si debes inferir algo no explícito en el documento, prefijar con "[INFERIDO]". No inventes cifras en $ sin respaldo documental.'
@@ -140,5 +140,5 @@ export async function generarArtefacto(
     userPrompt += '\n\n## Dashboard brechas\n' + JSON.stringify(existentes.dashboard_brechas ?? {}, null, 2)
   }
 
-  return llamarGroq(plantilla, userPrompt)
+  return generarConIA(plantilla, userPrompt)
 }

@@ -191,6 +191,31 @@ Devuelve SOLO este JSON (sin texto extra):
   }
 }
 
+// Máximo de secciones analizadas en paralelo — un documento muy largo (ej.
+// 200 páginas) puede generar 10+ secciones; lanzarlas todas a la vez satura
+// al proveedor de IA con ráfagas de requests simultáneas justo cuando más
+// reintentos necesita cada una. chatCompletion() ya reintenta por sección,
+// pero eso no ayuda si las 14 fallan juntas por rate-limit del lado del
+// proveedor — limitar la concurrencia real reduce esa probabilidad.
+const MAX_SECCIONES_PARALELAS = 4
+
+async function mapConcurrenciaLimitada<T, R>(
+  items: T[],
+  limite: number,
+  fn: (item: T, index: number) => Promise<R>
+): Promise<R[]> {
+  const resultados: R[] = new Array(items.length)
+  let siguiente = 0
+  async function trabajador() {
+    while (siguiente < items.length) {
+      const i = siguiente++
+      resultados[i] = await fn(items[i], i)
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(limite, items.length) }, trabajador))
+  return resultados
+}
+
 export async function analizarDocumento(texto: string): Promise<{ clasificacion: ClasificacionDoc; analisis: ResumenDoc }> {
   const systemPrompt = loadPrompt('analisis-documento')
 
@@ -202,18 +227,14 @@ export async function analizarDocumento(texto: string): Promise<{ clasificacion:
   // Documento largo → análisis por secciones con solapamiento
   const secciones: string[] = []
   let offset = 0
-  let idx = 1
   while (offset < texto.length) {
     secciones.push(texto.slice(offset, offset + CHUNK_SIZE))
     offset += CHUNK_SIZE - CHUNK_OVERLAP
-    idx++
   }
 
   const total = secciones.length
-  const parciales = await Promise.all(
-    secciones.map((sec, i) =>
-      analizarSeccion(sec, systemPrompt, `Sección ${i + 1} de ${total}`)
-    )
+  const parciales = await mapConcurrenciaLimitada(secciones, MAX_SECCIONES_PARALELAS, (sec, i) =>
+    analizarSeccion(sec, systemPrompt, `Sección ${i + 1} de ${total}`)
   )
 
   return consolidarSecciones(parciales)
@@ -389,6 +410,7 @@ ${resumenesTruncados.map((d, i) => `--- Documento ${i + 1} ---\n${d}`).join('\n\
   const completion = await chatCompletion({
     model: MODELOS.potente,
     max_tokens: 6000,
+    temperature: 0.2,
     messages: [
       { role: 'system', content: system },
       { role: 'user', content: contenido },

@@ -5,6 +5,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { registrarAudit } from '@/lib/audit'
 import { generarRecomendaciones } from '@/lib/automation/motor-recomendacion'
 import { assertProyectoAccess, requireRole } from '@/lib/auth/tenant'
+import { verificarLimiteIA, registrarUsoIA } from '@/lib/ai/rate-limit'
 
 export async function POST(req: NextRequest) {
   const supabase = createClient()
@@ -32,6 +33,11 @@ export async function POST(req: NextRequest) {
 
   if (!(await assertProyectoAccess(user.id, proceso.proyecto_id))) {
     return NextResponse.json({ error: 'Sin acceso a este proceso' }, { status: 403 })
+  }
+
+  const limite = await verificarLimiteIA(proceso.proyecto_id, 'generacion')
+  if (!limite.permitido) {
+    return NextResponse.json({ error: limite.mensaje }, { status: 429 })
   }
 
   // Cargar artefacto TO-BE del proceso
@@ -133,6 +139,13 @@ export async function POST(req: NextRequest) {
     .select()
 
   if (error) return jsonError(error)
+
+  await registrarUsoIA({
+    proyecto_id: proceso.proyecto_id,
+    usuario_id: user.id,
+    tipo: 'generacion',
+    tokens_output: Math.ceil(JSON.stringify(recs).length / 4),
+  }).catch(() => {})
 
   await registrarAudit({
     accion: 'CREATE',

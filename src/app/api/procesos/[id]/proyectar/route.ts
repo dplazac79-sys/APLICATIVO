@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { chatCompletion, MODELOS } from '@/lib/ai/client'
-import { registrarUsoIA } from '@/lib/ai/rate-limit'
+import { verificarLimiteIA, registrarUsoIA } from '@/lib/ai/rate-limit'
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   const supabase = createClient()
@@ -30,6 +30,11 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   const proyecto = proceso.proyecto as Record<string, unknown>
   const cliente = proyecto?.cliente as Record<string, unknown> | null
   const proyectoId = proceso.proyecto_id
+
+  const limite = await verificarLimiteIA(proyectoId, 'generacion')
+  if (!limite.permitido) {
+    return NextResponse.json({ error: limite.mensaje }, { status: 429 })
+  }
 
   // 2. Cargar todos los documentos con análisis IA (mismo patrón que resumir-proceso)
   const { data: documentos } = await admin
@@ -227,9 +232,11 @@ Responde ÚNICAMENTE con este JSON válido, sin texto antes ni después:
       await registrarUsoIA({
         proyecto_id: proyectoId,
         usuario_id: user.id,
-        tipo: 'resumir',
-        tokens_input: 2000,
-        tokens_output: 1500,
+        tipo: 'generacion',
+        // Tokens reales del completion — antes eran valores fijos inventados
+        // (2000/1500), que hacían inútil el costo estimado en el dashboard.
+        tokens_input: completion.usage?.prompt_tokens ?? 0,
+        tokens_output: completion.usage?.completion_tokens ?? 0,
       }).catch(() => {})
 
       return NextResponse.json({ proyeccion })

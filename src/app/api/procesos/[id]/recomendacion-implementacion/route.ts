@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { chatCompletion, MODELOS } from '@/lib/ai/client'
+import { verificarLimiteIA, registrarUsoIA } from '@/lib/ai/rate-limit'
 
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
   const supabase = createClient()
@@ -24,10 +25,15 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
 
   const { data: proceso } = await admin
     .from('proceso')
-    .select('nombre, descripcion, roles_involucrados, metadata_ia, documento_origen_id')
+    .select('nombre, descripcion, roles_involucrados, metadata_ia, documento_origen_id, proyecto_id')
     .eq('id', params.id)
     .single()
   if (!proceso) return NextResponse.json({ error: 'no_encontrado' }, { status: 404 })
+
+  const limite = await verificarLimiteIA(proceso.proyecto_id, 'generacion')
+  if (!limite.permitido) {
+    return NextResponse.json({ error: limite.mensaje }, { status: 429 })
+  }
 
   // Cargar analisis_ia completo del documento origen
   let ia: Record<string, unknown> = {}
@@ -56,7 +62,7 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
   const madurezEvidencia = (analisis.nivel_madurez_evidencia as string)   ?? ''
   const roles            = (proceso.roles_involucrados ?? []) as string[]
 
-  // Todo lo que el AI recibe viene textualmente del documento procesado por Claude
+  // Todo lo que el AI recibe viene textualmente del documento ya procesado
   const prompt = `Eres un consultor senior de AICOUNTS Consultores especializado en transformación de procesos. Tu tarea es generar un plan de implementación para el proceso "${proceso.nombre}" BASÁNDOTE ESTRICTAMENTE en el análisis documental que se adjunta. No debes inventar ni suponer — todo lo que redactes debe poder rastrearse a los datos del documento.
 
 ═══ ANÁLISIS DOCUMENTAL (extraído directamente del documento formal) ═══
@@ -133,6 +139,14 @@ Responde SOLO con el JSON. Sé directo, específico y trazable al documento.`
     if (!jsonMatch) return NextResponse.json({ error: 'parse_error' }, { status: 500 })
 
     const plan = JSON.parse(jsonMatch[0])
+
+    await registrarUsoIA({
+      proyecto_id: proceso.proyecto_id,
+      usuario_id: user2.id,
+      tipo: 'generacion',
+      tokens_input: completion.usage?.prompt_tokens ?? 0,
+      tokens_output: completion.usage?.completion_tokens ?? 0,
+    }).catch(() => {})
 
     // Guardar en metadata_ia para caché
     const { data: proc2 } = await admin.from('proceso').select('metadata_ia').eq('id', params.id).single()
