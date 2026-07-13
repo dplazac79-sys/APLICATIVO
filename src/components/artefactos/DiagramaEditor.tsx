@@ -15,7 +15,7 @@ import ReactFlow, {
 } from 'reactflow'
 import 'reactflow/dist/style.css'
 import { Button } from '@/components/ui/button'
-import { Save, Loader2, Plus, Trash2, GitMerge, Square, Circle, FileText } from 'lucide-react'
+import { Save, Loader2, Trash2, GitMerge, Square, Circle, FileText } from 'lucide-react'
 
 interface Props {
   artefactoId: string

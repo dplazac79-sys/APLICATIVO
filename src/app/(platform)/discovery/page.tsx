@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic'
 import { createAdminClient } from '@/lib/supabase/admin'
 import DiscoveryExperiencia from '@/components/discovery/DiscoveryExperiencia'
 import type { Proceso, Proyecto } from '@/types/database'
+import type { ProcesoConHijos, DocumentoItem } from '@/components/discovery/types'
 
 export default async function DiscoveryPage() {
   const admin = createAdminClient()
@@ -47,7 +48,7 @@ export default async function DiscoveryPage() {
   const subprocesos = procesosProyecto.filter((p: Proceso) => p.nivel === 1)
 
   function codigoOrden(p: Proceso): number {
-    const ref = (p.metadata_ia as any)?.documento_referencia as string | undefined
+    const ref = (p.metadata_ia as { documento_referencia?: string } | null)?.documento_referencia
     if (!ref) return 9999
     const match = ref.match(/(\d+)/)
     return match ? parseInt(match[1], 10) : 9999
@@ -80,7 +81,7 @@ export default async function DiscoveryPage() {
 
   const ROL_INTERNO = ['super_admin', 'director_proyecto', 'consultor']
   const documentosProyecto = (documentosRaw ?? [])
-    .filter((d: any) => {
+    .filter((d: { subido_por: { rol: string } | { rol: string }[] | null }) => {
       const subidoPor = Array.isArray(d.subido_por) ? d.subido_por[0] : d.subido_por
       return !ROL_INTERNO.includes(subidoPor?.rol ?? '')
     })
@@ -90,7 +91,7 @@ export default async function DiscoveryPage() {
       proyectoId={proyecto.id}
       nombreProyecto={proyecto.nombre}
       clienteNombre={proyecto.cliente?.razon_social ?? null}
-      macroprocesos={macroprocesos as any}
+      macroprocesos={macroprocesos as unknown as ProcesoConHijos[]}
       totalProcesos={procesosNivel1.length}
       aceptados={aceptados.length}
       pendientes={pendientes.length}
@@ -100,7 +101,7 @@ export default async function DiscoveryPage() {
       resumenDiscovery={proyecto.discovery_resumen as Record<string, unknown> | null}
       rolesDetectados={rolesDetectados}
       proyectosParaAcciones={proyectos.map(p => ({ id: p.id, nombre: p.nombre }))}
-      documentos={documentosProyecto as any}
+      documentos={documentosProyecto as unknown as DocumentoItem[]}
     />
   )
 }

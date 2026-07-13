@@ -73,10 +73,9 @@ export async function POST(
   // Usar waitUntil si está disponible (Edge runtime) para sobrevivir al fin de la respuesta
   const bgPromise = procesarArtefactosEnBackground(params.id, user.id, tipoSolicitado, job?.id)
   // waitUntil mantiene viva la función serverless hasta que el job termina
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  if (typeof (globalThis as any).waitUntil === 'function') {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    ;(globalThis as any).waitUntil(bgPromise)
+  const globalWithWaitUntil = globalThis as typeof globalThis & { waitUntil?: (promise: Promise<unknown>) => void }
+  if (typeof globalWithWaitUntil.waitUntil === 'function') {
+    globalWithWaitUntil.waitUntil(bgPromise)
   }
 
   return NextResponse.json({ ok: true, job_id: job?.id })
@@ -123,7 +122,7 @@ async function procesarArtefactosEnBackground(
       .not('analisis_ia', 'is', null)
 
     const docs: DocumentoResumen[] = (documentos ?? []).map(d => {
-      const ia = (d.analisis_ia as any)?.analisis ?? d.analisis_ia as any
+      const ia = (d.analisis_ia as { analisis?: Record<string, unknown> } | null)?.analisis ?? (d.analisis_ia as Record<string, unknown> | null)
       const resumen = ia?.resumen_ejecutivo ?? d.resumen_ejecutivo ?? null
       return {
         nombre_archivo: d.nombre_archivo,

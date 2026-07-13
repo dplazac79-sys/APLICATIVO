@@ -25,7 +25,7 @@ const ROL_COLOR: Record<string, string> = {
   usuario_cliente: 'bg-slate-800 text-slate-400 border-slate-700',
 }
 
-interface Proyecto {
+export interface Proyecto {
   id: string
   nombre: string
   descripcion?: string

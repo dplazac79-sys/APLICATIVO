@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic'
 
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { FileText, FolderOpen, Brain, Layers, Sparkles, ArrowRight, AlertCircle, ChevronRight } from 'lucide-react'
+import { FileText, FolderOpen, Brain, Layers, Sparkles, ArrowRight, AlertCircle } from 'lucide-react'
 import Link from 'next/link'
 import FaseWorkflow from '@/components/fases/FaseWorkflow'
 import { getFasesProyecto } from '@/lib/fases'
@@ -23,7 +23,8 @@ export default async function DashboardPage() {
   const esSuperAdmin = usuario?.rol === 'super_admin'
   const proyectoIds = (usuario?.usuario_proyecto ?? []).map((up: { proyecto_id: string }) => up.proyecto_id)
 
-  let proyectoMeta: { id: string; nombre: string; estado_general: string; cliente: { razon_social?: string } | null } | null = null
+  type ProyectoMeta = { id: string; nombre: string; estado_general: string; cliente: { razon_social?: string } | null }
+  let proyectoMeta: ProyectoMeta | null = null
   let fases = null
 
   if (esSuperAdmin) {
@@ -34,7 +35,7 @@ export default async function DashboardPage() {
       .order('created_at', { ascending: false })
       .limit(1)
       .single()
-    if (p) { proyectoMeta = p as any; fases = (await getFasesProyecto(p.id)).fases }
+    if (p) { proyectoMeta = p as unknown as ProyectoMeta; fases = (await getFasesProyecto(p.id)).fases }
   } else if (proyectoIds.length > 0) {
     const { data: p } = await admin
       .from('proyecto')
@@ -44,7 +45,7 @@ export default async function DashboardPage() {
       .order('created_at', { ascending: false })
       .limit(1)
       .single()
-    if (p) { proyectoMeta = p as any; fases = (await getFasesProyecto(p.id)).fases }
+    if (p) { proyectoMeta = p as unknown as ProyectoMeta; fases = (await getFasesProyecto(p.id)).fases }
   }
 
   // Stats del proyecto activo
@@ -124,7 +125,7 @@ export default async function DashboardPage() {
           <h1 className="text-2xl font-bold text-white">Dashboard</h1>
           <p className="text-slate-400 text-sm mt-1">
             {proyectoMeta
-              ? <>Proyecto: <span className="text-slate-200 font-medium">{proyectoMeta.nombre}</span>{(proyectoMeta.cliente as any)?.razon_social && <> · {(proyectoMeta.cliente as any).razon_social}</>}</>
+              ? <>Proyecto: <span className="text-slate-200 font-medium">{proyectoMeta.nombre}</span>{proyectoMeta.cliente?.razon_social && <> · {proyectoMeta.cliente.razon_social}</>}</>
               : `Bienvenido, ${usuario?.nombre}`
             }
           </p>

@@ -1,15 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { Zap, Sparkles, ClipboardList, Bot, Download, CheckCircle2 } from 'lucide-react'
 
 // ── Tipos locales ─────────────────────────────────────────────────────────────

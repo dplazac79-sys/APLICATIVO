@@ -35,7 +35,10 @@ export function EstadoVacioDiscovery({
   const [exitoso, setExitoso] = useState(false)
   const totalParaProcesar = selParaProcesar.length
 
-  // Al montar: si hay docs ya en procesando, entrar directo al polling screen
+  // Al montar: si hay docs ya en procesando, entrar directo al polling screen.
+  // Deliberadamente solo al montar — incluir documentos/procesadosIds.length
+  // reactivaría el efecto en cada cambio de props, incluyendo los que este
+  // mismo efecto dispara (setProcesadosIds), sin aportar nada nuevo.
   useEffect(() => {
     const yaEnProceso = documentos.filter(d => d.estado_procesamiento === 'procesando')
     if (yaEnProceso.length > 0 && procesadosIds.length === 0) {
@@ -46,6 +49,7 @@ export function EstadoVacioDiscovery({
       setProcesadosIds(todosEnCola)
       setExitoso(true)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   function toggleDoc(id: string) {
@@ -316,7 +320,7 @@ export function EstadoVacioDiscovery({
           /* Hay listos — mostrar solo estado, la selección va en Paso 2 */
           <div className="p-4 space-y-2">
             {listos.map(doc => {
-              const bloque = (doc.clasificacion as any)?.bloque_metodologico as string | undefined
+              const bloque = (doc.clasificacion as { bloque_metodologico?: string } | null)?.bloque_metodologico
               return (
                 <div
                   key={doc.id}

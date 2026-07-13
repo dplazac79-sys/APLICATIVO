@@ -1,5 +1,6 @@
 import fs from 'fs'
 import path from 'path'
+import type OpenAI from 'openai'
 import { chatCompletion, MODELOS } from './client'
 
 const promptCache = new Map<string, string>()
@@ -102,7 +103,7 @@ async function analizarSeccion(
         },
       },
     }],
-    tool_choice: { type: 'function', function: { name: 'entregar_analisis' } } as any,
+    tool_choice: { type: 'function', function: { name: 'entregar_analisis' } } as OpenAI.Chat.Completions.ChatCompletionToolChoiceOption,
   })
   const toolCall = completion.choices[0]?.message?.tool_calls?.[0] as { function: { arguments: string } } | undefined
   if (!toolCall) throw new Error('No se recibió resultado del motor de inteligencia')
@@ -622,7 +623,7 @@ IMPORTANTE: No inventes cifras en $ ni porcentajes exactos sin respaldo en los d
         },
       },
     }],
-    tool_choice: { type: 'function', function: { name: 'generar_proyeccion' } } as any,
+    tool_choice: { type: 'function', function: { name: 'generar_proyeccion' } } as OpenAI.Chat.Completions.ChatCompletionToolChoiceOption,
   })
   const toolCall = completion.choices[0]?.message?.tool_calls?.[0] as { function: { arguments: string } } | undefined
   if (!toolCall) throw new Error('Sin respuesta de proyección')

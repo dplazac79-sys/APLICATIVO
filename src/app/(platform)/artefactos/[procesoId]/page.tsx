@@ -48,7 +48,7 @@ export default async function ProcesoArtefactosPage({ params }: Props) {
 
   const proyecto = proceso.proyecto as Record<string, unknown>
   const cliente = proyecto?.cliente as Record<string, unknown>
-  const docNombre = (proceso.documento_origen as any)?.nombre_archivo as string | undefined
+  const docNombre = (proceso.documento_origen as { nombre_archivo?: string } | null)?.nombre_archivo
   const codigoMatch = docNombre?.match(/^([A-Za-z]{1,6}[0-9]{1,3})/i)
   const codigo = codigoMatch ? codigoMatch[1].toUpperCase() : null
   const totalGenerados = artefactos.length

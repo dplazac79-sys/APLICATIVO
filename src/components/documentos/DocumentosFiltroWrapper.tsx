@@ -127,7 +127,7 @@ function DocFila({
             <Download className="w-4 h-4" />
           </div>
         )}
-        <DocumentoAcciones documentoId={doc.id} estado={estadoKey as any} puedeEliminar={puedeEliminar} puedeAnalizar={esInterno} />
+        <DocumentoAcciones documentoId={doc.id} estado={estadoKey} puedeEliminar={puedeEliminar} puedeAnalizar={esInterno} />
         {!puedeEliminar && (
           <div className="w-8 h-8 flex items-center justify-center text-slate-700" title="Solo lectura">
             <Lock className="w-3.5 h-3.5" />
@@ -138,7 +138,7 @@ function DocFila({
   )
 }
 
-export default function DocumentosFiltroWrapper({ documentos, esInterno, rolActual }: Props) {
+export default function DocumentosFiltroWrapper({ documentos, esInterno, rolActual: _rolActual }: Props) {
   const [filtroIds, setFiltroIds] = useState<string[] | null>(null)
   const [busqueda, setBusqueda] = useState('')
   const [expandidos, setExpandidos] = useState<Set<string>>(new Set())

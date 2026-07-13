@@ -35,7 +35,6 @@ export async function POST(req: NextRequest) {
     }
 
     const admin = createAdminClient()
-    const appUrl = process.env.APP_URL ?? 'https://aplicativo-production.up.railway.app'
 
     // 1. Crear cliente
     const { data: clienteCreado, error: errCliente } = await admin

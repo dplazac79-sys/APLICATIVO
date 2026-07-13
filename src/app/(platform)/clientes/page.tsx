@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { Button } from '@/components/ui/button'
 import { Plus } from 'lucide-react'
-import ClientesLista from '@/components/clientes/ClientesLista'
+import ClientesLista, { type ClienteRow } from '@/components/clientes/ClientesLista'
 
 export const dynamic = 'force-dynamic'
 
@@ -41,7 +41,7 @@ export default async function ClientesPage() {
         </Link>
       </div>
 
-      <ClientesLista clientes={(clientes ?? []) as any} />
+      <ClientesLista clientes={(clientes ?? []) as unknown as ClienteRow[]} />
     </div>
   )
 }

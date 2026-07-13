@@ -78,7 +78,7 @@ export function PollingScreen({
     poll()
     intervalRef.current = setInterval(poll, 4000)
     return () => { if (intervalRef.current) clearInterval(intervalRef.current) }
-  }, [proyectoId, procesadosIds])
+  }, [proyectoId, procesadosIds, estadosRef]) // estadosRef es estable (useState sin setter), no reintroduce reruns
 
   async function detenerYReiniciar() {
     if (cancelando) return

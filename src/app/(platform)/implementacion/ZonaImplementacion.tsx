@@ -115,7 +115,7 @@ function ProcesoImplCard({ proceso }: { proceso: ProcesoAprobado }) {
   )
 }
 
-export function ZonaImplementacion({ proyectos, procesosAprobados, nombreUsuario }: {
+export function ZonaImplementacion({ proyectos, procesosAprobados, nombreUsuario: _nombreUsuario }: {
   proyectos: Proyecto[]
   procesosAprobados: ProcesoAprobado[]
   nombreUsuario: string
@@ -125,8 +125,6 @@ export function ZonaImplementacion({ proyectos, procesosAprobados, nombreUsuario
   const procesosFiltrados = proyectoFiltro
     ? procesosAprobados.filter(p => p.proyecto_id === proyectoFiltro)
     : procesosAprobados
-
-  const proyecto = proyectos.find(p => p.id === proyectoFiltro)
 
   // Contar cuántos procesos ya están en el macroproceso del primer proceso
   const totalEsperados = procesosFiltrados[0]?.total_en_macroproceso ?? null

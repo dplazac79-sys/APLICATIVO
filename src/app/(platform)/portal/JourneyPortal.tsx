@@ -51,17 +51,6 @@ interface DocProcesando {
 const fecha = (s: string) =>
   new Date(s).toLocaleDateString('es-CL', { day: '2-digit', month: 'short', year: 'numeric' })
 
-const IMPACTO_COLOR: Record<string, string> = {
-  alto: 'text-red-400 bg-red-900/30 border-red-800',
-  medio: 'text-amber-400 bg-amber-900/30 border-amber-800',
-  baja: 'text-emerald-400 bg-emerald-900/30 border-emerald-800',
-}
-const PROB_COLOR: Record<string, string> = {
-  alta: 'text-red-400',
-  media: 'text-amber-400',
-  baja: 'text-emerald-400',
-}
-
 // ── Zona de upload ─────────────────────────────────────────────────────────────
 function UploadZona({ proyectoId, onSubido }: { proyectoId: string; onSubido: () => void }) {
   const [drag, setDrag] = useState(false)

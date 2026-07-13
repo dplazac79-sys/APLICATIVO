@@ -91,7 +91,6 @@ export async function POST(req: NextRequest) {
       aEscalar
         .filter(e => e.wf.responsable_id && emailMap[e.wf.responsable_id])
         .map(({ wf, nuevoNivel, horasEnEstado }) => {
-          const proceso = wf.proceso as Record<string, unknown>
           const proyecto = wf.proyecto as Record<string, unknown>
           const descripcion = `El proceso lleva ${Math.round(horasEnEstado)}h en estado "${wf.estado}" sin avanzar. Proyecto: ${String(proyecto?.nombre ?? '')}`
           return enviarEmail({

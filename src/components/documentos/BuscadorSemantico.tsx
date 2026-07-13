@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { Search, Loader2, FileText, Tag, Sparkles, X } from 'lucide-react'
+import { Loader2, FileText, Tag, Sparkles, X } from 'lucide-react'
 
 interface Resultado {
   id: string

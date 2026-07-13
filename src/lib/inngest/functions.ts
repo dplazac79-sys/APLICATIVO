@@ -1,5 +1,11 @@
 import { inngest } from './client'
 import { createAdminClient } from '@/lib/supabase/admin'
+
+type AdminClient = ReturnType<typeof createAdminClient>
+
+interface StepTools {
+  run: <T>(name: string, fn: () => Promise<T> | T) => Promise<T>
+}
 import { analizarDocumento, discoveryProcesos, enriquecerProcesoCliente, analizarGlosarioRoles, RolProceso, PersonaOrg } from '@/lib/ai/claude'
 import { buildProyectoContext } from '@/lib/ai/context'
 import { generarEmbedding, generarEmbeddingsBatch } from '@/lib/ai/embeddings'
@@ -17,8 +23,7 @@ export const procesarDocumento = inngest.createFunction(
     timeouts: { finish: '10m' },
     triggers: [{ event: 'documento/procesar' }],
   },
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  async ({ event, step }: any) => {
+  async ({ event, step }: { event: { data: { documento_id: string; usuario_id: string } }; step: StepTools }) => {
     const { documento_id, usuario_id } = event.data
     const admin = createAdminClient()
 
@@ -35,7 +40,12 @@ export const procesarDocumento = inngest.createFunction(
   }
 )
 
-async function procesarDocumentoBody({ documento_id, usuario_id, admin, step }: any) {
+async function procesarDocumentoBody({ documento_id, usuario_id, admin, step }: {
+  documento_id: string
+  usuario_id: string
+  admin: AdminClient
+  step: StepTools
+}) {
   {
     const doc = await step.run('obtener-documento', async () => {
       const { data, error } = await admin.from('documento').select('*').eq('id', documento_id).single()
@@ -163,8 +173,7 @@ export const discoveryAI = inngest.createFunction(
     timeouts: { finish: '15m' },
     triggers: [{ event: 'proyecto/discovery' }],
   },
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  async ({ event, step }: any) => {
+  async ({ event, step }: { event: { data: { proyecto_id: string; usuario_id: string; documento_ids?: string[]; job_id?: string } }; step: StepTools }) => {
     const { proyecto_id, usuario_id, documento_ids, job_id } = event.data
     const admin = createAdminClient()
 
@@ -188,7 +197,15 @@ export const discoveryAI = inngest.createFunction(
   }
 )
 
-async function discoveryAIBody({ proyecto_id, usuario_id, documento_ids, job_id, admin, step, marcarError }: any) {
+async function discoveryAIBody({ proyecto_id, usuario_id, documento_ids, job_id, admin, step, marcarError }: {
+  proyecto_id: string
+  usuario_id: string
+  documento_ids?: string[]
+  job_id?: string
+  admin: AdminClient
+  step: StepTools
+  marcarError: (mensaje: string) => Promise<void>
+}) {
   {
     const datos = await step.run('cargar-datos', async () => {
       const limite = await verificarLimiteIA(proyecto_id, 'discovery')
@@ -299,8 +316,7 @@ export const enriquecerDocumentoCliente = inngest.createFunction(
     timeouts: { finish: '10m' },
     triggers: [{ event: 'portal/enriquecer-documento' }],
   },
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  async ({ event, step }: any) => {
+  async ({ event, step }: { event: { data: { documento_cliente_id: string; proyecto_id: string; usuario_id: string } }; step: StepTools }) => {
     const { documento_cliente_id, proyecto_id, usuario_id } = event.data
     const admin = createAdminClient()
 
@@ -315,7 +331,13 @@ export const enriquecerDocumentoCliente = inngest.createFunction(
   }
 )
 
-async function enriquecerDocumentoClienteBody({ documento_cliente_id, proyecto_id, usuario_id, admin, step }: any) {
+async function enriquecerDocumentoClienteBody({ documento_cliente_id, proyecto_id, usuario_id, admin, step }: {
+  documento_cliente_id: string
+  proyecto_id: string
+  usuario_id: string
+  admin: AdminClient
+  step: StepTools
+}) {
   {
     // 1. Marcar como procesando
     await step.run('marcar-procesando', async () => {
@@ -442,7 +464,7 @@ export const analizarGlosarioRolesJob = inngest.createFunction(
     timeouts: { finish: '15m' },
     triggers: [{ event: 'portal/analizar-glosario-roles' }],
   },
-  async ({ event, step }: any) => {
+  async ({ event, step }: { event: { data: { analisis_id: string; proyecto_id: string } }; step: StepTools }) => {
     const { analisis_id, proyecto_id } = event.data
     const admin = createAdminClient()
 
@@ -457,7 +479,12 @@ export const analizarGlosarioRolesJob = inngest.createFunction(
   }
 )
 
-async function analizarGlosarioRolesBody({ analisis_id, proyecto_id, admin, step }: any) {
+async function analizarGlosarioRolesBody({ analisis_id, proyecto_id, admin, step }: {
+  analisis_id: string
+  proyecto_id: string
+  admin: AdminClient
+  step: StepTools
+}) {
   {
     await step.run('marcar-procesando', async () => {
       await admin.from('glosario_roles_analisis').update({ estado: 'generando' }).eq('id', analisis_id)
@@ -505,9 +532,9 @@ async function analizarGlosarioRolesBody({ analisis_id, proyecto_id, admin, step
         score_cobertura_organizacional: resultadoFinal.score_cobertura_organizacional ?? 0,
         alertas_criticas:               resultadoFinal.alertas_criticas ?? [],
         plan_accion_30_dias:            resultadoFinal.plan_accion_30_dias ?? [],
-        total_mapeados:      mapeos.filter((m: any) => m.tipo === 'mapeo_directo').length,
-        total_equivalencias: mapeos.filter((m: any) => m.tipo === 'equivalencia').length,
-        total_crear_cargo:   mapeos.filter((m: any) => m.tipo === 'crear_cargo').length,
+        total_mapeados:      mapeos.filter((m) => m.tipo === 'mapeo_directo').length,
+        total_equivalencias: mapeos.filter((m) => m.tipo === 'equivalencia').length,
+        total_crear_cargo:   mapeos.filter((m) => m.tipo === 'crear_cargo').length,
       }).eq('id', analisis_id)
     })
 

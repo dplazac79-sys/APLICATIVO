@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import DocumentUploader from '@/components/documentos/DocumentUploader'
-import DocumentosFiltroWrapper from '@/components/documentos/DocumentosFiltroWrapper'
+import DocumentosFiltroWrapper, { type DocRow } from '@/components/documentos/DocumentosFiltroWrapper'
 import OrganigramaUploader from '@/components/documentos/OrganigramaUploader'
 
 export const dynamic = 'force-dynamic'
@@ -87,8 +87,8 @@ export default async function DocumentosPage({ searchParams }: { searchParams: {
           {proyectoActivo ? (
             <p className="text-slate-400 text-sm mt-1">
               Proyecto: <span className="text-indigo-300 font-medium">{proyectoActivo.nombre}</span>
-              {(proyectoActivo.cliente as any)?.razon_social && (
-                <> · <span className="text-slate-300">{(proyectoActivo.cliente as any).razon_social}</span></>
+              {proyectoActivo.cliente?.razon_social && (
+                <> · <span className="text-slate-300">{proyectoActivo.cliente.razon_social}</span></>
               )}
             </p>
           ) : (
@@ -116,7 +116,7 @@ export default async function DocumentosPage({ searchParams }: { searchParams: {
       />
 
       <DocumentosFiltroWrapper
-        documentos={documentos as any}
+        documentos={documentos as unknown as DocRow[]}
         esInterno={esInterno}
         rolActual={rolActual}
       />

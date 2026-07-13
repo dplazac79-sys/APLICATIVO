@@ -6,7 +6,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import Link from 'next/link'
 import { ArrowRight, CheckCircle2, Circle, Lock, ChevronRight, FolderKanban } from 'lucide-react'
 import Saludo from './Saludo'
-import ResumenProyecto from './ResumenProyecto'
+import ResumenProyecto, { type Proyecto as ProyectoResumen } from './ResumenProyecto'
 import { getFasesProyecto } from '@/lib/fases'
 import { getProcesosAceptadosIds, contarArtefactosDeProcesosAceptados } from '@/lib/domain/procesos'
 
@@ -95,7 +95,10 @@ export default async function BienvenidaPage() {
       getProcesosAceptadosIds(proyectoMeta.id),
       contarArtefactosDeProcesosAceptados(proyectoMeta.id),
     ])
-    equipo = (miembrosRes.data ?? []).map((m: any) => ({ nombre: m.usuario?.nombre ?? '', rol: m.usuario?.rol ?? '' }))
+    equipo = (miembrosRes.data ?? []).map((m: { usuario: { nombre: string; rol: string } | { nombre: string; rol: string }[] | null }) => {
+      const u = Array.isArray(m.usuario) ? m.usuario[0] : m.usuario
+      return { nombre: u?.nombre ?? '', rol: u?.rol ?? '' }
+    })
     statsProyecto = {
       documentos: docsRes.count ?? 0,
       procesos: procesosRes.count ?? 0,
@@ -233,7 +236,7 @@ export default async function BienvenidaPage() {
           {/* Columna izquierda: resumen proyecto */}
           <div className="space-y-6">
             {proyectoMeta && fases ? (
-              <ResumenProyecto proyecto={proyectoMeta as any} cliente={cliente} equipo={equipo} rol={usuario?.rol ?? ''} stats={statsProyecto} faseActual={fases?.find(f => f.status === 'activa') ?? null} />
+              <ResumenProyecto proyecto={proyectoMeta as unknown as ProyectoResumen} cliente={cliente} equipo={equipo} rol={usuario?.rol ?? ''} stats={statsProyecto} faseActual={fases?.find(f => f.status === 'activa') ?? null} />
             ) : (
               <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 text-center space-y-3">
                 <div className="w-12 h-12 bg-indigo-950 rounded-2xl flex items-center justify-center mx-auto">
@@ -319,7 +322,7 @@ export default async function BienvenidaPage() {
       ) : proyectoMeta && fases ? (
         /* Vista cliente: ResumenProyecto + CTA prominente a Dashboard */
         <div className="space-y-4">
-          <ResumenProyecto proyecto={proyectoMeta as any} cliente={cliente} equipo={equipo} rol={usuario?.rol ?? ''} stats={statsProyecto} faseActual={fases?.find(f => f.status === 'activa') ?? null} />
+          <ResumenProyecto proyecto={proyectoMeta as unknown as ProyectoResumen} cliente={cliente} equipo={equipo} rol={usuario?.rol ?? ''} stats={statsProyecto} faseActual={fases?.find(f => f.status === 'activa') ?? null} />
 
           {/* CTA: siguiente paso hacia Dashboard */}
           <div className="relative overflow-hidden bg-gradient-to-r from-indigo-900/40 via-indigo-800/20 to-slate-900 border border-indigo-500/30 rounded-2xl p-6">

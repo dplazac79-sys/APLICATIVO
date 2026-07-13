@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { Sparkles, CheckCircle, AlertTriangle, FileText, RefreshCw } from 'lucide-react'
 import type { ProcesoConHijos, DocAnalisis } from './types'
 
-type PlanImplementacion = {
+export type PlanImplementacion = {
   contexto_estrategico: string
   situacion_actual: string
   antes: Array<{ categoria: string; accion: string; responsable: string; urgencia: string }>
@@ -36,7 +36,7 @@ export function ProcesoTabContent({ proceso, docAnalisis, critCfg, accentColor, 
   justificacion: string | null | undefined
 }) {
   const ia = docAnalisis?.analisis_ia
-  const planGuardado = (proceso.metadata_ia as any)?.plan_implementacion as PlanImplementacion | undefined
+  const planGuardado = (proceso.metadata_ia as { plan_implementacion?: PlanImplementacion } | null)?.plan_implementacion
   const [plan, setPlan] = useState<PlanImplementacion | null>(planGuardado ?? null)
   const [generandoPlan, setGenerandoPlan] = useState(false)
   const [faseActiva, setFaseActiva] = useState<'antes' | 'durante' | 'despues'>('antes')
@@ -47,7 +47,7 @@ export function ProcesoTabContent({ proceso, docAnalisis, critCfg, accentColor, 
       .then(r => r.json())
       .then(d => { if (d.plan) setPlan(d.plan) })
       .catch(() => {})
-  }, [proceso.id])
+  }, [proceso.id, plan]) // el early-return `if (plan) return` evita fetch duplicado cuando plan pasa de null a un valor
 
   async function generarPlan() {
     if (generandoPlan) return

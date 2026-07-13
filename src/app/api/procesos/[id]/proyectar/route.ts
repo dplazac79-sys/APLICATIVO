@@ -64,7 +64,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       .eq('id', proceso.documento_origen_id)
       .single()
     if (docOrigen?.analisis_ia) {
-      const ia = ((docOrigen.analisis_ia as any)?.analisis ?? docOrigen.analisis_ia) as Record<string, unknown>
+      const ia = ((docOrigen.analisis_ia as { analisis?: Record<string, unknown> } | null)?.analisis ?? docOrigen.analisis_ia) as Record<string, unknown>
       const parts: string[] = []
       if (ia.resumen_ejecutivo) parts.push(`Diagnóstico del documento: ${(ia.resumen_ejecutivo as string).slice(0, 400)}`)
       if (ia.diagnostico_operacional) parts.push(`Estado operacional: ${(ia.diagnostico_operacional as string).slice(0, 300)}`)
@@ -90,7 +90,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   const nivelesMadurez: string[] = []
 
   for (const doc of docsConIA) {
-    const ia = ((doc.analisis_ia as any)?.analisis ?? doc.analisis_ia) as Record<string, unknown>
+    const ia = ((doc.analisis_ia as { analisis?: Record<string, unknown> } | null)?.analisis ?? doc.analisis_ia) as Record<string, unknown>
     const resumen = (ia.resumen_ejecutivo as string | undefined) ?? (ia.diagnostico_operacional as string | undefined) ?? ''
     if (resumen) resumenes.push(`[${doc.nombre_archivo.slice(0, 20)}] ${resumen.slice(0, 150)}`)
     hallazgosGlobal.push(...((ia.hallazgos_criticos as string[] | undefined) ?? []))
@@ -264,8 +264,9 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
   const admin = createAdminClient()
   const { data } = await admin.from('proceso').select('metadata_ia').eq('id', params.id).single()
 
-  const proyeccion = (data?.metadata_ia as any)?.proyeccion_ia ?? null
-  const generada_at = (data?.metadata_ia as any)?.proyeccion_generada_at ?? null
+  const metaIa = data?.metadata_ia as { proyeccion_ia?: unknown; proyeccion_generada_at?: string } | null
+  const proyeccion = metaIa?.proyeccion_ia ?? null
+  const generada_at = metaIa?.proyeccion_generada_at ?? null
 
   return NextResponse.json({ proyeccion, generada_at })
 }

@@ -41,13 +41,6 @@ const TRANSICION_CONSULTOR: Record<EstadoValidacion, { siguiente: EstadoValidaci
   publicado: { siguiente: 'validado', label: 'Revertir entrega' },
 }
 
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleString('es-CL', {
-    day: '2-digit', month: 'short', year: 'numeric',
-    hour: '2-digit', minute: '2-digit',
-  })
-}
-
 // ─── Tooltip ─────────────────────────────────────────────────────────────────
 
 function Tip({ label, children }: { label: string; children: React.ReactNode }) {
@@ -865,14 +858,6 @@ export default function ArtefactoCardEditor({ artefacto: artefactoInicial, proce
     guardar(contenido, 'Mejora generada por IA')
     // Quitar resaltado tras 4 segundos
     setTimeout(() => setCamposResaltados([]), 4000)
-  }
-
-  function onRestaurar() {
-    // Refrescar datos desde servidor
-    fetch(`/api/artefactos/${artefacto.id}`)
-      .then(r => r.json())
-      .then(d => { if (d.artefacto) setArtefacto(d.artefacto) })
-    router.refresh()
   }
 
   const esRaci = tipo === 'raci'

@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import {
-  FileText, Download, ChevronDown, ChevronUp, Clock,
+  FileText, Download, ChevronDown, Clock,
   GitBranch, Sparkles, Star, AlertCircle,
   FileCheck, History, ArrowRight,
 } from 'lucide-react'
@@ -288,7 +288,6 @@ function VersionRow({ entry, codigoProceso, procesoId, isLast }: {
   isLast: boolean
 }) {
   const totalCambios = entry.detalleCorrecciones.length
-  const isExpanded = !entry.isOriginal && totalCambios > 0
 
   return (
     <div className="relative flex gap-4">
@@ -399,7 +398,7 @@ function VersionRow({ entry, codigoProceso, procesoId, isLast }: {
 
 // ─── Proceso Card ──────────────────────────────────────────────────────────────
 
-function ProcesoCard({ proceso, artefactos, docInfo, historialProcesos }: {
+function ProcesoCard({ proceso, artefactos, docInfo, historialProcesos: _historialProcesos }: {
   proceso: Proceso
   artefactos: Artefacto[]
   docInfo: DocumentoInfo | undefined
@@ -487,7 +486,7 @@ function ProcesoCard({ proceso, artefactos, docInfo, historialProcesos }: {
 
 export default function VersionesCliente({
   procesos, artefactos, historialArtefactos, historialProcesos,
-  documentosMap, proyectoNombre, clienteNombre, rol,
+  documentosMap, proyectoNombre, clienteNombre, rol: _rol,
 }: Props) {
   const totalVersiones = procesos.reduce((sum, p) => {
     const vs = ((p.metadata_ia?.versiones ?? []) as unknown[]).length

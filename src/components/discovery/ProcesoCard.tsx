@@ -42,6 +42,21 @@ type VersionDoc = {
   correcciones_aplicadas: number
 }
 
+type ChecklistItem = { indice: number; texto: string; accion: 'realizado' | 'descartado'; fecha: string }
+
+interface MetadataIA {
+  resumen_ia?: Resumen
+  oportunidades_checkeadas?: ChecklistItem[]
+  quickwins_checkeados?: ChecklistItem[]
+  pasos_checkeados?: ChecklistItem[]
+  proyeccion_ia?: unknown
+  correcciones?: Correccion[]
+  versiones?: VersionDoc[]
+  documento_referencia?: string
+  justificacion_ia?: string
+  [key: string]: unknown
+}
+
 export function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: ProcesoConHijos; esHijo?: boolean; proyectoId: string }) {
   const router = useRouter()
   const [expandido, setExpandido] = useState(false)
@@ -51,7 +66,7 @@ export function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: 
   const [analizando, setAnalizando] = useState(false)
   const [errorIA, setErrorIA] = useState<string | null>(null)
   const [resumen, setResumen] = useState<Resumen | null>(
-    (proceso.metadata_ia as any)?.resumen_ia ?? null
+    (proceso.metadata_ia as MetadataIA | null)?.resumen_ia ?? null
   )
   const [aprobando, setAprobando] = useState(false)
   const [estadoLocal, setEstadoLocal] = useState(proceso.estado_oferta)
@@ -60,14 +75,14 @@ export function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: 
   const [docVisorUrl, setDocVisorUrl] = useState<string | null>(null)
   const [cargandoVisor, setCargandoVisor] = useState(false)
   // Checklist persistente para oportunidades, quick wins y próximos pasos
-  const [opChecked, setOpChecked] = useState<Array<{indice:number;texto:string;accion:'realizado'|'descartado';fecha:string}>>(
-    ((proceso.metadata_ia as any)?.oportunidades_checkeadas ?? [])
+  const [opChecked, setOpChecked] = useState<ChecklistItem[]>(
+    ((proceso.metadata_ia as MetadataIA | null)?.oportunidades_checkeadas ?? [])
   )
-  const [qwChecked, setQwChecked] = useState<Array<{indice:number;texto:string;accion:'realizado'|'descartado';fecha:string}>>(
-    ((proceso.metadata_ia as any)?.quickwins_checkeados ?? [])
+  const [qwChecked, setQwChecked] = useState<ChecklistItem[]>(
+    ((proceso.metadata_ia as MetadataIA | null)?.quickwins_checkeados ?? [])
   )
-  const [pasosChecked, setPasosChecked] = useState<Array<{indice:number;texto:string;accion:'realizado'|'descartado';fecha:string}>>(
-    ((proceso.metadata_ia as any)?.pasos_checkeados ?? [])
+  const [pasosChecked, setPasosChecked] = useState<ChecklistItem[]>(
+    ((proceso.metadata_ia as MetadataIA | null)?.pasos_checkeados ?? [])
   )
 
   // Correcciones y versiones
@@ -80,9 +95,6 @@ export function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: 
   const [generandoVersion, setGenerandoVersion] = useState(false)
 
   function claveCorr(tipo: string, indice: number) { return `${tipo}-${indice}` }
-  function getCorr(tipo: string, indice: number) {
-    return correcciones.find(c => c.tipo === (tipo as Correccion['tipo']) && c.indice === indice)
-  }
   function esAtendido(tipo: string, indice: number) {
     return correcciones.some(c => c.tipo === (tipo as Correccion['tipo']) && c.indice === indice && (c.estado === 'atendido' || c.estado === 'archivado'))
   }
@@ -281,7 +293,7 @@ export function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: 
     recomendacion_ejecutiva: string
     nivel_confianza: number
   }
-  const proyeccionGuardada = (proceso.metadata_ia as any)?.proyeccion_ia as Proyeccion | undefined
+  const proyeccionGuardada = (proceso.metadata_ia as MetadataIA | null)?.proyeccion_ia as Proyeccion | undefined
   const [proyeccion, setProyeccion] = useState<Proyeccion | null>(proyeccionGuardada ?? null)
   const [proyectando, setProyectando] = useState(false)
   const [errorProyeccion, setErrorProyeccion] = useState<string | null>(null)
@@ -403,14 +415,8 @@ export function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: 
   const tieneHijos = (proceso.hijos?.length ?? 0) > 0
 
   if (esHijo) {
-    const meta = proceso.metadata_ia as any
-    const docCode = meta?.documento_referencia ? (meta.documento_referencia as string).replace(/\.[^.]+$/, '') : null
-    const riesgos: string[] = proceso.riesgos_detectados ?? []
-    const oportunidades: string[] = meta?.oportunidades_mejora ?? []
-    const automatizacion: string[] = meta?.oportunidades_automatizacion ?? []
-    const kpis: string[] = meta?.kpis_recomendados ?? []
-    const benchmark: string | null = meta?.benchmark_industria ?? null
-    const evidencia: string | null = meta?.evidencia_documento ?? null
+    const meta = proceso.metadata_ia as MetadataIA | null
+    const docCode = meta?.documento_referencia ? meta.documento_referencia.replace(/\.[^.]+$/, '') : null
     const justificacion: string | null = meta?.justificacion_ia ?? null
 
     const borderColor = estadoLocal === 'aceptado' ? 'border-emerald-700/50' :
@@ -1718,7 +1724,7 @@ export function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: 
                           <XCircle className="w-5 h-5" />
                           <span className="text-sm font-bold">Proceso rechazado — la consultora revisará</span>
                         </div>
-                        <button onClick={() => setEstadoLocal('propuesto' as any)} disabled={aprobando} className="text-xs text-slate-500 hover:text-emerald-400 transition-colors">Deshacer</button>
+                        <button onClick={() => setEstadoLocal('propuesto')} disabled={aprobando} className="text-xs text-slate-500 hover:text-emerald-400 transition-colors">Deshacer</button>
                       </div>
                     )}
                   </div>

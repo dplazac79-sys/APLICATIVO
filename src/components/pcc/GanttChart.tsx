@@ -130,7 +130,7 @@ export default function GanttChart({ procesos, proyectoCreado, showDependencies 
           </div>
 
           {/* Filas */}
-          {barras.map((b, i) => {
+          {barras.map((b) => {
             const barColor = b.proceso.estado ? ESTADO_BAR[b.proceso.estado] : 'bg-slate-700'
             const label = b.proceso.estado ? ESTADO_LABEL[b.proceso.estado] : 'Sin iniciar'
             const left = b.inicioSemana * SEMANA_W

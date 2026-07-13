@@ -18,7 +18,7 @@ const ARTEFACTOS_LABELS = [
 
 const TIEMPO_ESTIMADO = 30 // segundos estimados
 
-export default function ImportadorArtefactos({ procesoId, procesoNombre, onComplete }: Props) {
+export default function ImportadorArtefactos({ procesoId, procesoNombre, onComplete: _onComplete }: Props) {
   const [estado, setEstado] = useState<Estado>('extrayendo')
   const [guardados, setGuardados] = useState(0)
   const [total, setTotal] = useState(0)

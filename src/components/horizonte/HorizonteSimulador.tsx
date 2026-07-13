@@ -94,15 +94,6 @@ function Card({ children, className = '', accent = '', bg = 'bg-white/[0.04]' }:
   )
 }
 
-// ── Número animado ────────────────────────────────────────────────────────────
-
-function AnimNum({ target, active, suffix = '', prefix = '', duration = 1800 }: {
-  target: number; active: boolean; suffix?: string; prefix?: string; duration?: number
-}) {
-  const val = useAnimatedNumber(target, active, duration)
-  return <>{prefix}{val.toLocaleString('es-CL')}{suffix}</>
-}
-
 // ── Loading ───────────────────────────────────────────────────────────────────
 
 function LoadingState() {
@@ -117,7 +108,7 @@ function LoadingState() {
   useEffect(() => {
     const t = setInterval(() => setStep(s => Math.min(s + 1, steps.length - 1)), 2000)
     return () => clearInterval(t)
-  }, [])
+  }, [steps.length]) // steps.length es constante (5), no reintroduce reruns
 
   return (
     <Card className="px-8 py-16 overflow-hidden relative">
@@ -498,10 +489,15 @@ export default function HorizonteSimulador({ procesos, artefactosPorProceso, pro
   const procesoActual = procesos.find(p => p.id === procesoId)
   const artefactos = artefactosPorProceso[procesoId] ?? []
 
+  // Reinicia la selección solo al cambiar de proceso. `artefactos` no entra en
+  // deps a propósito: es un array derivado de `artefactosPorProceso[procesoId]`
+  // que puede cambiar de identidad en re-renders del padre no relacionados,
+  // lo que resetearía la selección/resultado en curso del usuario sin motivo.
   useEffect(() => {
     setArtefactoIds(artefactos.map(a => a.id))
     setSim(null)
     setError(null)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [procesoId])
 
   function toggleArtefacto(id: string) {

@@ -53,14 +53,6 @@ const SLATE500 = '64748B'
 const WHITE    = 'FFFFFF'
 const GRAY100  = 'F1F5F9'
 
-function heading1(text: string): Paragraph {
-  return new Paragraph({
-    text,
-    heading: HeadingLevel.HEADING_1,
-    spacing: { before: 400, after: 200 },
-  })
-}
-
 function heading2(text: string): Paragraph {
   return new Paragraph({
     children: [new TextRun({ text: text.toUpperCase(), bold: true, color: ACCENT, size: 20 })],
@@ -78,22 +70,6 @@ function para(text: string, opts?: { muted?: boolean; bold?: boolean }): Paragra
       size: 20,
     })],
     spacing: { after: 120 },
-  })
-}
-
-function kpiRow(label: string, value: string): TableRow {
-  return new TableRow({
-    children: [
-      new TableCell({
-        children: [new Paragraph({ children: [new TextRun({ text: label, color: SLATE500, size: 18 })] })],
-        shading: { type: ShadingType.SOLID, color: GRAY100 },
-        width: { size: 45, type: WidthType.PERCENTAGE },
-      }),
-      new TableCell({
-        children: [new Paragraph({ children: [new TextRun({ text: value, bold: true, color: SLATE800, size: 18 })] })],
-        width: { size: 55, type: WidthType.PERCENTAGE },
-      }),
-    ],
   })
 }
 

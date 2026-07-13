@@ -2,7 +2,6 @@ import fs from 'fs'
 import path from 'path'
 import { chatCompletion, MODELOS } from '@/lib/ai/client'
 import type { TipoArtefacto } from '@/types/database'
-import { extractJson } from '@/lib/ai/claude'
 // Re-exportar desde fuente única para evitar duplicación (M2)
 export { ORDEN_GENERACION, LABEL_ARTEFACTO } from '@/lib/artefactos-meta'
 

@@ -36,7 +36,6 @@ interface Simulacion {
 
 // conservador / base / custom son escenarios; optimista ES el TO-BE (100% de mejora)
 const ESCENARIOS_INTERMEDIOS: Escenario[] = ['conservador', 'base', 'custom']
-const TODOS_ESCENARIOS: Escenario[] = ['conservador', 'base', 'optimista', 'custom']
 
 const ESCENARIO_COLOR: Record<string, string> = {
   conservador: '#5F5E5A',
@@ -127,7 +126,7 @@ export default function ImpactoPage() {
         if (cancelado) return
         const sims = d.simulaciones ?? []
         setSimulaciones(sims)
-        if (sims.length > 0 && !selected) setSelected(sims[0])
+        if (sims.length > 0) setSelected(prev => prev ?? sims[0])
         setLoading(false)
       })
     // Cargar procesos del proyecto para el formulario
@@ -318,8 +317,8 @@ export default function ImpactoPage() {
 function FormularioSimulacion({
   procesos, formNombre, setFormNombre, formTipo, setFormTipo,
   formEscenario, setFormEscenario, formParams, setFormParams,
-  formProcesoId, setFormProcesoId, formAsisId, setFormAsisId,
-  formTobeId, setFormTobeId, contextoArtefactos, loadingContexto,
+  formProcesoId, setFormProcesoId, formAsisId: _formAsisId, setFormAsisId: _setFormAsisId,
+  formTobeId: _formTobeId, setFormTobeId: _setFormTobeId, contextoArtefactos, loadingContexto,
   onCancel, onSubmit,
 }: {
   procesos: Proceso[]

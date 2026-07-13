@@ -146,7 +146,7 @@ function MapeoCard({ mapeo, index }: { mapeo: RolMapeo; index: number }) {
 }
 
 // ── Componente principal ──────────────────────────────────────────────────────
-export function GlosarioRoles({ proyectoId, nombreProyecto, rolesDetectados }: Props) {
+export function GlosarioRoles({ proyectoId, nombreProyecto: _nombreProyecto, rolesDetectados }: Props) {
   const [step, setStep]                 = useState<'upload' | 'personas' | 'analizando' | 'resultado'>('upload')
   const [organigramas, setOrganigramas] = useState<Organigrama[]>([])
   const [orgSeleccionado, setOrgSeleccionado] = useState<string | null>(null)
@@ -158,11 +158,13 @@ export function GlosarioRoles({ proyectoId, nombreProyecto, rolesDetectados }: P
   const fileRef = useRef<HTMLInputElement>(null)
   const pollRef = useRef<NodeJS.Timeout>()
 
-  // Cargar datos iniciales
+  // Cargar datos iniciales — las funciones no son useCallback, se recrean cada
+  // render; incluirlas en deps haría que el efecto corriera en cada render.
   useEffect(() => {
     cargarOrganigramas()
     cargarPersonas()
     cargarUltimoAnalisis()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [proyectoId])
 
   // Polling si hay análisis en curso
@@ -174,6 +176,7 @@ export function GlosarioRoles({ proyectoId, nombreProyecto, rolesDetectados }: P
       if (analisis?.estado === 'completado') setStep('resultado')
     }
     return () => clearInterval(pollRef.current)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [analisis?.estado])
 
   async function cargarOrganigramas() {

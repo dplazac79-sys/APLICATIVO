@@ -11,7 +11,7 @@ const MADUREZ_COLOR: Record<string, string> = {
   avanzado: 'bg-emerald-950 text-emerald-400 border-emerald-800',
 }
 
-interface ClienteRow {
+export interface ClienteRow {
   id: string
   razon_social: string
   industria: string | null

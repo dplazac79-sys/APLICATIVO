@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { chatCompletion, MODELOS } from '@/lib/ai/client'
 import { verificarLimiteIA, registrarUsoIA } from '@/lib/ai/rate-limit'
+import type { PlanImplementacion } from '@/components/discovery/ProcesoTabContent'
 
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
   const supabase = createClient()
@@ -12,7 +13,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
   const admin = createAdminClient()
   const { data: proceso } = await admin.from('proceso').select('metadata_ia').eq('id', params.id).single()
   if (!proceso) return NextResponse.json({ plan: null })
-  const plan = (proceso.metadata_ia as any)?.plan_implementacion ?? null
+  const plan = (proceso.metadata_ia as { plan_implementacion?: PlanImplementacion } | null)?.plan_implementacion ?? null
   return NextResponse.json({ plan })
 }
 

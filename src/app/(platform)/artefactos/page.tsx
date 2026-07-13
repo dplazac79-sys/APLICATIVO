@@ -1,7 +1,7 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
 import {
-  Layers, ChevronRight, FileText, CheckCircle, Globe, Clock,
+  Layers, FileText, CheckCircle, Clock,
   AlertTriangle, Brain, Zap, BarChart3, Shield, GitBranch, Users, Target, TrendingUp, ArrowUpRight,
   FolderOpen, Info
 } from 'lucide-react'
@@ -31,7 +31,7 @@ const ARTEFACTO_ICON: Record<string, React.ReactNode> = {
 }
 
 function derivarCodigo(p: Proceso & { documento_origen?: { nombre_archivo: string } | null }, lista: Proceso[]): string | null {
-  const docNombre = (p as any).documento_origen?.nombre_archivo as string | undefined
+  const docNombre = p.documento_origen?.nombre_archivo
   if (docNombre) {
     const match = docNombre.match(/^([A-Za-z]{1,6}[0-9]{1,3})/i)
     if (match) return match[1].toUpperCase()
@@ -114,8 +114,8 @@ export default async function ArtefactosPage() {
     const hijos = lista.filter(p => p.padre_id === padreId)
     if (!hijos.length) return null
     const hijosOrdenados = [...hijos].sort((a, b) => {
-      const ca = derivarCodigo(a as any, lista) ?? ''
-      const cb = derivarCodigo(b as any, lista) ?? ''
+      const ca = derivarCodigo(a as Proceso & { documento_origen?: { nombre_archivo: string } | null }, lista) ?? ''
+      const cb = derivarCodigo(b as Proceso & { documento_origen?: { nombre_archivo: string } | null }, lista) ?? ''
       const na = parseInt(ca.replace(/\D/g, '') || '999', 10)
       const nb = parseInt(cb.replace(/\D/g, '') || '999', 10)
       if (na !== nb) return na - nb
@@ -128,7 +128,7 @@ export default async function ArtefactosPage() {
       const generados = arts.length
       const publicados = arts.filter(a => a.estado_validacion === 'validado' || a.estado_validacion === 'publicado').length
       const hayIncompletos = generados < total && generados > 0
-      const codigo = derivarCodigo(p as any, lista)
+      const codigo = derivarCodigo(p as Proceso & { documento_origen?: { nombre_archivo: string } | null }, lista)
       const pct = total > 0 ? Math.round((generados / total) * 100) : 0
       const esMacroproceso = p.tipo === 'macroproceso' || p.nivel === 0
       const esClickable = esSuperAdmin || !esMacroproceso
