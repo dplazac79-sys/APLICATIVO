@@ -52,14 +52,36 @@ export default async function BienvenidaPage() {
   }
 
   // Bitácora para super_admin
-  let bitacora: { id: number; accion: string; entidad: string; detalle: Record<string, unknown>; created_at: string; usuario: { nombre: string } | null }[] = []
+  let bitacoraRaw: { id: number; accion: string; entidad: string; entidad_id: string | null; detalle: Record<string, unknown>; created_at: string; usuario_id: string | null; usuario: { nombre: string } | null }[] = []
   if (esSuperAdmin) {
     const { data: logs } = await admin
       .from('audit_log')
-      .select('id, accion, entidad, detalle, created_at, usuario:usuario_id(nombre)')
+      .select('id, accion, entidad, entidad_id, detalle, created_at, usuario_id, usuario:usuario_id(nombre)')
       .order('created_at', { ascending: false })
       .limit(50)
-    bitacora = (logs ?? []) as unknown as typeof bitacora
+    bitacoraRaw = (logs ?? []) as unknown as typeof bitacoraRaw
+  }
+
+  // Agrupar entradas consecutivas del mismo usuario+acción+entidad — antes
+  // 8 ediciones seguidas al mismo artefacto (una fila por cada bump de
+  // versión) se veían como 8 líneas casi idénticas en la bitácora, puro
+  // ruido visual sin información nueva. Se colapsan en una sola fila con
+  // contador; se conserva el detalle (y la fecha) de la más reciente.
+  type LogEntry = typeof bitacoraRaw[number]
+  const bitacora: (LogEntry & { repeticiones: number })[] = []
+  for (const log of bitacoraRaw) {
+    const anterior = bitacora[bitacora.length - 1]
+    const mismoGrupo = anterior
+      && anterior.usuario_id === log.usuario_id
+      && anterior.accion === log.accion
+      && anterior.entidad === log.entidad
+      && anterior.entidad_id !== null
+      && anterior.entidad_id === log.entidad_id
+    if (mismoGrupo) {
+      anterior.repeticiones += 1
+    } else {
+      bitacora.push({ ...log, repeticiones: 1 })
+    }
   }
 
   let equipo: { nombre: string; rol: string }[] = []
@@ -227,7 +249,7 @@ export default async function BienvenidaPage() {
           <div className="space-y-3">
             <div>
               <h2 className="text-base font-semibold text-white">Bitácora de actividad</h2>
-              <p className="text-xs text-slate-500 mt-0.5">{bitacora.length} acciones recientes en el sistema</p>
+              <p className="text-xs text-slate-500 mt-0.5">{bitacoraRaw.length} acciones recientes en el sistema</p>
             </div>
             <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
               {bitacora.length === 0 ? (
@@ -261,6 +283,11 @@ export default async function BienvenidaPage() {
                             {' '}<span className="text-slate-400">{verbo}</span>{' '}
                             <span className="text-slate-300">{entidad}</span>
                             {detNombre && <span className="text-slate-500"> — {detNombre}</span>}
+                            {log.repeticiones > 1 && (
+                              <span className="ml-1.5 inline-block px-1.5 py-0.5 rounded-full bg-slate-800 border border-slate-700 text-slate-400 text-[10px] font-medium align-middle">
+                                ×{log.repeticiones}
+                              </span>
+                            )}
                           </p>
                           {(() => {
                             // Solo campos legibles y no técnicos: nunca IDs, UUIDs ni claves internas
