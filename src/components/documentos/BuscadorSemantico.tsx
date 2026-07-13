@@ -93,7 +93,7 @@ export default function BuscadorSemantico({ onFiltrar }: Props) {
         {resultados !== null && (
           <div className="space-y-2 pt-2 border-t border-slate-800">
             {resultados.length === 0 ? (
-              <p className="text-slate-500 text-sm">Sin resultados para <span className="text-slate-300">"{query}"</span>.</p>
+              <p className="text-slate-500 text-sm">Sin resultados para <span className="text-slate-300">&quot;{query}&quot;</span>.</p>
             ) : (
               <>
                 <p className="text-xs text-slate-500">{resultados.length} documento{resultados.length !== 1 ? 's' : ''} encontrado{resultados.length !== 1 ? 's' : ''} · la lista de abajo está filtrada</p>

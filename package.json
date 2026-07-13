@@ -11,6 +11,7 @@
     "start": "next start",
     "lint": "next lint",
     "test": "vitest run --config vitest.config.mts",
+    "test:coverage": "vitest run --config vitest.config.mts --coverage",
     "test:ai": "vitest run --config vitest.ai.config.mts",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui"
@@ -51,6 +52,7 @@
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "@types/ws": "^8.18.1",
+    "@vitest/coverage-v8": "^4.1.10",
     "dotenv": "^17.4.2",
     "eslint": "^8",
     "eslint-config-next": "14.2.35",

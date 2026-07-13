@@ -84,7 +84,7 @@ export default async function VersionesPage() {
 
   // Fetch documento origen info for each proceso
   const docIds = procesos.map(p => p.documento_origen_id).filter(Boolean) as string[]
-  let documentosMap: Record<string, { nombre_archivo: string; url_storage: string; tipo: string }> = {}
+  const documentosMap: Record<string, { nombre_archivo: string; url_storage: string; tipo: string }> = {}
   if (docIds.length > 0) {
     const { data: docs } = await admin
       .from('documento')

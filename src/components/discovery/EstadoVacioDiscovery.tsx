@@ -68,7 +68,7 @@ export function EstadoVacioDiscovery({
 
     // Verificar estado actual en DB — solo enviar docs que siguen en 'pendiente'
     // Los que ya están 'procesando' se incluyen en el polling pero no se re-envían
-    let estadosActuales: Record<string, string> = {}
+    const estadosActuales: Record<string, string> = {}
     try {
       const r = await fetch(
         `/api/documentos/estado?proyecto_id=${proyectoId}&ids=${targets.map(d => d.id).join(',')}`

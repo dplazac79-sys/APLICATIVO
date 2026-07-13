@@ -8,6 +8,18 @@ export default defineConfig({
     exclude: ['tests/ai-fixtures/**'],
     setupFiles: ['./tests/setup.ts'],
     testTimeout: 60000,
+    coverage: {
+      enabled: true,
+      provider: 'v8',
+      reporter: ['text', 'html', 'lcov'],
+      include: ['src/lib/**/*.ts'],
+      exclude: [
+        'src/lib/supabase/**',
+        'src/lib/inngest/client.ts',
+        'src/lib/ai/client.ts',
+        'src/lib/**/*.d.ts',
+      ],
+    },
   },
   resolve: {
     alias: {

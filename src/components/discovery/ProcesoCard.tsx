@@ -1646,7 +1646,7 @@ export function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: 
                                                   )}
                                                   <div className="flex items-start gap-2">
                                                     <CheckCircle className="w-3 h-3 text-emerald-400 shrink-0 mt-0.5" />
-                                                    <p className="text-[11px] text-emerald-300 italic leading-relaxed">"{d.observacion}"</p>
+                                                    <p className="text-[11px] text-emerald-300 italic leading-relaxed">&quot;{d.observacion}&quot;</p>
                                                   </div>
                                                   <p className="text-[10px] text-slate-600">
                                                     {new Date(d.fecha).toLocaleDateString('es-CL', { day:'2-digit', month:'short', year:'numeric' })}
@@ -2060,7 +2060,7 @@ export function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: 
                       </button>
                     </>
                   ) : (
-                    <p className="text-slate-500 text-xs">Presiona "Analizar con IA" para obtener el diagnóstico completo de este {esHijo ? 'proceso' : 'macroproceso'}.</p>
+                    <p className="text-slate-500 text-xs">Presiona &quot;Analizar con IA&quot; para obtener el diagnóstico completo de este {esHijo ? 'proceso' : 'macroproceso'}.</p>
                   )}
                 </div>
               )}

@@ -258,7 +258,7 @@ function CambioCard({ cambio, index }: { cambio: CambioDetalle; index: number })
         <div className="mb-2">
           <div className="text-[10px] text-slate-600 uppercase tracking-wide mb-1 font-medium">Texto original</div>
           <div className="text-[11px] text-slate-500 leading-relaxed bg-black/20 rounded-lg px-2.5 py-2 border border-white/[0.04] italic">
-            "{cambio.texto_original.slice(0, 200)}{cambio.texto_original.length > 200 ? '…' : ''}"
+            &quot;{cambio.texto_original.slice(0, 200)}{cambio.texto_original.length > 200 ? '…' : ''}&quot;
           </div>
         </div>
       )}
