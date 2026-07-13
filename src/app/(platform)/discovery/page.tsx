@@ -7,12 +7,16 @@ import type { Proceso, Proyecto } from '@/types/database'
 export default async function DiscoveryPage() {
   const admin = createAdminClient()
 
-  const [{ data: proyectosRaw }, { data: procesos }, { data: documentosRaw }] = await Promise.all([
-    admin.from('proyecto').select('*, cliente(razon_social)').eq('estado_general', 'activo'),
-    admin.from('proceso').select('*').order('nivel', { ascending: true }).order('orden', { ascending: true }),
-    admin.from('documento').select('id, nombre_archivo, tipo, estado_procesamiento, clasificacion, created_at, proyecto_id, subido_por(rol)').order('created_at', { ascending: false }),
-  ])
-
+  // Antes esto traía TODOS los procesos y TODOS los documentos de la
+  // plataforma entera (todos los clientes, todos los proyectos) y filtraba
+  // al único proyecto que se muestra en esta vista (single-project) recién
+  // en JS — el costo de la query escalaba con el tamaño de toda la
+  // plataforma, no con el del proyecto. proyecto_id se conoce recién
+  // después de resolver el proyecto activo, así que ya no se puede
+  // paralelizar las 3 queries en un solo Promise.all — se resuelve primero
+  // el proyecto, y proceso/documento se filtran por proyecto_id desde la BD.
+  const { data: proyectosRaw } = await admin
+    .from('proyecto').select('*, cliente(razon_social)').eq('estado_general', 'activo')
 
   const proyectos = (proyectosRaw ?? []) as Array<Proyecto & { cliente: { razon_social: string } | null }>
 
@@ -31,7 +35,14 @@ export default async function DiscoveryPage() {
     )
   }
 
-  const procesosProyecto = (procesos ?? []).filter((p: Proceso) => p.proyecto_id === proyecto.id)
+  const [{ data: procesos }, { data: documentosRaw }] = await Promise.all([
+    admin.from('proceso').select('*').eq('proyecto_id', proyecto.id)
+      .order('nivel', { ascending: true }).order('orden', { ascending: true }),
+    admin.from('documento').select('id, nombre_archivo, tipo, estado_procesamiento, clasificacion, created_at, proyecto_id, subido_por(rol)')
+      .eq('proyecto_id', proyecto.id).order('created_at', { ascending: false }),
+  ])
+
+  const procesosProyecto = (procesos ?? []) as Proceso[]
   const macroprocesosRaw = procesosProyecto.filter((p: Proceso) => p.nivel === 0)
   const subprocesos = procesosProyecto.filter((p: Proceso) => p.nivel === 1)
 
@@ -69,7 +80,6 @@ export default async function DiscoveryPage() {
 
   const ROL_INTERNO = ['super_admin', 'director_proyecto', 'consultor']
   const documentosProyecto = (documentosRaw ?? [])
-    .filter((d: { proyecto_id: string }) => d.proyecto_id === proyecto.id)
     .filter((d: any) => {
       const subidoPor = Array.isArray(d.subido_por) ? d.subido_por[0] : d.subido_por
       return !ROL_INTERNO.includes(subidoPor?.rol ?? '')

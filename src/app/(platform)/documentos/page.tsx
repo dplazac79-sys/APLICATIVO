@@ -37,9 +37,12 @@ export default async function DocumentosPage({ searchParams }: { searchParams: {
 
   const proyectoActivo = proyectoFiltro ? proyectos.find(p => p.id === proyectoFiltro) : null
 
+  // Columnas explícitas — antes era select('*'), que traía embedding_ref
+  // (vector de 1024 dimensiones) y analisis_ia (jsonb potencialmente
+  // grande) en cada carga de esta lista, sin que ninguno se use acá.
   let query = admin
     .from('documento')
-    .select('*, proyecto(nombre), subido_por:subido_por(rol)')
+    .select('id, nombre_archivo, tipo, url_storage, estado_procesamiento, clasificacion, resumen_ejecutivo, created_at, proyecto_id, proyecto(nombre), subido_por:subido_por(rol)')
     .order('created_at', { ascending: false })
     .limit(100)
 
@@ -59,15 +62,22 @@ export default async function DocumentosPage({ searchParams }: { searchParams: {
     return new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
   })
 
-  // Generar URLs firmadas (1 hora) en paralelo
-  const documentos = await Promise.all(
-    documentosOrdenados.map(async (doc) => {
-      const { data: signed } = await admin.storage
-        .from('documentos')
-        .createSignedUrl(doc.url_storage, 3600)
-      return { ...doc, signedUrl: signed?.signedUrl ?? null }
-    })
-  )
+  // Generar URLs firmadas (1 hora) en un solo round-trip — antes era un
+  // Promise.all de hasta 100 llamadas individuales a createSignedUrl (una
+  // por documento listado), cada una un request HTTP separado a Storage.
+  const { data: signedUrls } = documentosOrdenados.length
+    ? await admin.storage.from('documentos').createSignedUrls(
+        documentosOrdenados.map(d => d.url_storage), 3600
+      )
+    : { data: [] }
+
+  // Mapa por path en vez de índice posicional — no depende de que la API
+  // preserve el orden del array de entrada.
+  const signedUrlPorPath = new Map((signedUrls ?? []).map(s => [s.path, s.signedUrl]))
+  const documentos = documentosOrdenados.map(doc => ({
+    ...doc,
+    signedUrl: signedUrlPorPath.get(doc.url_storage) ?? null,
+  }))
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
