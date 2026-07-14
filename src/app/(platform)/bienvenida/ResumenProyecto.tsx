@@ -79,6 +79,8 @@ export default function ResumenProyecto({ proyecto, cliente, equipo, rol, stats,
     alcance_incluye: proyecto.alcance_incluye ?? '',
     alcance_excluye: proyecto.alcance_excluye ?? '',
     n_procesos_estimados: proyecto.n_procesos_estimados?.toString() ?? '',
+    fecha_inicio: proyecto.fecha_inicio?.slice(0, 10) ?? '',
+    fecha_estimada_cierre: proyecto.fecha_estimada_cierre?.slice(0, 10) ?? '',
   })
   const [guardando, setGuardando] = useState(false)
 
@@ -98,6 +100,8 @@ export default function ResumenProyecto({ proyecto, cliente, equipo, rol, stats,
         alcance_incluye: form.alcance_incluye || null,
         alcance_excluye: form.alcance_excluye || null,
         n_procesos_estimados: form.n_procesos_estimados ? parseInt(form.n_procesos_estimados) : null,
+        fecha_inicio: form.fecha_inicio || null,
+        fecha_estimada_cierre: form.fecha_estimada_cierre || null,
       }),
     })
     setGuardando(false)
@@ -137,6 +141,30 @@ export default function ResumenProyecto({ proyecto, cliente, equipo, rol, stats,
 
       {expandido && (
         <div className="border-t border-slate-800 space-y-0">
+
+          {/* Fechas del proyecto — editable solo en modo edición */}
+          {editando && (
+            <div className="px-5 py-4 border-b border-slate-800 grid sm:grid-cols-2 gap-4">
+              <div>
+                <p className="text-slate-400 text-xs uppercase tracking-wide mb-1.5">Fecha de inicio</p>
+                <input
+                  type="date"
+                  className="bg-slate-800 border border-slate-700 text-white rounded-lg px-3 py-2 text-sm w-full focus:outline-none focus:border-indigo-500"
+                  value={form.fecha_inicio}
+                  onChange={e => setForm(v => ({ ...v, fecha_inicio: e.target.value }))}
+                />
+              </div>
+              <div>
+                <p className="text-slate-400 text-xs uppercase tracking-wide mb-1.5">Fecha estimada de cierre</p>
+                <input
+                  type="date"
+                  className="bg-slate-800 border border-slate-700 text-white rounded-lg px-3 py-2 text-sm w-full focus:outline-none focus:border-indigo-500"
+                  value={form.fecha_estimada_cierre}
+                  onChange={e => setForm(v => ({ ...v, fecha_estimada_cierre: e.target.value }))}
+                />
+              </div>
+            </div>
+          )}
 
           {/* KPIs rápidos — siempre visibles */}
           <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-y sm:divide-y-0 divide-slate-800">

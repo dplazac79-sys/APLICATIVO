@@ -24,6 +24,8 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       alcance_incluye: body.alcance_incluye,
       alcance_excluye: body.alcance_excluye,
       n_procesos_estimados: body.n_procesos_estimados,
+      fecha_inicio: body.fecha_inicio,
+      fecha_estimada_cierre: body.fecha_estimada_cierre,
     })
     .eq('id', params.id)
 
