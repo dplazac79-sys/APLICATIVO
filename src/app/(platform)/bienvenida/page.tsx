@@ -38,7 +38,7 @@ export default async function BienvenidaPage() {
       .order('created_at', { ascending: false })
       .limit(1)
       .single()
-    if (p) { proyectoMeta = p; fases = (await getFasesProyecto(p.id)).fases }
+    if (p) { proyectoMeta = p; fases = (await getFasesProyecto(p.id, usuario?.rol)).fases }
   } else if (proyectoIds.length > 0) {
     const { data: p } = await admin
       .from('proyecto')
@@ -48,7 +48,7 @@ export default async function BienvenidaPage() {
       .order('created_at', { ascending: false })
       .limit(1)
       .single()
-    if (p) { proyectoMeta = p; fases = (await getFasesProyecto(p.id)).fases }
+    if (p) { proyectoMeta = p; fases = (await getFasesProyecto(p.id, usuario?.rol)).fases }
   }
 
   // Bitácora para super_admin

@@ -35,7 +35,7 @@ export default async function DashboardPage() {
       .order('created_at', { ascending: false })
       .limit(1)
       .single()
-    if (p) { proyectoMeta = p as unknown as ProyectoMeta; fases = (await getFasesProyecto(p.id)).fases }
+    if (p) { proyectoMeta = p as unknown as ProyectoMeta; fases = (await getFasesProyecto(p.id, usuario?.rol)).fases }
   } else if (proyectoIds.length > 0) {
     const { data: p } = await admin
       .from('proyecto')
@@ -45,7 +45,7 @@ export default async function DashboardPage() {
       .order('created_at', { ascending: false })
       .limit(1)
       .single()
-    if (p) { proyectoMeta = p as unknown as ProyectoMeta; fases = (await getFasesProyecto(p.id)).fases }
+    if (p) { proyectoMeta = p as unknown as ProyectoMeta; fases = (await getFasesProyecto(p.id, usuario?.rol)).fases }
   }
 
   // Stats del proyecto activo

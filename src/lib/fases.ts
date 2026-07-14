@@ -15,7 +15,9 @@ export type Fase = {
   items: { label: string; done: boolean }[]
 }
 
-export async function getFasesProyecto(pid: string): Promise<{ proyecto: Record<string, unknown> | null; fases: Fase[] }> {
+const ROLES_CLIENTE = ['sponsor_cliente', 'usuario_cliente']
+
+export async function getFasesProyecto(pid: string, rol?: string): Promise<{ proyecto: Record<string, unknown> | null; fases: Fase[] }> {
   const admin = createAdminClient()
 
   const [
@@ -167,6 +169,114 @@ export async function getFasesProyecto(pid: string): Promise<{ proyecto: Record<
       ],
     },
   ]
+
+  // El cliente no tiene acceso a Project Control Center / Simulador de Escenarios /
+  // Automation Studio (son páginas internas de AICOUNTS) — mostrarle esas 3 fases
+  // como "bloqueadas para siempre" es confuso, así que ve solo las 6 fases que
+  // realmente puede visitar, numeradas igual que su sidebar (F1..F6).
+  if (rol && ROLES_CLIENTE.includes(rol)) {
+    const vDone = (artefactos ?? 0) >= 1 // Fase Versiones: hay al menos un artefacto con historial que revisar
+
+    const fasesCliente: Fase[] = [
+      {
+        id: 1,
+        nombre: 'Centro Documental',
+        descripcion: 'Repositorio oficial del proyecto: sube, visualiza y organiza documentos.',
+        icono: '📁',
+        color: 'blue',
+        href: '/documentos',
+        status: f2Done ? 'completada' : 'activa',
+        progreso: f2Done ? 100 : 0,
+        items: [
+          { label: `Documentos cargados (${docsTotal ?? 0})`, done: (docsTotal ?? 0) >= 1 },
+          { label: 'Repositorio disponible para el equipo', done: (docsTotal ?? 0) >= 1 },
+        ],
+      },
+      {
+        id: 2,
+        nombre: 'Process Discovery IA',
+        descripcion: 'Descubrimiento automático de procesos, roles y modelado visual.',
+        icono: '🔍',
+        color: 'violet',
+        href: '/discovery',
+        status: !f2Done ? 'bloqueada' : f3Done ? 'completada' : 'activa',
+        progreso: !f2Done ? 0 : f3Done ? 100 : Math.min(80,
+          (hasDiscovery ? 30 : 0) +
+          ((procesos ?? 0) > 0 ? 20 : 0) +
+          ((procesosAprobados ?? 0) > 0 ? 30 : 0)
+        ),
+        items: [
+          { label: 'Discovery AI ejecutado', done: hasDiscovery },
+          { label: `Procesos detectados (${procesos ?? 0})`, done: (procesos ?? 0) >= 1 },
+          { label: `Procesos aprobados (${procesosAprobados ?? 0})`, done: (procesosAprobados ?? 0) >= 1 },
+          { label: 'Glosario de Roles completado', done: (glosarioRoles ?? 0) >= 1 },
+        ],
+      },
+      {
+        id: 3,
+        nombre: 'Artefactos',
+        descripcion: 'Generación de artefactos metodológicos por proceso aprobado.',
+        icono: '📐',
+        color: 'amber',
+        href: '/artefactos',
+        status: !f3Done ? 'bloqueada' : f4Done ? 'completada' : 'activa',
+        progreso: !f3Done ? 0 : Math.min(100, Math.round(((artefactos ?? 0) / Math.max((procesosAprobados ?? 1) * 8, 8)) * 100)),
+        items: [
+          { label: `Artefactos generados (${artefactos ?? 0})`, done: (artefactos ?? 0) >= 8 },
+          { label: 'SIPOC completado', done: (artefactos ?? 0) >= 1 },
+          { label: 'AS-IS y BPMN', done: (artefactos ?? 0) >= 3 },
+          { label: 'RACI y Riesgo-Control', done: (artefactos ?? 0) >= 5 },
+        ],
+      },
+      {
+        id: 4,
+        nombre: 'Control de Versiones',
+        descripcion: 'Historial de cambios de procesos y artefactos, con descarga por versión.',
+        icono: '🔀',
+        color: 'teal',
+        href: '/versiones',
+        status: !f4Done ? 'bloqueada' : vDone ? 'completada' : 'activa',
+        progreso: !f4Done ? 0 : vDone ? 100 : 0,
+        items: [
+          { label: `Artefactos con historial (${artefactos ?? 0})`, done: (artefactos ?? 0) >= 1 },
+        ],
+      },
+      {
+        id: 5,
+        nombre: 'Horizonte de Impacto',
+        descripcion: 'Simulación del impacto de negocio esperado del proyecto.',
+        icono: '📈',
+        color: 'cyan',
+        href: '/horizonte',
+        // Cada simulación se genera al vuelo y no queda guardada en ninguna tabla,
+        // así que no existe forma real de saber si el cliente ya la usó antes —
+        // se muestra disponible una vez desbloqueada, pero nunca "completada".
+        status: !vDone ? 'bloqueada' : 'activa',
+        progreso: !vDone ? 0 : 10,
+        items: [
+          { label: 'Procesos y artefactos aprobados listos para simular', done: vDone },
+        ],
+      },
+      {
+        id: 6,
+        nombre: 'Dashboard',
+        descripcion: 'Vista ejecutiva del proyecto: avance, indicadores y próximos hitos.',
+        icono: '📊',
+        color: 'emerald',
+        href: '/dashboard',
+        // Vista de resumen, no un paso de trabajo — siempre disponible, sin bloqueo.
+        status: 'completada',
+        progreso: 100,
+        items: [
+          { label: 'Proyecto configurado', done: !!proyecto },
+          { label: 'Equipo asignado', done: !!proyecto },
+          { label: 'Objetivos definidos', done: !!proyecto },
+        ],
+      },
+    ]
+
+    return { proyecto: proyecto as Record<string, unknown> | null, fases: fasesCliente }
+  }
 
   return { proyecto: proyecto as Record<string, unknown> | null, fases }
 }

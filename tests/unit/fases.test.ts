@@ -102,3 +102,46 @@ describe('getFasesProyecto', () => {
     expect(fases.map(f => f.id)).toEqual([1, 2, 3, 4, 5, 6, 7])
   })
 })
+
+describe('getFasesProyecto — rol cliente (sponsor_cliente/usuario_cliente)', () => {
+  beforeEach(() => vi.clearAllMocks())
+
+  it('devuelve solo 6 fases (sin PCC/Simulador/Automation, que el cliente no puede visitar)', async () => {
+    mockCreateAdminClient.mockReturnValue(armarAdmin())
+    const { fases } = await getFasesProyecto('proy-1', 'sponsor_cliente')
+    expect(fases).toHaveLength(6)
+    expect(fases.map(f => f.href)).toEqual([
+      '/documentos', '/discovery', '/artefactos', '/versiones', '/horizonte', '/dashboard',
+    ])
+  })
+
+  it('proyecto recién creado: F1 Documentos activa, resto bloqueadas, Dashboard (F6) siempre completada', async () => {
+    mockCreateAdminClient.mockReturnValue(armarAdmin())
+    const { fases } = await getFasesProyecto('proy-1', 'sponsor_cliente')
+    expect(fases[0].status).toBe('activa')      // F1 Documentos
+    expect(fases.slice(1, 5).every(f => f.status === 'bloqueada')).toBe(true) // F2..F5
+    expect(fases[5].status).toBe('completada')  // F6 Dashboard — nunca bloqueado
+  })
+
+  it('Horizonte (F5) nunca queda "completada" — no hay forma de persistir que ya se usó', async () => {
+    mockCreateAdminClient.mockReturnValue(
+      armarAdmin({
+        documento: { count: 5 },
+        proceso: { count: 2, data: [{ id: 'p1' }, { id: 'p2' }] },
+        glosario_roles_analisis: { count: 1 },
+        artefacto: { count: 16 },
+      })
+    )
+    const { fases } = await getFasesProyecto('proy-1', 'sponsor_cliente')
+    const horizonte = fases.find(f => f.nombre === 'Horizonte de Impacto')
+    expect(horizonte?.status).toBe('activa')
+    expect(horizonte?.status).not.toBe('completada')
+  })
+
+  it('mismo rol interno (consultor) sigue viendo las 7 fases originales, sin cambios', async () => {
+    mockCreateAdminClient.mockReturnValue(armarAdmin())
+    const { fases } = await getFasesProyecto('proy-1', 'consultor')
+    expect(fases).toHaveLength(7)
+    expect(fases[0].nombre).toBe('Dashboard')
+  })
+})
