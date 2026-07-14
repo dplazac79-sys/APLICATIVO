@@ -100,6 +100,12 @@ export async function POST(req: NextRequest) {
 
           if (usuarioExistente) {
             await admin.from('usuario').update({ rol: miembro.rol as never }).eq('id', usuarioExistente.id)
+            if (miembro.rol !== 'super_admin') {
+              await admin.from('usuario_proyecto').upsert(
+                { usuario_id: usuarioExistente.id, proyecto_id: proyectoCreado.id },
+                { onConflict: 'usuario_id,proyecto_id' }
+              )
+            }
             resultadosEquipo.push({ email: miembro.email, status: 'rol_actualizado' })
           } else {
             resultadosEquipo.push({ email: miembro.email, status: 'error', error: errCreate?.message })
@@ -115,6 +121,16 @@ export async function POST(req: NextRequest) {
           rol: miembro.rol as never,
           activo: true,
         })
+
+        // Vincular al proyecto recién creado — sin esta fila, las políticas RLS
+        // le bloquean el acceso al proyecto (super_admin queda exento por su rol
+        // global, así que no necesita esta fila, pero el resto de roles sí).
+        if (miembro.rol !== 'super_admin') {
+          await admin.from('usuario_proyecto').upsert(
+            { usuario_id: creado.user.id, proyecto_id: proyectoCreado.id },
+            { onConflict: 'usuario_id,proyecto_id' }
+          )
+        }
 
         await registrarAudit({
           accion: 'CREATE',
