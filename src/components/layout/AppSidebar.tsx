@@ -38,10 +38,10 @@ const navItems: NavItem[] = [
   { label: 'Artefactos', href: '/artefactos', icon: Layers, roles: ['super_admin', 'director_proyecto', 'consultor', 'sponsor_cliente'], badge: 'F3' },
   { label: 'Control de Versiones', href: '/versiones', icon: GitBranch, roles: ['super_admin', 'director_proyecto', 'consultor', 'sponsor_cliente', 'usuario_cliente'], badge: 'F4' },
   { label: 'Horizonte de Impacto', href: '/horizonte', icon: BarChart3, roles: ['sponsor_cliente', 'usuario_cliente'], badge: 'F5' },
-  { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, roles: ['super_admin', 'director_proyecto', 'consultor', 'sponsor_cliente'], badge: 'F6' },
+  { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, roles: ['super_admin', 'director_proyecto', 'consultor', 'sponsor_cliente'] },
   { label: 'Project Control Center', href: '/proyectos', icon: Briefcase, roles: ['super_admin'], badge: 'F5' },
-  { label: 'Simulador de Escenarios', href: '/impacto', icon: BarChart3, roles: ['super_admin', 'director_proyecto', 'consultor'], badge: 'F7' },
-  { label: 'Automation Studio', href: '/automation', icon: Zap, roles: ['super_admin', 'director_proyecto', 'consultor'], badge: 'F8' },
+  { label: 'Simulador de Escenarios', href: '/impacto', icon: BarChart3, roles: ['super_admin', 'director_proyecto', 'consultor'], badge: 'F6' },
+  { label: 'Automation Studio', href: '/automation', icon: Zap, roles: ['super_admin', 'director_proyecto', 'consultor'], badge: 'F7' },
 ]
 
 const adminItems: NavItem[] = [
