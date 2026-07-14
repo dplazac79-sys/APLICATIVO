@@ -190,6 +190,22 @@ describeOrSkip('RLS — aislamiento de datos por proyecto y rol', () => {
     expect(idsVisibles).not.toContain(proyectoBId)
   })
 
+  it('un director_proyecto ya NO puede editar su proyecto directamente (solo super_admin) — migración 040', async () => {
+    const client = await clienteComo(`director-${sufijo}@test.processos.local`)
+    const { data, error } = await client
+      .from('proyecto')
+      .update({ contexto: 'intento de edición no autorizado' })
+      .eq('id', proyectoAId)
+      .select()
+
+    // RLS bloquea el update silenciosamente: sin error explícito, pero 0 filas afectadas
+    expect(error).toBeNull()
+    expect(data ?? []).toHaveLength(0)
+
+    const { data: sinCambios } = await admin.from('proyecto').select('contexto').eq('id', proyectoAId).single()
+    expect(sinCambios?.contexto).not.toBe('intento de edición no autorizado')
+  })
+
   it('un consultor asignado puede insertar documentos en su proyecto', async () => {
     const client = await clienteComo(`consultor-${sufijo}@test.processos.local`)
     const { data, error } = await client.from('documento').insert({
