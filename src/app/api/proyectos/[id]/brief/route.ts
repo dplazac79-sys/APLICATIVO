@@ -9,7 +9,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
 
-    if (!(await requireRole(user.id, ['super_admin', 'director_proyecto', 'consultor']))) {
+  if (!(await requireRole(user.id, ['super_admin']))) {
     return NextResponse.json({ error: 'Sin permiso' }, { status: 403 })
   }
 

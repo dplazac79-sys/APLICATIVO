@@ -84,7 +84,7 @@ export default function ResumenProyecto({ proyecto, cliente, equipo, rol, stats,
   })
   const [guardando, setGuardando] = useState(false)
 
-  const puedeEditar = ['super_admin', 'director_proyecto', 'consultor'].includes(rol)
+  const puedeEditar = rol === 'super_admin'
   const sw = semanas(proyecto.fecha_inicio, proyecto.fecha_estimada_cierre)
   const dias = diasRestantes(proyecto.fecha_estimada_cierre)
   const pctProcesos = stats.procesos > 0 ? Math.round((stats.procesosAprobados / stats.procesos) * 100) : 0
