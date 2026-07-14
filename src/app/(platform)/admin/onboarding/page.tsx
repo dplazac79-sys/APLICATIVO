@@ -9,7 +9,14 @@ import { Label } from '@/components/ui/label'
 import { CheckCircle, Building2, FolderOpen, Users, Eye, Plus, Trash2, ChevronRight, ChevronLeft, Loader2 } from 'lucide-react'
 
 const INDUSTRIAS = ['Manufactura', 'Retail', 'Salud', 'Educación', 'Finanzas', 'Tecnología', 'Logística', 'Construcción', 'Energía', 'Servicios', 'Minería', 'Otro']
-const TAMANOS = ['1-50 empleados', '51-200 empleados', '201-500 empleados', '501-1000 empleados', 'Más de 1000 empleados']
+// value debe calzar con el check constraint cliente_tamano_check (migración 036):
+// solo acepta 'micro' | 'pequeña' | 'mediana' | 'grande'
+const TAMANOS = [
+  { value: 'micro', label: 'Micro (1-50 empleados)' },
+  { value: 'pequeña', label: 'Pequeña (51-200 empleados)' },
+  { value: 'mediana', label: 'Mediana (201-500 empleados)' },
+  { value: 'grande', label: 'Grande (más de 500 empleados)' },
+]
 const ROLES = [
   { value: 'director_proyecto', label: 'Director de Proyecto', desc: 'Equipo AICOUNTS. Supervisa el proyecto, aprueba artefactos y gestiona el equipo. Acceso completo a todos los módulos.' },
   { value: 'consultor', label: 'Consultor', desc: 'Equipo AICOUNTS. Ejecuta el trabajo: genera artefactos, sube documentos, corre Discovery AI y modela procesos.' },
@@ -167,7 +174,7 @@ export default function OnboardingPage() {
                 <Label className="text-slate-300">Tamaño *</Label>
                 <select className="w-full mt-1 bg-slate-800 border border-slate-700 text-white rounded-md px-3 py-2 text-sm" value={empresa.tamano} onChange={e => setEmpresa(v => ({ ...v, tamano: e.target.value }))}>
                   <option value="">Seleccionar...</option>
-                  {TAMANOS.map(t => <option key={t} value={t}>{t}</option>)}
+                  {TAMANOS.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
                 </select>
               </div>
             </div>
