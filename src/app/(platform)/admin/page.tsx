@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Users, Shield, Database, Activity, Plus } from 'lucide-react'
 import Link from 'next/link'
 import UnlockButton from './UnlockButton'
+import DeleteUserButton from './DeleteUserButton'
 
 const ROL_LABEL: Record<string, string> = {
   super_admin: 'Super Admin',
@@ -128,6 +129,7 @@ export default async function AdminPage() {
                 </div>
                 <div className="flex items-center gap-3">
                   <UnlockButton usuarioId={u.id} locked={lockedMap.get(u.id) ?? false} />
+                  {u.id !== user.id && <DeleteUserButton usuarioId={u.id} nombre={u.nombre} />}
                   <span className={`text-xs px-2 py-0.5 rounded border ${ROL_COLOR[u.rol] ?? ROL_COLOR.usuario_cliente}`}>
                     {ROL_LABEL[u.rol] ?? u.rol}
                   </span>
