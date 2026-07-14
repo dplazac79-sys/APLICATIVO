@@ -106,21 +106,20 @@ describe('getFasesProyecto', () => {
 describe('getFasesProyecto — rol cliente (sponsor_cliente/usuario_cliente)', () => {
   beforeEach(() => vi.clearAllMocks())
 
-  it('devuelve solo 6 fases (sin PCC/Simulador/Automation, que el cliente no puede visitar)', async () => {
+  it('devuelve solo 5 fases de trabajo (sin Dashboard ni PCC/Simulador/Automation)', async () => {
     mockCreateAdminClient.mockReturnValue(armarAdmin())
     const { fases } = await getFasesProyecto('proy-1', 'sponsor_cliente')
-    expect(fases).toHaveLength(6)
+    expect(fases).toHaveLength(5)
     expect(fases.map(f => f.href)).toEqual([
-      '/documentos', '/discovery', '/artefactos', '/versiones', '/horizonte', '/dashboard',
+      '/documentos', '/discovery', '/artefactos', '/versiones', '/horizonte',
     ])
   })
 
-  it('proyecto recién creado: F1 Documentos activa, resto bloqueadas, Dashboard (F6) siempre completada', async () => {
+  it('proyecto recién creado: F1 Documentos activa, F2..F5 bloqueadas', async () => {
     mockCreateAdminClient.mockReturnValue(armarAdmin())
     const { fases } = await getFasesProyecto('proy-1', 'sponsor_cliente')
     expect(fases[0].status).toBe('activa')      // F1 Documentos
-    expect(fases.slice(1, 5).every(f => f.status === 'bloqueada')).toBe(true) // F2..F5
-    expect(fases[5].status).toBe('completada')  // F6 Dashboard — nunca bloqueado
+    expect(fases.slice(1).every(f => f.status === 'bloqueada')).toBe(true) // F2..F5
   })
 
   it('Horizonte (F5) nunca queda "completada" — no hay forma de persistir que ya se usó', async () => {

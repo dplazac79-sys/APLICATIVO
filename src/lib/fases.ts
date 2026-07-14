@@ -257,22 +257,10 @@ export async function getFasesProyecto(pid: string, rol?: string): Promise<{ pro
           { label: 'Procesos y artefactos aprobados listos para simular', done: vDone },
         ],
       },
-      {
-        id: 6,
-        nombre: 'Dashboard',
-        descripcion: 'Vista ejecutiva del proyecto: avance, indicadores y próximos hitos.',
-        icono: '📊',
-        color: 'emerald',
-        href: '/dashboard',
-        // Vista de resumen, no un paso de trabajo — siempre disponible, sin bloqueo.
-        status: 'completada',
-        progreso: 100,
-        items: [
-          { label: 'Proyecto configurado', done: !!proyecto },
-          { label: 'Equipo asignado', done: !!proyecto },
-          { label: 'Objetivos definidos', done: !!proyecto },
-        ],
-      },
+      // Nota: Dashboard NO se incluye aquí a propósito — no es una fase de trabajo,
+      // es una página de resumen siempre disponible (accesible desde el sidebar).
+      // Incluirla como "completada" desde el día 1 inflaba el % de progreso con
+      // algo que nunca costó ningún esfuerzo real.
     ]
 
     return { proyecto: proyecto as Record<string, unknown> | null, fases: fasesCliente }
