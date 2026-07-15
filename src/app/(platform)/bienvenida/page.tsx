@@ -84,20 +84,20 @@ export default async function BienvenidaPage() {
     }
   }
 
-  let equipo: { nombre: string; rol: string }[] = []
+  let equipo: { usuario_id: string; nombre: string; rol: string }[] = []
   let statsProyecto = { documentos: 0, procesos: 0, procesosAprobados: 0, artefactos: 0 }
 
   if (proyectoMeta) {
     const [miembrosRes, docsRes, procesosRes, aceptados, totalArtefactos] = await Promise.all([
-      admin.from('usuario_proyecto').select('usuario:usuario_id(nombre, rol)').eq('proyecto_id', proyectoMeta.id),
+      admin.from('usuario_proyecto').select('usuario_id, usuario:usuario_id(nombre, rol)').eq('proyecto_id', proyectoMeta.id),
       admin.from('documento').select('id', { count: 'exact', head: true }).eq('proyecto_id', proyectoMeta.id),
       admin.from('proceso').select('id', { count: 'exact', head: true }).eq('proyecto_id', proyectoMeta.id),
       getProcesosAceptadosIds(proyectoMeta.id),
       contarArtefactosDeProcesosAceptados(proyectoMeta.id),
     ])
-    equipo = (miembrosRes.data ?? []).map((m: { usuario: { nombre: string; rol: string } | { nombre: string; rol: string }[] | null }) => {
+    equipo = (miembrosRes.data ?? []).map((m: { usuario_id: string; usuario: { nombre: string; rol: string } | { nombre: string; rol: string }[] | null }) => {
       const u = Array.isArray(m.usuario) ? m.usuario[0] : m.usuario
-      return { nombre: u?.nombre ?? '', rol: u?.rol ?? '' }
+      return { usuario_id: m.usuario_id, nombre: u?.nombre ?? '', rol: u?.rol ?? '' }
     })
     statsProyecto = {
       documentos: docsRes.count ?? 0,

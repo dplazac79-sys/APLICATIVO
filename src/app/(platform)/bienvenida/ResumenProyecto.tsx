@@ -2,10 +2,11 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import {
   Calendar, Users, Target, Layers, ChevronDown, ChevronUp,
   CheckCircle2, XCircle, Pencil, Save, X, FileText, Brain,
-  Clock, ArrowRight, AlertCircle,
+  Clock, ArrowRight, AlertCircle, UserMinus,
 } from 'lucide-react'
 import type { Fase } from '@/lib/fases'
 
@@ -48,7 +49,7 @@ interface Stats {
 interface Props {
   proyecto: Proyecto
   cliente: { razon_social?: string; industria?: string } | null
-  equipo: { nombre: string; rol: string }[]
+  equipo: { usuario_id: string; nombre: string; rol: string }[]
   rol: string
   stats: Stats
   faseActual: Fase | null
@@ -71,7 +72,10 @@ function formatFecha(f?: string) {
 }
 
 export default function ResumenProyecto({ proyecto, cliente, equipo, rol, stats, faseActual }: Props) {
+  const router = useRouter()
   const [expandido, setExpandido] = useState(true)
+  const [quitando, setQuitando] = useState<string | null>(null)
+  const [confirmandoQuitar, setConfirmandoQuitar] = useState<string | null>(null)
   const [editando, setEditando] = useState(false)
   const [form, setForm] = useState({
     contexto: proyecto.contexto ?? '',
@@ -88,6 +92,23 @@ export default function ResumenProyecto({ proyecto, cliente, equipo, rol, stats,
   const sw = semanas(proyecto.fecha_inicio, proyecto.fecha_estimada_cierre)
   const dias = diasRestantes(proyecto.fecha_estimada_cierre)
   const pctProcesos = stats.procesos > 0 ? Math.round((stats.procesosAprobados / stats.procesos) * 100) : 0
+
+  async function quitarDelEquipo(usuario_id: string) {
+    setQuitando(usuario_id)
+    try {
+      const res = await fetch(`/api/proyectos/${proyecto.id}/equipo`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ usuario_id }),
+      })
+      if (res.ok) {
+        setConfirmandoQuitar(null)
+        router.refresh()
+      }
+    } finally {
+      setQuitando(null)
+    }
+  }
 
   async function guardar() {
     setGuardando(true)
@@ -383,8 +404,8 @@ export default function ResumenProyecto({ proyecto, cliente, equipo, rol, stats,
               <div className="flex flex-wrap gap-2">
                 {equipo.length === 0 ? (
                   <p className="text-slate-400 text-sm italic">Sin equipo asignado.</p>
-                ) : equipo.map((m, i) => (
-                  <div key={i} className={`flex items-center gap-2 border rounded-lg px-3 py-1.5 ${ROL_COLOR[m.rol] ?? 'bg-slate-800 text-slate-400 border-slate-700'}`}>
+                ) : equipo.map((m) => (
+                  <div key={m.usuario_id} className={`flex items-center gap-2 border rounded-lg px-3 py-1.5 ${ROL_COLOR[m.rol] ?? 'bg-slate-800 text-slate-400 border-slate-700'}`}>
                     <div className="w-6 h-6 rounded-full bg-slate-700 flex items-center justify-center text-white text-xs font-bold shrink-0">
                       {m.nombre.charAt(0).toUpperCase()}
                     </div>
@@ -392,6 +413,34 @@ export default function ResumenProyecto({ proyecto, cliente, equipo, rol, stats,
                       <p className="text-xs font-medium">{m.nombre}</p>
                       <p className="text-xs opacity-70">{LABEL_ROL[m.rol] ?? m.rol}</p>
                     </div>
+                    {puedeEditar && (
+                      confirmandoQuitar === m.usuario_id ? (
+                        <div className="flex items-center gap-1 ml-1">
+                          <button
+                            onClick={() => quitarDelEquipo(m.usuario_id)}
+                            disabled={quitando === m.usuario_id}
+                            title="Confirmar: quitar de este proyecto"
+                            className="text-red-400 hover:text-red-300 text-xs font-medium disabled:opacity-50"
+                          >
+                            {quitando === m.usuario_id ? '...' : 'Sí, quitar'}
+                          </button>
+                          <button
+                            onClick={() => setConfirmandoQuitar(null)}
+                            className="opacity-60 hover:opacity-100 text-xs"
+                          >
+                            Cancelar
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => setConfirmandoQuitar(m.usuario_id)}
+                          title="Quitar del equipo de este proyecto"
+                          className="opacity-50 hover:opacity-100 hover:text-red-400 ml-1 shrink-0"
+                        >
+                          <UserMinus className="w-3.5 h-3.5" />
+                        </button>
+                      )
+                    )}
                   </div>
                 ))}
               </div>
