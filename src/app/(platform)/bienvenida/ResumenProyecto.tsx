@@ -76,6 +76,7 @@ export default function ResumenProyecto({ proyecto, cliente, equipo, rol, stats,
   const [expandido, setExpandido] = useState(true)
   const [quitando, setQuitando] = useState<string | null>(null)
   const [confirmandoQuitar, setConfirmandoQuitar] = useState<string | null>(null)
+  const [errorQuitar, setErrorQuitar] = useState<string | null>(null)
   const [editando, setEditando] = useState(false)
   const [form, setForm] = useState({
     contexto: proyecto.contexto ?? '',
@@ -95,16 +96,19 @@ export default function ResumenProyecto({ proyecto, cliente, equipo, rol, stats,
 
   async function quitarDelEquipo(usuario_id: string) {
     setQuitando(usuario_id)
+    setErrorQuitar(null)
     try {
       const res = await fetch(`/api/proyectos/${proyecto.id}/equipo`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ usuario_id }),
       })
-      if (res.ok) {
-        setConfirmandoQuitar(null)
-        router.refresh()
-      }
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) { setErrorQuitar(data.error ?? 'No se pudo quitar del equipo'); return }
+      setConfirmandoQuitar(null)
+      router.refresh()
+    } catch {
+      setErrorQuitar('Error de red al quitar del equipo')
     } finally {
       setQuitando(null)
     }
@@ -401,6 +405,7 @@ export default function ResumenProyecto({ proyecto, cliente, equipo, rol, stats,
                 <p className="text-slate-400 text-xs uppercase tracking-wide">Equipo asignado</p>
                 <span className="text-xs text-slate-400">({equipo.length} persona{equipo.length !== 1 ? 's' : ''})</span>
               </div>
+              {errorQuitar && <p className="text-red-400 text-xs mb-2">{errorQuitar}</p>}
               <div className="flex flex-wrap gap-2">
                 {equipo.length === 0 ? (
                   <p className="text-slate-400 text-sm italic">Sin equipo asignado.</p>

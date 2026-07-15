@@ -26,7 +26,7 @@ export async function DELETE(
   const admin = createAdminClient()
   const { data: existente } = await admin
     .from('usuario_proyecto')
-    .select('id')
+    .select('usuario_id')
     .eq('proyecto_id', params.id)
     .eq('usuario_id', usuario_id)
     .maybeSingle()
