@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import {
-  Brain, Sparkles, CheckCircle, XCircle, Clock, Users, Activity, Layers, FileText
+  Brain, Sparkles, CheckCircle2, XCircle, Clock, Users, Activity, Layers, FileText
 } from 'lucide-react'
 import { GlosarioRoles } from '@/app/(platform)/portal/GlosarioRoles'
 import DiscoveryAcciones from './DiscoveryAcciones'
@@ -56,7 +56,7 @@ export default function DiscoveryExperiencia({
             </div>
           </div>
           {totalProcesos > 0 && (
-            <div className="flex items-center gap-2 text-xs text-slate-500">
+            <div className="flex items-center gap-2 text-xs text-slate-400">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
               <span>Análisis activo · {totalProcesos} procesos</span>
             </div>
@@ -123,7 +123,7 @@ export default function DiscoveryExperiencia({
                 },
                 {
                   step: '3',
-                  icon: CheckCircle,
+                  icon: CheckCircle2,
                   label: pendientes === 0 ? 'Revisión completa' : 'Revisión en curso',
                   desc: `${aceptados} aceptados · ${pendientes} pendientes. Acepta o rechaza cada proceso y profundiza con IA.`,
                   color: pendientes === 0 ? 'text-emerald-400' : 'text-blue-400',
@@ -135,7 +135,7 @@ export default function DiscoveryExperiencia({
                 href ? (
                   <a key={step} href={href} className={`rounded-xl border px-3 py-3 ${bg} hover:brightness-125 transition-all cursor-pointer block`}>
                     <div className="flex items-center justify-between mb-1.5">
-                      <span className="text-xs font-bold text-slate-600">PASO {step}</span>
+                      <span className="text-xs font-bold text-slate-400">PASO {step}</span>
                       <span className="text-xs text-emerald-500 font-semibold">✓ Hecho</span>
                     </div>
                     <div className="flex items-center gap-1.5 mb-1.5">
@@ -148,7 +148,7 @@ export default function DiscoveryExperiencia({
                 ) : (
                   <div key={step} className={`rounded-xl border px-3 py-3 ${bg}`}>
                     <div className="flex items-center justify-between mb-1.5">
-                      <span className="text-xs font-bold text-slate-600">PASO {step}</span>
+                      <span className="text-xs font-bold text-slate-400">PASO {step}</span>
                       {done && <span className="text-xs text-emerald-500 font-semibold">✓ Hecho</span>}
                       {!done && <span className="text-xs text-blue-400 font-semibold animate-pulse">● Aquí ahora</span>}
                     </div>
@@ -171,7 +171,7 @@ export default function DiscoveryExperiencia({
                     <span className="text-amber-400 font-semibold">{pendientes}</span> pendientes de revisión
                   </span>
                   <span className="flex items-center gap-1.5 text-slate-400">
-                    <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
                     <span className="text-emerald-400 font-semibold">{aceptados}</span> aceptados
                   </span>
                   {rechazados > 0 && (
@@ -181,7 +181,7 @@ export default function DiscoveryExperiencia({
                     </span>
                   )}
                 </div>
-                <span className="text-slate-500">{pctAprobacion}% validado</span>
+                <span className="text-slate-400">{pctAprobacion}% validado</span>
               </div>
               <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden">
                 <div
@@ -242,7 +242,7 @@ export default function DiscoveryExperiencia({
                 <span className="text-violet-300 text-xs font-semibold uppercase tracking-widest">Diagnóstico ejecutivo del proyecto</span>
               </div>
               <p className="text-slate-200 text-sm leading-relaxed">{resumenDiscovery.resumen_ejecutivo_discovery as string}</p>
-              <div className="flex flex-wrap gap-4 text-xs text-slate-500 pt-2 border-t border-slate-800/60">
+              <div className="flex flex-wrap gap-4 text-xs text-slate-400 pt-2 border-t border-slate-800/60">
                 {(resumenDiscovery.industria_detectada as string | undefined) && <span>Industria: <span className="text-slate-300">{resumenDiscovery.industria_detectada as string}</span></span>}
                 {(resumenDiscovery.nivel_madurez_operacional as string | undefined) && <span>Madurez: <span className="text-slate-300">{resumenDiscovery.nivel_madurez_operacional as string}</span></span>}
                 {(resumenDiscovery.cobertura_documentacion as string | undefined) && <span>Cobertura: <span className="text-slate-300">{resumenDiscovery.cobertura_documentacion as string}</span></span>}
@@ -255,7 +255,7 @@ export default function DiscoveryExperiencia({
             <div className="flex items-center gap-2">
               <Layers className="w-4 h-4 text-slate-400" />
               <span className="text-sm font-semibold text-slate-300">Macroprocesos detectados</span>
-              <span className="text-xs text-slate-500 bg-slate-800 border border-slate-700 rounded-full px-2 py-0.5">{macroprocesos.length}</span>
+              <span className="text-xs text-slate-400 bg-slate-800 border border-slate-700 rounded-full px-2 py-0.5">{macroprocesos.length}</span>
             </div>
             {procesosPropeustosIA > 0 && (
               <p className="text-xs text-amber-400/80">
@@ -279,7 +279,7 @@ export default function DiscoveryExperiencia({
 
             if (todosRevisados) return (
               <div className="flex items-center gap-3 bg-emerald-950/30 border border-emerald-800/30 rounded-xl px-4 py-3">
-                <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0" />
+                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
                 <p className="text-emerald-300/80 text-xs">
                   Todos los procesos han sido revisados. Puedes profundizar con <span className="font-medium text-emerald-300">Analizar con IA</span> en cualquier proceso para diagnóstico ejecutivo detallado.
                 </p>

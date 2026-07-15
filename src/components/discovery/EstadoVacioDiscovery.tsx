@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import {
-  Brain, Sparkles, CheckCircle, TrendingUp, Users, Shield,
+  Brain, Sparkles, CheckCircle2, TrendingUp, Users, Shield,
   Cpu, Layers, FileText, AlertCircle, Lock, X, Activity, Zap
 } from 'lucide-react'
 import DiscoveryAcciones from './DiscoveryAcciones'
@@ -155,7 +155,7 @@ export function EstadoVacioDiscovery({
               <p className="text-white font-semibold text-sm">
                 {!tieneListos && documentos.length > 0 ? 'Activa la inteligencia en tus documentos' : 'Documentos indexados y listos'}
               </p>
-              <p className="text-slate-500 text-xs mt-0.5">
+              <p className="text-slate-400 text-xs mt-0.5">
                 {documentos.length === 0
                   ? 'Carga documentación en Centro Documental para comenzar.'
                   : tieneListos
@@ -198,7 +198,7 @@ export function EstadoVacioDiscovery({
               </div>
               <div>
                 <p className="text-white font-semibold text-sm">Activando inteligencia en tus documentos</p>
-                <p className="text-slate-500 text-xs">{procesadosIds.length} de {totalParaProcesar} encolados</p>
+                <p className="text-slate-400 text-xs">{procesadosIds.length} de {totalParaProcesar} encolados</p>
               </div>
               <div className="ml-auto text-xs font-bold text-violet-300 bg-violet-900/40 border border-violet-700/40 rounded-full px-3 py-1 shrink-0">
                 {totalParaProcesar > 0 ? Math.round((procesadosIds.length / totalParaProcesar) * 100) : 0}%
@@ -218,14 +218,14 @@ export function EstadoVacioDiscovery({
                     hecho ? 'bg-emerald-500' : 'border-2 border-slate-600'
                   }`}>
                     {hecho
-                      ? <CheckCircle className="w-3.5 h-3.5 text-white" strokeWidth={3} />
+                      ? <CheckCircle2 className="w-3.5 h-3.5 text-white" strokeWidth={3} />
                       : <span className="w-2 h-2 rounded-full border border-slate-500/50 border-t-slate-400 animate-spin" />}
                   </div>
                   <FileText className={`w-4 h-4 shrink-0 ${hecho ? 'text-emerald-400' : 'text-slate-500'}`} />
                   <p className={`text-sm font-medium flex-1 truncate ${hecho ? 'text-emerald-300' : 'text-slate-400'}`}>
                     {doc.nombre_archivo}
                   </p>
-                  <span className={`text-xs shrink-0 ${hecho ? 'text-emerald-400' : 'text-slate-600'}`}>
+                  <span className={`text-xs shrink-0 ${hecho ? 'text-emerald-400' : 'text-slate-400'}`}>
                     {hecho ? 'Encolado ✓' : 'Esperando'}
                   </span>
                 </div>
@@ -282,7 +282,7 @@ export function EstadoVacioDiscovery({
                     }`}>
                       {enProceso
                         ? <span className="w-2.5 h-2.5 rounded-full border border-violet-400/40 border-t-violet-400 animate-spin" />
-                        : marcado && <CheckCircle className="w-3.5 h-3.5 text-white" strokeWidth={3} />}
+                        : marcado && <CheckCircle2 className="w-3.5 h-3.5 text-white" strokeWidth={3} />}
                     </div>
                     <div className="w-8 h-8 rounded-lg bg-slate-800 border border-slate-700 flex items-center justify-center shrink-0">
                       <FileText className={`w-4 h-4 ${enProceso ? 'text-violet-400' : 'text-slate-500'}`} />
@@ -291,7 +291,7 @@ export function EstadoVacioDiscovery({
                       <p className={`text-sm font-medium truncate ${enProceso ? 'text-violet-300' : marcado ? 'text-white' : 'text-slate-400'}`}>
                         {doc.nombre_archivo}
                       </p>
-                      <p className="text-xs text-slate-600">
+                      <p className="text-xs text-slate-400">
                         {enProceso ? 'Procesando...' : 'Listo para procesar'}
                       </p>
                     </div>
@@ -310,7 +310,7 @@ export function EstadoVacioDiscovery({
                   ? <><span className="w-3.5 h-3.5 rounded-full border-2 border-white/30 border-t-white animate-spin" />Activando inteligencia...</>
                   : <><Sparkles className="w-4 h-4" />Procesar {selParaProcesar.length} documento{selParaProcesar.length !== 1 ? 's' : ''} para el análisis</>}
               </button>
-              <button onClick={toggleTodosParaProcesar} className="text-xs text-slate-500 hover:text-violet-300 transition-colors font-medium">
+              <button onClick={toggleTodosParaProcesar} className="text-xs text-slate-400 hover:text-violet-300 transition-colors font-medium">
                 {todosParaProcesar ? 'Quitar todos' : 'Seleccionar todos'}
               </button>
             </div>
@@ -326,13 +326,13 @@ export function EstadoVacioDiscovery({
                   key={doc.id}
                   className="w-full flex items-center gap-3 rounded-xl px-4 py-3 bg-emerald-950/20 border border-emerald-800/40"
                 >
-                  <CheckCircle className="w-5 h-5 text-emerald-400 shrink-0" />
+                  <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
                   <div className="w-8 h-8 rounded-lg bg-emerald-900/50 border border-emerald-800/60 flex items-center justify-center shrink-0">
                     <FileText className="w-4 h-4 text-emerald-400" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-white text-sm font-medium truncate">{doc.nombre_archivo}</p>
-                    {bloque && <p className="text-slate-500 text-xs truncate">{bloque}</p>}
+                    {bloque && <p className="text-slate-400 text-xs truncate">{bloque}</p>}
                   </div>
                   <span className="text-xs text-emerald-400 font-medium shrink-0">Listo ✓</span>
                 </div>
@@ -341,7 +341,7 @@ export function EstadoVacioDiscovery({
 
             {noListos.length > 0 && (
               <div className="pt-2 border-t border-slate-800 space-y-2">
-                <p className="text-xs text-slate-600 px-1">Pendientes de procesamiento</p>
+                <p className="text-xs text-slate-400 px-1">Pendientes de procesamiento</p>
                 {noListos.map(doc => (
                   <div key={doc.id} className="flex items-center gap-3 bg-slate-800/20 border border-slate-700/20 rounded-xl px-4 py-3 opacity-40">
                     <div className="w-5 h-5 rounded-md border-2 border-slate-700 flex items-center justify-center shrink-0">
@@ -403,7 +403,7 @@ export function EstadoVacioDiscovery({
                     className={`group flex items-center gap-2 pl-2.5 pr-3 py-1.5 rounded-full border text-xs font-medium transition-all duration-200 ${
                       elegido
                         ? 'bg-emerald-900/40 border-emerald-600/60 text-emerald-300 hover:bg-emerald-900/60 hover:border-emerald-500/70 shadow-sm shadow-emerald-900/30'
-                        : 'bg-slate-800/60 border-slate-700/50 text-slate-500 hover:border-slate-500/70 hover:text-slate-300'
+                        : 'bg-slate-800/60 border-slate-700/50 text-slate-400 hover:border-slate-500/70 hover:text-slate-300'
                     }`}
                   >
                     <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 transition-colors ${
@@ -414,8 +414,8 @@ export function EstadoVacioDiscovery({
                       elegido ? 'bg-emerald-500/30' : 'bg-slate-700/60'
                     }`}>
                       {elegido
-                        ? <CheckCircle className="w-2.5 h-2.5 text-emerald-300" strokeWidth={3} />
-                        : <X className="w-2.5 h-2.5 text-slate-600 group-hover:text-slate-400" strokeWidth={2.5} />}
+                        ? <CheckCircle2 className="w-2.5 h-2.5 text-emerald-300" strokeWidth={3} />
+                        : <X className="w-2.5 h-2.5 text-slate-400 group-hover:text-slate-400" strokeWidth={2.5} />}
                     </div>
                   </button>
                 )
@@ -458,14 +458,14 @@ export function EstadoVacioDiscovery({
                   <Icon className={`w-4 h-4 ${color}`} />
                   <p className={`text-sm font-semibold ${color}`}>{title}</p>
                 </div>
-                <p className="text-slate-500 text-xs leading-relaxed">{desc}</p>
+                <p className="text-slate-400 text-xs leading-relaxed">{desc}</p>
               </div>
             ))}
           </div>
 
           <div className="px-6 pb-6 flex items-center gap-4">
             <DiscoveryAcciones proyectos={proyectosParaAcciones} documentoIds={seleccionados} disabled={seleccionados.length === 0} />
-            <span className="text-xs text-slate-500">Diagnóstico de alta precisión · 1–3 minutos · puedes seguir navegando</span>
+            <span className="text-xs text-slate-400">Diagnóstico de alta precisión · 1–3 minutos · puedes seguir navegando</span>
           </div>
         </div>
       ) : (
@@ -473,11 +473,11 @@ export function EstadoVacioDiscovery({
           <div className="flex items-center gap-4">
             <span className="w-7 h-7 rounded-full bg-slate-700 text-slate-400 text-xs font-bold flex items-center justify-center shrink-0">2</span>
             <div className="w-10 h-10 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center shrink-0">
-              <Brain className="w-5 h-5 text-slate-600" />
+              <Brain className="w-5 h-5 text-slate-400" />
             </div>
             <div>
-              <p className="text-slate-500 font-semibold text-sm">Ejecutar Discovery IA</p>
-              <p className="text-slate-600 text-xs">Se habilitará cuando tus documentos hayan sido indexados en el Paso 1</p>
+              <p className="text-slate-400 font-semibold text-sm">Ejecutar Discovery IA</p>
+              <p className="text-slate-400 text-xs">Se habilitará cuando tus documentos hayan sido indexados en el Paso 1</p>
             </div>
           </div>
         </div>

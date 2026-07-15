@@ -22,7 +22,9 @@ async function getAuthUserByEmail(email: string) {
 // con las operaciones internas paralelizadas. La sesión se fija por cookies
 // en la misma respuesta, así que el cliente solo necesita redirigir.
 export async function POST(req: NextRequest) {
-  const { email, password } = await req.json() as { email: string; password: string }
+  const body = await req.json() as { email: string; password: string }
+  const email = body.email?.trim().toLowerCase()
+  const password = body.password
   if (!email || !password) {
     return NextResponse.json({ error: 'Correo y contraseña requeridos' }, { status: 400 })
   }

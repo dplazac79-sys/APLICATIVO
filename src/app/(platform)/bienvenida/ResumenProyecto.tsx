@@ -4,8 +4,8 @@ import { useState } from 'react'
 import Link from 'next/link'
 import {
   Calendar, Users, Target, Layers, ChevronDown, ChevronUp,
-  CheckCircle, XCircle, Edit3, Save, X, FileText, Brain,
-  Clock, ArrowRight, AlertCircle, CheckCircle2,
+  CheckCircle2, XCircle, Pencil, Save, X, FileText, Brain,
+  Clock, ArrowRight, AlertCircle,
 } from 'lucide-react'
 import type { Fase } from '@/lib/fases'
 
@@ -123,16 +123,16 @@ export default function ResumenProyecto({ proyecto, cliente, equipo, rol, stats,
           </div>
           <div>
             <h2 className="text-white font-semibold text-sm">{proyecto.nombre}</h2>
-            <p className="text-slate-500 text-xs">{cliente?.razon_social} · {cliente?.industria}</p>
+            <p className="text-slate-400 text-xs">{cliente?.razon_social} · {cliente?.industria}</p>
           </div>
         </div>
         <div className="flex items-center gap-3">
           {puedeEditar && !editando && (
             <button
               onClick={e => { e.stopPropagation(); setEditando(true); setExpandido(true) }}
-              className="text-slate-500 hover:text-indigo-400 transition-colors p-1"
+              className="text-slate-400 hover:text-indigo-400 transition-colors p-1"
             >
-              <Edit3 className="w-4 h-4" />
+              <Pencil className="w-4 h-4" />
             </button>
           )}
           {expandido ? <ChevronUp className="w-4 h-4 text-slate-500" /> : <ChevronDown className="w-4 h-4 text-slate-500" />}
@@ -180,14 +180,14 @@ export default function ResumenProyecto({ proyecto, cliente, equipo, rol, stats,
                 label: 'Cierre estimado',
                 value: formatFecha(proyecto.fecha_estimada_cierre),
                 sub: dias != null ? (dias > 0 ? `${dias} días restantes` : `Venció hace ${Math.abs(dias)} días`) : null,
-                subColor: dias != null && dias < 30 ? 'text-amber-400' : 'text-slate-500',
+                subColor: dias != null && dias < 30 ? 'text-amber-400' : 'text-slate-400',
               },
               {
                 icon: <FileText className="w-4 h-4 text-cyan-400" />,
                 label: 'Documentos',
                 value: String(stats.documentos),
                 sub: stats.documentos === 0 ? 'Sin documentos aún' : `${stats.documentos} archivo${stats.documentos !== 1 ? 's' : ''} cargado${stats.documentos !== 1 ? 's' : ''}`,
-                subColor: stats.documentos === 0 ? 'text-amber-500' : 'text-slate-500',
+                subColor: stats.documentos === 0 ? 'text-amber-500' : 'text-slate-400',
                 href: '/documentos',
               },
               {
@@ -195,23 +195,23 @@ export default function ResumenProyecto({ proyecto, cliente, equipo, rol, stats,
                 label: 'Procesos',
                 value: stats.procesos > 0 ? `${stats.procesosAprobados}/${stats.procesos}` : '0',
                 sub: stats.procesos > 0 ? `${pctProcesos}% aprobados` : 'Sin procesos descubiertos',
-                subColor: stats.procesos === 0 ? 'text-slate-600' : pctProcesos === 100 ? 'text-emerald-400' : 'text-slate-500',
+                subColor: stats.procesos === 0 ? 'text-slate-400' : pctProcesos === 100 ? 'text-emerald-400' : 'text-slate-400',
                 href: '/discovery',
               },
             ].map((kpi, i) => (
               <div key={i} className="px-4 py-3.5 space-y-1">
                 <div className="flex items-center gap-1.5">
                   {kpi.icon}
-                  <span className="text-xs text-slate-500 uppercase tracking-wide">{kpi.label}</span>
+                  <span className="text-xs text-slate-400 uppercase tracking-wide">{kpi.label}</span>
                 </div>
                 <p className="text-white font-semibold text-base">{kpi.value}</p>
                 {kpi.sub && (
                   kpi.href ? (
-                    <Link href={kpi.href} className={`text-xs ${kpi.subColor ?? 'text-slate-500'} hover:text-indigo-400 flex items-center gap-1`} onClick={e => e.stopPropagation()}>
+                    <Link href={kpi.href} className={`text-xs ${kpi.subColor ?? 'text-slate-400'} hover:text-indigo-400 flex items-center gap-1`} onClick={e => e.stopPropagation()}>
                       {kpi.sub} <ArrowRight className="w-3 h-3" />
                     </Link>
                   ) : (
-                    <p className={`text-xs ${kpi.subColor ?? 'text-slate-500'}`}>{kpi.sub}</p>
+                    <p className={`text-xs ${kpi.subColor ?? 'text-slate-400'}`}>{kpi.sub}</p>
                   )
                 )}
               </div>
@@ -226,7 +226,7 @@ export default function ResumenProyecto({ proyecto, cliente, equipo, rol, stats,
                   <span className="text-indigo-300 text-xs font-bold">F{faseActual.id}</span>
                 </div>
                 <div className="min-w-0">
-                  <p className="text-xs text-slate-500 uppercase tracking-wide">Fase activa</p>
+                  <p className="text-xs text-slate-400 uppercase tracking-wide">Fase activa</p>
                   <p className="text-white text-sm font-medium truncate">{faseActual.nombre}</p>
                 </div>
                 <div className="hidden sm:flex items-center gap-2 ml-2">
@@ -275,7 +275,7 @@ export default function ResumenProyecto({ proyecto, cliente, equipo, rol, stats,
                 />
               ) : (
                 <p className="text-slate-300 text-sm leading-relaxed">
-                  {proyecto.contexto || <span className="text-slate-600 italic">Sin contexto definido aún.</span>}
+                  {proyecto.contexto || <span className="text-slate-400 italic">Sin contexto definido aún.</span>}
                 </p>
               )}
             </div>
@@ -301,7 +301,7 @@ export default function ResumenProyecto({ proyecto, cliente, equipo, rol, stats,
                   ))}
                 </ul>
               ) : (
-                <p className="text-slate-600 italic text-sm">Sin objetivos definidos aún.</p>
+                <p className="text-slate-400 italic text-sm">Sin objetivos definidos aún.</p>
               )}
             </div>
 
@@ -309,7 +309,7 @@ export default function ResumenProyecto({ proyecto, cliente, equipo, rol, stats,
             <div className="grid sm:grid-cols-2 gap-4">
               <div className="bg-emerald-950/20 border border-emerald-900/40 rounded-lg p-4">
                 <div className="flex items-center gap-1.5 mb-2.5">
-                  <CheckCircle className="w-4 h-4 text-emerald-400" />
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400" />
                   <p className="text-emerald-300 text-xs font-medium uppercase tracking-wide">Incluye</p>
                 </div>
                 {editando ? (
@@ -329,7 +329,7 @@ export default function ResumenProyecto({ proyecto, cliente, equipo, rol, stats,
                     ))}
                   </ul>
                 ) : (
-                  <p className="text-slate-600 italic text-sm">No definido.</p>
+                  <p className="text-slate-400 italic text-sm">No definido.</p>
                 )}
               </div>
               <div className="bg-rose-950/20 border border-rose-900/40 rounded-lg p-4">
@@ -354,7 +354,7 @@ export default function ResumenProyecto({ proyecto, cliente, equipo, rol, stats,
                     ))}
                   </ul>
                 ) : (
-                  <p className="text-slate-600 italic text-sm">No definido.</p>
+                  <p className="text-slate-400 italic text-sm">No definido.</p>
                 )}
               </div>
             </div>
@@ -378,11 +378,11 @@ export default function ResumenProyecto({ proyecto, cliente, equipo, rol, stats,
               <div className="flex items-center gap-2 mb-3">
                 <Users className="w-4 h-4 text-slate-400" />
                 <p className="text-slate-400 text-xs uppercase tracking-wide">Equipo asignado</p>
-                <span className="text-xs text-slate-600">({equipo.length} persona{equipo.length !== 1 ? 's' : ''})</span>
+                <span className="text-xs text-slate-400">({equipo.length} persona{equipo.length !== 1 ? 's' : ''})</span>
               </div>
               <div className="flex flex-wrap gap-2">
                 {equipo.length === 0 ? (
-                  <p className="text-slate-600 text-sm italic">Sin equipo asignado.</p>
+                  <p className="text-slate-400 text-sm italic">Sin equipo asignado.</p>
                 ) : equipo.map((m, i) => (
                   <div key={i} className={`flex items-center gap-2 border rounded-lg px-3 py-1.5 ${ROL_COLOR[m.rol] ?? 'bg-slate-800 text-slate-400 border-slate-700'}`}>
                     <div className="w-6 h-6 rounded-full bg-slate-700 flex items-center justify-center text-white text-xs font-bold shrink-0">

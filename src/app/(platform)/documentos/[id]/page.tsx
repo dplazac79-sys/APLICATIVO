@@ -70,7 +70,7 @@ export default async function DocumentoAnalisisPage({ params }: { params: { id: 
       {/* Back nav */}
       <Link
         href="/documentos"
-        className="inline-flex items-center gap-1.5 text-slate-500 hover:text-slate-300 text-xs transition-colors"
+        className="inline-flex items-center gap-1.5 text-slate-400 hover:text-slate-300 text-xs transition-colors"
       >
         <ArrowLeft className="w-3.5 h-3.5" />
         Volver al Centro Documental
@@ -86,16 +86,16 @@ export default async function DocumentoAnalisisPage({ params }: { params: { id: 
             <h1 className="text-xl font-semibold text-white truncate">{doc.nombre_archivo}</h1>
             <div className="flex items-center gap-2 mt-1 flex-wrap">
               {cliente?.razon_social && (
-                <span className="text-slate-500 text-xs">{cliente.razon_social}</span>
+                <span className="text-slate-400 text-xs">{cliente.razon_social}</span>
               )}
               {proyecto?.nombre && (
                 <>
                   <ChevronRight className="w-3 h-3 text-slate-700" />
-                  <span className="text-slate-500 text-xs">{proyecto.nombre}</span>
+                  <span className="text-slate-400 text-xs">{proyecto.nombre}</span>
                 </>
               )}
               <span className="text-slate-700">·</span>
-              <span className="text-slate-600 text-xs">
+              <span className="text-slate-400 text-xs">
                 {new Date(doc.created_at).toLocaleDateString('es-CL', { day: 'numeric', month: 'long', year: 'numeric' })}
               </span>
             </div>
@@ -107,13 +107,13 @@ export default async function DocumentoAnalisisPage({ params }: { params: { id: 
               </span>
             ) : null}
             {clasificacion?.industria_detectada ? (
-              <span className="text-xs text-slate-500">{String(clasificacion.industria_detectada)}</span>
+              <span className="text-xs text-slate-400">{String(clasificacion.industria_detectada)}</span>
             ) : null}
           </div>
         </div>
 
         {clasificacion?.tipo_documento ? (
-          <p className="text-slate-500 text-sm mt-4 italic">{String(clasificacion.tipo_documento)}</p>
+          <p className="text-slate-400 text-sm mt-4 italic">{String(clasificacion.tipo_documento)}</p>
         ) : null}
       </div>
 
@@ -121,7 +121,7 @@ export default async function DocumentoAnalisisPage({ params }: { params: { id: 
         <div className="bg-amber-950/20 border border-amber-800/40 rounded-xl p-8 text-center">
           <Brain className="w-10 h-10 text-amber-600 mx-auto mb-3" />
           <p className="text-amber-400 font-medium">Este documento aún no ha sido analizado por IA</p>
-          <p className="text-slate-500 text-sm mt-1">Regresa al Centro Documental y usa el botón &ldquo;Analizar con IA&rdquo;</p>
+          <p className="text-slate-400 text-sm mt-1">Regresa al Centro Documental y usa el botón &ldquo;Analizar con IA&rdquo;</p>
         </div>
       )}
 
@@ -180,11 +180,11 @@ export default async function DocumentoAnalisisPage({ params }: { params: { id: 
                           ? `${nivelCfg.bar} border-transparent text-white scale-110`
                           : n < nivel
                           ? 'bg-slate-700 border-slate-600 text-slate-400'
-                          : 'bg-slate-900 border-slate-800 text-slate-700'
+                          : 'bg-slate-900 border-slate-800 text-slate-400'
                       }`}>
                         {n}
                       </div>
-                      <span className={`text-xs hidden sm:block ${n === nivel ? nivelCfg.color : 'text-slate-700'}`}>
+                      <span className={`text-xs hidden sm:block ${n === nivel ? nivelCfg.color : 'text-slate-400'}`}>
                         {NIVEL_CONFIG[n].label}
                       </span>
                     </div>
@@ -243,7 +243,7 @@ export default async function DocumentoAnalisisPage({ params }: { params: { id: 
                           <p className="text-slate-300 text-sm leading-snug">{r.riesgo}</p>
                         </div>
                         {r.evidencia && (
-                          <p className="text-slate-600 text-xs pl-16">{r.evidencia}</p>
+                          <p className="text-slate-400 text-xs pl-16">{r.evidencia}</p>
                         )}
                       </li>
                     )
@@ -264,7 +264,7 @@ export default async function DocumentoAnalisisPage({ params }: { params: { id: 
                     <li key={i} className="space-y-1">
                       <p className="text-slate-300 text-sm leading-snug">{o.oportunidad}</p>
                       <div className="flex items-center gap-3 text-xs">
-                        <span className="text-slate-500">{o.impacto_estimado}</span>
+                        <span className="text-slate-400">{o.impacto_estimado}</span>
                         {o.complejidad_implementacion && (
                           <span className={`font-medium ${COMPLEJIDAD_CONFIG[o.complejidad_implementacion] ?? 'text-slate-400'}`}>
                             Complejidad {o.complejidad_implementacion}
@@ -324,7 +324,7 @@ export default async function DocumentoAnalisisPage({ params }: { params: { id: 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {rolesId.length > 0 && (
                   <div>
-                    <p className="text-xs text-slate-500 mb-2 font-medium">Roles detectados</p>
+                    <p className="text-xs text-slate-400 mb-2 font-medium">Roles detectados</p>
                     <div className="flex flex-wrap gap-1.5">
                       {rolesId.map((r: string, i: number) => (
                         <span key={i} className="text-xs px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700">
@@ -374,7 +374,7 @@ export default async function DocumentoAnalisisPage({ params }: { params: { id: 
               <ol className="space-y-2">
                 {proximos.map((p: string, i: number) => (
                   <li key={i} className="flex gap-3 text-sm text-slate-300">
-                    <span className="w-5 h-5 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-xs text-slate-500 shrink-0 mt-0.5 font-mono">
+                    <span className="w-5 h-5 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-xs text-slate-400 shrink-0 mt-0.5 font-mono">
                       {i + 1}
                     </span>
                     {p}
@@ -387,17 +387,17 @@ export default async function DocumentoAnalisisPage({ params }: { params: { id: 
           {/* Clasificación técnica */}
           {clasificacion && (
             <div className="bg-slate-900/50 border border-slate-800/50 rounded-xl p-5 space-y-3">
-              <p className="text-slate-600 text-xs font-semibold uppercase tracking-widest">Clasificación Metodológica</p>
+              <p className="text-slate-400 text-xs font-semibold uppercase tracking-widest">Clasificación Metodológica</p>
               <div className="flex flex-wrap gap-4 text-xs">
                 {clasificacion.bloque ? (
                   <div>
-                    <span className="text-slate-600">Bloque principal: </span>
+                    <span className="text-slate-400">Bloque principal: </span>
                     <span className="text-slate-300">{String(clasificacion.bloque)}</span>
                   </div>
                 ) : null}
                 {(clasificacion.bloques_secundarios as string[])?.length > 0 && (
                   <div>
-                    <span className="text-slate-600">Bloques secundarios: </span>
+                    <span className="text-slate-400">Bloques secundarios: </span>
                     <span className="text-slate-300">
                       {(clasificacion.bloques_secundarios as string[]).join(', ')}
                     </span>
@@ -405,7 +405,7 @@ export default async function DocumentoAnalisisPage({ params }: { params: { id: 
                 )}
                 {clasificacion.confianza ? (
                   <div>
-                    <span className="text-slate-600">Confianza: </span>
+                    <span className="text-slate-400">Confianza: </span>
                     <span className="text-slate-300">{Math.round((clasificacion.confianza as number) * 100)}%</span>
                   </div>
                 ) : null}
@@ -413,7 +413,7 @@ export default async function DocumentoAnalisisPage({ params }: { params: { id: 
               {(clasificacion.palabras_clave as string[])?.length > 0 && (
                 <div className="flex flex-wrap gap-1.5">
                   {(clasificacion.palabras_clave as string[]).map((k: string, i: number) => (
-                    <span key={i} className="text-xs px-1.5 py-0.5 rounded bg-slate-800 text-slate-500 border border-slate-700/50">
+                    <span key={i} className="text-xs px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700/50">
                       {k}
                     </span>
                   ))}
@@ -424,7 +424,7 @@ export default async function DocumentoAnalisisPage({ params }: { params: { id: 
 
           {/* Footer firma */}
           <div className="text-center py-4">
-            <p className="text-slate-700 text-xs">
+            <p className="text-slate-400 text-xs">
               Análisis generado por ProcessOS Intelligence Engine · AICOUNTS Consultores
             </p>
           </div>

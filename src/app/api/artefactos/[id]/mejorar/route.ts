@@ -5,6 +5,7 @@ import { chatCompletion, MODELOS } from '@/lib/ai/client'
 import { verificarLimiteIA, registrarUsoIA } from '@/lib/ai/rate-limit'
 import { LABEL_ARTEFACTO } from '@/lib/artefactos-meta'
 import { extraerTextoPDF, extraerTextoDOCX } from '@/lib/extract-text'
+import { assertProyectoAccess } from '@/lib/auth/tenant'
 import type { TipoArtefacto } from '@/types/database'
 
 export async function POST(
@@ -27,6 +28,10 @@ export async function POST(
 
   const proceso = artefacto.proceso as Record<string, unknown>
   const proyectoId = proceso?.proyecto_id as string
+  if (!proyectoId || !(await assertProyectoAccess(user.id, proyectoId))) {
+    return NextResponse.json({ error: 'Sin acceso a este artefacto' }, { status: 403 })
+  }
+
   const limite = await verificarLimiteIA(proyectoId, 'generacion')
   if (!limite.permitido) {
     return NextResponse.json({ error: limite.mensaje }, { status: 429 })

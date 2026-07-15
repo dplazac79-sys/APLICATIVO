@@ -180,13 +180,13 @@ export default async function DashboardPage() {
             <span className="text-indigo-300 text-sm font-bold">F{faseActiva.id}</span>
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-xs text-slate-500 uppercase tracking-wide">Fase activa ahora</p>
+            <p className="text-xs text-slate-400 uppercase tracking-wide">Fase activa ahora</p>
             <p className="text-white font-semibold text-sm">{faseActiva.nombre}</p>
             <p className="text-slate-400 text-xs truncate">{faseActiva.descripcion}</p>
           </div>
           <div className="hidden sm:flex items-center gap-3 shrink-0">
             <div className="text-right">
-              <p className="text-xs text-slate-500">Progreso</p>
+              <p className="text-xs text-slate-400">Progreso</p>
               <p className="text-indigo-300 font-semibold">{faseActiva.progreso}%</p>
             </div>
             <div className="w-20 h-1.5 bg-slate-800 rounded-full overflow-hidden">
@@ -287,7 +287,7 @@ export default async function DashboardPage() {
         </div>
       ) : (
         <div className="bg-slate-900 border border-slate-800 rounded-xl p-8 text-center">
-          <p className="text-slate-500 text-sm">
+          <p className="text-slate-400 text-sm">
             Sin proyecto activo asignado.{' '}
             {esSuperAdmin && (
               <Link href="/admin/onboarding" className="text-indigo-400 hover:underline">

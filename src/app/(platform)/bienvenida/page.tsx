@@ -187,7 +187,7 @@ export default async function BienvenidaPage() {
                             ? 'bg-emerald-950/60 text-emerald-400 border border-emerald-800/50 hover:bg-emerald-950'
                             : esActiva
                             ? 'bg-indigo-600/20 text-indigo-300 border border-indigo-500/50 ring-1 ring-indigo-500/30 hover:bg-indigo-600/30'
-                            : 'bg-slate-800/40 text-slate-600 border border-slate-800 pointer-events-none'
+                            : 'bg-slate-800/40 text-slate-400 border border-slate-800 pointer-events-none'
                         }`}
                       >
                         {esCompleta ? (
@@ -221,7 +221,7 @@ export default async function BienvenidaPage() {
                     F{faseActiva.id} — {faseActiva.nombre}
                   </Link>
                   {fasesBloqueadas.length > 0 && (
-                    <span className="ml-auto text-xs text-slate-600">{fasesBloqueadas.length} fase{fasesBloqueadas.length > 1 ? 's' : ''} bloqueada{fasesBloqueadas.length > 1 ? 's' : ''}</span>
+                    <span className="ml-auto text-xs text-slate-400">{fasesBloqueadas.length} fase{fasesBloqueadas.length > 1 ? 's' : ''} bloqueada{fasesBloqueadas.length > 1 ? 's' : ''}</span>
                   )}
                 </div>
               )}
@@ -252,12 +252,12 @@ export default async function BienvenidaPage() {
           <div className="space-y-3">
             <div>
               <h2 className="text-base font-semibold text-white">Bitácora de actividad</h2>
-              <p className="text-xs text-slate-500 mt-0.5">{bitacoraRaw.length} acciones recientes en el sistema</p>
+              <p className="text-xs text-slate-400 mt-0.5">{bitacoraRaw.length} acciones recientes en el sistema</p>
             </div>
             <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
               {bitacora.length === 0 ? (
                 <div className="p-8 text-center">
-                  <p className="text-slate-500 text-sm">Sin actividad registrada aún.</p>
+                  <p className="text-slate-400 text-sm">Sin actividad registrada aún.</p>
                 </div>
               ) : (
                 <div className="max-h-[600px] overflow-y-auto">
@@ -285,7 +285,7 @@ export default async function BienvenidaPage() {
                             <span className="font-semibold text-white">{log.usuario?.nombre ?? 'Sistema'}</span>
                             {' '}<span className="text-slate-400">{verbo}</span>{' '}
                             <span className="text-slate-300">{entidad}</span>
-                            {detNombre && <span className="text-slate-500"> — {detNombre}</span>}
+                            {detNombre && <span className="text-slate-400"> — {detNombre}</span>}
                             {log.repeticiones > 1 && (
                               <span className="ml-1.5 inline-block px-1.5 py-0.5 rounded-full bg-slate-800 border border-slate-700 text-slate-400 text-[10px] font-medium align-middle">
                                 ×{log.repeticiones}
@@ -301,15 +301,15 @@ export default async function BienvenidaPage() {
                               .filter(([k, v]) => !['nombre','email','titulo','nombre_archivo'].includes(k) && !esIdOInterno(k, v))
                               .slice(0, 2)
                             return extra.length > 0 ? (
-                              <p className="text-xs text-slate-600 mt-0.5 truncate">
+                              <p className="text-xs text-slate-400 mt-0.5 truncate">
                                 {extra.map(([k, v]) => `${k.replace(/_/g, ' ')}: ${String(v).slice(0, 25)}`).join(' · ')}
                               </p>
                             ) : null
                           })()}
                         </div>
                         <div className="text-right shrink-0 ml-2">
-                          <p className="text-xs text-slate-500 whitespace-nowrap">{cuando}</p>
-                          <p className="text-xs text-slate-700">{fecha.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' })}</p>
+                          <p className="text-xs text-slate-400 whitespace-nowrap">{cuando}</p>
+                          <p className="text-xs text-slate-400">{fecha.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' })}</p>
                         </div>
                       </div>
                     )

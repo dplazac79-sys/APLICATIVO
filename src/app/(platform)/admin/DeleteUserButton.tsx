@@ -39,7 +39,7 @@ export default function DeleteUserButton({ usuarioId, nombre }: { usuarioId: str
         <button
           onClick={() => { setConfirmando(false); setError('') }}
           disabled={loading}
-          className="text-slate-500 hover:text-slate-300 transition-colors"
+          className="text-slate-400 hover:text-slate-300 transition-colors"
         >
           <X className="w-3.5 h-3.5" />
         </button>
@@ -50,7 +50,7 @@ export default function DeleteUserButton({ usuarioId, nombre }: { usuarioId: str
   return (
     <button
       onClick={() => setConfirmando(true)}
-      className="flex items-center gap-1.5 text-xs px-2 py-1 rounded border border-slate-700 text-slate-500 hover:border-red-500/30 hover:bg-red-500/10 hover:text-red-400 transition-colors"
+      className="flex items-center gap-1.5 text-xs px-2 py-1 rounded border border-slate-700 text-slate-400 hover:border-red-500/30 hover:bg-red-500/10 hover:text-red-400 transition-colors"
     >
       <Trash2 className="w-3 h-3" /> Eliminar
     </button>

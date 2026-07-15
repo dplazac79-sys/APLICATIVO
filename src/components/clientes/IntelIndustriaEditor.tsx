@@ -81,16 +81,16 @@ export default function IntelIndustriaEditor({ clienteId, inicial, industria }: 
             <div className="flex items-center gap-2 text-xs text-indigo-400">
               <Zap className="w-3.5 h-3.5" />
               <span className="font-medium">Knowledge Graph — {kgData.industria}</span>
-              <span className="text-slate-500 ml-auto">{kgData.proyectos_cerrados} proyecto(s) cerrado(s)</span>
+              <span className="text-slate-400 ml-auto">{kgData.proyectos_cerrados} proyecto(s) cerrado(s)</span>
             </div>
 
             {kgData.procesos_frecuentes?.length > 0 && (
               <div>
-                <p className="text-xs text-slate-500 mb-1 uppercase tracking-wide">Procesos típicos</p>
+                <p className="text-xs text-slate-400 mb-1 uppercase tracking-wide">Procesos típicos</p>
                 <div className="flex flex-wrap gap-1">
                   {kgData.procesos_frecuentes.slice(0, 8).map(p => (
                     <span key={p.nombre} className="text-xs bg-slate-700 text-slate-300 px-2 py-0.5 rounded">
-                      {p.nombre} <span className="text-slate-500">×{p.frecuencia}</span>
+                      {p.nombre} <span className="text-slate-400">×{p.frecuencia}</span>
                     </span>
                   ))}
                 </div>
@@ -99,7 +99,7 @@ export default function IntelIndustriaEditor({ clienteId, inicial, industria }: 
 
             {kgData.automatizaciones?.length > 0 && (
               <div>
-                <p className="text-xs text-slate-500 mb-1 uppercase tracking-wide">Automatizaciones más recomendadas</p>
+                <p className="text-xs text-slate-400 mb-1 uppercase tracking-wide">Automatizaciones más recomendadas</p>
                 <div className="flex flex-wrap gap-1">
                   {kgData.automatizaciones.map(a => (
                     <div key={a.tipo} className="text-xs">
@@ -109,7 +109,7 @@ export default function IntelIndustriaEditor({ clienteId, inicial, industria }: 
                     </div>
                   ))}
                 </div>
-                <p className="text-xs text-slate-500 mt-1">
+                <p className="text-xs text-slate-400 mt-1">
                   Herramientas: {Array.from(new Set(kgData.automatizaciones.flatMap(a => a.herramientas))).slice(0, 6).join(', ')}
                 </p>
               </div>
@@ -119,7 +119,7 @@ export default function IntelIndustriaEditor({ clienteId, inicial, industria }: 
 
         {/* Notas manuales */}
         <div>
-          <p className="text-slate-500 text-xs mb-2">
+          <p className="text-slate-400 text-xs mb-2">
             Notas y contexto adicional registrado manualmente por el equipo AICOUNTS
           </p>
           <Textarea

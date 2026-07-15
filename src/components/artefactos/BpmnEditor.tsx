@@ -68,7 +68,7 @@ function EventNode({ data, type }: NodeProps) {
       <p className="text-[10px] text-slate-200 text-center mt-1.5 leading-tight font-medium"
          style={{ maxWidth: 96 }}>{data.label}</p>
       {data.sistema && !isStart && !isEnd && (
-        <p className="text-[9px] text-slate-600 text-center mt-0.5">{data.sistema}</p>
+        <p className="text-[9px] text-slate-400 text-center mt-0.5">{data.sistema}</p>
       )}
       <Handle type="source" position={Position.Right}
         className="!w-2 !h-2 !bg-slate-700 !border-slate-500 !rounded-full" />
@@ -99,21 +99,21 @@ function TaskNode({ data, type }: NodeProps) {
       <div className={`border rounded-lg px-2.5 py-2 relative bg-slate-900 ${meta.accent}`}
            style={{ minHeight: 54 }}>
         {meta.icon && (
-          <div className="absolute top-1.5 left-1.5 text-slate-500">{meta.icon}</div>
+          <div className="absolute top-1.5 left-1.5 text-slate-400">{meta.icon}</div>
         )}
         <p className={`text-[11px] text-slate-100 font-medium leading-tight text-center ${meta.icon ? 'px-1' : ''}`}>
           {data.label}
         </p>
         <div className="flex items-center justify-between mt-1.5 gap-1">
           {data.actor && (
-            <span className="text-[9px] text-slate-500 truncate leading-none">{data.actor}</span>
+            <span className="text-[9px] text-slate-400 truncate leading-none">{data.actor}</span>
           )}
           {data.tiempo && (
-            <span className="text-[9px] text-slate-600 shrink-0 leading-none">{data.tiempo}</span>
+            <span className="text-[9px] text-slate-400 shrink-0 leading-none">{data.tiempo}</span>
           )}
         </div>
         {data.sistema && data.sistema !== 'Manual' && data.sistema !== '—' && (
-          <p className="text-[8px] text-slate-600 text-center mt-0.5 truncate">{data.sistema}</p>
+          <p className="text-[8px] text-slate-400 text-center mt-0.5 truncate">{data.sistema}</p>
         )}
         {isSubProcess && (
           <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 border border-slate-600 bg-slate-900 rounded flex items-center justify-center">
@@ -297,14 +297,14 @@ function Leyenda() {
     { shape: 'diamond-plus', label: 'Gateway AND (+)' },
   ]
   return (
-    <div className="flex flex-wrap gap-x-4 gap-y-1 text-[10px] text-slate-500 px-1 pt-1">
+    <div className="flex flex-wrap gap-x-4 gap-y-1 text-[10px] text-slate-400 px-1 pt-1">
       {items.map(it => (
         <div key={it.label} className="flex items-center gap-1.5">
           <LeyendaShape shape={it.shape} />
           <span>{it.label}</span>
         </div>
       ))}
-      <div className="flex items-center gap-2 ml-3 text-slate-600 border-l border-slate-800 pl-3">
+      <div className="flex items-center gap-2 ml-3 text-slate-400 border-l border-slate-800 pl-3">
         <span className="flex items-center gap-1"><span className="w-5 h-px bg-slate-500" />Secuencia</span>
         <span className="flex items-center gap-1"><span className="w-5 h-px border-t border-dashed border-slate-500" />Condicional</span>
         <span className="flex items-center gap-1"><span className="w-5 h-px border-t border-dashed border-red-500/60" />Excepción</span>
@@ -479,7 +479,7 @@ export default function BpmnEditor({
           >
             <Trash2 className="w-3 h-3" /> Eliminar selección
           </button>
-          <p className="text-slate-600 text-xs">Doble clic en nodo para editar · Arrastra para mover</p>
+          <p className="text-slate-400 text-xs">Doble clic en nodo para editar · Arrastra para mover</p>
           <div className="ml-auto flex items-center gap-2">
             {error && <span className="text-red-400 text-xs">{error}</span>}
             {guardado && <span className="text-emerald-400 text-xs">✓ Guardado</span>}

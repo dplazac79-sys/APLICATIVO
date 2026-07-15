@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { toast } from 'sonner'
-import { Upload, Users, Sparkles, CheckCircle, AlertTriangle, Plus, Trash2, ChevronDown, ChevronUp, RefreshCw, BookOpen, UserCheck, UserX, ArrowRightLeft } from 'lucide-react'
+import { Upload, Users, Sparkles, CheckCircle2, AlertTriangle, Plus, Trash2, ChevronDown, ChevronUp, RefreshCw, BookOpen, UserCheck, UserX, ArrowRightLeft } from 'lucide-react'
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 interface RolMapeo {
@@ -364,7 +364,7 @@ export function GlosarioRoles({ proyectoId, nombreProyecto: _nombreProyecto, rol
                   onClick={() => { setOrgSeleccionado(o.id); setStep('personas') }}
                   style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderRadius: 10, border: `1px solid ${orgSeleccionado === o.id ? 'rgba(99,102,241,0.4)' : 'rgba(255,255,255,0.06)'}`, background: orgSeleccionado === o.id ? 'rgba(99,102,241,0.08)' : 'rgba(255,255,255,0.02)', cursor: 'pointer', marginBottom: 6 }}
                 >
-                  <CheckCircle size={14} style={{ color: '#22c55e' }} />
+                  <CheckCircle2 size={14} style={{ color: '#22c55e' }} />
                   <span style={{ color: '#e2e8f0', fontSize: 13 }}>{o.nombre_archivo}</span>
                   <span style={{ marginLeft: 'auto', fontSize: 10, color: '#334155' }}>{o.estado}</span>
                 </div>

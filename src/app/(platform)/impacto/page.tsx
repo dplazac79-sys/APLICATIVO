@@ -231,7 +231,7 @@ export default function ImpactoPage() {
             <BarChart3 className="w-4 h-4 text-indigo-400" />
             <h1 className="text-sm font-semibold text-white">Simulador de Escenarios</h1>
           </div>
-          <p className="text-[11px] text-slate-500 -mt-2 mb-3 leading-relaxed">
+          <p className="text-[11px] text-slate-400 -mt-2 mb-3 leading-relaxed">
             Modela tus propios parámetros — distinto del Horizonte de Impacto con IA que ve el cliente.
           </p>
           <select
@@ -244,9 +244,9 @@ export default function ImpactoPage() {
         </div>
 
         <div className="flex-1 overflow-y-auto p-2">
-          {loading && <p className="text-slate-500 text-xs px-2 py-3">Cargando...</p>}
+          {loading && <p className="text-slate-400 text-xs px-2 py-3">Cargando...</p>}
           {!loading && simulaciones.length === 0 && (
-            <p className="text-slate-600 text-xs px-2 py-3">Sin simulaciones. Crea la primera.</p>
+            <p className="text-slate-400 text-xs px-2 py-3">Sin simulaciones. Crea la primera.</p>
           )}
           {simulaciones.map(sim => (
             <button
@@ -259,7 +259,7 @@ export default function ImpactoPage() {
                 <ChevronRight className="w-3 h-3 text-slate-600 shrink-0" />
               </div>
               <div className="flex gap-1.5 mt-1 flex-wrap">
-                <span className="text-[10px] text-slate-500 bg-slate-800 px-1.5 py-0.5 rounded">{TIPO_LABEL[sim.tipo]}</span>
+                <span className="text-[10px] text-slate-400 bg-slate-800 px-1.5 py-0.5 rounded">{TIPO_LABEL[sim.tipo]}</span>
                 {sim.proceso_id && <span className="text-[10px] text-indigo-400 bg-indigo-900/30 px-1.5 py-0.5 rounded flex items-center gap-0.5"><Link2 className="w-2 h-2" />proceso</span>}
                 {sim.entregable_id && <span className="text-[10px] text-emerald-600 bg-emerald-900/30 px-1.5 py-0.5 rounded">Exportado</span>}
               </div>
@@ -361,16 +361,16 @@ function FormularioSimulacion({
             <option value="">— Sin proceso vinculado —</option>
             {procesos.map(p => <option key={p.id} value={p.id}>{p.nombre}</option>)}
           </select>
-          {loadingContexto && <p className="text-xs text-slate-500 mt-1">Cargando contexto del proceso...</p>}
+          {loadingContexto && <p className="text-xs text-slate-400 mt-1">Cargando contexto del proceso...</p>}
           {contextoArtefactos && (
             <div className="mt-2 flex gap-2 flex-wrap">
               {contextoArtefactos.asis
                 ? <span className="text-[10px] text-emerald-400 bg-emerald-900/30 px-2 py-1 rounded flex items-center gap-1"><Zap className="w-2.5 h-2.5" />AS-IS detectado</span>
-                : <span className="text-[10px] text-slate-600 bg-slate-800 px-2 py-1 rounded">Sin artefacto AS-IS</span>
+                : <span className="text-[10px] text-slate-400 bg-slate-800 px-2 py-1 rounded">Sin artefacto AS-IS</span>
               }
               {contextoArtefactos.tobe
                 ? <span className="text-[10px] text-emerald-400 bg-emerald-900/30 px-2 py-1 rounded flex items-center gap-1"><Zap className="w-2.5 h-2.5" />TO-BE detectado</span>
-                : <span className="text-[10px] text-slate-600 bg-slate-800 px-2 py-1 rounded">Sin artefacto TO-BE</span>
+                : <span className="text-[10px] text-slate-400 bg-slate-800 px-2 py-1 rounded">Sin artefacto TO-BE</span>
               }
               {(contextoArtefactos.asis || contextoArtefactos.tobe) && (
                 <span className="text-[10px] text-indigo-400 bg-indigo-900/30 px-2 py-1 rounded">Parámetros pre-poblados desde proceso</span>
@@ -415,8 +415,8 @@ function FormularioSimulacion({
         </div>
 
         <div className="flex gap-3 pt-2">
-          <button onClick={onSubmit} className="bg-indigo-600 hover:bg-indigo-700 text-white text-sm px-4 py-2 rounded-lg">Crear simulación</button>
           <button onClick={onCancel} className="text-slate-400 hover:text-slate-200 text-sm px-4 py-2">Cancelar</button>
+          <button onClick={onSubmit} className="bg-indigo-600 hover:bg-indigo-700 text-white text-sm px-4 py-2 rounded-lg">Crear simulación</button>
         </div>
       </div>
     </div>
@@ -506,6 +506,7 @@ function PanelComparativo({
   onExportar: () => void
   onEliminar: () => void
 }) {
+  const [confirmandoEliminar, setConfirmandoEliminar] = useState(false)
   const rawResultados = liveResultados ?? sim.resultados_todos
   const resultados = rawResultados as Record<Escenario, unknown> | null
 
@@ -518,13 +519,13 @@ function PanelComparativo({
         <div>
           <h2 className="text-white font-semibold text-lg">{sim.nombre}</h2>
           <div className="flex gap-2 mt-1 flex-wrap">
-            <span className="text-xs text-slate-500 bg-slate-800 px-2 py-0.5 rounded">{TIPO_LABEL[sim.tipo]}</span>
+            <span className="text-xs text-slate-400 bg-slate-800 px-2 py-0.5 rounded">{TIPO_LABEL[sim.tipo]}</span>
             {sim.proceso_id && (
               <span className="text-xs text-indigo-400 bg-indigo-900/30 px-2 py-0.5 rounded flex items-center gap-1">
                 <Link2 className="w-3 h-3" /> proceso vinculado
               </span>
             )}
-            {sim.artefacto_asis_id && <span className="text-xs text-slate-500 bg-slate-800 px-2 py-0.5 rounded">AS-IS ✓</span>}
+            {sim.artefacto_asis_id && <span className="text-xs text-slate-400 bg-slate-800 px-2 py-0.5 rounded">AS-IS ✓</span>}
             {sim.artefacto_tobe_id && <span className="text-xs text-emerald-600 bg-emerald-900/30 px-2 py-0.5 rounded">TO-BE ✓</span>}
           </div>
         </div>
@@ -538,9 +539,17 @@ function PanelComparativo({
             {sim.entregable_id ? 'Exportado como entregable' : 'Exportar como entregable'}
           </button>
           {sim.entregable_id && <DescargarPdfBtn entregableId={sim.entregable_id} nombre={sim.nombre} />}
-          <button onClick={onEliminar} className="text-slate-600 hover:text-red-400 p-1.5 rounded">
-            <Trash2 className="w-4 h-4" />
-          </button>
+          {confirmandoEliminar ? (
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-slate-400">¿Eliminar simulación?</span>
+              <button onClick={onEliminar} className="text-xs px-2 py-1 rounded bg-red-600 hover:bg-red-700 text-white">Sí, eliminar</button>
+              <button onClick={() => setConfirmandoEliminar(false)} className="text-slate-400 hover:text-slate-300 text-xs px-1">Cancelar</button>
+            </div>
+          ) : (
+            <button onClick={() => setConfirmandoEliminar(true)} className="text-slate-400 hover:text-red-400 p-1.5 rounded">
+              <Trash2 className="w-4 h-4" />
+            </button>
+          )}
         </div>
       </div>
 
@@ -635,7 +644,7 @@ function LeyendaItem({ color, label }: { color: string; label: string }) {
   return (
     <div className="flex items-center gap-1.5">
       <span className="w-3 h-3 rounded-sm" style={{ background: color }} />
-      <span className="text-xs text-slate-500">{label}</span>
+      <span className="text-xs text-slate-400">{label}</span>
     </div>
   )
 }
@@ -724,11 +733,11 @@ function ComparativoOrganizacional({ resultados, asis }: { resultados: Record<Es
               <div className="flex items-center gap-2 mb-2">
                 <span className="w-2 h-2 rounded-full" style={{ background: color }} />
                 <span className="text-xs font-medium text-slate-300 capitalize">{label}</span>
-                <span className="text-xs text-slate-500 ml-auto">{asis.headcount_actual} → {fmt(resultados[e]?.headcount_tobe ?? 0)} personas</span>
+                <span className="text-xs text-slate-400 ml-auto">{asis.headcount_actual} → {fmt(resultados[e]?.headcount_tobe ?? 0)} personas</span>
               </div>
               {resultados[e]?.roles_a_reasignar?.length > 0 && (
                 <div className="mb-2">
-                  <p className="text-[10px] text-slate-500 mb-1">Reasignar</p>
+                  <p className="text-[10px] text-slate-400 mb-1">Reasignar</p>
                   <div className="flex flex-wrap gap-1">
                     {resultados[e].roles_a_reasignar.map(r => (
                       <span key={r} className="text-[10px] text-amber-400 bg-amber-900/30 px-1.5 py-0.5 rounded">{r}</span>
@@ -738,7 +747,7 @@ function ComparativoOrganizacional({ resultados, asis }: { resultados: Record<Es
               )}
               {resultados[e]?.roles_a_crear?.length > 0 && (
                 <div>
-                  <p className="text-[10px] text-slate-500 mb-1">Crear</p>
+                  <p className="text-[10px] text-slate-400 mb-1">Crear</p>
                   <div className="flex flex-wrap gap-1">
                     {resultados[e].roles_a_crear.map(r => (
                       <span key={r} className="text-[10px] text-emerald-400 bg-emerald-900/30 px-1.5 py-0.5 rounded">{r}</span>
@@ -784,7 +793,7 @@ function MetricTable({
         const isBetter = inverted ? row.value < asisValue : row.value > asisValue
         return (
           <div key={row.label} className="flex items-center gap-3 mb-2">
-            <span className="text-xs w-16 sm:w-28 shrink-0 capitalize text-slate-500">{row.label}</span>
+            <span className="text-xs w-16 sm:w-28 shrink-0 capitalize text-slate-400">{row.label}</span>
             <div className="flex-1 h-4 bg-slate-800 rounded-sm overflow-hidden">
               <div className="h-full rounded-sm transition-all duration-300" style={{ width: `${pct}%`, background: row.color }} />
             </div>
@@ -803,10 +812,10 @@ function KpiCard({ color, label, value, sub }: { color: string; label: string; v
     <div className="bg-slate-900 rounded-lg border border-slate-800 p-3">
       <div className="flex items-center gap-1.5 mb-2">
         <span className="w-2 h-2 rounded-full" style={{ background: color }} />
-        <span className="text-[10px] text-slate-500 capitalize">{label}</span>
+        <span className="text-[10px] text-slate-400 capitalize">{label}</span>
       </div>
       <p className="text-sm font-semibold text-white">{value}</p>
-      {sub && <p className="text-[10px] text-slate-600 mt-0.5">{sub}</p>}
+      {sub && <p className="text-[10px] text-slate-400 mt-0.5">{sub}</p>}
     </div>
   )
 }
@@ -817,7 +826,7 @@ function EmptyState({ onNew }: { onNew: () => void }) {
       <BarChart3 className="w-12 h-12 text-slate-700" />
       <div>
         <p className="text-slate-300 font-medium">Sin simulaciones para este proyecto</p>
-        <p className="text-slate-600 text-sm mt-1 max-w-sm">
+        <p className="text-slate-400 text-sm mt-1 max-w-sm">
           Ingresa tus propios parámetros operacionales, financieros u organizacionales y compara escenarios (conservador, base, TO-BE). Útil para modelar supuestos que el Horizonte de Impacto automático no cubre.
         </p>
       </div>

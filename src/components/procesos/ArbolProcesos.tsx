@@ -92,7 +92,7 @@ function NodoItem({
 
         <span className="text-sm text-slate-200 flex-1 truncate">{nodo.nombre}</span>
 
-        <span className="text-xs text-slate-600 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+        <span className="text-xs text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
           {NIVEL_LABEL[nodo.nivel] ?? 'Proceso'}
         </span>
       </div>
@@ -165,7 +165,7 @@ export default function ArbolProcesos({ procesos, onSelect, selectedId, titulo }
       {/* Árbol */}
       <div className="bg-slate-900 border border-slate-800 rounded-lg overflow-hidden">
         {arbol.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-10 text-slate-500 gap-2">
+          <div className="flex flex-col items-center justify-center py-10 text-slate-400 gap-2">
             <GitBranch className="w-8 h-8 opacity-30" />
             <p className="text-sm">
               {busqueda ? 'Sin resultados' : 'Sin procesos aceptados'}

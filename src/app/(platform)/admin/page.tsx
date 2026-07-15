@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { formatFecha as fecha } from '@/lib/format'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Users, Shield, Database, Activity, Plus } from 'lucide-react'
 import Link from 'next/link'
@@ -25,7 +26,9 @@ const ROL_COLOR: Record<string, string> = {
   usuario_cliente: 'bg-slate-800 text-slate-400 border-slate-700',
 }
 
-export default async function AdminPage() {
+const USUARIOS_PAGE_SIZE = 25
+
+export default async function AdminPage({ searchParams }: { searchParams: { usuariosPage?: string } }) {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
@@ -35,24 +38,26 @@ export default async function AdminPage() {
 
   const admin = createAdminClient()
 
+  const usuariosPage = Math.max(1, parseInt(searchParams.usuariosPage ?? '1', 10) || 1)
+  const usuariosFrom = (usuariosPage - 1) * USUARIOS_PAGE_SIZE
+  const usuariosTo = usuariosFrom + USUARIOS_PAGE_SIZE - 1
+
   const [
-    { data: usuarios },
+    { data: usuarios, count: totalUsuarios },
     { data: proyectos },
     { data: clientes },
     { data: auditRecientes },
   ] = await Promise.all([
-    admin.from('usuario').select('id, nombre, email, rol, created_at').order('created_at', { ascending: false }).limit(100),
+    admin.from('usuario').select('id, nombre, email, rol, created_at', { count: 'exact' }).order('created_at', { ascending: false }).range(usuariosFrom, usuariosTo),
     admin.from('proyecto').select('id, nombre, estado_general, cliente:cliente_id(razon_social)').order('created_at', { ascending: false }).limit(10),
     admin.from('cliente').select('id, razon_social, industria').order('created_at', { ascending: false }).limit(10),
     admin.from('audit_log').select('id, accion, entidad, detalle, created_at, usuario:usuario_id(nombre)').order('created_at', { ascending: false }).limit(20),
   ])
+  const totalPaginasUsuarios = Math.max(1, Math.ceil((totalUsuarios ?? 0) / USUARIOS_PAGE_SIZE))
 
   // Leer user_metadata de Supabase Auth para saber quiénes están bloqueados
   const { data: { users: authUsers } } = await admin.auth.admin.listUsers({ perPage: 1000 })
   const lockedMap = new Map(authUsers.map(u => [u.id, u.user_metadata?.locked === true]))
-
-  const fecha = (s: string) =>
-    new Date(s).toLocaleDateString('es-CL', { day: '2-digit', month: 'short', year: 'numeric' })
 
   const accionVerbo: Record<string, string> = {
     CREATE: 'Creó', UPDATE: 'Modificó', DELETE: 'Eliminó',
@@ -125,7 +130,7 @@ export default async function AdminPage() {
               <div key={u.id} className="flex items-center justify-between px-6 py-3">
                 <div>
                   <p className="text-sm font-medium text-slate-200">{u.nombre}</p>
-                  <p className="text-xs text-slate-500">{u.email}</p>
+                  <p className="text-xs text-slate-400">{u.email}</p>
                 </div>
                 <div className="flex items-center gap-3">
                   <UnlockButton usuarioId={u.id} locked={lockedMap.get(u.id) ?? false} />
@@ -133,12 +138,29 @@ export default async function AdminPage() {
                   <span className={`text-xs px-2 py-0.5 rounded border ${ROL_COLOR[u.rol] ?? ROL_COLOR.usuario_cliente}`}>
                     {ROL_LABEL[u.rol] ?? u.rol}
                   </span>
-                  <span className="text-xs text-slate-600">{fecha(u.created_at)}</span>
+                  <span className="text-xs text-slate-400">{fecha(u.created_at)}</span>
                 </div>
               </div>
             ))}
           </div>
         </CardContent>
+        {totalPaginasUsuarios > 1 && (
+          <div className="flex items-center justify-between px-6 py-3 border-t border-slate-800">
+            <p className="text-xs text-slate-400">Página {usuariosPage} de {totalPaginasUsuarios} · {totalUsuarios} usuarios en total</p>
+            <div className="flex items-center gap-2">
+              {usuariosPage > 1 ? (
+                <Link href={`/admin?usuariosPage=${usuariosPage - 1}`} className="text-xs px-3 py-1.5 rounded-lg border border-slate-700 text-slate-300 hover:border-slate-500 transition-colors">← Anterior</Link>
+              ) : (
+                <span className="text-xs px-3 py-1.5 rounded-lg border border-slate-800 text-slate-400">← Anterior</span>
+              )}
+              {usuariosPage < totalPaginasUsuarios ? (
+                <Link href={`/admin?usuariosPage=${usuariosPage + 1}`} className="text-xs px-3 py-1.5 rounded-lg border border-slate-700 text-slate-300 hover:border-slate-500 transition-colors">Siguiente →</Link>
+              ) : (
+                <span className="text-xs px-3 py-1.5 rounded-lg border border-slate-800 text-slate-400">Siguiente →</span>
+              )}
+            </div>
+          </div>
+        )}
       </Card>
 
       {/* Proyectos recientes */}
@@ -156,7 +178,7 @@ export default async function AdminPage() {
                 <div key={p.id} className="flex items-center justify-between px-6 py-3">
                   <div>
                     <p className="text-sm font-medium text-slate-200">{p.nombre}</p>
-                    <p className="text-xs text-slate-500">{cliente?.razon_social ?? '—'}</p>
+                    <p className="text-xs text-slate-400">{cliente?.razon_social ?? '—'}</p>
                   </div>
                   <span className={`text-xs px-2 py-0.5 rounded border ${
                     p.estado_general === 'activo' ? 'bg-emerald-900/40 text-emerald-300 border-emerald-800' :
@@ -182,7 +204,7 @@ export default async function AdminPage() {
         <CardContent className="p-0">
           <div className="divide-y divide-slate-800">
             {(auditRecientes ?? []).length === 0 ? (
-              <p className="px-6 py-4 text-sm text-slate-500">Sin eventos registrados aún.</p>
+              <p className="px-6 py-4 text-sm text-slate-400">Sin eventos registrados aún.</p>
             ) : (auditRecientes ?? []).map(a => {
               const verbo = accionVerbo[a.accion] ?? a.accion
               const entidad = entidadNombre[a.entidad] ?? a.entidad.replace(/_/g, ' ')
@@ -200,15 +222,15 @@ export default async function AdminPage() {
                       <span className="font-medium text-slate-200">{usuarioNombre}</span>
                       {' '}<span className="text-slate-400">{verbo}</span>{' '}
                       <span className="text-slate-300">{entidad}</span>
-                      {detNombre && <span className="text-slate-500"> — {detNombre}</span>}
+                      {detNombre && <span className="text-slate-400"> — {detNombre}</span>}
                     </p>
                     {extra.length > 0 && (
-                      <p className="text-xs text-slate-600 mt-0.5 truncate">
+                      <p className="text-xs text-slate-400 mt-0.5 truncate">
                         {extra.map(([k, v]) => `${k.replace(/_/g, ' ')}: ${String(v).slice(0, 25)}`).join(' · ')}
                       </p>
                     )}
                   </div>
-                  <span className="text-xs text-slate-600 shrink-0">{fecha(a.created_at)}</span>
+                  <span className="text-xs text-slate-400 shrink-0">{fecha(a.created_at)}</span>
                 </div>
               )
             })}

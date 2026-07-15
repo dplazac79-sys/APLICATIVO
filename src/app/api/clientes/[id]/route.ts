@@ -19,7 +19,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
-    if (!(await requireRole(user.id, ['super_admin', 'admin']))) {
+    if (!(await requireRole(user.id, ['super_admin']))) {
     return NextResponse.json({ error: 'Solo admin o super_admin pueden modificar clientes' }, { status: 403 })
   }
 

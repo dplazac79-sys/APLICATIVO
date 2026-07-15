@@ -60,19 +60,23 @@ function CambiarPasswordForm() {
     }
 
     setLoading(true)
-    const { error: errUpdate } = await supabase.auth.updateUser({
-      password: nueva,
-      data: {
-        must_change_password: false,
-        password_changed_at: new Date().toISOString(),
-      },
+    const res = await fetch('/api/auth/cambiar-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: nueva }),
     })
+    const data = await res.json()
 
-    if (errUpdate) {
-      setError(errUpdate.message)
+    if (!res.ok) {
+      setError(data.error ?? 'No se pudo cambiar la contraseña.')
       setLoading(false)
       return
     }
+
+    // La sesión del navegador quedó con el JWT viejo — hay que refrescarla
+    // para que must_change_password/password_changed_at reflejen el cambio
+    // recién hecho por el servidor (con el service role) en el próximo request.
+    await supabase.auth.refreshSession()
 
     const { data: { user } } = await supabase.auth.getUser()
     const { data: usuario } = await supabase

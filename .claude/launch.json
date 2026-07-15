@@ -5,7 +5,8 @@
       "name": "processos-dev",
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev"],
-"port": 3001
+      "cwd": ".",
+      "port": 3001
     }
   ]
 }

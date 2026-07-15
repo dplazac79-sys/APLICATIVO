@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Sparkles, CheckCircle, AlertTriangle, FileText, RefreshCw } from 'lucide-react'
+import { Sparkles, CheckCircle2, AlertTriangle, FileText, RefreshCw } from 'lucide-react'
 import type { ProcesoConHijos, DocAnalisis } from './types'
 
 export type PlanImplementacion = {
@@ -80,14 +80,14 @@ export function ProcesoTabContent({ proceso, docAnalisis, critCfg, accentColor, 
             <p className="text-slate-200 text-sm leading-relaxed">
               {ia?.resumen_ejecutivo ?? (docAnalisis?.resumen_ejecutivo as string)}
             </p>
-            <p className="text-xs text-slate-600 flex items-center gap-1">
+            <p className="text-xs text-slate-400 flex items-center gap-1">
               <FileText className="w-3 h-3" /> Extraído del documento formal
             </p>
           </div>
         ) : proceso.origen === 'propuesta_ia' && justificacion ? (
           <p className="text-slate-200 text-sm leading-relaxed">{justificacion}</p>
         ) : (
-          <p className="text-slate-500 text-sm italic">Sin resumen disponible — procesa el documento para ver este análisis.</p>
+          <p className="text-slate-400 text-sm italic">Sin resumen disponible — procesa el documento para ver este análisis.</p>
         )}
 
         {/* Capa 2: perspectiva estratégica IA (solo si hay plan, como enriquecimiento adicional) */}
@@ -112,14 +112,14 @@ export function ProcesoTabContent({ proceso, docAnalisis, critCfg, accentColor, 
           {/* Madurez visual */}
           {madurezN != null && madurezCfg && (
             <div className="rounded-xl border border-slate-700/40 bg-slate-800/30 p-4 space-y-3">
-              <p className="text-xs text-slate-500 uppercase tracking-widest font-semibold">Madurez AMO</p>
+              <p className="text-xs text-slate-400 uppercase tracking-widest font-semibold">Madurez AMO</p>
               <div className="flex items-center gap-1.5">
                 {madurezDots.map(n => (
                   <div key={n} className={`flex-1 h-2 rounded-full transition-all ${n <= madurezN ? accentColor : 'bg-slate-700/60'}`} />
                 ))}
               </div>
               <div className="flex items-center justify-between">
-                <span className={`text-xl font-black ${madurezCfg.color}`}>{madurezN}<span className="text-slate-600 text-sm font-normal">/5</span></span>
+                <span className={`text-xl font-black ${madurezCfg.color}`}>{madurezN}<span className="text-slate-400 text-sm font-normal">/5</span></span>
                 <span className={`text-xs font-bold px-2 py-0.5 rounded-full border ${
                   madurezN <= 1 ? 'bg-red-950/60 text-red-300 border-red-800/40' :
                   madurezN <= 2 ? 'bg-orange-950/60 text-orange-300 border-orange-800/40' :
@@ -128,7 +128,7 @@ export function ProcesoTabContent({ proceso, docAnalisis, critCfg, accentColor, 
                 }`}>{ia?.nivel_madurez_nombre ?? madurezCfg.label}</span>
               </div>
               {ia?.nivel_madurez_evidencia && (
-                <p className="text-xs text-slate-500 leading-relaxed line-clamp-3">{ia.nivel_madurez_evidencia}</p>
+                <p className="text-xs text-slate-400 leading-relaxed line-clamp-3">{ia.nivel_madurez_evidencia}</p>
               )}
             </div>
           )}
@@ -137,7 +137,7 @@ export function ProcesoTabContent({ proceso, docAnalisis, critCfg, accentColor, 
           <div className="space-y-2">
             {critCfg && (
               <div className={`rounded-xl border p-3 ${critCfg.bg}`}>
-                <p className="text-xs text-slate-500 uppercase tracking-widest font-semibold mb-2">Criticidad</p>
+                <p className="text-xs text-slate-400 uppercase tracking-widest font-semibold mb-2">Criticidad</p>
                 <div className="flex items-center gap-2">
                   <AlertTriangle className={`w-4 h-4 ${critCfg.color}`} />
                   <span className={`text-sm font-bold ${critCfg.color}`}>{critCfg.label}</span>
@@ -146,7 +146,7 @@ export function ProcesoTabContent({ proceso, docAnalisis, critCfg, accentColor, 
             )}
             {proceso.roles_involucrados && proceso.roles_involucrados.length > 0 && (
               <div className="rounded-xl border border-slate-700/40 bg-slate-800/30 p-3">
-                <p className="text-xs text-slate-500 uppercase tracking-widest font-semibold mb-2">Roles</p>
+                <p className="text-xs text-slate-400 uppercase tracking-widest font-semibold mb-2">Roles</p>
                 <div className="flex flex-wrap gap-1">
                   {proceso.roles_involucrados.map(r => (
                     <span key={r} className="text-xs bg-slate-700/60 text-slate-300 border border-slate-600/40 px-2 py-0.5 rounded-full">{r}</span>
@@ -162,7 +162,7 @@ export function ProcesoTabContent({ proceso, docAnalisis, critCfg, accentColor, 
           <div className="rounded-xl border border-amber-800/20 bg-amber-950/10 p-4 space-y-2">
             <div className="flex items-center justify-between">
               <p className="text-xs text-amber-400 uppercase tracking-widest font-semibold">Diagnóstico operacional hoy</p>
-              <p className="text-xs text-slate-600 flex items-center gap-1"><FileText className="w-3 h-3" /> Del documento</p>
+              <p className="text-xs text-slate-400 flex items-center gap-1"><FileText className="w-3 h-3" /> Del documento</p>
             </div>
             <p className="text-slate-300 text-sm leading-relaxed">{ia.diagnostico_operacional}</p>
             {plan?.situacion_actual && plan.situacion_actual !== ia.diagnostico_operacional && (
@@ -208,7 +208,7 @@ export function ProcesoTabContent({ proceso, docAnalisis, critCfg, accentColor, 
               <Sparkles className="w-5 h-5 text-violet-400" />
             </div>
             <p className="text-slate-400 text-sm font-medium">Plan de implementación no generado</p>
-            <p className="text-slate-600 text-xs">Genera un roadmap estructurado con fases, responsables y factores críticos de éxito.</p>
+            <p className="text-slate-400 text-xs">Genera un roadmap estructurado con fases, responsables y factores críticos de éxito.</p>
           </div>
         )}
 
@@ -234,12 +234,12 @@ export function ProcesoTabContent({ proceso, docAnalisis, critCfg, accentColor, 
                   className={`flex-1 flex flex-col items-center py-2 px-3 rounded-lg text-xs font-semibold transition-all ${
                     faseActiva === f.id
                       ? 'bg-slate-700 text-white'
-                      : 'text-slate-500 hover:text-slate-300'
+                      : 'text-slate-400 hover:text-slate-300'
                   }`}
                 >
                   <span className="text-base">{f.emoji}</span>
                   <span>{f.label}</span>
-                  <span className={`text-xs font-normal ${faseActiva === f.id ? 'text-slate-400' : 'text-slate-600'}`}>{f.desc}</span>
+                  <span className={`text-xs font-normal ${faseActiva === f.id ? 'text-slate-400' : 'text-slate-400'}`}>{f.desc}</span>
                 </button>
               ))}
             </div>
@@ -259,7 +259,7 @@ export function ProcesoTabContent({ proceso, docAnalisis, critCfg, accentColor, 
                       </span>
                     </div>
                     <p className="text-sm text-slate-200 leading-snug">{item.accion}</p>
-                    <p className="text-xs text-slate-500 mt-0.5">→ {item.responsable}</p>
+                    <p className="text-xs text-slate-400 mt-0.5">→ {item.responsable}</p>
                   </div>
                 </div>
               ))}
@@ -272,7 +272,7 @@ export function ProcesoTabContent({ proceso, docAnalisis, critCfg, accentColor, 
                   <p className="text-xs font-bold text-emerald-400 uppercase tracking-widest">Claves de éxito</p>
                   {plan.factores_criticos_exito.map((f, i) => (
                     <div key={i} className="flex items-start gap-1.5">
-                      <CheckCircle className="w-3 h-3 text-emerald-500 mt-0.5 shrink-0" />
+                      <CheckCircle2 className="w-3 h-3 text-emerald-500 mt-0.5 shrink-0" />
                       <p className="text-xs text-slate-300 leading-snug">{f}</p>
                     </div>
                   ))}
@@ -294,7 +294,7 @@ export function ProcesoTabContent({ proceso, docAnalisis, critCfg, accentColor, 
             <button
               onClick={generarPlan}
               disabled={generandoPlan}
-              className="text-xs text-slate-600 hover:text-slate-400 transition-colors flex items-center gap-1"
+              className="text-xs text-slate-400 hover:text-slate-400 transition-colors flex items-center gap-1"
             >
               <RefreshCw className="w-3 h-3" /> Regenerar plan
             </button>

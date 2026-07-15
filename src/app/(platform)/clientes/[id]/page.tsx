@@ -70,7 +70,7 @@ export default async function ClienteDetallePage({ params }: { params: { id: str
               </span>
             )}
             {cliente.tamano && (
-              <span className="text-xs text-slate-500">{TAMANO_LABELS[cliente.tamano] ?? cliente.tamano}</span>
+              <span className="text-xs text-slate-400">{TAMANO_LABELS[cliente.tamano] ?? cliente.tamano}</span>
             )}
           </div>
         </div>
@@ -91,26 +91,26 @@ export default async function ClienteDetallePage({ params }: { params: { id: str
         </CardHeader>
         <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
           {cliente.rut && (
-            <div><p className="text-slate-500 text-xs">RUT</p><p className="text-slate-200">{cliente.rut}</p></div>
+            <div><p className="text-slate-400 text-xs">RUT</p><p className="text-slate-200">{cliente.rut}</p></div>
           )}
           {cliente.dotacion && (
-            <div><p className="text-slate-500 text-xs">Dotación</p><p className="text-slate-200">{cliente.dotacion.toLocaleString('es-CL')} personas</p></div>
+            <div><p className="text-slate-400 text-xs">Dotación</p><p className="text-slate-200">{cliente.dotacion.toLocaleString('es-CL')} personas</p></div>
           )}
           {cliente.madurez_digital && (
-            <div><p className="text-slate-500 text-xs">Madurez digital</p><p className="text-slate-200 first-letter:capitalize">{cliente.madurez_digital}</p></div>
+            <div><p className="text-slate-400 text-xs">Madurez digital</p><p className="text-slate-200 first-letter:capitalize">{cliente.madurez_digital}</p></div>
           )}
           {cliente.facturacion && (
-            <div><p className="text-slate-500 text-xs">Facturación anual</p><p className="text-slate-200">USD {Number(cliente.facturacion).toLocaleString('es-CL')}</p></div>
+            <div><p className="text-slate-400 text-xs">Facturación anual</p><p className="text-slate-200">USD {Number(cliente.facturacion).toLocaleString('es-CL')}</p></div>
           )}
           {cliente.objetivos_estrategicos && (
             <div className="col-span-2">
-              <p className="text-slate-500 text-xs">Objetivos estratégicos</p>
+              <p className="text-slate-400 text-xs">Objetivos estratégicos</p>
               <p className="text-slate-200">{cliente.objetivos_estrategicos}</p>
             </div>
           )}
           {cliente.riesgos_declarados && (
             <div className="col-span-2">
-              <p className="text-slate-500 text-xs">Riesgos declarados por el cliente</p>
+              <p className="text-slate-400 text-xs">Riesgos declarados por el cliente</p>
               <p className="text-slate-200">{cliente.riesgos_declarados}</p>
             </div>
           )}
@@ -135,16 +135,16 @@ export default async function ClienteDetallePage({ params }: { params: { id: str
                   <p className="text-xs text-slate-400 mb-1">{k.nombre}</p>
                   <div className="flex items-end gap-3">
                     <div>
-                      <p className="text-xs text-slate-600">Línea base</p>
+                      <p className="text-xs text-slate-400">Línea base</p>
                       <p className="text-slate-300 font-medium">{k.linea_base ?? '—'}</p>
                     </div>
                     <TrendingUp className="w-4 h-4 text-indigo-500 mb-0.5" />
                     <div>
-                      <p className="text-xs text-slate-600">Meta</p>
+                      <p className="text-xs text-slate-400">Meta</p>
                       <p className="text-emerald-400 font-medium">{k.meta ?? '—'}</p>
                     </div>
                   </div>
-                  <p className="text-xs text-slate-600 mt-1">Frecuencia: {k.frecuencia}</p>
+                  <p className="text-xs text-slate-400 mt-1">Frecuencia: {k.frecuencia}</p>
                 </div>
               ))}
             </div>
@@ -166,7 +166,7 @@ export default async function ClienteDetallePage({ params }: { params: { id: str
                 <AlertTriangle className={`w-3.5 h-3.5 mt-0.5 shrink-0 ${
                   r.nivel_riesgo === 'critico' ? 'text-red-400' :
                   r.nivel_riesgo === 'alto' ? 'text-orange-400' :
-                  r.nivel_riesgo === 'medio' ? 'text-amber-400' : 'text-slate-500'
+                  r.nivel_riesgo === 'medio' ? 'text-amber-400' : 'text-slate-400'
                 }`} />
                 <p className="text-sm text-slate-300 flex-1">{r.descripcion}</p>
                 <span className={`text-xs px-2 py-0.5 rounded-full border shrink-0 ${NIVEL_RIESGO_STYLE[r.nivel_riesgo] ?? NIVEL_RIESGO_STYLE.bajo}`}>
@@ -204,15 +204,15 @@ export default async function ClienteDetallePage({ params }: { params: { id: str
                         {p.estado_general}
                       </span>
                     </div>
-                    {p.alcance && <p className="text-slate-500 text-xs mt-0.5 truncate">{p.alcance}</p>}
+                    {p.alcance && <p className="text-slate-400 text-xs mt-0.5 truncate">{p.alcance}</p>}
                     <div className="flex items-center gap-4 mt-2">
-                      <span className="flex items-center gap-1 text-xs text-slate-500">
+                      <span className="flex items-center gap-1 text-xs text-slate-400">
                         <Network className="w-3 h-3" /> {(p.proceso ?? []).length} procesos
                       </span>
-                      <span className="flex items-center gap-1 text-xs text-slate-500">
+                      <span className="flex items-center gap-1 text-xs text-slate-400">
                         <Layers className="w-3 h-3" /> {(p.artefacto ?? []).length} artefactos
                       </span>
-                      <span className="flex items-center gap-1 text-xs text-slate-500">
+                      <span className="flex items-center gap-1 text-xs text-slate-400">
                         <FileText className="w-3 h-3" /> {docCount ?? 0} documentos
                       </span>
                     </div>

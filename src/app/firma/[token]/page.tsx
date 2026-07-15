@@ -39,7 +39,7 @@ export default async function FirmaPage({ params }: Props) {
         {/* Logo */}
         <div className="text-center mb-8">
           <p className="text-white font-bold text-xl tracking-tight">ProcessOS</p>
-          <p className="text-slate-500 text-xs mt-1">BY AICOUNTS CONSULTORES</p>
+          <p className="text-slate-400 text-xs mt-1">BY AICOUNTS CONSULTORES</p>
         </div>
 
         <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-5">
@@ -54,7 +54,7 @@ export default async function FirmaPage({ params }: Props) {
           {firma.estado === 'firmado' && (
             <div className="bg-emerald-950/30 border border-emerald-700/40 rounded-xl p-4 text-center">
               <p className="text-emerald-400 font-medium">Documento firmado</p>
-              <p className="text-slate-500 text-sm mt-1">
+              <p className="text-slate-400 text-sm mt-1">
                 Firmado por {firma.firmante_nombre ?? 'N/A'} el{' '}
                 {firma.firmado_at ? new Date(firma.firmado_at).toLocaleDateString('es-CL', { day: '2-digit', month: 'long', year: 'numeric' }) : '—'}
               </p>
@@ -70,7 +70,7 @@ export default async function FirmaPage({ params }: Props) {
           {(expirada || firma.estado === 'expirado') && firma.estado !== 'firmado' && (
             <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-4 text-center">
               <p className="text-slate-400 font-medium">Enlace expirado</p>
-              <p className="text-slate-600 text-sm mt-1">Solicita un nuevo enlace al equipo consultor.</p>
+              <p className="text-slate-400 text-sm mt-1">Solicita un nuevo enlace al equipo consultor.</p>
             </div>
           )}
 
@@ -83,7 +83,7 @@ export default async function FirmaPage({ params }: Props) {
             />
           )}
 
-          <p className="text-slate-700 text-xs text-center">
+          <p className="text-slate-400 text-xs text-center">
             Expira: {new Date(firma.expira_at).toLocaleDateString('es-CL')}
           </p>
         </div>

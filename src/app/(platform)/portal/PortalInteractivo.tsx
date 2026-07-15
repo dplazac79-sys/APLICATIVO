@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { FileText, BarChart3, CheckCircle2, MessageSquare, Download, Eye, Clock } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
+import { formatFecha as fecha } from '@/lib/format'
 
 // ── Tipos ────────────────────────────────────────────────────────────────────
 export interface ArtefactoItem {
@@ -40,8 +41,6 @@ const ARTEFACTO_LABEL: Record<string, string> = {
 }
 const labelArtefacto = (t: string) => ARTEFACTO_LABEL[t] ?? t
 
-const fecha = (s: string) =>
-  new Date(s).toLocaleDateString('es-CL', { day: '2-digit', month: 'short', year: 'numeric' })
 
 const humanizar = (k: string) => {
   const s = k.replace(/_/g, ' ').trim()
@@ -61,7 +60,7 @@ function leerAprobados(): Record<string, boolean> {
 
 // ── Render legible del contenido JSONB del artefacto ─────────────────────────
 function ValorLegible({ valor }: { valor: unknown }) {
-  if (valor === null || valor === undefined) return <span className="text-slate-600">—</span>
+  if (valor === null || valor === undefined) return <span className="text-slate-400">—</span>
   if (typeof valor === 'boolean') return <span>{valor ? 'Sí' : 'No'}</span>
   if (typeof valor === 'number') return <span>{valor.toLocaleString('es-CL')}</span>
   if (typeof valor === 'string') return <span>{valor}</span>
@@ -89,7 +88,7 @@ function ValorLegible({ valor }: { valor: unknown }) {
       <div className="space-y-1 pl-2 border-l border-slate-800">
         {Object.entries(valor as Record<string, unknown>).map(([k, v]) => (
           <div key={k} className="text-sm">
-            <span className="text-slate-500">{humanizar(k)}: </span>
+            <span className="text-slate-400">{humanizar(k)}: </span>
             <span className="text-slate-300"><ValorLegible valor={v} /></span>
           </div>
         ))}
@@ -101,7 +100,7 @@ function ValorLegible({ valor }: { valor: unknown }) {
 
 function ContenidoLegible({ contenido }: { contenido: Record<string, unknown> }) {
   if (!contenido || Object.keys(contenido).length === 0) {
-    return <p className="text-slate-500 text-sm">Este documento no tiene contenido adicional.</p>
+    return <p className="text-slate-400 text-sm">Este documento no tiene contenido adicional.</p>
   }
   return (
     <div className="space-y-3">
@@ -131,6 +130,7 @@ function DocumentoRow({
   const [error, setError] = useState('')
   const [comentario, setComentario] = useState('')
   const [enviando, setEnviando] = useState(false)
+  const [confirmandoAprobar, setConfirmandoAprobar] = useState(false)
   const [mensaje, setMensaje] = useState('')
 
   async function verDocumento() {
@@ -155,7 +155,7 @@ function DocumentoRow({
   }
 
   async function aprobar() {
-    if (!window.confirm('¿Confirmas que revisaste y apruebas este documento?')) return
+    setConfirmandoAprobar(false)
     setEnviando(true)
     try {
       const res = await fetch(`/api/portal/artefacto/${artefacto.id}`, { method: 'POST' })
@@ -206,7 +206,7 @@ function DocumentoRow({
           )}
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          <span className="text-xs text-slate-500 hidden sm:inline">{fecha(artefacto.updated_at)}</span>
+          <span className="text-xs text-slate-400 hidden sm:inline">{fecha(artefacto.updated_at)}</span>
           <button
             onClick={verDocumento}
             className="text-xs text-slate-300 border border-slate-700 hover:border-slate-500 px-2.5 py-1 rounded-lg flex items-center gap-1"
@@ -218,19 +218,30 @@ function DocumentoRow({
 
       {abierto && (
         <div className="mt-3 rounded-lg border border-slate-800 bg-slate-950/60 p-4 space-y-4">
-          {cargando && <p className="text-slate-500 text-sm">Cargando documento...</p>}
+          {cargando && <p className="text-slate-400 text-sm">Cargando documento...</p>}
           {error && <p className="text-red-400 text-sm">{error}</p>}
           {!cargando && !error && contenido && <ContenidoLegible contenido={contenido} />}
 
           <div className="flex flex-wrap gap-2 pt-2 border-t border-slate-800">
             {!aprobado && (
-              <button
-                onClick={aprobar}
-                disabled={enviando}
-                className="text-xs bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg flex items-center gap-1.5 disabled:opacity-50"
-              >
-                <CheckCircle2 className="w-3.5 h-3.5" /> Aprobar documento
-              </button>
+              confirmandoAprobar ? (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-slate-400">¿Confirmas que revisaste este documento?</span>
+                  <button onClick={aprobar} disabled={enviando} className="text-xs bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg disabled:opacity-50">
+                    {enviando ? 'Aprobando...' : 'Sí, aprobar'}
+                  </button>
+                  <button onClick={() => setConfirmandoAprobar(false)} disabled={enviando} className="text-slate-400 hover:text-slate-300 text-xs px-1">
+                    Cancelar
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setConfirmandoAprobar(true)}
+                  className="text-xs bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg flex items-center gap-1.5"
+                >
+                  <CheckCircle2 className="w-3.5 h-3.5" /> Aprobar documento
+                </button>
+              )
             )}
           </div>
 
@@ -330,7 +341,7 @@ export function SeccionDocumentos({ artefactos }: { artefactos: ArtefactoItem[] 
         <FileText className="w-5 h-5 text-emerald-400" /> Documentos disponibles
       </h2>
       {artefactos.length === 0 ? (
-        <p className="text-slate-500 text-sm">No hay documentos publicados por ahora.</p>
+        <p className="text-slate-400 text-sm">No hay documentos publicados por ahora.</p>
       ) : (
         <Card className="bg-slate-900 border-slate-800">
           <CardContent className="p-0 divide-y divide-slate-800">
@@ -357,7 +368,7 @@ export function SeccionEntregables({ entregables }: { entregables: EntregableIte
         <BarChart3 className="w-5 h-5 text-amber-400" /> Análisis de impacto
       </h2>
       {entregables.length === 0 ? (
-        <p className="text-slate-500 text-sm">Todavía no hay análisis de impacto compartidos.</p>
+        <p className="text-slate-400 text-sm">Todavía no hay análisis de impacto compartidos.</p>
       ) : (
         <Card className="bg-slate-900 border-slate-800">
           <CardContent className="p-0 divide-y divide-slate-800">
@@ -365,7 +376,7 @@ export function SeccionEntregables({ entregables }: { entregables: EntregableIte
               <div key={e.id} className="flex items-center justify-between gap-3 px-4 py-3">
                 <span className="text-sm text-slate-200 truncate">{e.nombre}</span>
                 <div className="flex items-center gap-3 shrink-0">
-                  <span className="text-xs text-slate-500 hidden sm:inline">{fecha(e.updated_at)}</span>
+                  <span className="text-xs text-slate-400 hidden sm:inline">{fecha(e.updated_at)}</span>
                   <DescargarPdfBtn entregable={e} />
                 </div>
               </div>
@@ -391,7 +402,7 @@ export function SeccionTimeline({ eventos }: { eventos: TimelineEvento[] }) {
         <Clock className="w-5 h-5 text-slate-400" /> Línea de tiempo del proyecto
       </h2>
       {eventos.length === 0 ? (
-        <p className="text-slate-500 text-sm">Aún no hay eventos registrados.</p>
+        <p className="text-slate-400 text-sm">Aún no hay eventos registrados.</p>
       ) : (
         <Card className="bg-slate-900 border-slate-800">
           <CardContent className="p-4">
@@ -402,8 +413,8 @@ export function SeccionTimeline({ eventos }: { eventos: TimelineEvento[] }) {
                     className={`absolute -left-1.5 w-3 h-3 rounded-full border-2 border-slate-900 ${PUNTO_COLOR[ev.tipo]}`}
                   />
                   <p className="text-sm text-slate-200">{ev.titulo}</p>
-                  <p className="text-xs text-slate-500">{ev.detalle}</p>
-                  <p className="text-[11px] text-slate-600 mt-0.5">{fecha(ev.fecha)}</p>
+                  <p className="text-xs text-slate-400">{ev.detalle}</p>
+                  <p className="text-[11px] text-slate-400 mt-0.5">{fecha(ev.fecha)}</p>
                 </li>
               ))}
             </ol>

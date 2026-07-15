@@ -3,8 +3,9 @@
 import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { Upload, X, CheckCircle2, Loader2, RefreshCw, FileText, AlertTriangle, Building2, ChevronDown, CheckCircle } from 'lucide-react'
+import { Upload, X, CheckCircle2, Loader2, RefreshCw, FileText, AlertTriangle } from 'lucide-react'
 import { toast } from 'sonner'
+import ProyectoSelectorDropdown from './ProyectoSelectorDropdown'
 
 interface Proyecto { id: string; nombre: string; cliente: { razon_social: string } | null }
 interface DocExistente { id: string; nombre_archivo: string }
@@ -14,6 +15,10 @@ interface Props {
   documentosExistentes?: DocExistente[]
 }
 
+const EXTENSIONES_PERMITIDAS = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'jpg', 'jpeg', 'png', 'gif', 'webp']
+const TAMANO_MAXIMO_MB = 25
+const TAMANO_MAXIMO_BYTES = TAMANO_MAXIMO_MB * 1024 * 1024
+
 function detectTipo(file: File): string {
   const ext = file.name.split('.').pop()?.toLowerCase() ?? ''
   if (ext === 'pdf') return 'pdf'
@@ -21,6 +26,11 @@ function detectTipo(file: File): string {
   if (['xls', 'xlsx'].includes(ext)) return 'xlsx'
   if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext)) return 'imagen'
   return 'otro'
+}
+
+function extensionPermitida(file: File): boolean {
+  const ext = file.name.split('.').pop()?.toLowerCase() ?? ''
+  return EXTENSIONES_PERMITIDAS.includes(ext)
 }
 
 interface FileEntry {
@@ -34,11 +44,8 @@ export default function DocumentUploader({ proyectos, proyectoPreseleccionado, d
   const supabase = createClient()
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const preNombre = proyectoPreseleccionado ? (proyectos.find(p => p.id === proyectoPreseleccionado)?.nombre ?? '') : ''
   const [proyectoId, setProyectoId] = useState(proyectoPreseleccionado ?? (proyectos.length === 1 ? proyectos[0].id : ''))
-  const [proyectoNombre, setProyectoNombre] = useState(preNombre || (proyectos.length === 1 ? proyectos[0].nombre : ''))
   const proyectoIdRef = useRef(proyectoPreseleccionado ?? (proyectos.length === 1 ? proyectos[0].id : ''))
-  const [mostrarSelectorProyecto, setMostrarSelectorProyecto] = useState(false)
   const [entries, setEntries] = useState<FileEntry[]>([])
   const [uploading, setUploading] = useState(false)
   const [done, setDone] = useState(0)
@@ -46,7 +53,6 @@ export default function DocumentUploader({ proyectos, proyectoPreseleccionado, d
   function handleProyectoChange(v: string) {
     setProyectoId(v)
     proyectoIdRef.current = v
-    setProyectoNombre(proyectos.find(p => p.id === v)?.nombre ?? v)
   }
 
   function resolveEntries(files: File[]): FileEntry[] {
@@ -59,7 +65,17 @@ export default function DocumentUploader({ proyectos, proyectoPreseleccionado, d
   }
 
   function addFiles(files: File[]) {
-    const nuevas = resolveEntries(files)
+    const rechazadosTipo = files.filter(f => !extensionPermitida(f))
+    const rechazadosTamano = files.filter(f => extensionPermitida(f) && f.size > TAMANO_MAXIMO_BYTES)
+    if (rechazadosTipo.length > 0) {
+      toast.error(`Tipo de archivo no permitido: ${rechazadosTipo.map(f => f.name).join(', ')}`)
+    }
+    if (rechazadosTamano.length > 0) {
+      toast.error(`Supera el máximo de ${TAMANO_MAXIMO_MB} MB: ${rechazadosTamano.map(f => f.name).join(', ')}`)
+    }
+    const aceptados = files.filter(f => extensionPermitida(f) && f.size <= TAMANO_MAXIMO_BYTES)
+
+    const nuevas = resolveEntries(aceptados)
     setEntries(prev => {
       const existentes = prev.map(e => e.file.name)
       return [...prev, ...nuevas.filter(n => !existentes.includes(n.file.name))]
@@ -87,9 +103,21 @@ export default function DocumentUploader({ proyectos, proyectoPreseleccionado, d
   }
 
   async function handleUpload() {
+    if (uploading) return // guardia síncrona — evita doble envío por doble clic antes del re-render
     const pid = proyectoIdRef.current || proyectoId
     if (!pid) { toast.error('Selecciona un proyecto primero'); return }
     if (entries.length === 0) { toast.error('Selecciona al menos un archivo'); return }
+
+    // Aviso no bloqueante — antes no había ninguna señal de que un archivo
+    // con el mismo nombre que uno ya existente se estaba subiendo como
+    // documento nuevo en vez de como nueva versión (el usuario podía ignorar
+    // el badge "Nombre existente" sin darse cuenta de que estaba duplicando).
+    const sinResolver = entries.filter(e => !e.padreId
+      && documentosExistentes.some(d => d.nombre_archivo.toLowerCase() === e.file.name.toLowerCase()))
+    if (sinResolver.length > 0) {
+      toast.warning(`${sinResolver.length === 1 ? 'Un archivo coincide' : `${sinResolver.length} archivos coinciden`} con un nombre ya existente y se subirá${sinResolver.length === 1 ? '' : 'n'} como documento nuevo, no como nueva versión.`)
+    }
+
     setUploading(true)
     setDone(0)
 
@@ -136,48 +164,7 @@ export default function DocumentUploader({ proyectos, proyectoPreseleccionado, d
   return (
     <div className="space-y-3">
       {/* Selector de proyecto */}
-      <div className="relative">
-        <button
-          type="button"
-          onClick={() => setMostrarSelectorProyecto(v => !v)}
-          className="w-full flex items-center justify-between px-4 py-2.5 rounded-xl border border-slate-700/60 bg-slate-800 hover:border-violet-600/50 transition-all text-sm text-left"
-        >
-          {proyectoId ? (
-            <span className="flex items-center gap-2 min-w-0">
-              <Building2 className="w-4 h-4 text-violet-400 shrink-0" />
-              <span className="text-slate-200 font-medium truncate">{proyectoNombre}</span>
-            </span>
-          ) : (
-            <span className="text-slate-500">Seleccionar proyecto…</span>
-          )}
-          <ChevronDown className="w-4 h-4 text-slate-500 shrink-0 ml-2" />
-        </button>
-
-        {mostrarSelectorProyecto && (
-          <>
-            <div className="fixed inset-0 z-40" onClick={() => setMostrarSelectorProyecto(false)} />
-            <div className="absolute z-50 top-full left-0 right-0 mt-1 rounded-xl border border-slate-700/60 bg-slate-900 shadow-2xl shadow-black/60 overflow-hidden">
-              <div className="max-h-56 overflow-y-auto divide-y divide-slate-800/60">
-                {proyectos.map(p => (
-                  <button
-                    key={p.id}
-                    type="button"
-                    onClick={() => { handleProyectoChange(p.id); setMostrarSelectorProyecto(false) }}
-                    className={`w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-violet-950/30 transition-colors ${proyectoId === p.id ? 'bg-violet-950/40' : ''}`}
-                  >
-                    <Building2 className={`w-4 h-4 shrink-0 ${proyectoId === p.id ? 'text-violet-400' : 'text-slate-600'}`} />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm text-slate-200 font-medium truncate">{p.nombre}</p>
-                      {p.cliente && <p className="text-xs text-slate-500 truncate">{p.cliente.razon_social}</p>}
-                    </div>
-                    {proyectoId === p.id && <CheckCircle className="w-4 h-4 text-violet-400 shrink-0" />}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </>
-        )}
-      </div>
+      <ProyectoSelectorDropdown proyectos={proyectos} proyectoId={proyectoId} onChange={handleProyectoChange} />
 
       {/* Zona de drop */}
       <div
@@ -188,7 +175,7 @@ export default function DocumentUploader({ proyectos, proyectoPreseleccionado, d
       >
         <Upload className="w-7 h-7 text-slate-600 mx-auto mb-2" />
         <p className="text-slate-400 text-sm">Arrastra archivos aquí o <span className="text-violet-400">haz clic para seleccionar</span></p>
-        <p className="text-slate-600 text-xs mt-1">PDF, DOCX, XLSX, imágenes · Si el nombre coincide con uno existente, se detecta automáticamente como nueva versión</p>
+        <p className="text-slate-400 text-xs mt-1">PDF, DOCX, XLSX, imágenes · Máximo {TAMANO_MAXIMO_MB} MB por archivo · Si el nombre coincide con uno existente, se detecta automáticamente como nueva versión</p>
         <input ref={fileInputRef} type="file" multiple className="hidden" onChange={handleFileInput}
           accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.gif,.webp" />
       </div>
@@ -206,7 +193,7 @@ export default function DocumentUploader({ proyectos, proyectoPreseleccionado, d
                 <FileText className={`w-4 h-4 shrink-0 ${esVersion ? 'text-violet-400' : 'text-slate-400'}`} />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm text-white truncate">{entry.file.name}</p>
-                  <p className="text-xs text-slate-500">{(entry.file.size / 1024 / 1024).toFixed(1)} MB</p>
+                  <p className="text-xs text-slate-400">{(entry.file.size / 1024 / 1024).toFixed(1)} MB</p>
                 </div>
                 {esVersion ? (
                   <div className="flex items-center gap-2 shrink-0">
@@ -214,7 +201,7 @@ export default function DocumentUploader({ proyectos, proyectoPreseleccionado, d
                       <RefreshCw className="w-3 h-3" /> Nueva versión
                     </span>
                     <button onClick={() => toggleVersionMode(i)} title="Subir como documento nuevo en su lugar"
-                      className="text-xs text-slate-600 hover:text-slate-400 transition-colors">Subir como nuevo</button>
+                      className="text-xs text-slate-400 hover:text-slate-400 transition-colors">Subir como nuevo</button>
                   </div>
                 ) : puedeSerVersion ? (
                   <div className="flex items-center gap-2 shrink-0">
@@ -227,10 +214,10 @@ export default function DocumentUploader({ proyectos, proyectoPreseleccionado, d
                     </button>
                   </div>
                 ) : (
-                  <span className="text-xs text-slate-600 shrink-0">Nuevo</span>
+                  <span className="text-xs text-slate-400 shrink-0">Nuevo</span>
                 )}
                 <button onClick={() => setEntries(prev => prev.filter((_, j) => j !== i))}
-                  className="text-slate-600 hover:text-red-400 shrink-0 transition-colors">
+                  className="text-slate-400 hover:text-red-400 shrink-0 transition-colors">
                   <X className="w-4 h-4" />
                 </button>
               </div>

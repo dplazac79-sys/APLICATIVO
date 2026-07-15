@@ -19,9 +19,12 @@ interface Resultado {
 
 interface Props {
   onFiltrar?: (ids: string[] | null) => void
+  proyectoId: string | null
 }
 
-export default function BuscadorSemantico({ onFiltrar }: Props) {
+const LARGO_MINIMO = 3
+
+export default function BuscadorSemantico({ onFiltrar, proyectoId }: Props) {
   const [query, setQuery] = useState('')
   const [buscando, setBuscando] = useState(false)
   const [resultados, setResultados] = useState<Resultado[] | null>(null)
@@ -29,14 +32,21 @@ export default function BuscadorSemantico({ onFiltrar }: Props) {
 
   async function buscar(e: React.FormEvent) {
     e.preventDefault()
-    if (!query.trim()) return
+    if (!proyectoId) {
+      setError('Selecciona un proyecto para poder buscar.')
+      return
+    }
+    if (query.trim().length < LARGO_MINIMO) {
+      setError(`Escribe al menos ${LARGO_MINIMO} caracteres para buscar.`)
+      return
+    }
     setBuscando(true)
     setError(null)
     try {
       const res = await fetch('/api/documentos/buscar', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query }),
+        body: JSON.stringify({ query, proyecto_id: proyectoId }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? 'Error al buscar')
@@ -69,21 +79,22 @@ export default function BuscadorSemantico({ onFiltrar }: Props) {
             <Sparkles className="w-4 h-4 text-violet-400/70 absolute left-3 top-1/2 -translate-y-1/2" />
             <Input
               value={query}
-              onChange={e => setQuery(e.target.value)}
-              placeholder="ej. 'riesgos de cadena de suministro' — busca dentro del texto, no solo en el nombre"
-              className="bg-slate-800 border-violet-700/30 text-white pl-9 pr-9 focus-visible:ring-violet-500/40"
+              onChange={e => { setQuery(e.target.value); setError(null) }}
+              placeholder={proyectoId ? `ej. 'riesgos de cadena de suministro' — mínimo ${LARGO_MINIMO} caracteres` : 'Selecciona un proyecto para buscar'}
+              disabled={!proyectoId}
+              className="bg-slate-800 border-violet-700/30 text-white pl-9 pr-9 focus-visible:ring-violet-500/40 disabled:opacity-50"
             />
             {query && (
               <button
                 type="button"
                 onClick={limpiar}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-300"
               >
                 <X className="w-3.5 h-3.5" />
               </button>
             )}
           </div>
-          <Button type="submit" disabled={buscando || !query.trim()} className="bg-violet-600 hover:bg-violet-500 shrink-0">
+          <Button type="submit" disabled={buscando || !query.trim() || !proyectoId} className="bg-violet-600 hover:bg-violet-500 shrink-0">
             {buscando ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Buscar con IA'}
           </Button>
         </form>
@@ -93,10 +104,10 @@ export default function BuscadorSemantico({ onFiltrar }: Props) {
         {resultados !== null && (
           <div className="space-y-2 pt-2 border-t border-slate-800">
             {resultados.length === 0 ? (
-              <p className="text-slate-500 text-sm">Sin resultados para <span className="text-slate-300">&quot;{query}&quot;</span>.</p>
+              <p className="text-slate-400 text-sm">Sin resultados para <span className="text-slate-300">&quot;{query}&quot;</span>.</p>
             ) : (
               <>
-                <p className="text-xs text-slate-500">{resultados.length} documento{resultados.length !== 1 ? 's' : ''} encontrado{resultados.length !== 1 ? 's' : ''} · la lista de abajo está filtrada</p>
+                <p className="text-xs text-slate-400">{resultados.length} documento{resultados.length !== 1 ? 's' : ''} encontrado{resultados.length !== 1 ? 's' : ''} · la lista de abajo está filtrada</p>
                 {resultados.map(r => {
                   const tipoDoc = r.clasificacion?.tipo_documento as string | undefined
                   return (
@@ -118,9 +129,9 @@ export default function BuscadorSemantico({ onFiltrar }: Props) {
                             </span>
                           )}
                         </div>
-                        {tipoDoc && <p className="text-slate-500 text-xs mt-0.5 italic">{tipoDoc}</p>}
+                        {tipoDoc && <p className="text-slate-400 text-xs mt-0.5 italic">{tipoDoc}</p>}
                         {r.resumen_ejecutivo && r.tipo_match === 'semantico' && (
-                          <p className="text-slate-500 text-xs mt-1 line-clamp-2">{r.resumen_ejecutivo}</p>
+                          <p className="text-slate-400 text-xs mt-1 line-clamp-2">{r.resumen_ejecutivo}</p>
                         )}
                       </div>
                     </div>

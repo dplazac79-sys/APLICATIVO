@@ -68,8 +68,8 @@ export default function AppSidebar({ rol, open = false, onClose }: Props) {
       return (
         <div className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm opacity-40 cursor-not-allowed">
           <Icon className="w-4 h-4 shrink-0 text-slate-600" />
-          <span className="flex-1 text-slate-600">{item.label}</span>
-          {item.badge && <span className="text-xs text-slate-700 bg-slate-800/50 px-1.5 py-0.5 rounded">{item.badge}</span>}
+          <span className="flex-1 text-slate-400">{item.label}</span>
+          {item.badge && <span className="text-xs text-slate-400 bg-slate-800/50 px-1.5 py-0.5 rounded">{item.badge}</span>}
         </div>
       )
     }
@@ -84,7 +84,7 @@ export default function AppSidebar({ rol, open = false, onClose }: Props) {
       >
         <Icon className="w-4 h-4 shrink-0" />
         <span className="flex-1">{item.label}</span>
-        {item.badge && <span className={`text-[10px] px-1.5 py-0.5 rounded font-mono ${active ? 'text-indigo-400 bg-indigo-500/10' : 'text-slate-600 bg-slate-800/60'}`}>{item.badge}</span>}
+        {item.badge && <span className={`text-[10px] px-1.5 py-0.5 rounded font-mono ${active ? 'text-indigo-400 bg-indigo-500/10' : 'text-slate-400 bg-slate-800/60'}`}>{item.badge}</span>}
       </Link>
     )
   }
@@ -99,7 +99,7 @@ export default function AppSidebar({ rol, open = false, onClose }: Props) {
           </div>
           <div>
             <p className="text-white font-semibold text-sm">ProcessOS</p>
-            <p className="text-slate-500 text-xs">BY AICOUNTS CONSULTORES</p>
+            <p className="text-slate-400 text-xs">BY AICOUNTS CONSULTORES</p>
           </div>
         </div>
         {/* Botón cerrar — solo móvil */}
@@ -116,7 +116,7 @@ export default function AppSidebar({ rol, open = false, onClose }: Props) {
         {visibleAdmin.length > 0 && (
           <>
             <div className="pt-4 pb-1">
-              <p className="px-3 text-xs font-medium text-slate-600 uppercase tracking-wider">Sistema</p>
+              <p className="px-3 text-xs font-medium text-slate-400 uppercase tracking-wider">Sistema</p>
             </div>
             {visibleAdmin.map(item => <NavLink key={item.href} item={item} />)}
           </>
@@ -124,7 +124,7 @@ export default function AppSidebar({ rol, open = false, onClose }: Props) {
       </nav>
 
       <div className="px-4 py-3 border-t border-slate-800">
-        <p className="text-xs text-slate-600 text-center">AICOUNTS Consultores © 2026</p>
+        <p className="text-xs text-slate-400 text-center">AICOUNTS Consultores © 2026</p>
       </div>
     </div>
   )

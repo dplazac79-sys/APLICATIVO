@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { Upload, FileText, CheckCircle, AlertCircle, RefreshCw, Users, Sparkles, ChevronDown, ChevronUp, ChevronRight, Building2 } from 'lucide-react'
+import { Upload, FileText, CheckCircle2, AlertCircle, RefreshCw, Users, Sparkles, ChevronDown, ChevronUp, ChevronRight } from 'lucide-react'
+import ProyectoSelectorDropdown from './ProyectoSelectorDropdown'
 
 interface Organigrama {
   id: string
@@ -55,7 +56,6 @@ export default function OrganigramaUploader({ proyectos, proyectoPreseleccionado
   const [proyectoId, setProyectoId] = useState<string>(
     proyectoPreseleccionado ?? (proyectos.length === 1 ? proyectos[0].id : '')
   )
-  const [mostrarSelector, setMostrarSelector] = useState(false)
   const [dragging, setDragging] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -65,8 +65,6 @@ export default function OrganigramaUploader({ proyectos, proyectoPreseleccionado
   const [organigramas, setOrganigramas] = useState<Organigrama[]>([])
   const [analisis, setAnalisis] = useState<GlosarioAnalisis | null>(null)
   const [cargando, setCargando] = useState(false)
-
-  const proyectoActual = proyectos.find(p => p.id === proyectoId) ?? null
 
   // cargarDatos se llama tanto desde el effect (al cambiar de proyecto) como
   // manualmente tras subir un archivo — este ref permite descartar respuestas
@@ -178,7 +176,7 @@ export default function OrganigramaUploader({ proyectos, proyectoPreseleccionado
           </div>
           <div>
             <p className="text-sm font-bold text-white">Organigrama del cliente</p>
-            <p className="text-xs text-slate-500 mt-0.5">
+            <p className="text-xs text-slate-400 mt-0.5">
               {!proyectoId
                 ? 'Selecciona un proyecto para gestionar el organigrama'
                 : tieneOrg
@@ -214,55 +212,9 @@ export default function OrganigramaUploader({ proyectos, proyectoPreseleccionado
           )}
 
           {/* ── SELECTOR DE PROYECTO ── */}
-          <div className="relative">
-            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Proyecto</p>
-            <button
-              type="button"
-              onClick={(e) => { e.stopPropagation(); setMostrarSelector(v => !v) }}
-              className="w-full flex items-center justify-between px-4 py-2.5 rounded-xl border border-slate-700/50 bg-slate-800/60 hover:border-violet-600/50 hover:bg-slate-800 transition-all text-sm text-left"
-            >
-              {proyectoActual ? (
-                <span className="flex items-center gap-2 min-w-0">
-                  <Building2 className="w-4 h-4 text-violet-400 shrink-0" />
-                  <span className="text-slate-200 font-medium truncate">{proyectoActual.nombre}</span>
-                  {proyectoActual.cliente && (
-                    <span className="text-slate-500 truncate hidden sm:block">· {proyectoActual.cliente.razon_social}</span>
-                  )}
-                </span>
-              ) : (
-                <span className="text-slate-500">Selecciona un proyecto…</span>
-              )}
-              <ChevronDown className="w-4 h-4 text-slate-500 shrink-0 ml-2" />
-            </button>
-
-            {mostrarSelector && (
-              <>
-                <div className="fixed inset-0 z-40" onClick={() => setMostrarSelector(false)} />
-                <div className="absolute z-50 top-full left-0 right-0 mt-1 rounded-xl border border-slate-700/60 bg-slate-900 shadow-2xl shadow-black/60 overflow-hidden">
-                  <div className="max-h-56 overflow-y-auto divide-y divide-slate-800/60">
-                    {proyectos.length === 0 ? (
-                      <p className="px-4 py-3 text-xs text-slate-500">No hay proyectos activos</p>
-                    ) : proyectos.map(p => (
-                      <button
-                        key={p.id}
-                        type="button"
-                        onClick={() => { setProyectoId(p.id); setMostrarSelector(false) }}
-                        className={`w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-violet-950/30 transition-colors ${
-                          proyectoId === p.id ? 'bg-violet-950/40' : ''
-                        }`}
-                      >
-                        <Building2 className={`w-4 h-4 shrink-0 ${proyectoId === p.id ? 'text-violet-400' : 'text-slate-600'}`} />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm text-slate-200 font-medium truncate">{p.nombre}</p>
-                          {p.cliente && <p className="text-xs text-slate-500 truncate">{p.cliente.razon_social}</p>}
-                        </div>
-                        {proyectoId === p.id && <CheckCircle className="w-4 h-4 text-violet-400 shrink-0" />}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </>
-            )}
+          <div>
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Proyecto</p>
+            <ProyectoSelectorDropdown proyectos={proyectos} proyectoId={proyectoId} onChange={setProyectoId} placeholder="Selecciona un proyecto…" />
           </div>
 
           {/* Contenido dependiente del proyecto */}
@@ -270,7 +222,7 @@ export default function OrganigramaUploader({ proyectos, proyectoPreseleccionado
             <>
               {/* Drop zone */}
               <div>
-                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">
                   {tieneOrg ? 'Reemplazar organigrama' : 'Subir organigrama'}
                 </p>
                 <div
@@ -303,15 +255,15 @@ export default function OrganigramaUploader({ proyectos, proyectoPreseleccionado
                         <p className="text-sm font-semibold text-slate-200">
                           Arrastra el organigrama aquí o <span className="text-violet-400">haz clic para seleccionar</span>
                         </p>
-                        <p className="text-xs text-slate-500 mt-1">PDF, PNG o JPG · máx {MAX_SIZE_MB} MB</p>
+                        <p className="text-xs text-slate-400 mt-1">PDF, PNG o JPG · máx {MAX_SIZE_MB} MB</p>
                       </div>
                     </>
                   )}
                 </div>
                 <div className="mt-3 flex flex-wrap gap-4">
                   {['PDF / PNG / JPG', `Máx ${MAX_SIZE_MB} MB`, 'Texto extraído automáticamente', 'Cruce IA con procesos'].map((v, i) => (
-                    <span key={i} className="flex items-center gap-1.5 text-xs text-slate-500">
-                      <CheckCircle className="w-3 h-3 text-emerald-500 shrink-0" />{v}
+                    <span key={i} className="flex items-center gap-1.5 text-xs text-slate-400">
+                      <CheckCircle2 className="w-3 h-3 text-emerald-500 shrink-0" />{v}
                     </span>
                   ))}
                 </div>
@@ -325,7 +277,7 @@ export default function OrganigramaUploader({ proyectos, proyectoPreseleccionado
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm text-slate-200 font-medium truncate">{orgActual.nombre_archivo}</p>
-                    <p className="text-xs text-slate-500 mt-0.5">
+                    <p className="text-xs text-slate-400 mt-0.5">
                       {new Date(orgActual.created_at).toLocaleDateString('es-CL', { day: '2-digit', month: 'short', year: 'numeric' })}
                       {orgActual.estado === 'listo' ? ' · Texto extraído ✓' : ' · Procesando…'}
                     </p>
@@ -355,7 +307,7 @@ export default function OrganigramaUploader({ proyectos, proyectoPreseleccionado
                   <span className="w-4 h-4 border-2 border-violet-400/30 border-t-violet-400 rounded-full animate-spin shrink-0" />
                   <div>
                     <p className="text-xs text-violet-300 font-semibold">Motor IA analizando…</p>
-                    <p className="text-xs text-slate-500 mt-0.5">Cruzando roles del organigrama con documentos de proceso. 20–40 s.</p>
+                    <p className="text-xs text-slate-400 mt-0.5">Cruzando roles del organigrama con documentos de proceso. 20–40 s.</p>
                   </div>
                 </div>
               )}
@@ -363,7 +315,7 @@ export default function OrganigramaUploader({ proyectos, proyectoPreseleccionado
               {/* Sin organigrama */}
               {!tieneOrg && !cargando && (
                 <div className="rounded-xl border border-slate-700/30 bg-slate-800/20 p-4 text-center">
-                  <p className="text-xs text-slate-500 leading-relaxed max-w-md mx-auto">
+                  <p className="text-xs text-slate-400 leading-relaxed max-w-md mx-auto">
                     Sube el organigrama del cliente. AICOUNTS extraerá su texto, lo cruzará con los roles de todos los documentos de proceso y entregará un diagnóstico de cobertura organizacional.
                   </p>
                 </div>
@@ -379,7 +331,7 @@ export default function OrganigramaUploader({ proyectos, proyectoPreseleccionado
                       <div className="flex items-center gap-2">
                         <span className={`text-2xl font-black tabular-nums ${scoreColor}`}>{score}%</span>
                         <button onClick={lanzarAnalisis} disabled={lanzando} title="Re-analizar"
-                          className="text-slate-500 hover:text-violet-400 transition-colors">
+                          className="text-slate-400 hover:text-violet-400 transition-colors">
                           <RefreshCw className={`w-3 h-3 ${lanzando ? 'animate-spin' : ''}`} />
                         </button>
                       </div>
@@ -452,7 +404,7 @@ export default function OrganigramaUploader({ proyectos, proyectoPreseleccionado
                                 <div className="p-3 space-y-2">
                                   <div className="flex items-start justify-between gap-2">
                                     <div>
-                                      <p className="text-[10px] text-slate-500 uppercase tracking-wide">Rol requerido</p>
+                                      <p className="text-[10px] text-slate-400 uppercase tracking-wide">Rol requerido</p>
                                       <p className="text-sm font-semibold text-slate-200">{m.rol_proceso}</p>
                                     </div>
                                     <span className={`text-[10px] font-bold ${lc} shrink-0`}>{lbl}</span>
@@ -461,14 +413,14 @@ export default function OrganigramaUploader({ proyectos, proyectoPreseleccionado
                                     <div className="flex items-center gap-2 text-xs">
                                       <span className="text-slate-500">→</span>
                                       <span className="text-slate-200 font-medium">{m.persona_sugerida ?? m.cargo_sugerido}</span>
-                                      {m.persona_sugerida && m.cargo_sugerido && <span className="text-slate-500">({m.cargo_sugerido})</span>}
+                                      {m.persona_sugerida && m.cargo_sugerido && <span className="text-slate-400">({m.cargo_sugerido})</span>}
                                     </div>
                                   )}
                                   <div className="flex items-center gap-2">
                                     <div className="flex-1 h-1 rounded-full bg-slate-700 overflow-hidden">
                                       <div className={`h-full rounded-full ${bar}`} style={{ width: `${m.confianza}%` }} />
                                     </div>
-                                    <span className="text-[10px] text-slate-500 tabular-nums">{m.confianza}%</span>
+                                    <span className="text-[10px] text-slate-400 tabular-nums">{m.confianza}%</span>
                                   </div>
                                   <p className="text-[11px] text-slate-400 leading-relaxed">{m.justificacion}</p>
                                   {m.gap_detectado && (

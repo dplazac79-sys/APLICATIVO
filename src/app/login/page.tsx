@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import Link from 'next/link'
 
 // ── Diagrama animado del flujo ProcessOS ─────────────────────────────────────
 function FlowDiagram() {
@@ -195,6 +196,12 @@ export default function LoginPage() {
     check()
     window.addEventListener('resize', check)
     return () => window.removeEventListener('resize', check)
+  }, [])
+
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get('sesion_expirada') === '1') {
+      setError('Tu sesión se cerró por inactividad. Vuelve a iniciar sesión para continuar.')
+    }
   }, [])
 
   async function handleLogin(e: React.FormEvent) {
@@ -576,10 +583,10 @@ export default function LoginPage() {
                 <div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 7 }}>
                     <label style={{ color: '#94a3b8', fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase' }}>Contraseña</label>
-                    <a href="#" style={{ color: '#475569', fontSize: 11, textDecoration: 'none' }}
+                    <Link href="/olvide-password" style={{ color: '#475569', fontSize: 11, textDecoration: 'none' }}
                       onMouseEnter={e => ((e.target as HTMLElement).style.color = '#94a3b8')}
                       onMouseLeave={e => ((e.target as HTMLElement).style.color = '#475569')}
-                    >¿Olvidaste?</a>
+                    >¿Olvidaste?</Link>
                   </div>
                   <div style={{ position: 'relative' }}>
                     <svg width="13" height="13" viewBox="0 0 16 16" fill="none" style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', color: '#475569' }}>
@@ -594,6 +601,7 @@ export default function LoginPage() {
                       onBlur={e => { e.target.style.borderColor = 'rgba(255,255,255,0.07)' }}
                     />
                     <button type="button" onClick={() => setShowPassword(v => !v)}
+                      aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
                       style={{ position: 'absolute', right: 11, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#475569', padding: 4 }}>
                       {showPassword
                         ? <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M1 8s2.5-5 7-5 7 5 7 5-2.5 5-7 5-7-5-7-5Z" stroke="currentColor" strokeWidth="1.4"/><circle cx="8" cy="8" r="2" stroke="currentColor" strokeWidth="1.4"/><path d="M2 2l12 12" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/></svg>

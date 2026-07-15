@@ -106,12 +106,12 @@ export default function DiscoveryAcciones({ proyectos, variant = 'top', document
             <Sparkles className="w-3 h-3 animate-pulse" />
             {ETAPAS[etapaIdx]}
           </span>
-          <span className="text-xs text-slate-500 font-mono">{mins}:{secs.toString().padStart(2, '0')}</span>
+          <span className="text-xs text-slate-400 font-mono">{mins}:{secs.toString().padStart(2, '0')}</span>
         </div>
         <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
           <div className="h-full w-full bg-gradient-to-r from-violet-600 via-fuchsia-500 to-violet-400 animate-pulse" />
         </div>
-        <p className="text-slate-600 text-xs">Análisis exhaustivo en curso · puede tardar 1-3 minutos · puedes navegar a otra sección y volver</p>
+        <p className="text-slate-400 text-xs">Análisis exhaustivo en curso · puede tardar 1-3 minutos · puedes navegar a otra sección y volver</p>
       </div>
     )
   }

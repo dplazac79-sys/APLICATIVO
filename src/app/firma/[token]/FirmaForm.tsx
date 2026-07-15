@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { CheckCircle } from 'lucide-react'
+import { CheckCircle2 } from 'lucide-react'
 
 interface Props {
   token: string
@@ -20,7 +20,7 @@ export default function FirmaForm({ token, firmaId, firmante_nombre, firmante_ca
 
   async function confirmar(tipo: 'firmar' | 'rechazar') {
     if (tipo === 'firmar' && !nombre.trim()) {
-      setError('Ingresa tu nombre completo')
+      setError('Ingresa tu nombre completo.')
       return
     }
     setEnviando(true)
@@ -49,7 +49,7 @@ export default function FirmaForm({ token, firmaId, firmante_nombre, firmante_ca
   if (completado) {
     return (
       <div className="text-center space-y-3 py-4">
-        <CheckCircle className="w-12 h-12 text-emerald-400 mx-auto" />
+        <CheckCircle2 className="w-12 h-12 text-emerald-400 mx-auto" />
         <p className="text-white font-medium">
           {accion === 'firmar' ? 'Documento firmado exitosamente' : 'Solicitud rechazada'}
         </p>

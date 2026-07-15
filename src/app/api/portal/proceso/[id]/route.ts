@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { jsonError } from '@/lib/http/errors'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { assertProyectoAccess } from '@/lib/auth/tenant'
 
 // GET — obtener proceso enriquecido completo
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
@@ -65,6 +66,15 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     .single()
 
   if (!proceso) return NextResponse.json({ error: 'No encontrado' }, { status: 404 })
+
+  // La lectura de arriba ya usó el cliente RLS-scoped (solo pudo leer si el
+  // usuario tenía acceso), pero la escritura siguiente usa el cliente admin
+  // (bypasea RLS) — se repite la verificación explícitamente en vez de
+  // confiar en que el paso de lectura sea suficiente, mismo patrón que ya
+  // causó un incidente real documentado en tenant.ts.
+  if (!proceso.proyecto_id || !(await assertProyectoAccess(user.id, proceso.proyecto_id))) {
+    return NextResponse.json({ error: 'Sin acceso a este proceso' }, { status: 403 })
+  }
 
   const { error } = await admin
     .from('proceso_enriquecido')

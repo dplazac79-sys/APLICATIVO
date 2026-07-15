@@ -11,6 +11,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Menu } from 'lucide-react'
+import NotificationBell from './NotificationBell'
 import type { Usuario } from '@/types/database'
 
 const ROL_LABELS: Record<string, string> = {
@@ -58,6 +59,7 @@ export default function AppHeader({ usuario, onMenuClick }: Props) {
       <div className="hidden md:block" />
 
       <div className="flex items-center gap-3">
+        <NotificationBell />
         <DropdownMenu>
           <DropdownMenuTrigger className="flex items-center gap-2 py-1.5 px-2 rounded-md hover:bg-slate-800 outline-none">
             <Avatar className="w-7 h-7">
@@ -67,11 +69,11 @@ export default function AppHeader({ usuario, onMenuClick }: Props) {
             </Avatar>
             <div className="text-left hidden sm:block">
               <p className="text-sm text-slate-200 font-medium leading-tight">{usuario?.nombre ?? 'Usuario'}</p>
-              <p className="text-xs text-slate-500 leading-tight">{ROL_LABELS[usuario?.rol ?? ''] ?? ''}</p>
+              <p className="text-xs text-slate-400 leading-tight">{ROL_LABELS[usuario?.rol ?? ''] ?? ''}</p>
             </div>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="bg-slate-800 border-slate-700 text-slate-200 min-w-48">
-            <div className="px-2 py-1.5 text-xs text-slate-500">{usuario?.email}</div>
+            <div className="px-2 py-1.5 text-xs text-slate-400">{usuario?.email}</div>
             <DropdownMenuSeparator className="bg-slate-700" />
             <DropdownMenuItem
               onClick={handleSignOut}

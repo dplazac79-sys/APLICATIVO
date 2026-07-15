@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { registrarAudit } from '@/lib/audit'
 import { calcularNivelRiesgo } from '@/lib/riesgos'
-import { requireRole } from '@/lib/auth/tenant'
+import { assertProyectoAccess, requireRole } from '@/lib/auth/tenant'
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   const supabase = createClient()
@@ -16,6 +16,13 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   }
 
   const admin = createAdminClient()
+
+  const { data: riesgoActual } = await admin.from('riesgo').select('proyecto_id').eq('id', params.id).single()
+  if (!riesgoActual) return NextResponse.json({ error: 'Riesgo no encontrado' }, { status: 404 })
+  if (!(await assertProyectoAccess(user.id, riesgoActual.proyecto_id as string))) {
+    return NextResponse.json({ error: 'Sin acceso a este riesgo' }, { status: 403 })
+  }
+
   const body = await req.json()
 
   // Whitelist de campos editables
@@ -49,6 +56,13 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
   }
 
   const admin = createAdminClient()
+
+  const { data: riesgoActual } = await admin.from('riesgo').select('proyecto_id').eq('id', params.id).single()
+  if (!riesgoActual) return NextResponse.json({ error: 'Riesgo no encontrado' }, { status: 404 })
+  if (!(await assertProyectoAccess(user.id, riesgoActual.proyecto_id as string))) {
+    return NextResponse.json({ error: 'Sin acceso a este riesgo' }, { status: 403 })
+  }
+
   const { error } = await admin.from('riesgo').delete().eq('id', params.id)
   if (error) return jsonError(error)
   return NextResponse.json({ ok: true })

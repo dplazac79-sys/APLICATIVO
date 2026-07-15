@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { CheckCircle, Building2, FolderOpen, Users, Eye, Plus, Trash2, ChevronRight, ChevronLeft, Loader2 } from 'lucide-react'
+import { CheckCircle2, Building2, FolderOpen, Users, Eye, Plus, Trash2, ChevronRight, ChevronLeft, Loader2 } from 'lucide-react'
 
 const INDUSTRIAS = ['Manufactura', 'Retail', 'Salud', 'Educación', 'Finanzas', 'Tecnología', 'Logística', 'Construcción', 'Energía', 'Servicios', 'Minería', 'Otro']
 // value debe calzar con el check constraint cliente_tamano_check (migración 036):
@@ -37,7 +37,7 @@ export default function OnboardingPage() {
   const router = useRouter()
   const [paso, setPaso] = useState(1)
   const [loading, setLoading] = useState(false)
-  const [exito, setExito] = useState<{ cliente_id: string; proyecto_id: string; equipo: { email: string; status: string }[] } | null>(null)
+  const [exito, setExito] = useState<{ cliente_id: string; proyecto_id: string; equipo: { email: string; status: string }[]; advertencia?: string } | null>(null)
   const [error, setError] = useState('')
 
   const [empresa, setEmpresa] = useState({ razon_social: '', industria: '', tamano: '', objetivos_estrategicos: '' })
@@ -57,7 +57,21 @@ export default function OnboardingPage() {
     return true
   }
 
+  function passwordValida(pwd: string): boolean {
+    return pwd.length >= 8 && /[A-Z]/.test(pwd) && /[a-z]/.test(pwd) && /[0-9]/.test(pwd)
+      && /[!@#$%^&*()_\-+=\[\]{};':"\\|,.<>/?]/.test(pwd)
+  }
+
   async function handleSubmit() {
+    const invalidos = equipo.filter(m => m.email.trim() && !passwordValida(m.password))
+    if (invalidos.length > 0) {
+      setError(`La contraseña de ${invalidos.map(m => m.email).join(', ')} no cumple los requisitos: mínimo 8 caracteres, mayúscula, minúscula, número y carácter especial.`)
+      return
+    }
+    if (proyecto.fecha_inicio && proyecto.fecha_estimada_cierre && proyecto.fecha_estimada_cierre < proyecto.fecha_inicio) {
+      setError('La fecha estimada de cierre no puede ser anterior a la fecha de inicio.')
+      return
+    }
     setLoading(true)
     setError('')
     try {
@@ -82,10 +96,16 @@ export default function OnboardingPage() {
         <Card className="bg-slate-900 border-slate-800">
           <CardContent className="p-8 text-center">
             <div className="w-16 h-16 rounded-full bg-emerald-900/40 flex items-center justify-center mx-auto mb-4">
-              <CheckCircle className="w-8 h-8 text-emerald-400" />
+              <CheckCircle2 className="w-8 h-8 text-emerald-400" />
             </div>
             <h2 className="text-xl font-bold text-white mb-2">¡Cliente configurado!</h2>
             <p className="text-slate-400 text-sm mb-6">La empresa, proyecto y equipo fueron creados exitosamente.</p>
+            {exito.advertencia && (
+              <div className="bg-amber-950/40 border border-amber-800/50 rounded-lg p-3 mb-6 text-left flex items-start gap-2">
+                <span className="text-amber-400 text-sm shrink-0">⚠</span>
+                <p className="text-amber-300 text-xs">{exito.advertencia}</p>
+              </div>
+            )}
             <div className="bg-slate-800 rounded-lg p-4 text-left space-y-2 mb-6">
               <p className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-3">Estado del equipo</p>
               {exito.equipo.map(m => (
@@ -137,10 +157,10 @@ export default function OnboardingPage() {
           return (
             <div key={p.id} className="flex items-center flex-1">
               <div className="flex flex-col items-center gap-1 flex-1">
-                <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-medium transition-colors ${done ? 'bg-emerald-600 text-white' : active ? 'bg-indigo-600 text-white' : 'bg-slate-800 text-slate-500'}`}>
-                  {done ? <CheckCircle className="w-4 h-4" /> : <Icon className="w-4 h-4" />}
+                <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-medium transition-colors ${done ? 'bg-emerald-600 text-white' : active ? 'bg-indigo-600 text-white' : 'bg-slate-800 text-slate-400'}`}>
+                  {done ? <CheckCircle2 className="w-4 h-4" /> : <Icon className="w-4 h-4" />}
                 </div>
-                <span className={`text-xs hidden sm:block ${active ? 'text-white' : done ? 'text-emerald-400' : 'text-slate-600'}`}>{p.label}</span>
+                <span className={`text-xs hidden sm:block ${active ? 'text-white' : done ? 'text-emerald-400' : 'text-slate-400'}`}>{p.label}</span>
               </div>
               {idx < PASOS.length - 1 && (
                 <div className={`h-0.5 flex-1 mx-1 ${paso > p.id ? 'bg-emerald-600' : 'bg-slate-800'}`} />
@@ -204,23 +224,23 @@ export default function OnboardingPage() {
             </div>
             <div>
               <Label className="text-slate-300">Contexto del proyecto</Label>
-              <p className="text-slate-500 text-xs mt-0.5 mb-1">¿Cuál es la problemática o motivación que origina este proyecto?</p>
+              <p className="text-slate-400 text-xs mt-0.5 mb-1">¿Cuál es la problemática o motivación que origina este proyecto?</p>
               <textarea className="w-full mt-1 bg-slate-800 border border-slate-700 text-white rounded-md px-3 py-2 text-sm resize-none" rows={3} placeholder="Ej: La empresa enfrenta ineficiencias en su cadena de suministro que generan pérdidas operacionales..." value={proyecto.contexto} onChange={e => setProyecto(v => ({ ...v, contexto: e.target.value }))} />
             </div>
             <div>
               <Label className="text-slate-300">Objetivos del proyecto</Label>
-              <p className="text-slate-500 text-xs mt-0.5 mb-1">Un objetivo por línea</p>
+              <p className="text-slate-400 text-xs mt-0.5 mb-1">Un objetivo por línea</p>
               <textarea className="w-full mt-1 bg-slate-800 border border-slate-700 text-white rounded-md px-3 py-2 text-sm resize-none" rows={4} placeholder={"Mapear todos los procesos del área de operaciones\nIdentificar los 3 principales cuellos de botella\nDefinir KPIs base para monitoreo continuo"} value={proyecto.objetivos} onChange={e => setProyecto(v => ({ ...v, objetivos: e.target.value }))} />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <Label className="text-slate-300">Alcance — qué incluye</Label>
-                <p className="text-slate-500 text-xs mt-0.5 mb-1">Un ítem por línea</p>
+                <p className="text-slate-400 text-xs mt-0.5 mb-1">Un ítem por línea</p>
                 <textarea className="w-full mt-1 bg-slate-800 border border-slate-700 text-white rounded-md px-3 py-2 text-sm resize-none" rows={4} placeholder={"Procesos de compras y bodega\nGestión de inventario\nLogística de última milla"} value={proyecto.alcance_incluye} onChange={e => setProyecto(v => ({ ...v, alcance_incluye: e.target.value }))} />
               </div>
               <div>
                 <Label className="text-slate-300">Alcance — qué excluye</Label>
-                <p className="text-slate-500 text-xs mt-0.5 mb-1">Un ítem por línea</p>
+                <p className="text-slate-400 text-xs mt-0.5 mb-1">Un ítem por línea</p>
                 <textarea className="w-full mt-1 bg-slate-800 border border-slate-700 text-white rounded-md px-3 py-2 text-sm resize-none" rows={4} placeholder={"Implementación de nuevos sistemas\nProcesos de RRHH y nómina\nAuditoria financiera"} value={proyecto.alcance_excluye} onChange={e => setProyecto(v => ({ ...v, alcance_excluye: e.target.value }))} />
               </div>
             </div>
@@ -247,7 +267,7 @@ export default function OnboardingPage() {
         <Card className="bg-slate-900 border-slate-800">
           <CardHeader>
             <CardTitle className="text-white flex items-center gap-2"><Users className="w-4 h-4 text-indigo-400" /> Equipo del proyecto</CardTitle>
-            <CardDescription className="text-slate-400">Los usuarios recibirán una invitación por email para acceder</CardDescription>
+            <CardDescription className="text-slate-400">Los usuarios recibirán una invitación por Email para acceder</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {equipo.map((m, i) => (
@@ -255,7 +275,7 @@ export default function OnboardingPage() {
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-medium text-slate-400">Miembro {i + 1}</span>
                   {equipo.length > 1 && (
-                    <button onClick={() => removeMiembro(i)} className="text-slate-600 hover:text-red-400 transition-colors">
+                    <button onClick={() => removeMiembro(i)} className="text-slate-400 hover:text-red-400 transition-colors">
                       <Trash2 className="w-4 h-4" />
                     </button>
                   )}
@@ -276,14 +296,14 @@ export default function OnboardingPage() {
                     {ROLES.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
                   </select>
                   {m.rol && (
-                    <p className="text-slate-500 text-xs mt-1.5 leading-snug">
+                    <p className="text-slate-400 text-xs mt-1.5 leading-snug">
                       {ROLES.find(r => r.value === m.rol)?.desc}
                     </p>
                   )}
                 </div>
                 <div>
                   <Label className="text-slate-400 text-xs">Contraseña *</Label>
-                  <Input className="mt-1 bg-slate-800 border-slate-700 text-white" type="password" placeholder="Mínimo 6 caracteres" value={m.password} onChange={e => updateMiembro(i, 'password', e.target.value)} />
+                  <Input className="mt-1 bg-slate-800 border-slate-700 text-white" type="password" placeholder="Mín. 8 car., mayúscula, minúscula, número y símbolo" value={m.password} onChange={e => updateMiembro(i, 'password', e.target.value)} />
                 </div>
               </div>
             ))}
@@ -322,7 +342,7 @@ export default function OnboardingPage() {
             <CardContent className="space-y-2">
               {equipo.filter(m => m.email).map((m, i) => (
                 <div key={i} className="flex items-center justify-between text-sm">
-                  <div><p className="text-white">{m.nombre || m.email}</p><p className="text-slate-500 text-xs">{m.email}</p></div>
+                  <div><p className="text-white">{m.nombre || m.email}</p><p className="text-slate-400 text-xs">{m.email}</p></div>
                   <span className="text-xs px-2 py-0.5 rounded bg-indigo-900/40 text-indigo-300 border border-indigo-800">{ROLES.find(r => r.value === m.rol)?.label}</span>
                 </div>
               ))}
@@ -343,7 +363,7 @@ export default function OnboardingPage() {
           </Button>
         ) : (
           <Button className="bg-emerald-600 hover:bg-emerald-700 text-white" onClick={handleSubmit} disabled={loading}>
-            {loading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Creando...</> : <><CheckCircle className="w-4 h-4 mr-2" /> Crear cliente</>}
+            {loading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Creando...</> : <><CheckCircle2 className="w-4 h-4 mr-2" /> Crear cliente</>}
           </Button>
         )}
       </div>

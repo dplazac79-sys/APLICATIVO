@@ -171,7 +171,7 @@ function LoadingState() {
             ))}
           </div>
 
-          <p className="text-slate-600 text-xs">Esto puede tomar hasta 30 segundos</p>
+          <p className="text-slate-400 text-xs">Esto puede tomar hasta 30 segundos</p>
         </div>
       </div>
 
@@ -229,7 +229,7 @@ const Resultado = memo(function Resultado({ sim }: { sim: SimulacionResult }) {
               </svg>
               <div className="absolute inset-0 flex flex-col items-center justify-center">
                 <span className="text-3xl font-black text-white tabular-nums">{sim.impacto_global_score}</span>
-                <span className="text-[9px] text-slate-600 uppercase tracking-widest">/ 100</span>
+                <span className="text-[9px] text-slate-400 uppercase tracking-widest">/ 100</span>
               </div>
             </div>
 
@@ -255,9 +255,9 @@ const Resultado = memo(function Resultado({ sim }: { sim: SimulacionResult }) {
             { label: 'Horas liberadas', value: `${sim.empleados_liberados_horas_mes}h/mes`, sub: 'capacidad recuperada', color: 'text-indigo-300' },
           ].map((m, i) => (
             <div key={i} className="px-5 py-4">
-              <p className="text-[10px] uppercase tracking-widest text-slate-600 mb-1">{m.label}</p>
+              <p className="text-[10px] uppercase tracking-widest text-slate-400 mb-1">{m.label}</p>
               <p className={`text-lg font-black tabular-nums ${m.color}`}>{m.value}</p>
-              <p className="text-[10px] text-slate-600 mt-0.5">{m.sub}</p>
+              <p className="text-[10px] text-slate-400 mt-0.5">{m.sub}</p>
             </div>
           ))}
         </div>
@@ -269,7 +269,7 @@ const Resultado = memo(function Resultado({ sim }: { sim: SimulacionResult }) {
         <div className="flex items-start gap-4">
           <Sparkles className="w-4 h-4 text-indigo-400 shrink-0 mt-1" />
           <div>
-            <p className="text-[10px] uppercase tracking-widest text-slate-600 mb-2">Visión de transformación</p>
+            <p className="text-[10px] uppercase tracking-widest text-slate-400 mb-2">Visión de transformación</p>
             <p className="text-slate-200 text-sm leading-relaxed font-light">{sim.transformacion_narrativa}</p>
           </div>
         </div>
@@ -285,9 +285,9 @@ const Resultado = memo(function Resultado({ sim }: { sim: SimulacionResult }) {
               <p className="text-[10px] uppercase tracking-widest text-emerald-400/80 font-medium">Si se implementa</p>
             </div>
             <p className="text-3xl font-black text-white tabular-nums">{formatCLP(ahorro)}</p>
-            <p className="text-xs text-slate-500 mt-0.5">ahorro anual estimado</p>
+            <p className="text-xs text-slate-400 mt-0.5">ahorro anual estimado</p>
             <div className="mt-3 space-y-1">
-              <div className="flex justify-between text-[10px] text-slate-500">
+              <div className="flex justify-between text-[10px] text-slate-400">
                 <span>Errores eliminados</span><span className="text-emerald-400">{sim.reduccion_errores_porcentaje}%</span>
               </div>
               <ProgressBar value={sim.reduccion_errores_porcentaje} color="bg-emerald-500/60" />
@@ -311,7 +311,7 @@ const Resultado = memo(function Resultado({ sim }: { sim: SimulacionResult }) {
               <p className="text-[10px] uppercase tracking-widest text-rose-400/80 font-medium">Si no se actúa</p>
             </div>
             <p className="text-3xl font-black text-rose-400 tabular-nums">{formatCLP(costo)}</p>
-            <p className="text-xs text-slate-500 mt-0.5">costo de inacción / año</p>
+            <p className="text-xs text-slate-400 mt-0.5">costo de inacción / año</p>
             {sim.sin_implementacion?.deterioro_en_meses && (
               <div className="mt-3 flex items-center gap-2">
                 <Clock className="w-3.5 h-3.5 text-rose-500/60" />
@@ -343,20 +343,20 @@ const Resultado = memo(function Resultado({ sim }: { sim: SimulacionResult }) {
         <Card className="overflow-hidden">
           <div className="flex items-center gap-2 px-6 pt-5 pb-4 border-b border-white/5">
             <BarChart3 className="w-4 h-4 text-indigo-400" />
-            <p className="text-[10px] uppercase tracking-widest text-slate-500">KPIs proyectados</p>
+            <p className="text-[10px] uppercase tracking-widest text-slate-400">KPIs proyectados</p>
           </div>
           <div className="divide-y divide-white/5">
             {sim.kpis_proyectados.filter(k => k.nombre).map((kpi, i) => (
               <div key={i} className="grid grid-cols-[1fr_auto_auto_auto] items-center gap-4 px-6 py-4 hover:bg-white/[0.015] transition-colors">
                 <p className="text-sm text-slate-300">{kpi.nombre}</p>
                 <div className="text-right">
-                  <p className="text-sm font-bold text-slate-500 tabular-nums">{formatKpiVal(kpi.antes)}</p>
-                  <p className="text-[9px] text-slate-700 uppercase tracking-wider">Actual</p>
+                  <p className="text-sm font-bold text-slate-400 tabular-nums">{formatKpiVal(kpi.antes)}</p>
+                  <p className="text-[9px] text-slate-400 uppercase tracking-wider">Actual</p>
                 </div>
                 <ArrowRight className="w-4 h-4 text-indigo-500/50" />
                 <div className="text-right min-w-[60px]">
                   <p className="text-sm font-bold text-emerald-400 tabular-nums">{formatKpiVal(kpi.despues)}</p>
-                  <p className="text-[9px] text-slate-600 uppercase tracking-wider">{kpi.unidad}</p>
+                  <p className="text-[9px] text-slate-400 uppercase tracking-wider">{kpi.unidad}</p>
                 </div>
               </div>
             ))}
@@ -368,7 +368,7 @@ const Resultado = memo(function Resultado({ sim }: { sim: SimulacionResult }) {
       <Card className="p-6">
         <div className="flex items-center gap-2 mb-6">
           <Target className="w-4 h-4 text-violet-400" />
-          <p className="text-[10px] uppercase tracking-widest text-slate-500">Roadmap de implementación</p>
+          <p className="text-[10px] uppercase tracking-widest text-slate-400">Roadmap de implementación</p>
         </div>
         <div className="relative">
           {/* Línea conectora */}
@@ -381,7 +381,7 @@ const Resultado = memo(function Resultado({ sim }: { sim: SimulacionResult }) {
                 </div>
                 <p className="text-[10px] text-indigo-400/60 font-mono">MES {h.mes}</p>
                 <p className="text-xs font-semibold text-white leading-tight">{h.titulo}</p>
-                {h.descripcion && <p className="text-[10px] text-slate-600 leading-relaxed">{h.descripcion}</p>}
+                {h.descripcion && <p className="text-[10px] text-slate-400 leading-relaxed">{h.descripcion}</p>}
               </div>
             ))}
           </div>
@@ -392,12 +392,12 @@ const Resultado = memo(function Resultado({ sim }: { sim: SimulacionResult }) {
       <Card className="p-6">
         <div className="flex items-center gap-2 mb-4">
           <Zap className="w-4 h-4 text-amber-400" />
-          <p className="text-[10px] uppercase tracking-widest text-slate-500">Quick Wins — acciones con impacto inmediato</p>
+          <p className="text-[10px] uppercase tracking-widest text-slate-400">Quick Wins — acciones con impacto inmediato</p>
         </div>
         <div className="space-y-2.5">
           {sim.quick_wins.filter(q => q.titulo).map((qw, i) => (
             <div key={i} className="flex items-start gap-3 rounded-xl border border-white/[0.05] bg-white/[0.02] px-4 py-3.5 hover:bg-white/[0.04] transition-colors">
-              <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 text-xs font-black ${qw.impacto === 'alto' ? 'bg-amber-500/15 border border-amber-500/25 text-amber-400' : 'bg-white/5 border border-white/8 text-slate-500'}`}>
+              <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 text-xs font-black ${qw.impacto === 'alto' ? 'bg-amber-500/15 border border-amber-500/25 text-amber-400' : 'bg-white/5 border border-white/8 text-slate-400'}`}>
                 {i + 1}
               </div>
               <div className="flex-1 min-w-0">
@@ -405,10 +405,10 @@ const Resultado = memo(function Resultado({ sim }: { sim: SimulacionResult }) {
                   <p className="text-sm font-semibold text-white">{qw.titulo}</p>
                   <div className="flex items-center gap-1.5 shrink-0">
                     {qw.impacto === 'alto' && <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20 uppercase tracking-wide">alto impacto</span>}
-                    <span className="text-[10px] text-slate-600 font-mono">{qw.plazo_dias}d</span>
+                    <span className="text-[10px] text-slate-400 font-mono">{qw.plazo_dias}d</span>
                   </div>
                 </div>
-                <p className="text-xs text-slate-500">{qw.descripcion}</p>
+                <p className="text-xs text-slate-400">{qw.descripcion}</p>
               </div>
             </div>
           ))}
@@ -420,7 +420,7 @@ const Resultado = memo(function Resultado({ sim }: { sim: SimulacionResult }) {
         <Card className="p-5">
           <div className="flex items-center gap-2 mb-4">
             <Shield className="w-4 h-4 text-rose-400" />
-            <p className="text-[10px] uppercase tracking-widest text-slate-500">Riesgos eliminados</p>
+            <p className="text-[10px] uppercase tracking-widest text-slate-400">Riesgos eliminados</p>
           </div>
           <ul className="space-y-2.5">
             {sim.riesgos_mitigados.map((r, i) => (
@@ -433,7 +433,7 @@ const Resultado = memo(function Resultado({ sim }: { sim: SimulacionResult }) {
         <Card className="p-5">
           <div className="flex items-center gap-2 mb-4">
             <Building2 className="w-4 h-4 text-sky-400" />
-            <p className="text-[10px] uppercase tracking-widest text-slate-500">Impacto organizacional</p>
+            <p className="text-[10px] uppercase tracking-widest text-slate-400">Impacto organizacional</p>
           </div>
           <p className="text-sm text-slate-300 leading-relaxed">{sim.impacto_organizacional}</p>
         </Card>
@@ -444,7 +444,7 @@ const Resultado = memo(function Resultado({ sim }: { sim: SimulacionResult }) {
         <Card accent="border-amber-500/10" className="p-5">
           <div className="flex items-center gap-2 mb-4">
             <AlertCircle className="w-4 h-4 text-amber-400" />
-            <p className="text-[10px] uppercase tracking-widest text-slate-500">Riesgos que se agravan si no se actúa</p>
+            <p className="text-[10px] uppercase tracking-widest text-slate-400">Riesgos que se agravan si no se actúa</p>
           </div>
           <div className="grid grid-cols-2 gap-2">
             {sim.sin_implementacion.riesgos_escalados.filter(Boolean).map((r, i) => (
@@ -471,20 +471,68 @@ const Resultado = memo(function Resultado({ sim }: { sim: SimulacionResult }) {
 
 // ── Componente principal ──────────────────────────────────────────────────────
 
+interface SimulacionGuardada {
+  id: string
+  nombre: string
+  escenario: string
+  resultados: SimulacionResult
+  created_at: string
+  usuario: { nombre: string } | null
+}
+
 interface Props {
   procesos: Proceso[]
   artefactosPorProceso: Record<string, Artefacto[]>
   proyectoNombre: string
   clienteNombre: string
   industria?: string
+  rol?: string
 }
 
-export default function HorizonteSimulador({ procesos, artefactosPorProceso, proyectoNombre, clienteNombre, industria }: Props) {
+const ROLES_GUARDAN = ['super_admin', 'director_proyecto', 'consultor']
+
+export default function HorizonteSimulador({ procesos, artefactosPorProceso, proyectoNombre, clienteNombre, industria, rol }: Props) {
   const [procesoId, setProcesoId] = useState('')
   const [artefactoIds, setArtefactoIds] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
   const [sim, setSim] = useState<SimulacionResult | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [guardando, setGuardando] = useState(false)
+  const [guardadoOk, setGuardadoOk] = useState(false)
+  const [guardadas, setGuardadas] = useState<SimulacionGuardada[]>([])
+
+  const puedeGuardar = ROLES_GUARDAN.includes(rol ?? '')
+
+  useEffect(() => {
+    setGuardadas([])
+    if (!procesoId) return
+    fetch(`/api/horizonte/simulaciones?proceso_id=${procesoId}`)
+      .then(r => r.json())
+      .then(d => setGuardadas(d.simulaciones ?? []))
+      .catch(() => {})
+  }, [procesoId])
+
+  async function guardarSimulacion() {
+    if (!sim || !procesoId || guardando) return
+    setGuardando(true)
+    try {
+      const res = await fetch('/api/horizonte/simulaciones', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ proceso_id: procesoId, artefacto_ids: artefactoIds, resultados: sim }),
+      })
+      if (!res.ok) throw new Error((await res.json()).error)
+      setGuardadoOk(true)
+      setTimeout(() => setGuardadoOk(false), 2500)
+      fetch(`/api/horizonte/simulaciones?proceso_id=${procesoId}`)
+        .then(r => r.json())
+        .then(d => setGuardadas(d.simulaciones ?? []))
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Error al guardar la simulación')
+    } finally {
+      setGuardando(false)
+    }
+  }
 
   const procesoActual = procesos.find(p => p.id === procesoId)
   const artefactos = artefactosPorProceso[procesoId] ?? []
@@ -505,7 +553,7 @@ export default function HorizonteSimulador({ procesos, artefactosPorProceso, pro
   }
 
   async function proyectar() {
-    if (!procesoId) return
+    if (!procesoId || loading) return // guardia síncrona — evita disparar dos generaciones de IA superpuestas
     setLoading(true); setSim(null); setError(null)
     try {
       const res = await fetch('/api/horizonte/simular', {
@@ -562,18 +610,44 @@ export default function HorizonteSimulador({ procesos, artefactosPorProceso, pro
               <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center">
                 <TrendingUp className="w-3.5 h-3.5 text-white" />
               </div>
-              <p className="text-[10px] text-slate-500 uppercase tracking-widest">Simulación de transformación</p>
+              <p className="text-[10px] text-slate-400 uppercase tracking-widest">Simulación de transformación</p>
             </div>
             <h1 className="text-3xl font-black text-white tracking-tight">Horizonte de Impacto</h1>
-            <p className="text-slate-500 text-sm mt-1">{clienteNombre} · {proyectoNombre}{industria ? ` · ${industria}` : ''}</p>
+            <p className="text-slate-400 text-sm mt-1">{clienteNombre} · {proyectoNombre}{industria ? ` · ${industria}` : ''}</p>
           </div>
           {sim && (
-            <button onClick={() => { setSim(null); setError(null) }}
-              className="flex items-center gap-2 text-xs text-slate-500 hover:text-slate-300 transition-colors mt-2 px-3 py-2 rounded-xl border border-white/8 hover:border-white/20">
-              <RefreshCw className="w-3.5 h-3.5" /> Nueva proyección
-            </button>
+            <div className="flex items-center gap-2 mt-2">
+              {puedeGuardar && (
+                <button onClick={guardarSimulacion} disabled={guardando}
+                  className="flex items-center gap-2 text-xs text-emerald-400 hover:text-emerald-300 transition-colors px-3 py-2 rounded-xl border border-emerald-500/20 hover:border-emerald-500/40 disabled:opacity-50">
+                  {guardadoOk ? '✓ Guardada' : guardando ? 'Guardando…' : 'Guardar simulación'}
+                </button>
+              )}
+              <button onClick={() => { setSim(null); setError(null) }}
+                className="flex items-center gap-2 text-xs text-slate-400 hover:text-slate-300 transition-colors px-3 py-2 rounded-xl border border-white/8 hover:border-white/20">
+                <RefreshCw className="w-3.5 h-3.5" /> Nueva proyección
+              </button>
+            </div>
           )}
         </div>
+
+        {/* ── SIMULACIONES GUARDADAS — visible antes de generar una nueva ── */}
+        {!sim && !loading && guardadas.length > 0 && (
+          <Card accent="border-white/8" bg="bg-white/[0.02]" className="p-4">
+            <p className="text-[10px] text-slate-400 uppercase tracking-widest mb-2">Simulaciones anteriores de este proceso</p>
+            <div className="space-y-1.5">
+              {guardadas.map(g => (
+                <button key={g.id} onClick={() => setSim(g.resultados)}
+                  className="w-full flex items-center justify-between text-left px-3 py-2 rounded-lg hover:bg-white/5 transition-colors">
+                  <span className="text-sm text-slate-300">{g.nombre}</span>
+                  <span className="text-xs text-slate-400">
+                    {g.usuario?.nombre ?? 'AICOUNTS'} · {new Date(g.created_at).toLocaleDateString('es-CL', { day: '2-digit', month: 'short', year: 'numeric' })}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </Card>
+        )}
 
         {/* ── EXPLICACIÓN DEL MÓDULO — visible siempre ── */}
         {!sim && !loading && (
@@ -608,7 +682,7 @@ export default function HorizonteSimulador({ procesos, artefactosPorProceso, pro
           <Card className="p-6 space-y-5">
             {/* Selector de proceso */}
             <div>
-              <p className="text-[10px] uppercase tracking-widest text-slate-500 mb-2">Proceso a proyectar</p>
+              <p className="text-[10px] uppercase tracking-widest text-slate-400 mb-2">Proceso a proyectar</p>
               <div className="relative">
                 {procesoActual && (
                   <span className="absolute left-4 top-1/2 -translate-y-1/2 z-10 text-xs font-mono font-bold text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 px-2 py-0.5 rounded-lg pointer-events-none">
@@ -618,10 +692,10 @@ export default function HorizonteSimulador({ procesos, artefactosPorProceso, pro
                 <select
                   value={procesoId}
                   onChange={e => setProcesoId(e.target.value)}
-                  className={`w-full appearance-none ${procesoActual ? 'pl-16' : 'pl-5'} pr-10 py-4 rounded-2xl border border-white/10 bg-[#0f0f1a] text-sm cursor-pointer hover:border-indigo-500/30 focus:outline-none focus:border-indigo-500/50 transition-all ${procesoId ? 'text-white' : 'text-slate-500'}`}
+                  className={`w-full appearance-none ${procesoActual ? 'pl-16' : 'pl-5'} pr-10 py-4 rounded-2xl border border-white/10 bg-[#0f0f1a] text-sm cursor-pointer hover:border-indigo-500/30 focus:outline-none focus:border-indigo-500/50 transition-all ${procesoId ? 'text-white' : 'text-slate-400'}`}
                   style={{ colorScheme: 'dark' }}
                 >
-                  <option value="" disabled className="bg-[#0f0f1a] text-slate-500">Elige el proceso a proyectar…</option>
+                  <option value="" disabled className="bg-[#0f0f1a] text-slate-400">Elige el proceso a proyectar…</option>
                   {procesos.map(p => (
                     <option key={p.id} value={p.id} className="bg-[#0f0f1a] text-white">
                       {p.codigo} — {p.nombre}
@@ -638,15 +712,15 @@ export default function HorizonteSimulador({ procesos, artefactosPorProceso, pro
             {artefactos.length > 0 && (
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <p className="text-[10px] uppercase tracking-widest text-slate-500">Documentos del proceso a incluir</p>
-                  <p className="text-[10px] text-slate-600">{artefactoIds.length} de {artefactos.length}</p>
+                  <p className="text-[10px] uppercase tracking-widest text-slate-400">Documentos del proceso a incluir</p>
+                  <p className="text-[10px] text-slate-400">{artefactoIds.length} de {artefactos.length}</p>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {artefactos.map(a => (
                     <button key={a.id} onClick={() => toggleArtefacto(a.id)}
                       className={`text-xs px-3 py-1.5 rounded-full border transition-all ${artefactoIds.includes(a.id)
                         ? 'bg-indigo-500/15 border-indigo-500/35 text-indigo-300'
-                        : 'border-white/8 text-slate-500 hover:text-slate-400 hover:border-white/15'}`}>
+                        : 'border-white/8 text-slate-400 hover:text-slate-400 hover:border-white/15'}`}>
                       {TIPO_LABEL[a.tipo] ?? a.tipo} v{a.version}
                     </button>
                   ))}
@@ -667,7 +741,7 @@ export default function HorizonteSimulador({ procesos, artefactosPorProceso, pro
                   : 'Proyectar impacto con IA'}
               </button>
               {!procesoId && (
-                <p className="text-center text-[11px] text-slate-600">Selecciona un proceso para activar la proyección</p>
+                <p className="text-center text-[11px] text-slate-400">Selecciona un proceso para activar la proyección</p>
               )}
             </div>
           </Card>

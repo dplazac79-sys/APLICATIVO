@@ -24,7 +24,7 @@ const ESTADO_STYLE: Record<WorkflowEstadoTipo, string> = {
   'Pending Approval': 'border-amber-700 bg-amber-950/30 text-amber-300',
   'Approved':         'border-emerald-700 bg-emerald-950/30 text-emerald-300',
   'Implemented':      'border-teal-700 bg-teal-950/30 text-teal-300',
-  'Closed':           'border-slate-800 bg-slate-900/60 text-slate-500',
+  'Closed':           'border-slate-800 bg-slate-900/60 text-slate-400',
 }
 
 const NIVEL_BADGE: Record<string, string> = {
@@ -51,7 +51,7 @@ export default function WorkflowBoard({ procesos, proyectoId, readonly = false }
     try {
       await fetch(`/api/procesos/${procesoId}/workflow`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' })
       router.refresh()
-    } catch { setError('Error al inicializar') } finally { setCargando(null) }
+    } catch { setError('Error al inicializar.') } finally { setCargando(null) }
   }
 
   async function transicionar(procesoId: string, nuevoEstado: WorkflowEstadoTipo) {
@@ -74,7 +74,7 @@ export default function WorkflowBoard({ procesos, proyectoId, readonly = false }
   void proyectoId
 
   if (procesos.length === 0) {
-    return <p className="text-slate-500 text-sm">No hay procesos aceptados. Acepta procesos en Discovery AI primero.</p>
+    return <p className="text-slate-400 text-sm">No hay procesos aceptados. Acepta procesos en Discovery AI primero.</p>
   }
 
   return (
@@ -122,7 +122,7 @@ export default function WorkflowBoard({ procesos, proyectoId, readonly = false }
               </div>
             </div>
             {wf?.responsable && (
-              <p className="text-slate-500 text-xs mt-0.5 ml-0">Responsable: {wf.responsable.nombre}</p>
+              <p className="text-slate-400 text-xs mt-0.5 ml-0">Responsable: {wf.responsable.nombre}</p>
             )}
           </div>
         )

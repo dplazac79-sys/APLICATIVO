@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useRef } from 'react'
-import { CheckCircle, AlertCircle, Sparkles } from 'lucide-react'
+import { CheckCircle2, AlertCircle, Sparkles } from 'lucide-react'
 
 interface Props {
   procesoId: string
@@ -82,11 +82,11 @@ export default function ImportadorArtefactos({ procesoId, procesoNombre, onCompl
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-white font-semibold text-sm">Extrayendo artefactos metodológicos</p>
-            <p className="text-slate-500 text-xs truncate">{procesoNombre}</p>
+            <p className="text-slate-400 text-xs truncate">{procesoNombre}</p>
           </div>
           <div className="text-right shrink-0">
             <p className="text-purple-300 text-xl font-bold tabular-nums">{Math.round(pctEstimado)}%</p>
-            <p className="text-slate-600 text-xs">
+            <p className="text-slate-400 text-xs">
               {pasado ? `${elapsed}s · finalizando...` : `~${restantes}s restantes`}
             </p>
           </div>
@@ -111,7 +111,7 @@ export default function ImportadorArtefactos({ procesoId, procesoNombre, onCompl
                     ? 'bg-purple-900/50 border-purple-700/60 text-purple-200'
                     : enProceso
                     ? 'bg-purple-950 border-purple-500 text-purple-300 shadow-[0_0_6px_rgba(168,85,247,0.35)]'
-                    : 'bg-slate-800/30 border-slate-700/30 text-slate-600'
+                    : 'bg-slate-800/30 border-slate-700/30 text-slate-400'
                 }`}
               >
                 {completado ? '✓ ' : ''}{label}
@@ -128,12 +128,12 @@ export default function ImportadorArtefactos({ procesoId, procesoNombre, onCompl
     return (
       <div className="bg-emerald-950/20 border border-emerald-800/40 rounded-2xl p-5">
         <div className="flex items-center gap-3">
-          <CheckCircle className="w-5 h-5 text-emerald-400 shrink-0" />
+          <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
           <div className="flex-1">
             <p className="text-emerald-300 font-medium text-sm">
               {guardados} de {total} artefactos generados en {tiempoReal}s
             </p>
-            <p className="text-slate-500 text-xs mt-0.5">Cargando resultados...</p>
+            <p className="text-slate-400 text-xs mt-0.5">Cargando resultados...</p>
           </div>
         </div>
       </div>
@@ -146,7 +146,7 @@ export default function ImportadorArtefactos({ procesoId, procesoNombre, onCompl
         <AlertCircle className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
         <div>
           <p className="text-red-300 font-medium text-sm">No se pudo generar los artefactos</p>
-          <p className="text-slate-500 text-xs mt-1">{error}</p>
+          <p className="text-slate-400 text-xs mt-1">{error}</p>
         </div>
       </div>
     </div>

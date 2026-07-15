@@ -142,7 +142,7 @@ export default function DiagramaEditor({ artefactoId, initialNodes, initialEdges
         <div className="flex items-center gap-2 flex-wrap">
           {/* Toolbar agregar nodos */}
           <div className="flex items-center gap-1 bg-slate-800 border border-slate-700 rounded-lg px-2 py-1">
-            <span className="text-slate-500 text-xs mr-1">Agregar:</span>
+            <span className="text-slate-400 text-xs mr-1">Agregar:</span>
             {TIPOS_NODO.map(t => (
               <button
                 key={t.tipo}
@@ -175,7 +175,7 @@ export default function DiagramaEditor({ artefactoId, initialNodes, initialEdges
       )}
 
       {!readonly && (
-        <p className="text-slate-600 text-xs">
+        <p className="text-slate-400 text-xs">
           Doble clic en un nodo para editar su nombre · Arrastra para mover · Conecta arrastrando desde el borde de un nodo
         </p>
       )}
@@ -198,7 +198,7 @@ export default function DiagramaEditor({ artefactoId, initialNodes, initialEdges
                 Cancelar
               </button>
               <button onClick={confirmarEdicion} className="flex-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg py-1.5 text-sm transition-colors">
-                Confirmar
+                Guardar
               </button>
             </div>
           </div>

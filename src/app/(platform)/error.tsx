@@ -21,7 +21,7 @@ export default function PlatformError({
             Nuestro equipo ya fue notificado. Intenta recargar esta sección.
           </p>
           {error.digest && (
-            <p className="text-xs text-slate-600 font-mono mt-2">ref: {error.digest}</p>
+            <p className="text-xs text-slate-400 font-mono mt-2">ref: {error.digest}</p>
           )}
         </div>
         <button

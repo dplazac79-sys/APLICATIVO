@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
 
   // Verificar acceso
   const { data: usuarioDB } = await admin.from('usuario').select('rol').eq('id', user.id).single()
-  const esInterno = usuarioDB?.rol === 'super_admin' || usuarioDB?.rol === 'admin' || usuarioDB?.rol === 'consultor'
+  const esInterno = usuarioDB?.rol === 'super_admin' || usuarioDB?.rol === 'consultor'
   if (!esInterno) {
     const { data: acceso } = await admin.from('usuario_proyecto')
       .select('id').eq('usuario_id', user.id).eq('proyecto_id', body.proyecto_id).maybeSingle()

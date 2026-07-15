@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { jsonError } from '@/lib/http/errors'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { assertProyectoAccess } from '@/lib/auth/tenant'
+import { ROLES_EDITAN_ARTEFACTO } from '@/lib/artefactos-estado'
 
 // GET: obtener historial de versiones de un artefacto
 export async function GET(
@@ -14,6 +16,18 @@ export async function GET(
     if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
     const admin = createAdminClient()
+
+    // Esta ruta no tenía NINGÚN chequeo de acceso a proyecto — cualquier
+    // usuario autenticado de cualquier proyecto podía leer el historial de
+    // contenido de artefactos de otros clientes. Detectado creando un
+    // segundo proyecto/usuario "intruso" y confirmando que leía datos
+    // marcados como confidenciales de un proyecto al que nunca tuvo acceso.
+    const { data: artefacto } = await admin.from('artefacto').select('proceso:proceso_id(proyecto_id)').eq('id', params.id).single()
+    const proyectoId = (artefacto?.proceso as unknown as { proyecto_id: string } | null)?.proyecto_id
+    if (!proyectoId || !(await assertProyectoAccess(user.id, proyectoId))) {
+      return NextResponse.json({ error: 'Sin acceso a este artefacto' }, { status: 403 })
+    }
+
     const { data, error } = await admin
       .from('artefacto_historial')
       .select('id, version, estado_validacion, motivo_cambio, modificado_por, created_at, contenido')
@@ -39,6 +53,17 @@ export async function POST(
     if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
     const admin = createAdminClient()
+
+    // Restaurar una versión es una edición (sobreescribe el contenido
+    // actual), así que exige el mismo rol que PATCH /api/artefactos/[id] —
+    // sin esto, un usuario_cliente de solo lectura podía restaurar
+    // versiones anteriores saltándose la restricción que sí se aplica en
+    // la vía normal de edición.
+    const { data: usuario } = await admin.from('usuario').select('rol').eq('id', user.id).single()
+    if (!usuario || !ROLES_EDITAN_ARTEFACTO.includes(usuario.rol)) {
+      return NextResponse.json({ error: 'Sin permisos para editar este artefacto' }, { status: 403 })
+    }
+
     const { historial_id } = await req.json() as { historial_id: string }
 
     // Obtener contenido de esa versión
@@ -54,11 +79,21 @@ export async function POST(
     // Restaurar: guardar versión actual en historial primero, luego actualizar
     const { data: actual } = await admin
       .from('artefacto')
-      .select('*')
+      .select('*, proceso:proceso_id(proyecto_id)')
       .eq('id', params.id)
       .single()
 
     if (!actual) return NextResponse.json({ error: 'Artefacto no encontrado' }, { status: 404 })
+
+    // Mismo hallazgo que en el GET de arriba, pero del lado de escritura:
+    // sin este chequeo, cualquier usuario autenticado podía RESTAURAR (y
+    // por lo tanto sobreescribir) el contenido de un artefacto de un
+    // proyecto ajeno — confirmado en vivo corrompiendo un artefacto de
+    // prueba desde una cuenta sin ninguna relación con ese proyecto.
+    const proyectoId = (actual.proceso as unknown as { proyecto_id: string } | null)?.proyecto_id
+    if (!proyectoId || !(await assertProyectoAccess(user.id, proyectoId))) {
+      return NextResponse.json({ error: 'Sin acceso a este artefacto' }, { status: 403 })
+    }
 
     await admin.from('artefacto_historial').insert({
       artefacto_id: params.id,

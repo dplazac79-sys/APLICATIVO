@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { formatFecha } from '@/lib/format'
 import {
   FileText, Download, ChevronDown, Clock,
   GitBranch, Sparkles, Star, AlertCircle,
@@ -80,9 +81,7 @@ function scCode(p: Proceso) {
   return `SC${String((p.orden ?? 0) + 1).padStart(2, '0')}`
 }
 
-function fmtDate(iso: string) {
-  return new Date(iso).toLocaleDateString('es-CL', { day: '2-digit', month: 'short', year: 'numeric' })
-}
+const fmtDate = formatFecha
 
 function fmtDateShort(iso: string) {
   return new Date(iso).toLocaleDateString('es-CL', { day: '2-digit', month: 'short' })
@@ -251,27 +250,27 @@ function CambioCard({ cambio, index }: { cambio: CambioDetalle; index: number })
         <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide ${cfg.color} ${cfg.bg} border ${cfg.border}`}>
           {cfg.label}
         </span>
-        <span className="text-[10px] text-slate-600 flex-shrink-0">#{index + 1}</span>
+        <span className="text-[10px] text-slate-400 flex-shrink-0">#{index + 1}</span>
       </div>
 
       {cambio.texto_original && (
         <div className="mb-2">
-          <div className="text-[10px] text-slate-600 uppercase tracking-wide mb-1 font-medium">Texto original</div>
-          <div className="text-[11px] text-slate-500 leading-relaxed bg-black/20 rounded-lg px-2.5 py-2 border border-white/[0.04] italic">
+          <div className="text-[10px] text-slate-400 uppercase tracking-wide mb-1 font-medium">Texto original</div>
+          <div className="text-[11px] text-slate-400 leading-relaxed bg-black/20 rounded-lg px-2.5 py-2 border border-white/[0.04] italic">
             &quot;{cambio.texto_original.slice(0, 200)}{cambio.texto_original.length > 200 ? '…' : ''}&quot;
           </div>
         </div>
       )}
 
       <div>
-        <div className="text-[10px] text-slate-600 uppercase tracking-wide mb-1 font-medium">Observación del cliente</div>
+        <div className="text-[10px] text-slate-400 uppercase tracking-wide mb-1 font-medium">Observación del cliente</div>
         <div className={`text-xs leading-relaxed font-medium ${cfg.color}`}>
           {cambio.observacion}
         </div>
       </div>
 
       {cambio.fecha && (
-        <div className="mt-2 text-[10px] text-slate-600">
+        <div className="mt-2 text-[10px] text-slate-400">
           Registrado: {new Date(cambio.fecha).toLocaleDateString('es-CL', { day: '2-digit', month: 'short', year: 'numeric' })}
         </div>
       )}
@@ -332,7 +331,7 @@ function VersionRow({ entry, codigoProceso, procesoId, isLast }: {
                   )}
                 </div>
                 <div className="flex items-center gap-3">
-                  <span className="flex items-center gap-1.5 text-xs text-slate-500">
+                  <span className="flex items-center gap-1.5 text-xs text-slate-400">
                     <Clock className="w-3 h-3" />
                     {fmtDate(entry.fecha)}
                   </span>
@@ -356,7 +355,7 @@ function VersionRow({ entry, codigoProceso, procesoId, isLast }: {
             <div className="border-t border-white/[0.05] px-4 pt-4 pb-4">
               <div className="flex items-center gap-2 mb-3">
                 <div className="w-1 h-4 rounded-full bg-sky-500/50" />
-                <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-widest">
+                <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-widest">
                   Qué cambió respecto a la versión anterior
                 </span>
               </div>
@@ -372,7 +371,7 @@ function VersionRow({ entry, codigoProceso, procesoId, isLast }: {
                   <GitBranch className="w-4 h-4 text-sky-400/60 flex-shrink-0 mt-0.5" />
                   <div>
                     <p className="text-xs text-slate-400 leading-relaxed">{entry.descripcion}</p>
-                    <p className="mt-1.5 text-[11px] text-slate-600">
+                    <p className="mt-1.5 text-[11px] text-slate-400">
                       El detalle de cambios está disponible en versiones nuevas generadas desde esta actualización.
                     </p>
                   </div>
@@ -385,7 +384,7 @@ function VersionRow({ entry, codigoProceso, procesoId, isLast }: {
           {entry.isOriginal && (
             <div className="border-t border-white/[0.04] px-4 py-3 flex items-center gap-2">
               <FileText className="w-3.5 h-3.5 text-slate-600 flex-shrink-0" />
-              <span className="text-[11px] text-slate-600">
+              <span className="text-[11px] text-slate-400">
                 Este es el documento de referencia. Las versiones V1, V2... reflejan los cambios validados.
               </span>
             </div>
@@ -439,8 +438,8 @@ function ProcesoCard({ proceso, artefactos, docInfo, historialProcesos: _histori
             </span>
           )}
           <div className="text-right hidden sm:block">
-            <div className={`text-xs font-semibold px-2 py-0.5 rounded-full ${latestVersion.isOriginal ? 'text-slate-500 bg-white/5' : 'text-indigo-300 bg-indigo-500/15 border border-indigo-500/25'}`}>{latestVersion.label}</div>
-            <div className="text-[10px] text-slate-500 mt-0.5 text-right">{fmtDateShort(latestVersion.fecha)}</div>
+            <div className={`text-xs font-semibold px-2 py-0.5 rounded-full ${latestVersion.isOriginal ? 'text-slate-400 bg-white/5' : 'text-indigo-300 bg-indigo-500/15 border border-indigo-500/25'}`}>{latestVersion.label}</div>
+            <div className="text-[10px] text-slate-400 mt-0.5 text-right">{fmtDateShort(latestVersion.fecha)}</div>
           </div>
           <div className={`transition-transform duration-200 ${open ? 'rotate-180' : ''}`}>
             <ChevronDown className="w-4 h-4 text-slate-500" />
@@ -453,7 +452,7 @@ function ProcesoCard({ proceso, artefactos, docInfo, historialProcesos: _histori
           {/* Timeline header */}
           <div className="flex items-center gap-2 mb-4">
             <History className="w-3.5 h-3.5 text-slate-600" />
-            <span className="text-[11px] font-semibold text-slate-600 uppercase tracking-widest">Historial de versiones</span>
+            <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-widest">Historial de versiones</span>
           </div>
 
           {/* Timeline — más reciente arriba, original abajo */}
@@ -523,7 +522,7 @@ export default function VersionesCliente({
 
           <div className="relative px-7 pt-7 pb-6">
             {/* Breadcrumb */}
-            <div className="flex items-center gap-2 text-xs text-slate-600 mb-4">
+            <div className="flex items-center gap-2 text-xs text-slate-400 mb-4">
               <FileCheck className="w-3.5 h-3.5 flex-shrink-0" />
               <span>{clienteNombre || proyectoNombre}</span>
               <span className="text-slate-700">·</span>
@@ -534,7 +533,7 @@ export default function VersionesCliente({
             <div className="flex items-start justify-between gap-4 mb-6">
               <div>
                 <h1 className="text-3xl font-bold text-white tracking-tight">Control de Versiones</h1>
-                <p className="mt-1.5 text-sm text-slate-500 max-w-xl leading-relaxed">
+                <p className="mt-1.5 text-sm text-slate-400 max-w-xl leading-relaxed">
                   Rastro documental completo de cada proceso — desde el archivo original hasta la versión vigente lista para entrega tecnológica.
                 </p>
               </div>
@@ -551,10 +550,10 @@ export default function VersionesCliente({
                   <div className="w-7 h-7 rounded-lg bg-indigo-500/15 flex items-center justify-center">
                     <GitBranch className="w-3.5 h-3.5 text-indigo-400" />
                   </div>
-                  <span className="text-[11px] text-slate-500 font-medium uppercase tracking-wide">Procesos</span>
+                  <span className="text-[11px] text-slate-400 font-medium uppercase tracking-wide">Procesos</span>
                 </div>
                 <div className="text-3xl font-bold text-white">{procesos.length}</div>
-                <div className="text-[11px] text-slate-600 mt-0.5">aceptados para implementación</div>
+                <div className="text-[11px] text-slate-400 mt-0.5">aceptados para implementación</div>
               </div>
 
               {/* Stat 2 */}
@@ -563,10 +562,10 @@ export default function VersionesCliente({
                   <div className="w-7 h-7 rounded-lg bg-sky-500/15 flex items-center justify-center">
                     <History className="w-3.5 h-3.5 text-sky-400" />
                   </div>
-                  <span className="text-[11px] text-slate-500 font-medium uppercase tracking-wide">Versiones</span>
+                  <span className="text-[11px] text-slate-400 font-medium uppercase tracking-wide">Versiones</span>
                 </div>
                 <div className="text-3xl font-bold text-white">{totalVersiones}</div>
-                <div className="text-[11px] text-slate-600 mt-0.5">{procesosConCambios} proceso{procesosConCambios !== 1 ? 's' : ''} con cambios</div>
+                <div className="text-[11px] text-slate-400 mt-0.5">{procesosConCambios} proceso{procesosConCambios !== 1 ? 's' : ''} con cambios</div>
               </div>
 
               {/* Stat 3 */}
@@ -575,16 +574,16 @@ export default function VersionesCliente({
                   <div className="w-7 h-7 rounded-lg bg-emerald-500/15 flex items-center justify-center">
                     <Star className="w-3.5 h-3.5 text-emerald-400" />
                   </div>
-                  <span className="text-[11px] text-slate-500 font-medium uppercase tracking-wide">Última actividad</span>
+                  <span className="text-[11px] text-slate-400 font-medium uppercase tracking-wide">Última actividad</span>
                 </div>
                 <div className="text-lg font-bold text-white leading-tight">{ultimaActividadStr}</div>
-                <div className="text-[11px] text-slate-600 mt-0.5">última modificación registrada</div>
+                <div className="text-[11px] text-slate-400 mt-0.5">última modificación registrada</div>
               </div>
             </div>
 
             {/* Legend / flow indicator */}
-            <div className="mt-5 pt-4 border-t border-white/[0.05] flex flex-wrap items-center gap-2 text-[11px] text-slate-600">
-              <span className="text-slate-700 font-medium mr-1">Flujo:</span>
+            <div className="mt-5 pt-4 border-t border-white/[0.05] flex flex-wrap items-center gap-2 text-[11px] text-slate-400">
+              <span className="text-slate-400 font-medium mr-1">Flujo:</span>
               <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-white/[0.04] border border-white/[0.06]">
                 <FileText className="w-3 h-3 text-slate-500" /> Original
               </span>

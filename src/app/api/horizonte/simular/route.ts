@@ -60,9 +60,13 @@ export async function POST(req: NextRequest) {
 
   let contenidoArtefactos = ''
   if (artefacto_ids?.length) {
+    // Filtrado también por proceso_id — sin esto, un usuario con acceso
+    // legítimo a este proceso podía pasar IDs de artefactos de otro
+    // proyecto y su contenido terminaba filtrado dentro del prompt de IA.
     const { data: artefactos } = await admin
       .from('artefacto')
       .select('tipo, contenido')
+      .eq('proceso_id', proceso_id)
       .in('id', artefacto_ids)
     for (const a of artefactos ?? []) {
       const c = a.contenido as Record<string, unknown>

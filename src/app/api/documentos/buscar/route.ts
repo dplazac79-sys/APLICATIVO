@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { generarEmbedding } from '@/lib/ai/embeddings'
+import { assertProyectoAccess } from '@/lib/auth/tenant'
 
 export async function POST(req: NextRequest) {
   const supabase = createClient()
@@ -10,8 +11,19 @@ export async function POST(req: NextRequest) {
 
   try {
     const { query, proyecto_id } = await req.json()
-    if (!query || typeof query !== 'string') {
-      return NextResponse.json({ error: 'query requerida' }, { status: 400 })
+    if (!query || typeof query !== 'string' || query.trim().length < 3) {
+      return NextResponse.json({ error: 'Escribe al menos 3 caracteres para buscar' }, { status: 400 })
+    }
+
+    // El buscador usa el cliente admin (bypassa RLS) para poder combinar
+    // resultados por nombre + semánticos en un solo round-trip — por eso
+    // proyecto_id es obligatorio acá y se verifica explícitamente el acceso,
+    // en vez de confiar en que RLS filtre lo que el usuario puede ver.
+    if (!proyecto_id || typeof proyecto_id !== 'string') {
+      return NextResponse.json({ error: 'Selecciona un proyecto para buscar' }, { status: 400 })
+    }
+    if (!(await assertProyectoAccess(user.id, proyecto_id))) {
+      return NextResponse.json({ error: 'Sin acceso a este proyecto' }, { status: 403 })
     }
 
     const admin = createAdminClient()

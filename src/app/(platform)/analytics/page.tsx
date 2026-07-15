@@ -49,7 +49,7 @@ function GrafoRelaciones({ industria }: { industria: string }) {
   }, [industria])
 
   if (nodos === null) {
-    return <p className="text-xs text-slate-500 mt-4">Cargando grafo...</p>
+    return <p className="text-xs text-slate-400 mt-4">Cargando grafo...</p>
   }
   if (nodos.length === 0) return null
 
@@ -69,7 +69,7 @@ function GrafoRelaciones({ industria }: { industria: string }) {
       <div className="space-y-2 mb-4">
         {(Array.from(porTipo.entries()) as [KgNodoTipo, KgNodo[]][]).map(([tipo, items]) => (
           <div key={tipo} className="flex items-start gap-2">
-            <span className="text-[10px] text-slate-500 w-28 shrink-0 text-right pt-0.5 uppercase">{NODO_TIPO_LABEL[tipo]}</span>
+            <span className="text-[10px] text-slate-400 w-28 shrink-0 text-right pt-0.5 uppercase">{NODO_TIPO_LABEL[tipo]}</span>
             <div className="flex flex-wrap gap-1.5">
               {items.map(n => (
                 <span key={n.id} className={`text-xs px-2 py-0.5 rounded ${NODO_TIPO_BADGE[tipo]}`}>
@@ -85,12 +85,12 @@ function GrafoRelaciones({ industria }: { industria: string }) {
       {/* Relaciones como tabla nodo → relación → nodo */}
       {relaciones.length > 0 && (
         <div className="bg-slate-950/40 rounded-lg p-3">
-          <p className="text-[10px] text-slate-500 mb-2 uppercase tracking-wide">Relaciones</p>
+          <p className="text-[10px] text-slate-400 mb-2 uppercase tracking-wide">Relaciones</p>
           <div className="space-y-1">
             {relaciones.map(r => (
               <div key={r.id} className="flex items-center gap-2 text-xs flex-wrap">
                 <span className={`px-1.5 py-0.5 rounded ${NODO_TIPO_BADGE[r.origen_tipo]}`}>{r.origen_nombre}</span>
-                <span className="text-slate-500">— {RELACION_LABEL[r.tipo_relacion] ?? r.tipo_relacion} →</span>
+                <span className="text-slate-400">— {RELACION_LABEL[r.tipo_relacion] ?? r.tipo_relacion} →</span>
                 <span className={`px-1.5 py-0.5 rounded ${NODO_TIPO_BADGE[r.destino_tipo]}`}>{r.destino_nombre}</span>
               </div>
             ))}
@@ -136,7 +136,7 @@ function KpiCard({ label, value, sub }: { label: string; value: string | number;
     <div className="bg-slate-800 border border-slate-700 rounded-lg p-4">
       <p className="text-xs text-slate-400 mb-1">{label}</p>
       <p className="text-2xl font-bold text-slate-100">{value}</p>
-      {sub && <p className="text-xs text-slate-500 mt-1">{sub}</p>}
+      {sub && <p className="text-xs text-slate-400 mt-1">{sub}</p>}
     </div>
   )
 }
@@ -156,7 +156,7 @@ function BarChart({ items, colorClass = 'bg-indigo-600' }: {
         {items.map(item => (
           <div key={item.label} className="flex items-center justify-between text-xs">
             <span className="text-slate-400 truncate">{item.label}</span>
-            <span className="font-mono text-slate-500">{item.value}×</span>
+            <span className="font-mono text-slate-400">{item.value}×</span>
           </div>
         ))}
       </div>
@@ -193,7 +193,7 @@ export default function AnalyticsPage() {
         if (d.error) setError(d.error)
         else setData(d)
       })
-      .catch(() => setError('Error al cargar analytics'))
+      .catch(() => setError('Error al cargar analytics.'))
   }, [])
 
   if (error) {
@@ -209,7 +209,7 @@ export default function AnalyticsPage() {
 
   if (!data) {
     return (
-      <div className="flex items-center justify-center h-full text-slate-500">
+      <div className="flex items-center justify-center h-full text-slate-400">
         Cargando analytics...
       </div>
     )
@@ -255,7 +255,7 @@ export default function AnalyticsPage() {
         <div className="bg-slate-900 border border-slate-700 rounded-lg p-4">
           <h2 className="text-sm font-medium text-slate-300 mb-4">Tipos de Automatización Recomendados</h2>
           {data.automatizaciones_frecuentes.length === 0 ? (
-            <p className="text-slate-500 text-sm">Sin recomendaciones de IA generadas todavía.</p>
+            <p className="text-slate-400 text-sm">Sin recomendaciones de IA generadas todavía.</p>
           ) : (
             <BarChart
               items={data.automatizaciones_frecuentes.map(a => ({
@@ -300,7 +300,7 @@ export default function AnalyticsPage() {
         <div className="bg-slate-900 border border-slate-700 rounded-lg p-4">
           <h2 className="text-sm font-medium text-slate-300 mb-4">Tipos de Riesgo más Frecuentes</h2>
           {data.riesgos_frecuentes.length === 0 ? (
-            <p className="text-slate-500 text-sm">Sin datos de riesgos registrados.</p>
+            <p className="text-slate-400 text-sm">Sin datos de riesgos registrados.</p>
           ) : (
             <BarChart
               items={data.riesgos_frecuentes.map(r => ({
@@ -318,7 +318,7 @@ export default function AnalyticsPage() {
       <div>
         <h2 className="text-lg font-medium text-slate-200 mb-4">Knowledge Graph Corporativo</h2>
         {data.knowledge_graph.length === 0 ? (
-          <div className="bg-slate-900 border border-slate-700 rounded-lg p-8 text-center text-slate-500">
+          <div className="bg-slate-900 border border-slate-700 rounded-lg p-8 text-center text-slate-400">
             <Network className="w-8 h-8 mx-auto mb-2 text-slate-700" />
             <p>El Knowledge Graph se poblará al cerrar el primer proyecto.</p>
             <p className="text-xs mt-1">Usa el botón &quot;Cerrar proyecto&quot; en Administración.</p>
@@ -335,7 +335,7 @@ export default function AnalyticsPage() {
                     <Factory className="w-4 h-4 text-slate-500 shrink-0" />
                     <div>
                       <p className="font-medium text-slate-200">{snap.industria}</p>
-                      <p className="text-xs text-slate-500">{snap.proyectos_cerrados} proyecto(s) cerrado(s)</p>
+                      <p className="text-xs text-slate-400">{snap.proyectos_cerrados} proyecto(s) cerrado(s)</p>
                     </div>
                   </div>
                   {kgExpanded === snap.industria ? <ChevronUp className="w-4 h-4 text-slate-500" /> : <ChevronDown className="w-4 h-4 text-slate-500" />}
@@ -343,16 +343,16 @@ export default function AnalyticsPage() {
                 {kgExpanded === snap.industria && (
                   <div className="p-4 border-t border-slate-700 grid md:grid-cols-2 gap-4">
                     <div>
-                      <p className="text-xs text-slate-500 mb-2 uppercase tracking-wide">Procesos frecuentes</p>
+                      <p className="text-xs text-slate-400 mb-2 uppercase tracking-wide">Procesos frecuentes</p>
                       {snap.procesos_frecuentes.slice(0, 6).map(p => (
                         <div key={p.nombre} className="flex items-center justify-between text-sm py-1">
                           <span className="text-slate-300">{p.nombre}</span>
-                          <span className="text-slate-500 text-xs">{p.frecuencia}×</span>
+                          <span className="text-slate-400 text-xs">{p.frecuencia}×</span>
                         </div>
                       ))}
                     </div>
                     <div>
-                      <p className="text-xs text-slate-500 mb-2 uppercase tracking-wide">Automatizaciones recomendadas</p>
+                      <p className="text-xs text-slate-400 mb-2 uppercase tracking-wide">Automatizaciones recomendadas</p>
                       {snap.automatizaciones.map(a => (
                         <div key={a.tipo} className="py-1">
                           <div className="flex items-center justify-between text-sm">
@@ -362,10 +362,10 @@ export default function AnalyticsPage() {
                               a.tipo === 'ia_generativa' ? 'bg-emerald-900 text-emerald-200' :
                               'bg-slate-700 text-slate-300'
                             }`}>{a.tipo}</span>
-                            <span className="text-slate-500 text-xs">{a.frecuencia}×</span>
+                            <span className="text-slate-400 text-xs">{a.frecuencia}×</span>
                           </div>
                           {a.herramientas?.length > 0 && (
-                            <p className="text-xs text-slate-500 mt-0.5">{a.herramientas.join(', ')}</p>
+                            <p className="text-xs text-slate-400 mt-0.5">{a.herramientas.join(', ')}</p>
                           )}
                         </div>
                       ))}

@@ -53,9 +53,9 @@ export default async function PrintPage({ params }: Props) {
         </div>
 
         <div className="border-b-2 border-slate-200 pb-6 space-y-1">
-          <p className="text-xs text-slate-500 uppercase tracking-widest">ProcessOS — Reporte de Proceso</p>
+          <p className="text-xs text-slate-400 uppercase tracking-widest">ProcessOS — Reporte de Proceso</p>
           <h1 className="text-2xl font-bold text-slate-900">{proceso.nombre}</h1>
-          <p className="text-slate-600 text-sm">{String(proyecto?.nombre ?? '')} · {String(cliente?.razon_social ?? '')}</p>
+          <p className="text-slate-400 text-sm">{String(proyecto?.nombre ?? '')} · {String(cliente?.razon_social ?? '')}</p>
           <p className="text-slate-400 text-xs">Generado el {fechaHoy} · {artefactos.length} artefacto{artefactos.length !== 1 ? 's' : ''} publicados</p>
         </div>
 
@@ -94,13 +94,13 @@ function PrintArtefacto({ tipo, c }: { tipo: TipoArtefacto; c: Record<string, un
       return (
         <table className="w-full text-sm border-collapse">
           <thead>
-            <tr>{cols.map(col => <th key={col.key} className="border border-slate-300 bg-slate-100 p-2 text-left text-xs font-semibold text-slate-700">{col.label}</th>)}</tr>
+            <tr>{cols.map(col => <th key={col.key} className="border border-slate-300 bg-slate-100 p-2 text-left text-xs font-semibold text-slate-400">{col.label}</th>)}</tr>
           </thead>
           <tbody>
             <tr>{cols.map(col => {
               const v = c[col.key]
               return (
-                <td key={col.key} className="border border-slate-300 p-2 align-top text-slate-700 text-xs">
+                <td key={col.key} className="border border-slate-300 p-2 align-top text-slate-400 text-xs">
                   {Array.isArray(v) ? v.map((i: unknown, j: number) => <div key={j}>· {String(i)}</div>) : String(v ?? '')}
                 </td>
               )
@@ -112,7 +112,7 @@ function PrintArtefacto({ tipo, c }: { tipo: TipoArtefacto; c: Record<string, un
     case 'acta_inicio': {
       const objetivos = (c.objetivos as Array<Record<string, unknown>>) ?? []
       return (
-        <div className="text-sm text-slate-700 space-y-3">
+        <div className="text-sm text-slate-400 space-y-3">
           <div className="grid grid-cols-3 gap-2 text-xs bg-slate-50 rounded p-2">
             <span><strong>Inicio:</strong> {String(c.fecha_inicio ?? '—')}</span>
             <span><strong>Fin est.:</strong> {String(c.fecha_fin_estimada ?? '—')}</span>
@@ -139,12 +139,12 @@ function PrintArtefacto({ tipo, c }: { tipo: TipoArtefacto; c: Record<string, un
     case 'roadmap': {
       const fases = (c.fases as Array<Record<string, unknown>>) ?? []
       return (
-        <div className="text-sm text-slate-700 space-y-2">
+        <div className="text-sm text-slate-400 space-y-2">
           <p className="text-xs"><strong>Duración:</strong> {String(c.duracion_total_semanas ?? '—')} semanas · <strong>Metodología:</strong> {String(c.metodologia ?? '—')}</p>
           {fases.map((f, i) => (
             <div key={i} className="border-l-2 border-slate-300 pl-3">
               <p className="font-semibold text-xs">Fase {i+1}: {String(f.nombre ?? '')} (Sem {String(f.semana_inicio ?? '')}–{String(f.semana_fin ?? '')})</p>
-              <p className="text-xs text-slate-500">{String(f.objetivo ?? '')}</p>
+              <p className="text-xs text-slate-400">{String(f.objetivo ?? '')}</p>
             </div>
           ))}
         </div>
@@ -152,7 +152,7 @@ function PrintArtefacto({ tipo, c }: { tipo: TipoArtefacto; c: Record<string, un
     }
     default: {
       return (
-        <pre className="text-xs text-slate-600 bg-slate-50 rounded p-2 overflow-auto whitespace-pre-wrap">
+        <pre className="text-xs text-slate-400 bg-slate-50 rounded p-2 overflow-auto whitespace-pre-wrap">
           {JSON.stringify(c, null, 2)}
         </pre>
       )

@@ -1,7 +1,7 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
 import {
-  Layers, FileText, CheckCircle, Clock,
+  Layers, FileText, CheckCircle2, Clock,
   AlertTriangle, Brain, Zap, BarChart3, Shield, GitBranch, Users, Target, TrendingUp, ArrowUpRight,
   FolderOpen, Info
 } from 'lucide-react'
@@ -59,28 +59,47 @@ export default async function ArtefactosPage() {
   const { data: { user } } = await supabase.auth.getUser()
   const { data: usuarioData } = await admin
     .from('usuario')
-    .select('rol')
+    .select('rol, usuario_proyecto(proyecto_id)')
     .eq('id', user?.id ?? '')
     .single()
   const rolUsuario = usuarioData?.rol ?? 'usuario_cliente'
   const esSuperAdmin = rolUsuario === 'super_admin'
   const esCliente = rolUsuario === 'sponsor_cliente' || rolUsuario === 'usuario_cliente'
+  // Esta página usaba el cliente admin (bypasea RLS) y cargaba TODOS los
+  // proyectos activos de la plataforma sin filtrar por membresía — cualquier
+  // usuario autenticado, incluido un sponsor_cliente de otra empresa, veía
+  // el árbol completo de procesos y artefactos de todos los clientes. Se
+  // acota explícitamente a los proyectos del usuario, igual que ya hace
+  // Documentos vía assertProyectoAccess en sus rutas de API.
+  const proyectoIdsUsuario = (usuarioData?.usuario_proyecto ?? []).map((up: { proyecto_id: string }) => up.proyecto_id)
 
-  const { data: proyectos } = await admin
+  let queryProyectos = admin
     .from('proyecto')
     .select('id, nombre, cliente(razon_social)')
     .eq('estado_general', 'activo')
+  if (!esSuperAdmin) queryProyectos = queryProyectos.in('id', proyectoIdsUsuario)
+  const { data: proyectos } = await queryProyectos
 
-  const { data: procesosRaw } = await admin
-    .from('proceso')
-    .select('*, documento_origen:documento_origen_id(nombre_archivo)')
-    .order('nivel')
-    .order('orden')
+  const proyectoIdsVisibles = (proyectos ?? []).map(p => p.id)
 
-  const { data: artefactosRaw } = await admin
-    .from('artefacto')
-    .select('proceso_id, tipo, estado_validacion, version, generado_por_ia')
-    .in('tipo', ORDEN_GENERACION)
+  const { data: procesosRaw } = proyectoIdsVisibles.length
+    ? await admin
+        .from('proceso')
+        .select('*, documento_origen:documento_origen_id(nombre_archivo)')
+        .in('proyecto_id', proyectoIdsVisibles)
+        .order('nivel')
+        .order('orden')
+    : { data: [] }
+
+  const procesoIdsVisibles = (procesosRaw ?? []).map(p => p.id)
+
+  const { data: artefactosRaw } = procesoIdsVisibles.length
+    ? await admin
+        .from('artefacto')
+        .select('proceso_id, tipo, estado_validacion, version, generado_por_ia')
+        .in('tipo', ORDEN_GENERACION)
+        .in('proceso_id', procesoIdsVisibles)
+    : { data: [] }
 
   const procesos = (procesosRaw ?? []) as Proceso[]
   const artefactos = (artefactosRaw ?? []) as Pick<Artefacto, 'proceso_id' | 'tipo' | 'estado_validacion' | 'version' | 'generado_por_ia'>[]
@@ -147,7 +166,7 @@ export default async function ArtefactosPage() {
               </div>
               <div className="flex items-center gap-4 shrink-0 ml-4">
                 {generados === 0 && (
-                  <span className="text-[11px] text-slate-600 font-medium">Sin artefactos</span>
+                  <span className="text-[11px] text-slate-400 font-medium">Sin artefactos</span>
                 )}
                 {generados > 0 && (
                   <div className="flex items-center gap-2">
@@ -163,12 +182,12 @@ export default async function ArtefactosPage() {
                   </div>
                 )}
                 {publicados > 0 && (
-                  <span className="flex items-center gap-1 text-[11px] text-blue-400 font-medium">
-                    <CheckCircle className="w-3 h-3" />{publicados} aprobados
+                  <span className="flex items-center gap-1 text-[11px] text-emerald-400 font-medium">
+                    <CheckCircle2 className="w-3 h-3" />{publicados} aprobados
                   </span>
                 )}
                 {generados === total && total > 0 && publicados === 0 && (
-                  <span className="flex items-center gap-1 text-[11px] text-slate-600 font-medium">
+                  <span className="flex items-center gap-1 text-[11px] text-slate-400 font-medium">
                     <Clock className="w-3 h-3" />Sin aprobar
                   </span>
                 )}
@@ -217,11 +236,11 @@ export default async function ArtefactosPage() {
     {
       label: 'Aprobados',
       value: totalAprobados,
-      color: 'text-blue-300',
-      accent: 'from-slate-800/0 to-blue-900/20',
-      border: 'border-slate-800 hover:border-blue-700/50',
+      color: 'text-emerald-300',
+      accent: 'from-slate-800/0 to-emerald-900/20',
+      border: 'border-slate-800 hover:border-emerald-700/50',
       desc: 'Revisados y listos para entrega',
-      icon: <CheckCircle className="w-4 h-4 text-blue-400" />,
+      icon: <CheckCircle2 className="w-4 h-4 text-emerald-400" />,
     },
     {
       label: 'Participación cliente',
@@ -248,7 +267,7 @@ export default async function ArtefactosPage() {
             </div>
             <h1 className="text-2xl font-semibold text-white tracking-tight">Process Architect</h1>
           </div>
-          <p className="text-slate-500 text-sm pl-[42px]">Arquitectura de procesos y artefactos metodológicos generados por IA</p>
+          <p className="text-slate-400 text-sm pl-[42px]">Arquitectura de procesos y artefactos metodológicos generados por IA</p>
         </div>
       </div>
 
@@ -264,7 +283,7 @@ export default async function ArtefactosPage() {
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div className="flex items-start gap-2.5">
                   <div className="w-7 h-7 rounded-lg bg-sky-900/50 border border-sky-800/40 flex items-center justify-center shrink-0">
-                    <CheckCircle className="w-3.5 h-3.5 text-sky-400" />
+                    <CheckCircle2 className="w-3.5 h-3.5 text-sky-400" />
                   </div>
                   <div>
                     <p className="text-sky-100 text-xs font-medium">Revisar y validar</p>
@@ -303,11 +322,11 @@ export default async function ArtefactosPage() {
             className={`relative rounded-2xl border bg-gradient-to-b ${s.accent} ${s.border} bg-slate-900 p-5 transition-all duration-200 overflow-hidden`}
           >
             <div className="flex items-center justify-between mb-3">
-              <p className="text-slate-500 text-xs font-medium uppercase tracking-wider">{s.label}</p>
+              <p className="text-slate-400 text-xs font-medium uppercase tracking-wider">{s.label}</p>
               {s.icon}
             </div>
             <p className={`text-3xl font-bold tracking-tight ${s.color}`}>{s.value}</p>
-            <p className="text-slate-600 text-xs mt-1.5">{s.desc}</p>
+            <p className="text-slate-400 text-xs mt-1.5">{s.desc}</p>
           </div>
         ))}
 
@@ -318,12 +337,12 @@ export default async function ArtefactosPage() {
           return (
             <div className="relative rounded-2xl border border-slate-800 hover:border-emerald-700/50 bg-gradient-to-b from-slate-800/0 to-emerald-900/20 bg-slate-900 p-5 transition-all duration-200 overflow-hidden">
               <div className="flex items-center justify-between mb-4">
-                <p className="text-slate-500 text-xs font-medium uppercase tracking-wider">Participación cliente</p>
+                <p className="text-slate-400 text-xs font-medium uppercase tracking-wider">Participación cliente</p>
                 <Target className="w-4 h-4 text-emerald-400" />
               </div>
 
               {total === 0 ? (
-                <p className="text-slate-600 text-sm">Sin aprobaciones aún</p>
+                <p className="text-slate-400 text-sm">Sin aprobaciones aún</p>
               ) : (
                 <>
                   {/* Barra de proporción */}
@@ -338,11 +357,11 @@ export default async function ArtefactosPage() {
                   <div className="grid grid-cols-2 gap-2">
                     <div>
                       <p className="text-2xl font-bold text-emerald-300 tracking-tight leading-none">{aprobadosConCambios}</p>
-                      <p className="text-slate-500 text-[11px] mt-1 leading-tight">con edición</p>
+                      <p className="text-slate-400 text-[11px] mt-1 leading-tight">con edición</p>
                     </div>
                     <div>
                       <p className="text-2xl font-bold text-slate-400 tracking-tight leading-none">{aprobadosSinCambios}</p>
-                      <p className="text-slate-500 text-[11px] mt-1 leading-tight">sin cambios</p>
+                      <p className="text-slate-400 text-[11px] mt-1 leading-tight">sin cambios</p>
                     </div>
                   </div>
                 </>
@@ -372,7 +391,7 @@ export default async function ArtefactosPage() {
         <div className="flex items-center gap-2.5 px-5 py-4 border-b border-slate-800/80">
           <div className="w-1 h-4 rounded-full bg-violet-500" />
           <span className="text-slate-300 text-sm font-medium">8 artefactos metodológicos por proceso</span>
-          <span className="ml-auto text-[11px] text-slate-600 font-medium bg-slate-800 px-2 py-0.5 rounded-full">Estándar AICOUNTS</span>
+          <span className="ml-auto text-[11px] text-slate-400 font-medium bg-slate-800 px-2 py-0.5 rounded-full">Estándar AICOUNTS</span>
         </div>
         <div className="p-5">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -398,7 +417,7 @@ export default async function ArtefactosPage() {
             <Brain className="w-6 h-6 text-slate-600" />
           </div>
           <p className="text-slate-300 font-medium text-sm">No hay procesos aceptados aún</p>
-          <p className="text-slate-600 text-xs text-center max-w-xs leading-relaxed">
+          <p className="text-slate-400 text-xs text-center max-w-xs leading-relaxed">
             Acepta procesos en la vista Discovery AI para poder generar artefactos metodológicos.
           </p>
         </div>
@@ -413,7 +432,7 @@ export default async function ArtefactosPage() {
                 <div className="w-1.5 h-1.5 rounded-full bg-slate-600" />
                 <h2 className="text-sm font-semibold text-slate-200">{proyecto.nombre}</h2>
                 {cliente && (
-                  <span className="text-slate-600 text-xs">· {cliente.razon_social}</span>
+                  <span className="text-slate-400 text-xs">· {cliente.razon_social}</span>
                 )}
               </div>
               <div className="space-y-0">
@@ -428,11 +447,11 @@ export default async function ArtefactosPage() {
       <div className="flex items-center gap-5 px-1">
         {[
           { icon: <div className="w-3 h-1 rounded-full bg-emerald-500" />, label: 'Generación completa (8/8)' },
-          { icon: <CheckCircle className="w-3 h-3 text-blue-400" />, label: 'Aprobado por el cliente' },
+          { icon: <CheckCircle2 className="w-3 h-3 text-emerald-400" />, label: 'Aprobado por el cliente' },
           { icon: <Clock className="w-3 h-3 text-slate-500" />, label: 'Completo, sin aprobar' },
           { icon: <AlertTriangle className="w-3 h-3 text-amber-500/70" />, label: 'Generación incompleta' },
         ].map(({ icon, label }) => (
-          <span key={label} className="flex items-center gap-1.5 text-[11px] text-slate-500">
+          <span key={label} className="flex items-center gap-1.5 text-[11px] text-slate-400">
             {icon}{label}
           </span>
         ))}

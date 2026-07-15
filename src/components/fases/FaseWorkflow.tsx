@@ -44,7 +44,7 @@ export default function FaseWorkflow({ fases, compact, hideProgressHeader }: { f
           <div className="flex items-center justify-between mb-3">
             <div>
               <p className="text-sm font-medium text-white">Progreso del proyecto</p>
-              <p className="text-xs text-slate-500 mt-0.5">{completadas} de {totalFases} fases completadas</p>
+              <p className="text-xs text-slate-400 mt-0.5">{completadas} de {totalFases} fases completadas</p>
             </div>
             <span className="text-2xl font-bold text-white">{pct}%</span>
           </div>
@@ -114,8 +114,8 @@ export default function FaseWorkflow({ fases, compact, hideProgressHeader }: { f
 
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-xs text-slate-500 font-mono">F{fase.id}</span>
-                  <span className={`text-sm font-semibold ${bloqueada ? 'text-slate-500' : 'text-white'}`}>
+                  <span className="text-xs text-slate-400 font-mono">F{fase.id}</span>
+                  <span className={`text-sm font-semibold ${bloqueada ? 'text-slate-400' : 'text-white'}`}>
                     {fase.nombre}
                   </span>
                   {completada && (
@@ -129,12 +129,12 @@ export default function FaseWorkflow({ fases, compact, hideProgressHeader }: { f
                     </span>
                   )}
                   {bloqueada && (
-                    <span className="text-xs bg-slate-800 text-slate-500 px-2 py-0.5 rounded-full flex items-center gap-1">
+                    <span className="text-xs bg-slate-800 text-slate-400 px-2 py-0.5 rounded-full flex items-center gap-1">
                       <Lock className="w-3 h-3" /> Bloqueada
                     </span>
                   )}
                 </div>
-                <p className="text-xs text-slate-500 mt-0.5 truncate">{fase.descripcion}</p>
+                <p className="text-xs text-slate-400 mt-0.5 truncate">{fase.descripcion}</p>
 
                 {/* Mini progress bar */}
                 {!bloqueada && (
@@ -151,7 +151,7 @@ export default function FaseWorkflow({ fases, compact, hideProgressHeader }: { f
               </div>
 
               {!bloqueada && (
-                <div className="shrink-0 text-slate-500">
+                <div className="shrink-0 text-slate-400">
                   {isOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                 </div>
               )}
@@ -171,7 +171,7 @@ export default function FaseWorkflow({ fases, compact, hideProgressHeader }: { f
                       }`}>
                         {item.done && <CheckCircle2 className="w-3 h-3 text-white" />}
                       </div>
-                      <span className={`text-xs ${item.done ? 'text-slate-300' : 'text-slate-500'}`}>
+                      <span className={`text-xs ${item.done ? 'text-slate-300' : 'text-slate-400'}`}>
                         {item.label}
                       </span>
                     </div>

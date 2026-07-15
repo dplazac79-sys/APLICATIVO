@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Plus, Loader2, X } from 'lucide-react'
 import { useEscapeToClose } from '@/hooks/useEscapeToClose'
+import { useFocusTrap } from '@/hooks/useFocusTrap'
 
 interface Props { proyectoId: string }
 
@@ -13,6 +14,7 @@ export default function RiesgoForm({ proyectoId }: Props) {
   const [open, setOpen] = useState(false)
   const primerCampoRef = useRef<HTMLTextAreaElement>(null)
   useEscapeToClose(open, () => setOpen(false))
+  const trapRef = useFocusTrap(open)
   const [cargando, setCargando] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [descripcion, setDescripcion] = useState('')
@@ -21,7 +23,7 @@ export default function RiesgoForm({ proyectoId }: Props) {
   const [control, setControl] = useState('')
 
   async function guardar() {
-    if (!descripcion.trim()) return
+    if (!descripcion.trim() || cargando) return // guardia síncrona — evita crear el mismo riesgo dos veces por doble/triple clic
     setCargando(true)
     setError(null)
     try {
@@ -80,18 +82,18 @@ export default function RiesgoForm({ proyectoId }: Props) {
 
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => setOpen(false)}>
-          <div role="dialog" aria-modal="true" aria-labelledby="riesgo-form-titulo" className="bg-slate-900 border border-slate-700 rounded-xl p-6 w-full max-w-md shadow-2xl" onClick={e => e.stopPropagation()}>
+          <div ref={trapRef} role="dialog" aria-modal="true" aria-labelledby="riesgo-form-titulo" className="bg-slate-900 border border-slate-700 rounded-xl p-6 w-full max-w-md shadow-2xl" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
-              <h2 id="riesgo-form-titulo" className="text-white font-semibold text-base">Registrar riesgo</h2>
-              <button onClick={() => setOpen(false)} className="text-slate-500 hover:text-slate-300">
+              <h2 id="riesgo-form-titulo" className="text-white font-semibold text-base">Crear riesgo</h2>
+              <button onClick={() => setOpen(false)} aria-label="Cerrar" className="text-slate-400 hover:text-slate-300">
                 <X className="w-4 h-4" />
               </button>
             </div>
 
             <div className="space-y-3">
               <div>
-                <label className="text-slate-400 text-xs mb-1 block">Descripción del riesgo *</label>
-                <textarea ref={primerCampoRef} autoFocus value={descripcion} onChange={e => setDescripcion(e.target.value)} rows={3}
+                <label htmlFor="riesgo-descripcion" className="text-slate-400 text-xs mb-1 block">Descripción del riesgo *</label>
+                <textarea id="riesgo-descripcion" ref={primerCampoRef} autoFocus value={descripcion} onChange={e => setDescripcion(e.target.value)} rows={3}
                   className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-600 resize-none"
                   placeholder="Ej. Alta rotación del equipo del cliente puede retrasar levantamiento de información" />
               </div>
@@ -102,8 +104,8 @@ export default function RiesgoForm({ proyectoId }: Props) {
                 onChange={v => setImpacto(v as typeof impacto)} />
 
               <div>
-                <label className="text-slate-400 text-xs mb-1 block">Control / mitigación</label>
-                <textarea value={control} onChange={e => setControl(e.target.value)} rows={2}
+                <label htmlFor="riesgo-control" className="text-slate-400 text-xs mb-1 block">Control / mitigación</label>
+                <textarea id="riesgo-control" value={control} onChange={e => setControl(e.target.value)} rows={2}
                   className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-600 resize-none"
                   placeholder="Acciones de mitigación o contingencia..." />
               </div>
@@ -116,7 +118,7 @@ export default function RiesgoForm({ proyectoId }: Props) {
                 </Button>
                 <Button size="sm" onClick={guardar} disabled={!descripcion.trim() || cargando}
                   className="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white">
-                  {cargando ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Registrar'}
+                  {cargando ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Crear riesgo'}
                 </Button>
               </div>
             </div>

@@ -2,21 +2,31 @@ import { NextRequest, NextResponse } from 'next/server'
 import { jsonError } from '@/lib/http/errors'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { assertProyectoAccess, requireRole } from '@/lib/auth/tenant'
+
+const ROLES_AUTORIZADOS = ['super_admin', 'director_proyecto', 'consultor'] as const
 
 export async function POST(_req: NextRequest, { params }: { params: { id: string } }) {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
+  if (!(await requireRole(user.id, ROLES_AUTORIZADOS))) {
+    return NextResponse.json({ error: 'Sin permisos para consolidar una nueva versión' }, { status: 403 })
+  }
+
   const admin = createAdminClient()
 
   const { data: proceso } = await admin
     .from('proceso')
-    .select('metadata_ia, documento_origen_id')
+    .select('metadata_ia, documento_origen_id, proyecto_id')
     .eq('id', params.id)
     .single()
 
   if (!proceso) return NextResponse.json({ error: 'no_encontrado' }, { status: 404 })
+  if (!(await assertProyectoAccess(user.id, proceso.proyecto_id as string))) {
+    return NextResponse.json({ error: 'Sin acceso a este proceso' }, { status: 403 })
+  }
 
   const meta = (proceso.metadata_ia ?? {}) as Record<string, unknown>
   const correcciones = (meta.correcciones ?? []) as Array<{

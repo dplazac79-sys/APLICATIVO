@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { registrarAudit } from '@/lib/audit'
 import { ejecutarCierreProyecto } from '@/lib/automation/job-cierre'
-import { requireRole } from '@/lib/auth/tenant'
+import { assertProyectoAccess, requireRole } from '@/lib/auth/tenant'
 
 export async function POST(
   _req: NextRequest,
@@ -15,6 +15,9 @@ export async function POST(
 
     if (!(await requireRole(user.id, ['super_admin', 'director_proyecto']))) {
     return NextResponse.json({ error: 'Solo super_admin o director_proyecto pueden cerrar proyectos' }, { status: 403 })
+  }
+  if (!(await assertProyectoAccess(user.id, params.id))) {
+    return NextResponse.json({ error: 'Sin acceso a este proyecto' }, { status: 403 })
   }
 
   const admin = createAdminClient()

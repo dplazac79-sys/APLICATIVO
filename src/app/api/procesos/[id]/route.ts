@@ -3,6 +3,7 @@ import { jsonError } from '@/lib/http/errors'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { registrarAudit } from '@/lib/audit'
+import { assertProyectoAccess } from '@/lib/auth/tenant'
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   try {
@@ -15,6 +16,12 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     const rolesAutorizados = ['super_admin', 'director_proyecto', 'consultor']
     if (!usuario || !rolesAutorizados.includes(usuario.rol)) {
       return NextResponse.json({ error: 'Sin permisos para editar procesos' }, { status: 403 })
+    }
+
+    const { data: procesoActual } = await admin.from('proceso').select('proyecto_id').eq('id', params.id).single()
+    if (!procesoActual) return NextResponse.json({ error: 'Proceso no encontrado' }, { status: 404 })
+    if (!(await assertProyectoAccess(user.id, procesoActual.proyecto_id as string))) {
+      return NextResponse.json({ error: 'Sin acceso a este proceso' }, { status: 403 })
     }
 
     const body = await req.json()

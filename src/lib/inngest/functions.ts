@@ -242,7 +242,17 @@ async function discoveryAIBody({ proyecto_id, usuario_id, documento_ids, job_id,
     })
 
     await step.run('guardar-procesos', async () => {
-      await admin.from('proceso').delete().eq('proyecto_id', proyecto_id).in('origen', ['detectado', 'propuesta_ia'])
+      // Solo se reemplazan las propuestas que nadie ha revisado todavía
+      // (estado_oferta='propuesto'). Un proceso ya aceptado o rechazado es
+      // una decisión humana tomada — y si fue aceptado, puede tener
+      // artefactos ya validados por el cliente (artefacto.proceso_id tiene
+      // ON DELETE CASCADE). Antes este delete no filtraba por estado_oferta
+      // y volver a ejecutar Discovery después de subir un documento nuevo
+      // borraba en cascada todo el trabajo ya aprobado, sin aviso.
+      await admin.from('proceso').delete()
+        .eq('proyecto_id', proyecto_id)
+        .in('origen', ['detectado', 'propuesta_ia'])
+        .eq('estado_oferta', 'propuesto')
       for (const macro of resultado.macroprocesos) {
         const docs = datos.documentos
         const docOrigen = docs.find((d: { nombre_archivo: string }) => d.nombre_archivo === macro.documento_referencia)

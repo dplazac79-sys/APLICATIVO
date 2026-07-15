@@ -10,8 +10,8 @@ export async function POST(req: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
-        if (!(await requireRole(user.id, ['super_admin', 'admin']))) {
-      return NextResponse.json({ error: 'Solo admin o super_admin pueden crear clientes' }, { status: 403 })
+    if (!(await requireRole(user.id, ['super_admin']))) {
+      return NextResponse.json({ error: 'Solo super_admin puede crear clientes' }, { status: 403 })
     }
 
     const payload = await req.json()

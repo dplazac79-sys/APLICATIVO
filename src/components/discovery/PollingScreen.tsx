@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { Sparkles, CheckCircle, Clock, Cpu, FileText, X, RefreshCw } from 'lucide-react'
+import { Sparkles, CheckCircle2, Clock, Cpu, FileText, X, RefreshCw } from 'lucide-react'
 import DiscoveryAcciones from './DiscoveryAcciones'
 import type { DocumentoItem } from './types'
 
@@ -131,11 +131,11 @@ export function PollingScreen({
           </svg>
           <div className="absolute inset-0 flex flex-col items-center justify-center">
             {todosListos ? (
-              <CheckCircle className="w-10 h-10 text-emerald-400" />
+              <CheckCircle2 className="w-10 h-10 text-emerald-400" />
             ) : (
               <>
                 <span className="text-2xl font-bold text-white">{pct}%</span>
-                <span className="text-xs text-slate-500">procesado</span>
+                <span className="text-xs text-slate-400">procesado</span>
               </>
             )}
           </div>
@@ -186,7 +186,7 @@ export function PollingScreen({
             }`}>
               <div className="shrink-0 w-5 h-5 flex items-center justify-center">
                 {estadoVisual === 'listo' ? (
-                  <CheckCircle className="w-5 h-5 text-emerald-400" />
+                  <CheckCircle2 className="w-5 h-5 text-emerald-400" />
                 ) : estadoVisual === 'procesando' ? (
                   <span className="w-4 h-4 rounded-full border-2 border-violet-500/30 border-t-violet-400 animate-spin block" />
                 ) : (
@@ -203,7 +203,7 @@ export function PollingScreen({
                 </div>
               ) : (
                 <span className={`text-xs font-medium shrink-0 ${
-                  estadoVisual === 'listo' ? 'text-emerald-400' : 'text-slate-600'
+                  estadoVisual === 'listo' ? 'text-emerald-400' : 'text-slate-400'
                 }`}>
                   {estadoVisual === 'listo' ? 'Listo ✓' : 'En cola'}
                 </span>
@@ -245,7 +245,7 @@ export function PollingScreen({
                 <span className="text-base shrink-0 mt-0.5">{item.icon}</span>
                 <div>
                   <p className="text-xs font-semibold text-slate-200">{item.title}</p>
-                  <p className="text-xs text-slate-500 leading-relaxed">{item.desc}</p>
+                  <p className="text-xs text-slate-400 leading-relaxed">{item.desc}</p>
                 </div>
               </div>
             ))}

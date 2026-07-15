@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Star, CheckCircle } from 'lucide-react'
+import { Star, CheckCircle2 } from 'lucide-react'
 import type { EncuestaFeedback } from '@/types/database'
 
 interface Props {
@@ -29,7 +29,7 @@ export default function EncuestaFeedbackComponent({
   const etiquetas = ['', 'Deficiente', 'Regular', 'Bueno', 'Muy bueno', 'Excelente']
 
   async function enviar() {
-    if (puntuacion === 0) { setError('Selecciona una puntuación'); return }
+    if (puntuacion === 0) { setError('Selecciona una puntuación.'); return }
     setEnviando(true)
     setError('')
     try {
@@ -50,18 +50,18 @@ export default function EncuestaFeedbackComponent({
   if (enviado) {
     return (
       <div className="bg-emerald-950/20 border border-emerald-800/30 rounded-lg p-3 flex items-center gap-3">
-        <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0" />
+        <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
         <div>
           <p className="text-emerald-300 text-sm font-medium">Feedback enviado</p>
           {promedio !== undefined && totalRespuestas > 0 && (
-            <p className="text-slate-500 text-xs mt-0.5">
+            <p className="text-slate-400 text-xs mt-0.5">
               Promedio del equipo: <span className="text-amber-400">{promedio.toFixed(1)}/5</span> ({totalRespuestas} respuesta{totalRespuestas !== 1 ? 's' : ''})
             </p>
           )}
         </div>
         <button
           onClick={() => setEnviado(false)}
-          className="ml-auto text-slate-500 hover:text-slate-300 text-xs transition-colors"
+          className="ml-auto text-slate-400 hover:text-slate-300 text-xs transition-colors"
         >
           Editar
         </button>
@@ -85,7 +85,7 @@ export default function EncuestaFeedbackComponent({
               className={`w-6 h-6 transition-colors ${
                 n <= (hover || puntuacion)
                   ? 'fill-amber-400 text-amber-400'
-                  : 'text-slate-600'
+                  : 'text-slate-400'
               }`}
             />
           </button>

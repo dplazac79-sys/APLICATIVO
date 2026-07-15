@@ -48,6 +48,7 @@ interface Props {
   documentos: DocRow[]
   esInterno: boolean
   rolActual: string
+  proyectoId: string | null
 }
 
 function DocFila({
@@ -90,8 +91,8 @@ function DocFila({
           )}
         </div>
         <div className="flex items-center gap-2 mt-0.5">
-          <span className="text-slate-500 text-xs">{new Date(doc.created_at).toLocaleDateString('es-CL', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
-          {tipoDoc && <span className="text-slate-600 text-xs truncate max-w-48">· {tipoDoc}</span>}
+          <span className="text-slate-400 text-xs">{new Date(doc.created_at).toLocaleDateString('es-CL', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
+          {tipoDoc && <span className="text-slate-400 text-xs truncate max-w-48">· {tipoDoc}</span>}
         </div>
       </div>
 
@@ -123,13 +124,13 @@ function DocFila({
             <Download className="w-4 h-4" />
           </a>
         ) : (
-          <div className="w-8 h-8 flex items-center justify-center text-slate-700 cursor-not-allowed" title="No disponible">
+          <div className="w-8 h-8 flex items-center justify-center text-slate-400 cursor-not-allowed" title="No disponible">
             <Download className="w-4 h-4" />
           </div>
         )}
         <DocumentoAcciones documentoId={doc.id} estado={estadoKey} puedeEliminar={puedeEliminar} puedeAnalizar={esInterno} />
         {!puedeEliminar && (
-          <div className="w-8 h-8 flex items-center justify-center text-slate-700" title="Solo lectura">
+          <div className="w-8 h-8 flex items-center justify-center text-slate-400" title="Solo lectura">
             <Lock className="w-3.5 h-3.5" />
           </div>
         )}
@@ -138,7 +139,7 @@ function DocFila({
   )
 }
 
-export default function DocumentosFiltroWrapper({ documentos, esInterno, rolActual: _rolActual }: Props) {
+export default function DocumentosFiltroWrapper({ documentos, esInterno, rolActual: _rolActual, proyectoId }: Props) {
   const [filtroIds, setFiltroIds] = useState<string[] | null>(null)
   const [busqueda, setBusqueda] = useState('')
   const [expandidos, setExpandidos] = useState<Set<string>>(new Set())
@@ -193,7 +194,7 @@ export default function DocumentosFiltroWrapper({ documentos, esInterno, rolActu
           className="w-full bg-slate-800/60 border border-slate-700/50 rounded-xl pl-9 pr-9 py-2.5 text-sm text-slate-200 placeholder:text-slate-600 focus:outline-none focus:border-slate-500/60 transition-colors"
         />
         {busqueda && (
-          <button onClick={() => setBusqueda('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300">
+          <button onClick={() => setBusqueda('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-300">
             <X className="w-3.5 h-3.5" />
           </button>
         )}
@@ -201,7 +202,7 @@ export default function DocumentosFiltroWrapper({ documentos, esInterno, rolActu
 
       {/* Búsqueda semántica con IA — herramienta distinta, no un segundo filtro */}
       <div className="space-y-1.5">
-        <BuscadorSemantico onFiltrar={setFiltroIds} />
+        <BuscadorSemantico onFiltrar={setFiltroIds} proyectoId={proyectoId} />
         {filtroIds !== null && (
           <button onClick={() => setFiltroIds(null)} className="text-xs text-violet-400 hover:text-violet-300">
             Quitar filtro de búsqueda IA
@@ -210,7 +211,7 @@ export default function DocumentosFiltroWrapper({ documentos, esInterno, rolActu
       </div>
 
       {/* Contador */}
-      <div className="text-xs text-slate-500">
+      <div className="text-xs text-slate-400">
         {filtroIds !== null || busqueda
           ? `${totalVisible} de ${totalReal} documento${totalReal !== 1 ? 's' : ''}`
           : `${totalReal} documento${totalReal !== 1 ? 's' : ''}`}
@@ -225,7 +226,7 @@ export default function DocumentosFiltroWrapper({ documentos, esInterno, rolActu
       {docsFiltrados.length === 0 ? (
         <div className="rounded-2xl border border-slate-800 bg-slate-900/40 py-14 text-center">
           <FileText className="w-8 h-8 text-slate-700 mx-auto mb-3" />
-          <p className="text-slate-500 text-sm">
+          <p className="text-slate-400 text-sm">
             {busqueda || filtroIds !== null ? 'Ningún documento coincide.' : 'No hay documentos cargados aún.'}
           </p>
         </div>
@@ -256,7 +257,7 @@ export default function DocumentosFiltroWrapper({ documentos, esInterno, rolActu
                 {/* Versiones anteriores */}
                 {tieneVersiones && abierto && (
                   <div className="pl-4 space-y-1">
-                    <p className="text-xs text-slate-600 uppercase tracking-widest px-1 mb-1">Versiones anteriores</p>
+                    <p className="text-xs text-slate-400 uppercase tracking-widest px-1 mb-1">Versiones anteriores</p>
                     {[...hijos].sort((a, b) =>
                       ((b.clasificacion?.version_numero as number) ?? 0) - ((a.clasificacion?.version_numero as number) ?? 0)
                     ).map(v => (

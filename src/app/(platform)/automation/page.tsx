@@ -261,7 +261,7 @@ export default function AutomationStudioPage() {
         {/* Lista de roadmaps del proyecto */}
         {roadmaps.length > 0 && (
           <div className="mt-2 space-y-1">
-            <p className="text-xs text-slate-500 uppercase tracking-wide">Roadmaps</p>
+            <p className="text-xs text-slate-400 uppercase tracking-wide">Roadmaps</p>
             {roadmaps.map(r => (
               <button
                 key={r.id}
@@ -284,7 +284,7 @@ export default function AutomationStudioPage() {
           <div className="flex flex-col items-center justify-center h-full gap-4 text-center">
             <Zap className="w-16 h-16 text-slate-700" />
             <p className="text-slate-400 text-lg">Selecciona un proyecto para comenzar</p>
-            <p className="text-slate-500 text-sm max-w-md">
+            <p className="text-slate-400 text-sm max-w-md">
               El Automation Studio analiza el artefacto TO-BE y la simulación de impacto
               para recomendar el tipo de automatización óptimo, priorizado por impacto/esfuerzo.
             </p>
@@ -321,7 +321,7 @@ export default function AutomationStudioPage() {
             {tab === 'recomendaciones' && (
               <>
                 {recsOrdenadas.length === 0 ? (
-                  <div className="text-center py-20 text-slate-500">
+                  <div className="text-center py-20 text-slate-400">
                     <Bot className="w-10 h-10 mx-auto mb-3 text-slate-700" />
                     <p>Sin recomendaciones aún.</p>
                     <p className="text-sm mt-1">Selecciona un proceso y genera recomendaciones con IA.</p>
@@ -363,7 +363,7 @@ export default function AutomationStudioPage() {
                                   En roadmap
                                 </span>
                               )}
-                              <span className="text-xs text-slate-500 ml-auto">
+                              <span className="text-xs text-slate-400 ml-auto">
                                 Prioridad: {typeof rec.prioridad === 'number' ? rec.prioridad.toFixed(1) : '—'}
                               </span>
                             </div>
@@ -384,11 +384,11 @@ export default function AutomationStudioPage() {
 
                             <div className="flex items-center gap-6">
                               <div>
-                                <p className="text-xs text-slate-500 mb-1">Impacto <span className="text-slate-600">(mayor mejor)</span></p>
+                                <p className="text-xs text-slate-400 mb-1">Impacto <span className="text-slate-400">(mayor mejor)</span></p>
                                 <ScoreDot value={rec.score_impacto} color="bg-green-500" />
                               </div>
                               <div>
-                                <p className="text-xs text-slate-500 mb-1">Esfuerzo <span className="text-slate-600">(menor mejor)</span></p>
+                                <p className="text-xs text-slate-400 mb-1">Esfuerzo <span className="text-slate-400">(menor mejor)</span></p>
                                 <ScoreDot value={rec.score_esfuerzo} color="bg-amber-500" />
                               </div>
                             </div>
@@ -432,7 +432,7 @@ export default function AutomationStudioPage() {
             {tab === 'roadmap' && (
               <>
                 {roadmaps.length === 0 ? (
-                  <div className="text-center py-20 text-slate-500">
+                  <div className="text-center py-20 text-slate-400">
                     <ClipboardList className="w-10 h-10 mx-auto mb-3 text-slate-700" />
                     <p>Sin roadmaps creados.</p>
                     <p className="text-sm mt-1">Selecciona recomendaciones y crea un roadmap.</p>
@@ -475,7 +475,7 @@ export default function AutomationStudioPage() {
                           <div className="overflow-x-auto">
                             <table className="w-full text-sm">
                               <thead>
-                                <tr className="border-b border-slate-700 text-xs text-slate-500 uppercase tracking-wide">
+                                <tr className="border-b border-slate-700 text-xs text-slate-400 uppercase tracking-wide">
                                   <th className="text-left pb-2 pr-4">Tipo</th>
                                   <th className="text-left pb-2 pr-4">Herramientas</th>
                                   <th className="text-center pb-2 pr-4">Impacto ↑</th>
@@ -488,7 +488,7 @@ export default function AutomationStudioPage() {
                                   <tr key={rec.id} className="border-b border-slate-800 hover:bg-slate-800/40">
                                     <td className="py-2.5 pr-4">
                                       <div className="flex items-center gap-2">
-                                        <span className="text-slate-500 text-xs">#{i + 1}</span>
+                                        <span className="text-slate-400 text-xs">#{i + 1}</span>
                                         <span className={`text-xs px-2 py-0.5 rounded ${TIPO_COLOR[rec.tipo_automatizacion] ?? 'bg-slate-700 text-slate-300'}`}>
                                           {rec.tipo_automatizacion}
                                         </span>
@@ -517,7 +517,7 @@ export default function AutomationStudioPage() {
                               </tbody>
                             </table>
                             {recsDelRoadmap.length === 0 && (
-                              <p className="text-slate-500 text-sm text-center py-4">
+                              <p className="text-slate-400 text-sm text-center py-4">
                                 Sin recomendaciones asignadas a este roadmap.
                               </p>
                             )}

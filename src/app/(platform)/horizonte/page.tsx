@@ -47,7 +47,7 @@ export default async function HorizontePage() {
 
   if (!proyectoId) {
     return (
-      <div className="flex items-center justify-center h-64 text-slate-500 text-sm">
+      <div className="flex items-center justify-center h-64 text-slate-400 text-sm">
         No hay proyecto activo asignado.
       </div>
     )
@@ -82,7 +82,7 @@ export default async function HorizontePage() {
 
   if (procesos.length === 0) {
     return (
-      <div className="flex items-center justify-center h-64 text-slate-500 text-sm">
+      <div className="flex items-center justify-center h-64 text-slate-400 text-sm">
         No hay procesos aceptados en este proyecto. Completa el Discovery primero.
       </div>
     )
@@ -110,6 +110,7 @@ export default async function HorizontePage() {
       proyectoNombre={proyecto?.nombre ?? ''}
       clienteNombre={clienteNombre}
       industria={industria}
+      rol={usuario.rol}
     />
   )
 }

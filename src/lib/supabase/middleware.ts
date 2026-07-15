@@ -80,23 +80,60 @@ export async function updateSession(request: NextRequest) {
   // healthcheck de Railway "pasaba" solo porque /login devuelve 200 al
   // seguir el redirect, sin ejecutar jamás el chequeo real de conectividad
   // a la base de datos que existe en esa ruta.
-  const publicPaths = ['/login', '/api/auth/login', '/auth/callback', '/auth/confirm', '/api/inngest', '/api/health', '/cambiar-password']
+  const publicPaths = ['/login', '/api/auth/login', '/auth/callback', '/auth/confirm', '/api/inngest', '/api/health', '/cambiar-password', '/olvide-password']
   const isPublic = publicPaths.some(p => request.nextUrl.pathname.startsWith(p))
 
   if (!user && !isPublic) {
+    // Las rutas /api/* siempre las llama fetch() esperando JSON — un
+    // redirect 307 a /login se sigue automáticamente en requests no-GET
+    // (el navegador preserva método y body), así que el caller terminaba
+    // recibiendo un 200 con el HTML de la página de login en vez de un
+    // error claro. Detectado con una cookie de sesión corrupta/expirada:
+    // el PATCH de guardar un artefacto fallaba con un error de parseo JSON
+    // genérico ("Unexpected token '<'") en lugar del mensaje de sesión
+    // vencida que si existe para el flujo de expiración por inactividad.
+    if (request.nextUrl.pathname.startsWith('/api/')) {
+      return conCsp(NextResponse.json({ error: 'No autorizado' }, { status: 401 }))
+    }
     const url = request.nextUrl.clone()
     url.pathname = '/login'
     return conCsp(NextResponse.redirect(url))
   }
 
+  // Cierre de sesión por inactividad — ventana deslizante de 2 horas. Se
+  // guarda en una cookie propia (no en la sesión de Supabase, que dura mucho
+  // más) con la marca de tiempo de la última request autenticada; cada
+  // request dentro de la ventana la renueva, y superarla fuerza signOut().
+  const INACTIVIDAD_MS = 2 * 60 * 60 * 1000
+  function conActividad<T extends NextResponse>(response: T): T {
+    response.cookies.set('ultima_actividad', String(Date.now()), {
+      httpOnly: true, sameSite: 'lax', path: '/', maxAge: INACTIVIDAD_MS / 1000,
+    })
+    return response
+  }
+
   if (user) {
     const pathname = request.nextUrl.pathname
+
+    const ultimaActividad = request.cookies.get('ultima_actividad')?.value
+    if (ultimaActividad) {
+      const ultima = parseInt(ultimaActividad, 10)
+      if (!Number.isNaN(ultima) && Date.now() - ultima > INACTIVIDAD_MS) {
+        await supabase.auth.signOut()
+        const url = request.nextUrl.clone()
+        url.pathname = '/login'
+        url.searchParams.set('sesion_expirada', '1')
+        const resp = conCsp(NextResponse.redirect(url))
+        resp.cookies.set('ultima_actividad', '', { maxAge: 0, path: '/' })
+        return resp
+      }
+    }
 
     // Forzar cambio si es primer acceso
     if (user.user_metadata?.must_change_password === true && pathname !== '/cambiar-password') {
       const url = request.nextUrl.clone()
       url.pathname = '/cambiar-password'
-      return conCsp(NextResponse.redirect(url))
+      return conActividad(conCsp(NextResponse.redirect(url)))
     }
 
     // Forzar cambio si la contraseña caducó (90 días)
@@ -108,7 +145,7 @@ export async function updateSession(request: NextRequest) {
           const url = request.nextUrl.clone()
           url.pathname = '/cambiar-password'
           url.searchParams.set('expired', '1')
-          return conCsp(NextResponse.redirect(url))
+          return conActividad(conCsp(NextResponse.redirect(url)))
         }
       }
     }
@@ -121,8 +158,10 @@ export async function updateSession(request: NextRequest) {
         .single()
       const url = request.nextUrl.clone()
       url.pathname = usuario?.rol === 'usuario_cliente' ? '/portal' : '/bienvenida'
-      return conCsp(NextResponse.redirect(url))
+      return conActividad(conCsp(NextResponse.redirect(url)))
     }
+
+    return conActividad(supabaseResponse)
   }
 
   return supabaseResponse

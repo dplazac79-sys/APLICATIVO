@@ -80,7 +80,7 @@ function Pill({ text, color = 'slate' }: { text: string; color?: string }) {
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
     <div className="space-y-1.5">
-      <p className="text-slate-500 text-xs uppercase tracking-wider font-medium">{title}</p>
+      <p className="text-slate-400 text-xs uppercase tracking-wider font-medium">{title}</p>
       {children}
     </div>
   )
@@ -91,7 +91,7 @@ function Lista({ items }: { items: unknown[] }) {
     <ul className="space-y-1">
       {items.map((item, i) => (
         <li key={i} className="text-slate-300 text-sm flex gap-2">
-          <span className="text-slate-600 shrink-0">·</span>
+          <span className="text-slate-400 shrink-0">·</span>
           {String(item)}
         </li>
       ))}
@@ -125,7 +125,7 @@ function VistaSIPOC({ c }: { c: Record<string, unknown> }) {
           )
         })}
       </div>
-      {c.notas ? <p className="text-slate-500 text-xs italic">{String(c.notas)}</p> : null}
+      {c.notas ? <p className="text-slate-400 text-xs italic">{String(c.notas)}</p> : null}
     </div>
   )
 }
@@ -150,10 +150,10 @@ function VistaASIS({ c }: { c: Record<string, unknown> }) {
           <div className="space-y-2">
             {pasos.map((p, i) => (
               <div key={i} className="flex gap-3 bg-slate-800/50 rounded-lg p-2.5">
-                <span className="text-slate-600 text-xs font-bold w-5 shrink-0">{String(p.orden ?? i + 1)}</span>
+                <span className="text-slate-400 text-xs font-bold w-5 shrink-0">{String(p.orden ?? i + 1)}</span>
                 <div className="flex-1 min-w-0">
                   <p className="text-slate-200 text-sm">{String(p.descripcion ?? '')}</p>
-                  <div className="flex gap-3 mt-0.5 text-xs text-slate-500">
+                  <div className="flex gap-3 mt-0.5 text-xs text-slate-400">
                     {p.responsable ? <span>{String(p.responsable)}</span> : null}
                     {p.duracion_estimada ? <span>· {String(p.duracion_estimada)}</span> : null}
                   </div>
@@ -180,7 +180,7 @@ function VistaHistorias({ c }: { c: Record<string, unknown> }) {
       {historias.map((h, i) => (
         <div key={i} className="bg-slate-800/50 rounded-lg p-3 space-y-2">
           <div className="flex items-center gap-2">
-            <span className="text-slate-500 text-xs font-mono">{String(h.id ?? `HU-${i + 1}`)}</span>
+            <span className="text-slate-400 text-xs font-mono">{String(h.id ?? `HU-${i + 1}`)}</span>
             <Pill text={String(h.prioridad ?? 'media')} color={prioColors[String(h.prioridad)] ?? 'slate'} />
           </div>
           <p className="text-slate-200 text-sm">
@@ -190,7 +190,7 @@ function VistaHistorias({ c }: { c: Record<string, unknown> }) {
           </p>
           {(h.criterios_aceptacion as string[] ?? []).length > 0 && (
             <div>
-              <p className="text-slate-500 text-xs mb-1">Criterios de aceptación</p>
+              <p className="text-slate-400 text-xs mb-1">Criterios de aceptación</p>
               <ul className="space-y-0.5">
                 {(h.criterios_aceptacion as string[]).map((ca, j) => (
                   <li key={j} className="text-slate-400 text-xs flex gap-1.5">
@@ -236,7 +236,7 @@ function VistaRACI({ c }: { c: Record<string, unknown> }) {
                 return (
                   <td key={rol} className="text-center p-1">
                     {val && (
-                      <span className={`inline-block w-6 h-6 rounded text-xs leading-6 ${cellColor[val] ?? 'text-slate-600'}`}>
+                      <span className={`inline-block w-6 h-6 rounded text-xs leading-6 ${cellColor[val] ?? 'text-slate-400'}`}>
                         {val}
                       </span>
                     )}
@@ -247,7 +247,7 @@ function VistaRACI({ c }: { c: Record<string, unknown> }) {
           ))}
         </tbody>
       </table>
-      <div className="flex gap-4 mt-2 text-xs text-slate-500">
+      <div className="flex gap-4 mt-2 text-xs text-slate-400">
         {[['R','Responsable'],['A','rinde Cuentas'],['C','Consultado'],['I','Informado']].map(([k,v]) => (
           <span key={k}><span className={`font-bold ${k==='R'?'text-blue-400':k==='A'?'text-purple-400':k==='C'?'text-emerald-400':'text-slate-400'}`}>{k}</span> = {v}</span>
         ))}
@@ -266,19 +266,19 @@ function VistaRiesgos({ c }: { c: Record<string, unknown> }) {
       {riesgos.map((r, i) => (
         <div key={i} className="bg-slate-800/50 rounded-lg p-3 space-y-1.5">
           <div className="flex items-center gap-2">
-            <span className="text-slate-500 text-xs font-mono">{String(r.id ?? `R-${i+1}`)}</span>
+            <span className="text-slate-400 text-xs font-mono">{String(r.id ?? `R-${i+1}`)}</span>
             <Pill text={String(r.nivel_riesgo ?? 'medio')} color={nivelColor[String(r.nivel_riesgo)] ?? 'slate'} />
             <Pill text={String(r.categoria ?? '')} />
           </div>
           <p className="text-slate-200 text-sm">{String(r.descripcion ?? '')}</p>
           <div className="grid grid-cols-2 gap-2 text-xs">
-            <div><span className="text-slate-500">Prob:</span> <span className="text-slate-300">{String(r.probabilidad ?? '')}</span></div>
-            <div><span className="text-slate-500">Impacto:</span> <span className="text-slate-300">{String(r.impacto ?? '')}</span></div>
+            <div><span className="text-slate-400">Prob:</span> <span className="text-slate-300">{String(r.probabilidad ?? '')}</span></div>
+            <div><span className="text-slate-400">Impacto:</span> <span className="text-slate-300">{String(r.impacto ?? '')}</span></div>
           </div>
           <div className="bg-emerald-950/30 border border-emerald-800/30 rounded p-2">
             <p className="text-emerald-400 text-xs font-medium">Control</p>
             <p className="text-slate-300 text-xs mt-0.5">{String(r.control ?? '')}</p>
-            <p className="text-slate-500 text-xs mt-0.5">Responsable: {String(r.responsable ?? '')}</p>
+            <p className="text-slate-400 text-xs mt-0.5">Responsable: {String(r.responsable ?? '')}</p>
           </div>
         </div>
       ))}
@@ -297,13 +297,13 @@ function VistaKPIs({ c }: { c: Record<string, unknown> }) {
           <div className="flex items-start justify-between">
             <div>
               <p className="text-slate-200 text-sm font-medium">{String(k.nombre ?? '')}</p>
-              <p className="text-slate-500 text-xs">{String(k.descripcion ?? '')}</p>
+              <p className="text-slate-400 text-xs">{String(k.descripcion ?? '')}</p>
             </div>
             <Pill text={String(k.frecuencia ?? '')} color="blue" />
           </div>
           <div className="grid grid-cols-4 gap-2 text-xs">
             <div className="bg-slate-900 rounded p-2">
-              <p className="text-slate-500">Línea base</p>
+              <p className="text-slate-400">Línea base</p>
               <p className="text-slate-200 font-medium">{String(k.linea_base ?? '')}</p>
             </div>
             <div className="bg-emerald-950/40 rounded p-2">
@@ -319,7 +319,7 @@ function VistaKPIs({ c }: { c: Record<string, unknown> }) {
               <p className="text-blue-300 font-medium">{String(k.sla ?? '')}</p>
             </div>
           </div>
-          <div className="flex gap-4 text-xs text-slate-500">
+          <div className="flex gap-4 text-xs text-slate-400">
             <span>Fórmula: <span className="text-slate-300 font-mono">{String(k.formula ?? '')}</span></span>
             <span>· Dueño: {String(k.dueno ?? '')}</span>
             <span>· Fuente: {String(k.fuente_dato ?? '')}</span>
@@ -334,7 +334,7 @@ function VistaKPIs({ c }: { c: Record<string, unknown> }) {
             { label: 'Inversión estimada', value: fmt(fin.inversion_estimada_clp), color: 'emerald' },
           ].map(m => (
             <div key={m.label} className="bg-slate-800/50 rounded-lg p-3 text-center">
-              <p className="text-slate-500 text-xs">{m.label}</p>
+              <p className="text-slate-400 text-xs">{m.label}</p>
               <p className={`text-${m.color}-300 text-sm font-bold mt-1`}>{m.value}</p>
             </div>
           ))}
@@ -414,7 +414,7 @@ function VistaTOBE({ c }: { c: Record<string, unknown> }) {
                 <span className="text-emerald-600 text-xs font-bold w-5 shrink-0">{String(p.orden ?? i + 1)}</span>
                 <div className="flex-1 min-w-0">
                   <p className="text-slate-200 text-sm">{String(p.descripcion ?? '')}</p>
-                  <div className="flex gap-3 mt-0.5 text-xs text-slate-500 flex-wrap">
+                  <div className="flex gap-3 mt-0.5 text-xs text-slate-400 flex-wrap">
                     {p.responsable ? <span>{String(p.responsable)}</span> : null}
                     {p.automatizado ? <span className="text-emerald-400 font-medium">⚡ Automatizado</span> : null}
                     {p.herramienta ? <span>· {String(p.herramienta)}</span> : null}
@@ -514,7 +514,7 @@ function VistaCierre({ c }: { c: Record<string, unknown> }) {
           { label: 'ROI estimado', value: String(c.roi_estimado ?? '') },
         ].map(m => (
           <div key={m.label} className="bg-slate-800/50 rounded-lg p-3 text-center">
-            <p className="text-slate-500 text-xs">{m.label}</p>
+            <p className="text-slate-400 text-xs">{m.label}</p>
             <p className="text-white text-lg font-bold mt-1">{m.value}</p>
           </div>
         ))}
@@ -546,7 +546,7 @@ function VistaChecklist({ c }: { c: Record<string, unknown> }) {
   return (
     <div className="space-y-6">
       {c.frecuencia_uso ? (
-        <p className="text-slate-500 text-xs">Frecuencia de uso: <Pill text={String(c.frecuencia_uso)} color="blue" /></p>
+        <p className="text-slate-400 text-xs">Frecuencia de uso: <Pill text={String(c.frecuencia_uso)} color="blue" /></p>
       ) : null}
       {checklists.map((cl, i) => {
         const items = (cl.items as Array<Record<string, unknown>>) ?? []
@@ -555,7 +555,7 @@ function VistaChecklist({ c }: { c: Record<string, unknown> }) {
           <div key={i} className="space-y-3">
             <div>
               <p className="text-white text-sm font-semibold">{String(cl.rol ?? '')}</p>
-              <p className="text-slate-500 text-xs">{String(cl.descripcion_rol ?? '')}</p>
+              <p className="text-slate-400 text-xs">{String(cl.descripcion_rol ?? '')}</p>
             </div>
             {fases.map(fase => {
               const faseItems = items.filter(it => String(it.fase) === fase)
@@ -571,7 +571,7 @@ function VistaChecklist({ c }: { c: Record<string, unknown> }) {
                         <span className="w-4 h-4 border border-slate-600 rounded shrink-0 mt-0.5" />
                         <div className="flex-1 min-w-0">
                           <p className="text-slate-200 text-sm">{String(it.descripcion ?? '')}</p>
-                          {it.nota ? <p className="text-slate-500 text-xs mt-0.5">{String(it.nota)}</p> : null}
+                          {it.nota ? <p className="text-slate-400 text-xs mt-0.5">{String(it.nota)}</p> : null}
                         </div>
                         {it.critico ? <span className="text-red-400 text-xs shrink-0">crítico</span> : null}
                       </div>
@@ -608,7 +608,7 @@ function VistaBacklog({ c }: { c: Record<string, unknown> }) {
           ].map(m => (
             <div key={m.label} className={`bg-${m.color}-950/30 border border-${m.color}-800/30 rounded-lg p-3 text-center`}>
               <p className={`text-${m.color}-400 text-lg font-bold`}>{String(m.value ?? 0)}</p>
-              <p className="text-slate-500 text-xs">{m.label}</p>
+              <p className="text-slate-400 text-xs">{m.label}</p>
             </div>
           ))}
         </div>
@@ -618,7 +618,7 @@ function VistaBacklog({ c }: { c: Record<string, unknown> }) {
           <div className="flex items-start justify-between gap-2">
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-0.5">
-                <span className="text-slate-500 text-xs font-mono">{String(ini.id ?? '')}</span>
+                <span className="text-slate-400 text-xs font-mono">{String(ini.id ?? '')}</span>
                 <Pill text={catLabel[String(ini.categoria)] ?? String(ini.categoria)} color={catColor[String(ini.categoria)] ?? 'slate'} />
                 <Pill text={String(ini.tiempo_estimado ?? '')} />
               </div>
@@ -630,11 +630,11 @@ function VistaBacklog({ c }: { c: Record<string, unknown> }) {
                   <div key={n} className={`w-2 h-4 rounded-sm ${n < Number(ini.impacto ?? 0) ? 'bg-emerald-500' : 'bg-slate-700'}`} />
                 ))}
               </div>
-              <p className="text-slate-500 text-xs mt-0.5">impacto</p>
+              <p className="text-slate-400 text-xs mt-0.5">impacto</p>
             </div>
           </div>
           <p className="text-slate-400 text-xs">{String(ini.descripcion ?? '')}</p>
-          <div className="flex justify-between text-xs text-slate-500">
+          <div className="flex justify-between text-xs text-slate-400">
             <span>Esfuerzo: {'●'.repeat(Number(ini.esfuerzo ?? 0))}{'○'.repeat(5 - Number(ini.esfuerzo ?? 0))}</span>
             <span>Líder: {String(ini.responsable_sugerido ?? '')}</span>
           </div>
@@ -667,7 +667,7 @@ function VistaCincoPorques({ c }: { c: Record<string, unknown> }) {
                 <div key={j} className="relative mb-2 pl-4">
                   <div className="absolute left-[-1px] top-2 w-3 h-0.5 bg-slate-700" />
                   <div className="bg-slate-800/50 rounded-lg p-2.5">
-                    <span className="text-slate-500 text-xs font-bold">{j < 4 ? `¿Por qué? ${j + 1}` : '↳ Causa raíz'}</span>
+                    <span className="text-slate-400 text-xs font-bold">{j < 4 ? `¿Por qué? ${j + 1}` : '↳ Causa raíz'}</span>
                     <p className={`text-sm mt-0.5 ${j === 4 ? 'text-amber-300 font-medium' : 'text-slate-300'}`}>{String(paso.porque ?? '')}</p>
                   </div>
                 </div>
@@ -679,7 +679,7 @@ function VistaCincoPorques({ c }: { c: Record<string, unknown> }) {
                 <p className="text-amber-300 text-xs font-medium">{String(a.causa_raiz ?? '')}</p>
               </div>
               <div className="border-t border-amber-800/30 pt-2">
-                <p className="text-slate-500 text-xs mb-0.5">Acción correctiva</p>
+                <p className="text-slate-400 text-xs mb-0.5">Acción correctiva</p>
                 <p className="text-slate-200 text-sm">{String(a.accion_correctiva ?? '')}</p>
               </div>
             </div>
@@ -736,10 +736,10 @@ function VistaActaInicio({ c }: { c: Record<string, unknown> }) {
           <div className="space-y-2">
             {objetivos.map((o, i) => (
               <div key={i} className="bg-slate-800/50 rounded-lg p-2.5 flex gap-3">
-                <span className="text-slate-600 text-xs font-bold w-5 shrink-0">{i + 1}</span>
+                <span className="text-slate-400 text-xs font-bold w-5 shrink-0">{i + 1}</span>
                 <div className="flex-1">
                   <p className="text-slate-200 text-sm">{String(o.descripcion ?? '')}</p>
-                  <div className="flex gap-3 text-xs text-slate-500 mt-0.5">
+                  <div className="flex gap-3 text-xs text-slate-400 mt-0.5">
                     <span>Métrica: {String(o.metrica ?? '')}</span>
                     <span>· Meta: <span className="text-emerald-400">{String(o.meta ?? '')}</span></span>
                   </div>
@@ -770,12 +770,12 @@ function VistaActaInicio({ c }: { c: Record<string, unknown> }) {
       )}
       {(c.firmas_requeridas as string[] ?? []).length > 0 && (
         <div className="border border-dashed border-slate-600 rounded-lg p-3">
-          <p className="text-slate-500 text-xs uppercase tracking-wider mb-2">Firmas requeridas</p>
+          <p className="text-slate-400 text-xs uppercase tracking-wider mb-2">Firmas requeridas</p>
           <div className="flex flex-wrap gap-3">
             {(c.firmas_requeridas as string[]).map((f, i) => (
               <div key={i} className="border border-slate-600 rounded px-4 py-5 text-center min-w-[120px]">
                 <div className="h-6 border-b border-slate-600 mb-1" />
-                <p className="text-slate-500 text-xs">{f}</p>
+                <p className="text-slate-400 text-xs">{f}</p>
               </div>
             ))}
           </div>
@@ -794,11 +794,11 @@ function VistaPlanPruebas({ c }: { c: Record<string, unknown> }) {
       {c.resumen ? <p className="text-slate-300 text-sm leading-relaxed">{String(c.resumen)}</p> : null}
       <div className="grid grid-cols-2 gap-3 text-xs">
         <div className="bg-slate-800/50 rounded-lg p-2.5">
-          <p className="text-slate-500">Ambiente</p>
+          <p className="text-slate-400">Ambiente</p>
           <p className="text-slate-200 mt-0.5">{String(c.ambiente_pruebas ?? '—')}</p>
         </div>
         <div className="bg-slate-800/50 rounded-lg p-2.5">
-          <p className="text-slate-500">Responsable</p>
+          <p className="text-slate-400">Responsable</p>
           <p className="text-slate-200 mt-0.5">{String(c.responsable_pruebas ?? '—')}</p>
         </div>
       </div>
@@ -809,12 +809,12 @@ function VistaPlanPruebas({ c }: { c: Record<string, unknown> }) {
             return (
               <div key={i} className="bg-slate-800/50 rounded-lg p-3 space-y-2">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-slate-500 text-xs font-mono">{String(cp.id ?? `CP-${i+1}`)}</span>
+                  <span className="text-slate-400 text-xs font-mono">{String(cp.id ?? `CP-${i+1}`)}</span>
                   <Pill text={String(cp.tipo ?? '')} color={tipoColor[String(cp.tipo)] ?? 'slate'} />
                   <Pill text={String(cp.prioridad ?? '')} color={prioColor[String(cp.prioridad)] ?? 'slate'} />
                   <span className="text-slate-200 text-sm font-medium">{String(cp.nombre ?? '')}</span>
                 </div>
-                {cp.precondicion ? <p className="text-slate-500 text-xs">Precondición: {String(cp.precondicion)}</p> : null}
+                {cp.precondicion ? <p className="text-slate-400 text-xs">Precondición: {String(cp.precondicion)}</p> : null}
                 {pasos.length > 0 && (
                   <ol className="space-y-0.5 pl-4">
                     {pasos.map((p, j) => <li key={j} className="text-slate-400 text-xs list-decimal">{p}</li>)}
@@ -901,19 +901,19 @@ function VistaRoadmap({ c }: { c: Record<string, unknown> }) {
             <div className="grid grid-cols-3 gap-3 text-xs">
               {actividades.length > 0 && (
                 <div>
-                  <p className="text-slate-500 uppercase tracking-wider mb-1">Actividades</p>
+                  <p className="text-slate-400 uppercase tracking-wider mb-1">Actividades</p>
                   <Lista items={actividades} />
                 </div>
               )}
               {entregables.length > 0 && (
                 <div>
-                  <p className="text-slate-500 uppercase tracking-wider mb-1">Entregables</p>
+                  <p className="text-slate-400 uppercase tracking-wider mb-1">Entregables</p>
                   <Lista items={entregables} />
                 </div>
               )}
               {hitos.length > 0 && (
                 <div>
-                  <p className="text-slate-500 uppercase tracking-wider mb-1">Hitos</p>
+                  <p className="text-slate-400 uppercase tracking-wider mb-1">Hitos</p>
                   <ul className="space-y-1">
                     {hitos.map((h, j) => (
                       <li key={j} className={`text-xs flex gap-1.5 ${textColors[i % textColors.length]}`}>◆ <span className="text-slate-300">{h}</span></li>

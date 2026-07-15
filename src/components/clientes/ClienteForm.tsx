@@ -114,7 +114,7 @@ export default function ClienteForm({ cliente }: Props) {
             />
           </div>
           <div className="space-y-2">
-            <Label className="text-slate-300">RUT <span className="text-slate-500 font-normal">(opcional)</span></Label>
+            <Label className="text-slate-300">RUT <span className="text-slate-400 font-normal">(opcional)</span></Label>
             <Input
               value={form.rut}
               onChange={e => set('rut', formatRut(e.target.value))}
@@ -124,7 +124,7 @@ export default function ClienteForm({ cliente }: Props) {
             />
           </div>
           <div className="space-y-2">
-            <Label className="text-slate-300">Industria <span className="text-slate-500 font-normal">(opcional)</span></Label>
+            <Label className="text-slate-300">Industria <span className="text-slate-400 font-normal">(opcional)</span></Label>
             <Select value={form.industria} onValueChange={(v) => v && set('industria', v)}>
               <SelectTrigger className="bg-slate-800 border-slate-700 text-white">
                 <SelectValue placeholder="Seleccionar..." />
@@ -137,7 +137,7 @@ export default function ClienteForm({ cliente }: Props) {
             </Select>
           </div>
           <div className="space-y-2">
-            <Label className="text-slate-300">Tamaño <span className="text-slate-500 font-normal">(opcional)</span></Label>
+            <Label className="text-slate-300">Tamaño <span className="text-slate-400 font-normal">(opcional)</span></Label>
             <Select value={form.tamano} onValueChange={(v) => v && set('tamano', v)}>
               <SelectTrigger className="bg-slate-800 border-slate-700 text-white">
                 <SelectValue placeholder="Seleccionar..." />
@@ -150,7 +150,7 @@ export default function ClienteForm({ cliente }: Props) {
             </Select>
           </div>
           <div className="space-y-2">
-            <Label className="text-slate-300">Madurez digital <span className="text-slate-500 font-normal">(opcional)</span></Label>
+            <Label className="text-slate-300">Madurez digital <span className="text-slate-400 font-normal">(opcional)</span></Label>
             <Select value={form.madurez_digital} onValueChange={(v) => v && set('madurez_digital', v)}>
               <SelectTrigger className="bg-slate-800 border-slate-700 text-white">
                 <SelectValue placeholder="Seleccionar..." />
@@ -163,9 +163,9 @@ export default function ClienteForm({ cliente }: Props) {
             </Select>
           </div>
           <div className="space-y-2">
-            <Label className="text-slate-300">Facturación anual (USD) <span className="text-slate-500 font-normal">(opcional)</span></Label>
+            <Label className="text-slate-300">Facturación anual (USD) <span className="text-slate-400 font-normal">(opcional)</span></Label>
             <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm pointer-events-none">$</span>
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm pointer-events-none">$</span>
               <Input
                 inputMode="numeric"
                 value={form.facturacion}
@@ -176,7 +176,7 @@ export default function ClienteForm({ cliente }: Props) {
             </div>
           </div>
           <div className="space-y-2">
-            <Label className="text-slate-300">Dotación (personas) <span className="text-slate-500 font-normal">(opcional)</span></Label>
+            <Label className="text-slate-300">Dotación (personas) <span className="text-slate-400 font-normal">(opcional)</span></Label>
             <Input
               inputMode="numeric"
               value={form.dotacion}
@@ -192,11 +192,11 @@ export default function ClienteForm({ cliente }: Props) {
       <Card className="bg-slate-900 border-slate-800">
         <CardHeader>
           <CardTitle className="text-white text-base">Contexto empresarial</CardTitle>
-          <p className="text-slate-500 text-xs mt-1">La IA usa este contexto para personalizar el análisis de procesos de este cliente — cuanto más específico, mejor el resultado.</p>
+          <p className="text-slate-400 text-xs mt-1">La IA usa este contexto para personalizar el análisis de procesos de este cliente — cuanto más específico, mejor el resultado.</p>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label className="text-slate-300">Objetivos estratégicos <span className="text-slate-500 font-normal">(opcional)</span></Label>
+            <Label className="text-slate-300">Objetivos estratégicos <span className="text-slate-400 font-normal">(opcional)</span></Label>
             <Textarea
               value={form.objetivos_estrategicos}
               onChange={e => set('objetivos_estrategicos', e.target.value)}
@@ -206,7 +206,7 @@ export default function ClienteForm({ cliente }: Props) {
             />
           </div>
           <div className="space-y-2">
-            <Label className="text-slate-300">Riesgos declarados <span className="text-slate-500 font-normal">(opcional)</span></Label>
+            <Label className="text-slate-300">Riesgos declarados <span className="text-slate-400 font-normal">(opcional)</span></Label>
             <Textarea
               value={form.riesgos_declarados}
               onChange={e => set('riesgos_declarados', e.target.value)}

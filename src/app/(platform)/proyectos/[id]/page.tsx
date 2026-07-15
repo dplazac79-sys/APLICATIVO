@@ -3,7 +3,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { notFound, redirect } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
-  Briefcase, ChevronLeft, AlertTriangle, CheckCircle, Clock,
+  Briefcase, ChevronLeft, AlertTriangle, CheckCircle2, Clock,
   Users, Target, BarChart3, Calendar, Shield
 } from 'lucide-react'
 import Link from 'next/link'
@@ -84,7 +84,7 @@ export default async function ProyectoDetallePage({ params }: Props) {
       {/* Header */}
       <div className="flex items-start justify-between">
         <div className="space-y-1">
-          <Link href="/proyectos" className="flex items-center gap-1 text-slate-500 hover:text-slate-300 text-xs transition-colors">
+          <Link href="/proyectos" className="flex items-center gap-1 text-slate-400 hover:text-slate-300 text-xs transition-colors">
             <ChevronLeft className="w-3.5 h-3.5" /> Project Control Center
           </Link>
           <h1 className="text-xl font-bold text-white flex items-center gap-2">
@@ -96,7 +96,7 @@ export default async function ProyectoDetallePage({ params }: Props) {
             {cliente?.industria ? ` · ${String(cliente.industria)}` : ''}
           </p>
         </div>
-        <span className={`text-xs px-2 py-1 rounded border ${proyecto.estado_general === 'activo' ? 'bg-emerald-950 text-emerald-400 border-emerald-800' : 'bg-slate-800 text-slate-500 border-slate-700'}`}>
+        <span className={`text-xs px-2 py-1 rounded border ${proyecto.estado_general === 'activo' ? 'bg-emerald-950 text-emerald-400 border-emerald-800' : 'bg-slate-800 text-slate-400 border-slate-700'}`}>
           {proyecto.estado_general}
         </span>
       </div>
@@ -105,9 +105,9 @@ export default async function ProyectoDetallePage({ params }: Props) {
       <div className="grid grid-cols-5 gap-3">
         {[
           { label: 'Procesos', value: totalProcesos, icon: Target, color: 'text-white' },
-          { label: 'Avance', value: `${avance}%`, icon: CheckCircle, color: 'text-indigo-400' },
+          { label: 'Avance', value: `${avance}%`, icon: CheckCircle2, color: 'text-indigo-400' },
           { label: 'En aprobación', value: enAprobacion, icon: Clock, color: 'text-amber-400' },
-          { label: 'Escalados', value: escalados, icon: AlertTriangle, color: escalados > 0 ? 'text-red-400' : 'text-slate-600' },
+          { label: 'Escalados', value: escalados, icon: AlertTriangle, color: escalados > 0 ? 'text-red-400' : 'text-slate-400' },
           { label: 'Riesgos activos', value: riesgos.filter(r => r.estado === 'activo').length, icon: Shield, color: riesgosCriticos > 0 ? 'text-red-400' : 'text-orange-400' },
         ].map(s => (
           <Card key={s.label} className="bg-slate-900 border-slate-800">
@@ -121,7 +121,7 @@ export default async function ProyectoDetallePage({ params }: Props) {
 
       {/* Barra global de avance */}
       <div className="space-y-1.5">
-        <div className="flex justify-between text-xs text-slate-500">
+        <div className="flex justify-between text-xs text-slate-400">
           <span>Progreso general del proyecto</span>
           <span>{cerrados} de {totalProcesos} procesos cerrados</span>
         </div>
@@ -218,10 +218,10 @@ export default async function ProyectoDetallePage({ params }: Props) {
                 </div>
               ))}
               {riesgos.filter(r => r.estado === 'activo').length === 0 && (
-                <p className="text-slate-600 text-xs">Sin riesgos activos registrados</p>
+                <p className="text-slate-400 text-xs">Sin riesgos activos registrados</p>
               )}
               {riesgos.filter(r => r.estado === 'activo').length > 5 && (
-                <p className="text-slate-500 text-xs">+{riesgos.filter(r => r.estado === 'activo').length - 5} más</p>
+                <p className="text-slate-400 text-xs">+{riesgos.filter(r => r.estado === 'activo').length - 5} más</p>
               )}
             </CardContent>
           </Card>
@@ -243,13 +243,13 @@ export default async function ProyectoDetallePage({ params }: Props) {
                     <span className="text-slate-300 text-xs font-medium">{k.nombre}</span>
                     <span className="text-white text-xs font-bold">{k.valor_actual ?? '—'}</span>
                   </div>
-                  <div className="flex items-center justify-between text-xs text-slate-500">
+                  <div className="flex items-center justify-between text-xs text-slate-400">
                     <span>Base: {k.linea_base ?? '—'}</span>
                     <span>Meta: {k.meta ?? '—'}</span>
                   </div>
                 </div>
               ))}
-              {kpis.length === 0 && <p className="text-slate-600 text-xs">Sin KPIs definidos</p>}
+              {kpis.length === 0 && <p className="text-slate-400 text-xs">Sin KPIs definidos</p>}
             </CardContent>
           </Card>
 
@@ -267,13 +267,13 @@ export default async function ProyectoDetallePage({ params }: Props) {
               {reuniones.map(r => (
                 <div key={r.id} className="space-y-0.5">
                   <p className="text-slate-200 text-xs font-medium">{r.titulo}</p>
-                  <p className="text-slate-500 text-xs">
+                  <p className="text-slate-400 text-xs">
                     {new Date(r.fecha).toLocaleDateString('es-CL', { day: '2-digit', month: 'short', year: 'numeric' })}
                     {r.participantes.length > 0 && ` · ${r.participantes.slice(0, 2).join(', ')}${r.participantes.length > 2 ? ` +${r.participantes.length - 2}` : ''}`}
                   </p>
                 </div>
               ))}
-              {reuniones.length === 0 && <p className="text-slate-600 text-xs">Sin reuniones registradas</p>}
+              {reuniones.length === 0 && <p className="text-slate-400 text-xs">Sin reuniones registradas</p>}
             </CardContent>
           </Card>
 

@@ -3,6 +3,18 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { registrarAudit } from '@/lib/audit'
 
+// Mismas 5 reglas que el resto de la plataforma (cambiar-password) — el
+// formulario de onboarding solo mostraba un hint de texto "mínimo 6
+// caracteres" sin validar nada, ni en el cliente ni acá, así que se podían
+// crear cuentas reales del portal cliente con contraseñas de 1 carácter.
+function cumpleRequisitos(pwd: string): boolean {
+  return typeof pwd === 'string' && pwd.length >= 8
+    && /[A-Z]/.test(pwd)
+    && /[a-z]/.test(pwd)
+    && /[0-9]/.test(pwd)
+    && /[!@#$%^&*()_\-+=\[\]{};':"\\|,.<>/?]/.test(pwd)
+}
+
 export async function POST(req: NextRequest) {
   try {
     const supabase = createClient()
@@ -32,6 +44,10 @@ export async function POST(req: NextRequest) {
         fecha_estimada_cierre: string
       }
       equipo: Array<{ email: string; nombre: string; rol: string; password: string }>
+    }
+
+    if (proyecto.fecha_inicio && proyecto.fecha_estimada_cierre && proyecto.fecha_estimada_cierre < proyecto.fecha_inicio) {
+      return NextResponse.json({ error: 'La fecha estimada de cierre no puede ser anterior a la fecha de inicio' }, { status: 400 })
     }
 
     const admin = createAdminClient()
@@ -81,6 +97,10 @@ export async function POST(req: NextRequest) {
 
     for (const miembro of equipo) {
       if (!miembro.email) continue
+      if (!cumpleRequisitos(miembro.password)) {
+        resultadosEquipo.push({ email: miembro.email, status: 'error', error: 'La contraseña no cumple los requisitos de seguridad (mínimo 8 caracteres, mayúscula, minúscula, número y carácter especial).' })
+        continue
+      }
       try {
         // Crear usuario con contraseña directamente
         const { data: creado, error: errCreate } = await admin.auth.admin.createUser({
@@ -160,8 +180,23 @@ export async function POST(req: NextRequest) {
       usuarioId: user.id,
     })
 
+    // Cliente y proyecto ya quedaron creados en este punto — no hay rollback
+    // de eso porque revertirlos podría destruir un proyecto real si algún
+    // miembro del equipo falla por una razón menor. Pero si NINGÚN miembro
+    // terminó con acceso real (creado o rol_actualizado), hay que decirlo
+    // explícitamente: antes esto respondía ok:true igual, dejando un
+    // proyecto sin nadie que pueda entrar a verlo, con el error escondido
+    // dentro del array `equipo` que la UI no siempre revisa a fondo.
+    const algunAccesoOtorgado = resultadosEquipo.some(r => r.status === 'creado' || r.status === 'rol_actualizado')
+    const huboErrores = resultadosEquipo.some(r => r.status === 'error')
+
     return NextResponse.json({
       ok: true,
+      advertencia: !algunAccesoOtorgado && equipo.some(m => m.email)
+        ? 'Se creó el cliente y el proyecto, pero ningún miembro del equipo quedó con acceso — revisa los errores y agrega usuarios manualmente.'
+        : huboErrores
+          ? 'Se creó el cliente y el proyecto, pero algunos miembros del equipo no se pudieron crear — revisa el detalle.'
+          : undefined,
       cliente_id: clienteCreado.id,
       proyecto_id: proyectoCreado.id,
       equipo: resultadosEquipo,

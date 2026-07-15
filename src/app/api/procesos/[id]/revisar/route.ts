@@ -3,6 +3,7 @@ import { jsonError } from '@/lib/http/errors'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { registrarAudit } from '@/lib/audit'
+import { assertProyectoAccess } from '@/lib/auth/tenant'
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   try {
@@ -18,16 +19,24 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     }
 
     const { estado_oferta } = await req.json()
-    if (!['aceptado', 'rechazado'].includes(estado_oferta)) {
+    // 'propuesto' habilita "Deshacer" un rechazo — antes esa acción solo
+    // cambiaba estado local de React (la UI mostraba el reset pero al
+    // recargar la página el rechazo seguía activo en el servidor).
+    if (!['aceptado', 'rechazado', 'propuesto'].includes(estado_oferta)) {
       return NextResponse.json({ error: 'estado_oferta inválido' }, { status: 400 })
     }
 
     // Derive codigo from metadata_ia.documento_referencia if not already set
     const { data: procesoActual } = await admin
       .from('proceso')
-      .select('codigo, metadata_ia')
+      .select('codigo, metadata_ia, proyecto_id')
       .eq('id', params.id)
       .single()
+
+    if (!procesoActual) return NextResponse.json({ error: 'Proceso no encontrado' }, { status: 404 })
+    if (!(await assertProyectoAccess(user.id, procesoActual.proyecto_id as string))) {
+      return NextResponse.json({ error: 'Sin acceso a este proceso' }, { status: 403 })
+    }
 
     const updates: Record<string, unknown> = { estado_oferta }
     if (!procesoActual?.codigo) {

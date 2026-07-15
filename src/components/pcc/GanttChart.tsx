@@ -88,7 +88,7 @@ export default function GanttChart({ procesos, proyectoCreado, showDependencies 
     return { barras: calc, totalSemanas, hoySemana }
   }, [procesos, proyectoCreado])
 
-  if (procesos.length === 0) return <p className="text-slate-500 text-sm">Sin procesos para mostrar</p>
+  if (procesos.length === 0) return <p className="text-slate-400 text-sm">Sin procesos para mostrar</p>
 
   const chartW = totalSemanas * SEMANA_W
   const totalH = HEADER_H + barras.length * ROW_H
@@ -121,7 +121,7 @@ export default function GanttChart({ procesos, proyectoCreado, showDependencies 
             {Array.from({ length: totalSemanas }).map((_, w) => (
               <span
                 key={w}
-                className="text-[10px] text-slate-500 text-center shrink-0 border-l border-slate-800"
+                className="text-[10px] text-slate-400 text-center shrink-0 border-l border-slate-800"
                 style={{ width: SEMANA_W }}
               >
                 S{w + 1}
@@ -214,13 +214,13 @@ export default function GanttChart({ procesos, proyectoCreado, showDependencies 
       {/* Leyenda */}
       <div className="flex flex-wrap gap-2 pt-1">
         {(Object.entries(ESTADO_BAR) as [WorkflowEstadoTipo, string][]).map(([estado, color]) => (
-          <span key={estado} className="flex items-center gap-1 text-[10px] text-slate-500">
+          <span key={estado} className="flex items-center gap-1 text-[10px] text-slate-400">
             <span className={`inline-block w-2 h-2 rounded-sm ${color}`} />
             {ESTADO_LABEL[estado]}
           </span>
         ))}
         {showDependencies && (
-          <span className="flex items-center gap-1 text-[10px] text-slate-500">
+          <span className="flex items-center gap-1 text-[10px] text-slate-400">
             <span className="inline-block w-3 h-0.5 bg-slate-500" /> Dependencia
           </span>
         )}

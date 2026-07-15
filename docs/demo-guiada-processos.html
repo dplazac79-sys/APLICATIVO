@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ProcessOS — Recorrido guiado</title>
+<style>
+  :root{
+    --bg:#0b0f19; --surface:#111827; --surface-2:#161e2e; --border:#1f2937;
+    --text:#e5e9f0; --text-dim:#94a3b8; --text-faint:#64748b;
+    --accent:#6366f1; --accent-soft:#1e1b4b; --accent-text:#a5b4fc;
+    --amber:#f59e0b; --amber-soft:#1c1508; --amber-text:#fbbf24;
+    --emerald:#10b981; --emerald-soft:#052e21; --emerald-text:#34d399;
+    --blue:#3b82f6; --blue-soft:#0a1a33; --blue-text:#93c5fd;
+    --code-bg:#0d1220;
+  }
+  :root[data-theme="light"]{
+    --bg:#f7f8fb; --surface:#ffffff; --surface-2:#f1f3f8; --border:#e2e6ef;
+    --text:#111827; --text-dim:#475569; --text-faint:#94a3b8;
+    --accent:#4f46e5; --accent-soft:#eef2ff; --accent-text:#4338ca;
+    --amber:#d97706; --amber-soft:#fffbeb; --amber-text:#b45309;
+    --emerald:#059669; --emerald-soft:#ecfdf5; --emerald-text:#047857;
+    --blue:#2563eb; --blue-soft:#eff6ff; --blue-text:#1d4ed8;
+    --code-bg:#eef1f7;
+  }
+  @media (prefers-color-scheme: light){
+    :root:not([data-theme="dark"]){
+      --bg:#f7f8fb; --surface:#ffffff; --surface-2:#f1f3f8; --border:#e2e6ef;
+      --text:#111827; --text-dim:#475569; --text-faint:#94a3b8;
+      --accent:#4f46e5; --accent-soft:#eef2ff; --accent-text:#4338ca;
+      --amber:#d97706; --amber-soft:#fffbeb; --amber-text:#b45309;
+      --emerald:#059669; --emerald-soft:#ecfdf5; --emerald-text:#047857;
+      --blue:#2563eb; --blue-soft:#eff6ff; --blue-text:#1d4ed8;
+      --code-bg:#eef1f7;
+    }
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;height:100%}
+  body{
+    background:var(--bg); color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;
+    overflow:hidden;
+  }
+  .sr-only{ position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0,0,0,0); }
+
+  .deck{ position:relative; width:100%; height:100vh; }
+  .slide{
+    position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    padding:60px 5vw 90px; opacity:0; pointer-events:none; transform:translateY(14px);
+    transition:opacity .35s ease, transform .35s ease;
+  }
+  .slide.active{ opacity:1; pointer-events:auto; transform:translateY(0); }
+
+  .slide-inner{ max-width:1080px; width:100%; display:grid; grid-template-columns:1fr 1fr; gap:56px; align-items:center; }
+  .slide-inner.solo{ grid-template-columns:1fr; max-width:700px; text-align:center; justify-items:center; }
+  @media (max-width:860px){ .slide-inner{ grid-template-columns:1fr; gap:28px; } .slide{ padding:50px 6vw 90px; overflow-y:auto; } }
+
+  .step-tag{
+    display:inline-flex; align-items:center; gap:8px; font-size:11px; font-weight:700; letter-spacing:.12em; text-transform:uppercase;
+    color:var(--accent-text); background:var(--accent-soft); border:1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+    padding:5px 12px; border-radius:999px; margin-bottom:18px;
+  }
+  .slide h1{ font-size:clamp(26px,3.4vw,38px); line-height:1.15; margin:0 0 14px; font-weight:700; letter-spacing:-.02em; text-wrap:balance; }
+  .slide p.desc{ color:var(--text-dim); font-size:15.5px; line-height:1.65; margin:0 0 20px; max-width:46ch; }
+  .slide .talk{
+    background:var(--surface); border:1px solid var(--border); border-left:3px solid var(--accent);
+    border-radius:0 10px 10px 0; padding:14px 16px; font-size:13.5px; color:var(--text-dim); font-style:italic;
+  }
+  .slide .talk b{ font-style:normal; color:var(--accent-text); font-weight:600; }
+
+  /* mockup panel */
+  .panel{ background:var(--code-bg); border:1px solid var(--border); border-radius:16px; overflow:hidden; box-shadow:0 24px 60px -20px rgba(0,0,0,.5); }
+  .panel-bar{ display:flex; align-items:center; gap:6px; padding:10px 14px; background:var(--surface); border-bottom:1px solid var(--border); }
+  .panel-bar span{ width:8px; height:8px; border-radius:50%; background:var(--border); }
+  .panel-bar .url{ margin-left:10px; font-family:ui-monospace,monospace; font-size:11px; color:var(--text-faint); }
+  .panel-body{ padding:24px; min-height:220px; }
+
+  .pill{ font-size:11px; font-weight:600; padding:4px 10px; border-radius:999px; border:1px solid; display:inline-flex; align-items:center; gap:5px; }
+  .pill::before{ content:""; width:5px; height:5px; border-radius:50%; }
+  .pill-amber{ background:var(--amber-soft); color:var(--amber-text); border-color:color-mix(in srgb, var(--amber) 35%, transparent); } .pill-amber::before{ background:var(--amber); }
+  .pill-emerald{ background:var(--emerald-soft); color:var(--emerald-text); border-color:color-mix(in srgb, var(--emerald) 35%, transparent); } .pill-emerald::before{ background:var(--emerald); }
+  .pill-blue{ background:var(--blue-soft); color:var(--blue-text); border-color:color-mix(in srgb, var(--blue) 35%, transparent); } .pill-blue::before{ background:var(--blue); }
+  .pill-gray{ background:var(--surface-2); color:var(--text-faint); border-color:var(--border); } .pill-gray::before{ background:var(--text-faint); }
+
+  .fake-input{ background:var(--surface-2); border:1px solid var(--border); border-radius:8px; padding:10px 12px; font-size:13px; color:var(--text-faint); margin-bottom:10px; }
+  .fake-btn{ display:inline-block; background:var(--accent); color:#fff; font-size:13px; font-weight:600; padding:9px 18px; border-radius:8px; }
+  .fake-btn.ghost{ background:transparent; border:1px solid var(--border); color:var(--text-dim); }
+  .row{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  .bar{ height:8px; border-radius:99px; background:var(--surface-2); overflow:hidden; margin:6px 0 14px; }
+  .bar > i{ display:block; height:100%; background:linear-gradient(90deg,var(--accent),var(--blue)); border-radius:99px; }
+  .checklist{ list-style:none; margin:0 0 14px; padding:0; font-size:12.5px; color:var(--text-dim); }
+  .checklist li{ display:flex; gap:8px; align-items:center; margin-bottom:6px; }
+  .checklist li::before{ content:"✓"; color:var(--emerald); font-weight:700; }
+  .doc-row{ display:flex; align-items:center; gap:10px; padding:9px 10px; background:var(--surface); border:1px solid var(--border); border-radius:8px; margin-bottom:7px; font-size:12.5px; }
+  .doc-icon{ width:26px; height:26px; border-radius:6px; background:var(--surface-2); display:flex; align-items:center; justify-content:center; font-size:12px; flex-shrink:0; }
+  .fase-chip{ display:flex; align-items:center; gap:8px; padding:8px 10px; border-radius:8px; background:var(--surface); border:1px solid var(--border); font-size:12px; margin-bottom:6px; }
+  .fase-chip .dot{ width:16px; height:16px; border-radius:5px; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:9px; font-weight:700; }
+  .fase-chip.done .dot{ background:var(--emerald-soft); color:var(--emerald-text); }
+  .fase-chip.active .dot{ background:var(--accent-soft); color:var(--accent-text); }
+  .fase-chip.locked .dot{ background:var(--surface-2); color:var(--text-faint); }
+  .artefacto-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:7px; }
+  .art-tile{ aspect-ratio:1; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:9.5px; font-weight:700; border:1px solid; }
+  .art-tile.v{ background:var(--emerald-soft); color:var(--emerald-text); border-color:color-mix(in srgb, var(--emerald) 35%, transparent); }
+  .art-tile.p{ background:var(--amber-soft); color:var(--amber-text); border-color:color-mix(in srgb, var(--amber) 35%, transparent); }
+
+  /* nav */
+  .nav{ position:fixed; bottom:24px; left:0; right:0; display:flex; align-items:center; justify-content:center; gap:16px; z-index:20; }
+  .nav button{
+    background:var(--surface); border:1px solid var(--border); color:var(--text); width:38px; height:38px; border-radius:10px;
+    display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:16px;
+  }
+  .nav button:disabled{ opacity:.3; cursor:default; }
+  .nav button:not(:disabled):hover{ background:var(--surface-2); }
+  .dots{ display:flex; gap:6px; }
+  .dots i{ width:6px; height:6px; border-radius:50%; background:var(--border); display:block; cursor:pointer; }
+  .dots i.on{ background:var(--accent); width:18px; border-radius:99px; }
+  .progress-label{ position:fixed; top:20px; right:24px; font-size:12px; color:var(--text-faint); font-family:ui-monospace,monospace; z-index:20; }
+  .brand{ position:fixed; top:20px; left:24px; font-size:12px; font-weight:700; letter-spacing:.06em; color:var(--text-faint); z-index:20; }
+</style>
+</head>
+<body>
+
+<h2 class="sr-only">Recorrido guiado de ProcessOS: 10 pantallas explicando el flujo del rol Sponsor Cliente, de login a Horizonte de Impacto.</h2>
+
+<div class="brand">PROCESSOS · DEMO GUIADA</div>
+<div class="progress-label" id="progress">01 / 10</div>
+
+<div class="deck" id="deck">
+
+  <div class="slide active">
+    <div class="slide-inner solo">
+      <span class="step-tag">Bienvenido</span>
+      <h1>Recorrido guiado de ProcessOS</h1>
+      <p class="desc">Diez pantallas, el mismo camino que recorrerás con tu equipo desde el primer login hasta ver el impacto de negocio del proyecto. Usa las flechas o los puntos de abajo para avanzar.</p>
+      <div class="talk">🎙 <b>Guion sugerido:</b> "Les voy a mostrar exactamente cómo va a lucir la plataforma para ustedes — de principio a fin, sin tecnicismos."</div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <div class="slide-inner">
+      <div>
+        <span class="step-tag">01 · Primer acceso</span>
+        <h1>Tu cuenta ya está lista</h1>
+        <p class="desc">Recibes un correo con tu usuario y una contraseña temporal. Al entrar por primera vez, el sistema te pide de inmediato crear tu propia contraseña — es obligatorio, por seguridad.</p>
+        <div class="talk">🎙 <b>Decir:</b> "Ustedes no eligen su primera contraseña — nosotros les damos una temporal, y el sistema mismo los obliga a cambiarla antes de dejarlos entrar."</div>
+      </div>
+      <div class="panel">
+        <div class="panel-bar"><span></span><span></span><span></span><span class="url">processos.app/cambiar-password</span></div>
+        <div class="panel-body">
+          <div style="font-weight:600; margin-bottom:4px;">Crea tu contraseña</div>
+          <div style="font-size:12px; color:var(--text-faint); margin-bottom:16px;">Es tu primer acceso. Elige una contraseña personal y segura.</div>
+          <div class="fake-input">Nueva contraseña ••••••••</div>
+          <div class="fake-input">Confirmar contraseña ••••••••</div>
+          <ul class="checklist">
+            <li>Mínimo 8 caracteres</li><li>Mayúscula y minúscula</li><li>Un número y un símbolo</li>
+          </ul>
+          <div class="bar"><i style="width:100%"></i></div>
+          <span class="fake-btn">Guardar y continuar</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <div class="slide-inner">
+      <div>
+        <span class="step-tag">02 · Bienvenida</span>
+        <h1>Tu resumen ejecutivo</h1>
+        <p class="desc">La primera pantalla que ven es un resumen: en qué fase va el proyecto, qué se acordó como alcance, y cuál es el siguiente paso recomendado para ustedes.</p>
+        <div class="talk">🎙 <b>Decir:</b> "Cada vez que entren, esta pantalla les dice exactamente qué hacer a continuación — no tienen que adivinar dónde ir."</div>
+      </div>
+      <div class="panel">
+        <div class="panel-bar"><span></span><span></span><span></span><span class="url">processos.app/bienvenida</span></div>
+        <div class="panel-body">
+          <div style="font-size:11px; color:var(--text-faint); margin-bottom:2px;">CADENA DE SUMINISTRO</div>
+          <div style="font-weight:600; margin-bottom:10px;">Buenas tardes 👋</div>
+          <div class="row" style="margin-bottom:14px;"><span class="pill pill-emerald">2/7 tareas · 29%</span><span class="pill pill-gray">Cliente Activo</span></div>
+          <div style="background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:10px 12px; font-size:12px; color:var(--text-dim);">
+            <b style="color:var(--accent-text)">Siguiente paso →</b> Revisa el avance del proyecto en el Dashboard
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <div class="slide-inner">
+      <div>
+        <span class="step-tag">03 · Dashboard</span>
+        <h1>El mapa completo del proyecto</h1>
+        <p class="desc">Siete fases, cada una con su estado: completada, en curso o bloqueada. Así ven de un vistazo qué ya está listo y qué falta.</p>
+        <div class="talk">🎙 <b>Decir:</b> "Las fases bloqueadas no son un error — es el orden natural. Se van desbloqueando a medida que avanzamos juntos."</div>
+      </div>
+      <div class="panel">
+        <div class="panel-bar"><span></span><span></span><span></span><span class="url">processos.app/dashboard</span></div>
+        <div class="panel-body">
+          <div class="fase-chip done"><div class="dot">✓</div> F1 · Dashboard — Completada</div>
+          <div class="fase-chip done"><div class="dot">✓</div> F2 · Centro Documental — Completada</div>
+          <div class="fase-chip active"><div class="dot">●</div> F3 · Process Discovery IA — En curso</div>
+          <div class="fase-chip locked"><div class="dot">🔒</div> F4 · Artefactos — Bloqueada</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <div class="slide-inner">
+      <div>
+        <span class="step-tag">04 · Centro Documental</span>
+        <h1>Suben, nosotros analizamos</h1>
+        <p class="desc">Cargan su documentación operativa — manuales, procedimientos, políticas — y la IA la procesa automáticamente: clasificación, resumen y detección de contenido relevante.</p>
+        <div class="talk">🎙 <b>Decir:</b> "Todo lo que suban queda etiquetado como 'Cliente'; lo que subimos nosotros queda como 'AICOUNTS' — así siempre saben el origen de cada documento."</div>
+      </div>
+      <div class="panel">
+        <div class="panel-bar"><span></span><span></span><span></span><span class="url">processos.app/documentos</span></div>
+        <div class="panel-body">
+          <div class="doc-row"><div class="doc-icon">📄</div> Manual_Bodega.pdf <span class="pill pill-emerald" style="margin-left:auto;">Disponible</span></div>
+          <div class="doc-row"><div class="doc-icon">📄</div> Procedimiento_Compras.docx <span class="pill pill-amber" style="margin-left:auto;">Procesando IA</span></div>
+          <div class="doc-row"><div class="doc-icon">📄</div> Politica_Despacho.pdf <span class="pill pill-emerald" style="margin-left:auto;">Disponible</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <div class="slide-inner">
+      <div>
+        <span class="step-tag">05 · Process Discovery IA</span>
+        <h1>La IA propone, ustedes deciden</h1>
+        <p class="desc">A partir de sus documentos, el sistema detecta automáticamente los macroprocesos y procesos de su organización. Ustedes revisan cada uno y deciden si lo aceptan.</p>
+        <div class="talk">🎙 <b>Decir:</b> "No es una caja negra — cada proceso propuesto viene con la evidencia del documento que lo respalda, para que puedan validar con confianza."</div>
+      </div>
+      <div class="panel">
+        <div class="panel-bar"><span></span><span></span><span></span><span class="url">processos.app/discovery</span></div>
+        <div class="panel-body">
+          <div class="fase-chip done"><div class="dot">✓</div> SC01 · Recepción de mercadería</div>
+          <div class="fase-chip done"><div class="dot">✓</div> SC02 · Control de inventario</div>
+          <div class="fase-chip active"><div class="dot">?</div> SC03 · Despacho a cliente <span class="pill pill-amber" style="margin-left:auto;">Por revisar</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <div class="slide-inner">
+      <div>
+        <span class="step-tag">06 · Artefactos</span>
+        <h1>Ocho documentos por proceso, listos</h1>
+        <p class="desc">Por cada proceso aprobado, la IA genera SIPOC, AS-IS, BPMN, RACI, matriz de riesgo, KPIs, diagnóstico y TO-BE. Ustedes los revisan y validan uno por uno.</p>
+        <div class="talk">🎙 <b>Decir:</b> "Aquí es donde más van a interactuar: abren cada proceso, revisan sus 8 artefactos y presionan Validar en los que estén de acuerdo."</div>
+      </div>
+      <div class="panel">
+        <div class="panel-bar"><span></span><span></span><span></span><span class="url">processos.app/artefactos</span></div>
+        <div class="panel-body">
+          <div class="artefacto-grid">
+            <div class="art-tile v">SIPOC</div><div class="art-tile v">AS-IS</div><div class="art-tile v">BPMN</div><div class="art-tile p">RACI</div>
+            <div class="art-tile p">RIESGO</div><div class="art-tile p">KPI</div><div class="art-tile p">DIAG</div><div class="art-tile p">TO-BE</div>
+          </div>
+          <div class="row" style="margin-top:14px; font-size:11.5px; color:var(--text-faint);">
+            <span class="pill pill-emerald">Validado</span> 3 de 8 &nbsp;·&nbsp; <span class="pill pill-amber">Pendiente</span> 5 de 8
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <div class="slide-inner">
+      <div>
+        <span class="step-tag">07 · Control de Versiones</span>
+        <h1>Nada se pierde, todo queda registrado</h1>
+        <p class="desc">Cada cambio a un artefacto o proceso queda en un historial que pueden consultar en cualquier momento — qué cambió, cuándo y por qué.</p>
+        <div class="talk">🎙 <b>Decir:</b> "Ven exactamente el mismo historial que vemos nosotros — no hay nada oculto en esta parte del proceso."</div>
+      </div>
+      <div class="panel">
+        <div class="panel-bar"><span></span><span></span><span></span><span class="url">processos.app/versiones</span></div>
+        <div class="panel-body">
+          <div class="doc-row"><div class="doc-icon">🕓</div> SIPOC · SC03 <span class="pill pill-gray" style="margin-left:auto;">v2 · hoy</span></div>
+          <div class="doc-row"><div class="doc-icon">🕓</div> BPMN · SC01 <span class="pill pill-gray" style="margin-left:auto;">v1 · ayer</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <div class="slide-inner">
+      <div>
+        <span class="step-tag">08 · Horizonte de Impacto</span>
+        <h1>El resultado, en números de negocio</h1>
+        <p class="desc">Con los procesos y artefactos aprobados, esta vista traduce el trabajo metodológico en impacto real: ahorro estimado, reducción de tiempo de ciclo, capacidad liberada.</p>
+        <div class="talk">🎙 <b>Decir:</b> "Esta es la pantalla que se lleva al directorio — resume todo el trabajo en el lenguaje que le importa a la gerencia: tiempo y dinero."</div>
+      </div>
+      <div class="panel">
+        <div class="panel-bar"><span></span><span></span><span></span><span class="url">processos.app/horizonte</span></div>
+        <div class="panel-body">
+          <div class="row" style="gap:14px; margin-bottom:6px;">
+            <div><div style="font-size:20px; font-weight:700; color:var(--emerald-text);">-45%</div><div style="font-size:11px; color:var(--text-faint);">Tiempo de ciclo</div></div>
+            <div><div style="font-size:20px; font-weight:700; color:var(--accent-text);">1.8</div><div style="font-size:11px; color:var(--text-faint);">FTEs liberados</div></div>
+            <div><div style="font-size:20px; font-weight:700; color:var(--blue-text);">120%</div><div style="font-size:11px; color:var(--text-faint);">ROI estimado</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <div class="slide-inner solo">
+      <span class="step-tag">Listos para empezar</span>
+      <h1>Eso es todo el recorrido</h1>
+      <p class="desc">Ocho pantallas, un solo camino claro: cargar documentación, revisar lo que la IA propone, y validar. Nosotros los acompañamos en cada paso — y el manual de usuario queda disponible para consultar cuando lo necesiten.</p>
+      <div class="talk">🎙 <b>Cerrar con:</b> "¿Partimos creando su usuario esta misma semana?"</div>
+    </div>
+  </div>
+
+</div>
+
+<nav class="nav">
+  <button id="prev" aria-label="Anterior">←</button>
+  <div class="dots" id="dots"></div>
+  <button id="next" aria-label="Siguiente">→</button>
+</nav>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const dotsEl = document.getElementById('dots');
+  const progressEl = document.getElementById('progress');
+  let i = 0;
+  slides.forEach((_, idx) => {
+    const d = document.createElement('i');
+    d.addEventListener('click', () => go(idx));
+    dotsEl.appendChild(d);
+  });
+  function render(){
+    slides.forEach((s, idx) => s.classList.toggle('active', idx === i));
+    [...dotsEl.children].forEach((d, idx) => d.classList.toggle('on', idx === i));
+    document.getElementById('prev').disabled = i === 0;
+    document.getElementById('next').disabled = i === slides.length - 1;
+    progressEl.textContent = String(i+1).padStart(2,'0') + ' / ' + slides.length;
+  }
+  function go(n){ i = Math.max(0, Math.min(slides.length - 1, n)); render(); }
+  document.getElementById('prev').addEventListener('click', () => go(i-1));
+  document.getElementById('next').addEventListener('click', () => go(i+1));
+  window.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight') go(i+1);
+    if (e.key === 'ArrowLeft') go(i-1);
+  });
+  render();
+</script>
+</body>
+</html>

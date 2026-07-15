@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { registrarAudit } from '@/lib/audit'
 import { calcularNivelRiesgo, type Probabilidad, type Impacto } from '@/lib/riesgos'
-import { requireRole } from '@/lib/auth/tenant'
+import { assertProyectoAccess, requireRole } from '@/lib/auth/tenant'
 
 export async function GET(req: NextRequest) {
   const supabase = createClient()
@@ -32,6 +32,9 @@ export async function POST(req: NextRequest) {
   if (!body.proyecto_id || !body.descripcion) {
     return NextResponse.json({ error: 'proyecto_id y descripcion requeridos' }, { status: 400 })
   }
+  if (!(await assertProyectoAccess(user.id, body.proyecto_id))) {
+    return NextResponse.json({ error: 'Sin acceso a este proyecto' }, { status: 403 })
+  }
 
   const nivel_riesgo = calcularNivelRiesgo(
     (body.probabilidad ?? 'media') as Probabilidad,
@@ -39,6 +42,27 @@ export async function POST(req: NextRequest) {
   )
 
   const admin = createAdminClient()
+
+  // Deduplicado server-side — la guardia del botón (disabled mientras
+  // cargando) no alcanza a frenar dos clics verdaderamente simultáneos
+  // (mismo problema real encontrado en el bloqueo optimista de artefactos):
+  // si ya existe un riesgo con la misma descripción creado en los últimos
+  // 5 segundos en este proyecto, se asume que es un duplicado por doble
+  // clic y se devuelve el existente en vez de crear uno nuevo.
+  const cincoSegundosAtras = new Date(Date.now() - 5000).toISOString()
+  const { data: posibleDuplicado } = await admin
+    .from('riesgo')
+    .select('*')
+    .eq('proyecto_id', body.proyecto_id)
+    .eq('descripcion', body.descripcion)
+    .gte('created_at', cincoSegundosAtras)
+    .order('created_at', { ascending: true })
+    .limit(1)
+    .maybeSingle()
+  if (posibleDuplicado) {
+    return NextResponse.json({ ok: true, riesgo: posibleDuplicado })
+  }
+
   const { data, error } = await admin.from('riesgo').insert({ ...body, nivel_riesgo }).select().single()
   if (error) return jsonError(error)
   await registrarAudit({ accion: 'CREATE', entidad: 'riesgo', entidad_id: data.id, detalle: { descripcion: body.descripcion, nivel_riesgo } })

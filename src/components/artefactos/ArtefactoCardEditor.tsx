@@ -5,40 +5,33 @@ import { useRouter } from 'next/navigation'
 import dynamic from 'next/dynamic'
 import {
   Pencil, X, Save, Sparkles, ChevronDown, ChevronUp,
-  Loader2, CheckCircle, Globe, AlertCircle, Plus, Trash2, GripVertical,
+  Loader2, CheckCircle2, Globe, AlertCircle, Plus, Trash2, GripVertical,
   Download, Eye
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import type { Artefacto, EstadoValidacion, TipoArtefacto } from '@/types/database'
 import { LABEL_ARTEFACTO } from '@/lib/artefactos-meta'
 import { useEscapeToClose } from '@/hooks/useEscapeToClose'
+import { useFocusTrap } from '@/hooks/useFocusTrap'
+import { ROLES_STAFF_ARTEFACTO, transicionPermitida } from '@/lib/artefactos-estado'
 
 const VistaArtefacto = dynamic(() => import('./VistaArtefacto'), { ssr: false })
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
+// Misma saturación (950/60 fondo, 800/40 borde) que ESTADO_CONFIG en
+// DocumentosFiltroWrapper.tsx — antes este componente usaba colores sólidos
+// y esos usaban opacidad reducida, así que un mismo estado semántico (ej.
+// "pendiente"/ámbar) se veía con intensidad distinta entre las dos pantallas.
 const BADGE: Record<EstadoValidacion, string> = {
-  pendiente: 'bg-amber-950 text-amber-400 border-amber-800',
-  validado: 'bg-emerald-950 text-emerald-400 border-emerald-800',
-  publicado: 'bg-blue-950 text-blue-400 border-blue-800',
+  pendiente: 'bg-amber-950/60 text-amber-400 border-amber-800/40',
+  validado: 'bg-emerald-950/60 text-emerald-400 border-emerald-800/40',
+  publicado: 'bg-blue-950/60 text-blue-400 border-blue-800/40',
 }
 const BADGE_LABEL: Record<EstadoValidacion, string> = {
   pendiente: 'Pendiente revisión',
   validado: 'Validado',
   publicado: 'Publicado',
-}
-// Transiciones según rol:
-// - Cliente (sponsor/usuario): solo puede Validar (pendiente → validado)
-// - Consultor/director/admin: puede además Entregar (validado → publicado) o revertir
-const TRANSICION_CLIENTE: Record<EstadoValidacion, { siguiente: EstadoValidacion; label: string } | null> = {
-  pendiente: { siguiente: 'validado', label: 'Validar' },
-  validado: null,   // ya aprobado — no hay acción siguiente para el cliente
-  publicado: null,
-}
-const TRANSICION_CONSULTOR: Record<EstadoValidacion, { siguiente: EstadoValidacion; label: string } | null> = {
-  pendiente: { siguiente: 'validado', label: 'Validar' },
-  validado:  { siguiente: 'publicado', label: 'Marcar entregado' },
-  publicado: { siguiente: 'validado', label: 'Revertir entrega' },
 }
 
 // ─── Tooltip ─────────────────────────────────────────────────────────────────
@@ -112,7 +105,7 @@ const NOMBRE_CAMPO: Record<string, string> = {
   titulo_proyecto: 'Título del proyecto',
   proposito: 'Propósito',
   fecha_inicio: 'Fecha de inicio',
-  fecha_fin_estimada: 'Fecha de término estimada',
+  fecha_fin_estimada: 'Fecha estimada de cierre',
   presupuesto_estimado: 'Presupuesto estimado',
   patrocinador: 'Patrocinador',
   director_proyecto: 'Director del proyecto',
@@ -307,7 +300,7 @@ function CampoEditor({
               />
               <button
                 onClick={() => onChange(arr.filter((_, j) => j !== i))}
-                className="text-slate-600 hover:text-red-400 transition-colors shrink-0"
+                className="text-slate-400 hover:text-red-400 transition-colors shrink-0"
                 title="Eliminar"
               >
                 <Trash2 className="w-3.5 h-3.5" />
@@ -316,7 +309,7 @@ function CampoEditor({
           ))}
           <button
             onClick={() => onChange([...arr, ''])}
-            className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-purple-400 transition-colors mt-1 border border-dashed border-slate-700 hover:border-purple-600 rounded-lg px-3 py-1.5 w-full justify-center"
+            className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-purple-400 transition-colors mt-1 border border-dashed border-slate-700 hover:border-purple-600 rounded-lg px-3 py-1.5 w-full justify-center"
           >
             <Plus className="w-3 h-3" /> Agregar {label.toLowerCase().replace(/s$/, '')}
           </button>
@@ -332,7 +325,7 @@ function CampoEditor({
       <div className="space-y-2">
         <div className="flex items-center justify-between">
           <label className="text-slate-400 text-xs uppercase tracking-wider font-medium">{label}</label>
-          <button onClick={() => setExpandido(e => !e)} className="text-slate-600 hover:text-slate-400 transition-colors">
+          <button onClick={() => setExpandido(e => !e)} aria-label="Expandir o contraer" className="text-slate-600 hover:text-slate-400 transition-colors">
             {expandido ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
           </button>
         </div>
@@ -344,7 +337,7 @@ function CampoEditor({
                   <span className="text-slate-300 text-xs font-medium truncate">{tituloObjeto(obj, i)}</span>
                   <button
                     onClick={() => onChange(arr.filter((_, j) => j !== i))}
-                    className="text-slate-600 hover:text-red-400 transition-colors shrink-0 ml-2"
+                    className="text-slate-400 hover:text-red-400 transition-colors shrink-0 ml-2"
                     title="Eliminar"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
@@ -382,7 +375,7 @@ function CampoEditor({
                   : {}
                 onChange([...arr, tmpl])
               }}
-              className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-purple-400 transition-colors border border-dashed border-slate-700 hover:border-purple-600 rounded-lg px-3 py-2 w-full justify-center"
+              className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-purple-400 transition-colors border border-dashed border-slate-700 hover:border-purple-600 rounded-lg px-3 py-2 w-full justify-center"
             >
               <Plus className="w-3 h-3" /> Agregar {label.toLowerCase().replace(/s$/, '')}
             </button>
@@ -399,7 +392,7 @@ function CampoEditor({
       <div className="space-y-2">
         <div className="flex items-center justify-between">
           <label className="text-slate-400 text-xs uppercase tracking-wider font-medium">{label}</label>
-          <button onClick={() => setExpandido(e => !e)} className="text-slate-600 hover:text-slate-400 transition-colors">
+          <button onClick={() => setExpandido(e => !e)} aria-label="Expandir o contraer" className="text-slate-600 hover:text-slate-400 transition-colors">
             {expandido ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
           </button>
         </div>
@@ -434,7 +427,7 @@ function EditorRACI({ c, onChange }: { c: Record<string, unknown>; onChange: (v:
   const valores = ['R', 'A', 'C', 'I', '']
   const cellColor: Record<string, string> = {
     R: 'bg-blue-700 text-white', A: 'bg-purple-700 text-white',
-    C: 'bg-emerald-700 text-white', I: 'bg-slate-600 text-white', '': 'bg-slate-800 text-slate-600'
+    C: 'bg-emerald-700 text-white', I: 'bg-slate-600 text-white', '': 'bg-slate-800 text-slate-400'
   }
 
   function ciclar(act: string, rol: string) {
@@ -483,7 +476,7 @@ function EditorRACI({ c, onChange }: { c: Record<string, unknown>; onChange: (v:
             </tbody>
           </table>
         </div>
-        <div className="flex gap-4 mt-2 text-xs text-slate-500">
+        <div className="flex gap-4 mt-2 text-xs text-slate-400">
           {[['R','Responsable'],['A','rinde Cuentas'],['C','Consultado'],['I','Informado']].map(([k,v]) => (
             <span key={k}><span className="font-bold text-slate-300">{k}</span> = {v}</span>
           ))}
@@ -576,8 +569,10 @@ function MejoraIAPanel({
   const [error, setError] = useState<string | null>(null)
 
   useEscapeToClose(true, onClose)
+  const trapRef = useFocusTrap(true)
 
   async function mejorar() {
+    if (mejorando) return
     setMejorando(true)
     setError(null)
     setSugerencia(null)
@@ -603,22 +598,23 @@ function MejoraIAPanel({
   return (
     <div className="fixed inset-0 z-50 flex">
       <div className="flex-1 bg-black/60" onClick={onClose} />
-      <div role="dialog" aria-modal="true" aria-labelledby="mejora-ia-titulo" className="w-[440px] bg-slate-900 border-l border-slate-700 flex flex-col">
+      <div ref={trapRef} role="dialog" aria-modal="true" aria-labelledby="mejora-ia-titulo" className="w-[440px] bg-slate-900 border-l border-slate-700 flex flex-col">
         <div className="flex items-center justify-between p-4 border-b border-slate-800">
           <div className="flex items-center gap-2">
             <Sparkles className="w-4 h-4 text-purple-400" />
             <h3 id="mejora-ia-titulo" className="text-white font-medium text-sm">Mejorar con IA</h3>
           </div>
-          <button onClick={onClose} className="text-slate-500 hover:text-slate-300 transition-colors">
+          <button onClick={onClose} aria-label="Cerrar" className="text-slate-400 hover:text-slate-300 transition-colors">
             <X className="w-4 h-4" />
           </button>
         </div>
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
           <div className="space-y-2">
-            <label className="text-slate-400 text-xs uppercase tracking-wider font-medium">
+            <label htmlFor="mejora-ia-instruccion" className="text-slate-400 text-xs uppercase tracking-wider font-medium">
               Instrucción para la IA (opcional)
             </label>
             <textarea
+              id="mejora-ia-instruccion"
               value={instruccion}
               onChange={e => setInstruccion(e.target.value)}
               placeholder="Ej: Hace más énfasis en los riesgos de compliance, agrega criterios de aceptación más específicos..."
@@ -652,7 +648,7 @@ function MejoraIAPanel({
                 <p className="text-emerald-400 text-xs font-semibold uppercase tracking-wider mb-1">
                   ✓ {diff.length} sección{diff.length !== 1 ? 'es' : ''} con mejoras
                 </p>
-                <p className="text-slate-500 text-xs">
+                <p className="text-slate-400 text-xs">
                   La versión actual se guardará automáticamente en historial.
                 </p>
               </div>
@@ -679,7 +675,7 @@ function MejoraIAPanel({
                         <div key={d.campo} className="bg-slate-800/60 border border-slate-700/50 rounded-lg overflow-hidden">
                           <div className="px-3 py-1.5 bg-slate-800 border-b border-slate-700/50 flex items-center justify-between">
                             <span className="text-slate-300 text-xs font-semibold">{nombreVisible}</span>
-                            <span className="text-xs text-slate-500">{antesArr.length} → {despuesArr.length} elementos</span>
+                            <span className="text-xs text-slate-400">{antesArr.length} → {despuesArr.length} elementos</span>
                           </div>
                           <div className="p-3 space-y-1">
                             {eliminados.map((item, i) => (
@@ -696,12 +692,12 @@ function MejoraIAPanel({
                             ))}
                             {iguales.slice(0, 2).map((item, i) => (
                               <div key={`eq-${i}`} className="flex items-start gap-2 px-2 py-1 opacity-40">
-                                <span className="text-slate-600 text-xs mt-0.5 shrink-0">·</span>
-                                <span className="text-slate-500 text-xs leading-relaxed">{item}</span>
+                                <span className="text-slate-400 text-xs mt-0.5 shrink-0">·</span>
+                                <span className="text-slate-400 text-xs leading-relaxed">{item}</span>
                               </div>
                             ))}
                             {iguales.length > 2 && (
-                              <p className="text-slate-600 text-xs px-2 opacity-50">…y {iguales.length - 2} sin cambios</p>
+                              <p className="text-slate-400 text-xs px-2 opacity-50">…y {iguales.length - 2} sin cambios</p>
                             )}
                           </div>
                         </div>
@@ -735,7 +731,7 @@ function MejoraIAPanel({
 
               {diff.length === 0 && (
                 <div className="bg-slate-800/40 border border-slate-700/40 rounded-lg p-3 text-center">
-                  <p className="text-slate-500 text-sm">La IA no detectó mejoras significativas para este artefacto.</p>
+                  <p className="text-slate-400 text-sm">La IA no detectó mejoras significativas para este artefacto.</p>
                 </div>
               )}
 
@@ -751,7 +747,7 @@ function MejoraIAPanel({
                   disabled={diff.length === 0}
                   className="bg-purple-600 hover:bg-purple-700 disabled:opacity-40 text-white rounded-lg py-2 text-sm transition-colors flex items-center justify-center gap-1.5"
                 >
-                  <CheckCircle className="w-4 h-4" /> Aplicar mejoras
+                  <CheckCircle2 className="w-4 h-4" /> Aplicar mejoras
                 </button>
               </div>
             </div>
@@ -789,8 +785,8 @@ export default function ArtefactoCardEditor({ artefacto: artefactoInicial, proce
   const tipo = artefacto.tipo as TipoArtefacto
   const tipoLabel = LABEL_ARTEFACTO[tipo] ?? tipo
   const estado = artefacto.estado_validacion as EstadoValidacion
-  const esConsultor = ['super_admin', 'director_proyecto', 'consultor'].includes(rol ?? '')
-  const transicion = (esConsultor ? TRANSICION_CONSULTOR : TRANSICION_CLIENTE)[estado]
+  const esConsultor = ROLES_STAFF_ARTEFACTO.includes(rol ?? '')
+  const transicion = transicionPermitida(estado, esConsultor)
 
   function iniciarEdicion() {
     setContenidoEditado(artefacto.contenido)
@@ -806,16 +802,22 @@ export default function ArtefactoCardEditor({ artefacto: artefactoInicial, proce
   }
 
   const guardar = useCallback(async (contenido: Record<string, unknown>, motivo?: string) => {
+    if (guardando) return // guardia síncrona — evita crear dos versiones por doble clic
     setGuardando(true)
     setErrorGuardar(null)
     try {
       const res = await fetch(`/api/artefactos/${artefacto.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ contenido, motivo_cambio: motivo || motivoCambio || 'Edición manual' }),
+        body: JSON.stringify({ contenido, motivo_cambio: motivo ?? motivoCambio.trim(), version_esperada: artefacto.version }),
       })
       const d = await res.json()
-      if (!res.ok) throw new Error(d.error)
+      if (!res.ok) {
+        if (res.status === 409) {
+          throw new Error('Otra persona editó este artefacto mientras lo tenías abierto. Recarga la página para ver la versión más reciente antes de volver a intentar.')
+        }
+        throw new Error(d.error)
+      }
       setArtefacto(d.artefacto)
       setModo('vista')
       setGuardadoOk(true)
@@ -826,7 +828,7 @@ export default function ArtefactoCardEditor({ artefacto: artefactoInicial, proce
     } finally {
       setGuardando(false)
     }
-  }, [artefacto.id, motivoCambio, router])
+  }, [artefacto.id, artefacto.version, motivoCambio, router, guardando])
 
   async function cambiarEstado() {
     if (!transicion) return
@@ -870,19 +872,20 @@ export default function ArtefactoCardEditor({ artefacto: artefactoInicial, proce
           <div className="flex items-center gap-3 min-w-0">
             <button
               onClick={() => setExpandido(e => !e)}
-              className="text-slate-500 hover:text-slate-300 transition-colors shrink-0"
+              aria-label="Expandir o contraer"
+              className="text-slate-400 hover:text-slate-300 transition-colors shrink-0"
             >
               {expandido ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
             </button>
             <div className="min-w-0 flex items-center gap-2">
               {numero !== undefined && (
-                <span className="shrink-0 text-xs font-mono font-bold text-slate-600 w-6 text-right">{numero}.</span>
+                <span className="shrink-0 text-xs font-mono font-bold text-slate-400 w-6 text-right">{numero}.</span>
               )}
               <h3 className="text-white font-semibold text-sm truncate">{tipoLabel}</h3>
               <div className="flex items-center gap-2 mt-0.5">
-                <span className="text-slate-600 text-xs">v{artefacto.version}</span>
+                <span className="text-slate-400 text-xs">v{artefacto.version}</span>
                 {artefacto.generado_por_ia && (
-                  <span className="text-slate-600 text-xs flex items-center gap-0.5">
+                  <span className="text-slate-400 text-xs flex items-center gap-0.5">
                     <Sparkles className="w-2.5 h-2.5" /> IA
                   </span>
                 )}
@@ -893,7 +896,7 @@ export default function ArtefactoCardEditor({ artefacto: artefactoInicial, proce
             </span>
             {guardadoOk && (
               <span className="text-emerald-400 text-xs flex items-center gap-1 shrink-0">
-                <CheckCircle className="w-3.5 h-3.5" /> Guardado
+                <CheckCircle2 className="w-3.5 h-3.5" /> Guardado
               </span>
             )}
           </div>
@@ -917,7 +920,7 @@ export default function ArtefactoCardEditor({ artefacto: artefactoInicial, proce
                     } text-white`}
                   >
                     {cambiandoEstado ? <Loader2 className="w-3 h-3 animate-spin" /> : (
-                      transicion.siguiente === 'publicado' ? <Globe className="w-3 h-3" /> : <CheckCircle className="w-3 h-3" />
+                      transicion.siguiente === 'publicado' ? <Globe className="w-3 h-3" /> : <CheckCircle2 className="w-3 h-3" />
                     )}
                     <span className="ml-1">{transicion.label}</span>
                   </Button>
@@ -936,19 +939,21 @@ export default function ArtefactoCardEditor({ artefacto: artefactoInicial, proce
                   <Tip label="Editar contenido">
                     <button
                       onClick={iniciarEdicion}
-                      className="h-7 w-7 flex items-center justify-center text-slate-500 hover:text-white border border-slate-700 hover:border-slate-400 rounded-lg transition-colors"
+                      aria-label="Editar contenido"
+                      className="h-7 w-7 flex items-center justify-center text-slate-400 hover:text-white border border-slate-700 hover:border-slate-400 rounded-lg transition-colors"
                     >
                       <Pencil className="w-3.5 h-3.5" />
                     </button>
                   </Tip>
                 )}
                 {/* Descargar */}
-                <Tip label="Exportar PDF">
+                <Tip label="Descargar PDF">
                   <a
                     href={`/artefactos/${procesoId}/print`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="h-7 w-7 flex items-center justify-center text-slate-500 hover:text-white border border-slate-700 hover:border-slate-400 rounded-lg transition-colors"
+                    aria-label="Descargar PDF"
+                    className="h-7 w-7 flex items-center justify-center text-slate-400 hover:text-white border border-slate-700 hover:border-slate-400 rounded-lg transition-colors"
                   >
                     <Download className="w-3.5 h-3.5" />
                   </a>
@@ -964,7 +969,8 @@ export default function ArtefactoCardEditor({ artefacto: artefactoInicial, proce
                 </button>
                 <button
                   onClick={cancelarEdicion}
-                  className="h-7 w-7 flex items-center justify-center text-slate-500 hover:text-slate-300 border border-slate-700 rounded-lg transition-colors"
+                  aria-label="Cancelar edición"
+                  className="h-7 w-7 flex items-center justify-center text-slate-400 hover:text-slate-300 border border-slate-700 rounded-lg transition-colors"
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>
@@ -985,7 +991,7 @@ export default function ArtefactoCardEditor({ artefacto: artefactoInicial, proce
         {estadoCambioOk && (
           <div className="mx-4 mt-3 flex items-center gap-3 bg-emerald-950/60 border border-emerald-700/60 rounded-xl px-4 py-3 animate-in fade-in slide-in-from-top-1 duration-300">
             <div className="w-7 h-7 rounded-full bg-emerald-900/80 border border-emerald-700 flex items-center justify-center shrink-0">
-              <CheckCircle className="w-4 h-4 text-emerald-400" />
+              <CheckCircle2 className="w-4 h-4 text-emerald-400" />
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-emerald-300 text-sm font-medium">{estadoCambioOk}</p>
@@ -1023,11 +1029,12 @@ export default function ArtefactoCardEditor({ artefacto: artefactoInicial, proce
                   <AlertCircle className="w-4 h-4 text-amber-400 shrink-0" />
                   <input
                     type="text"
-                    placeholder="Motivo del cambio (ej: Corrección de roles, Actualización de métricas...)"
+                    placeholder="Motivo del cambio (obligatorio) — ej: Corrección de roles, Actualización de métricas..."
                     value={motivoCambio}
                     onChange={e => setMotivoCambio(e.target.value)}
                     className="flex-1 bg-transparent text-slate-300 text-sm placeholder:text-slate-600 focus:outline-none"
                   />
+                  <span className="text-amber-500 text-xs shrink-0">*obligatorio</span>
                 </div>
 
                 {/* Editor especializado para RACI, genérico para el resto */}
@@ -1064,7 +1071,8 @@ export default function ArtefactoCardEditor({ artefacto: artefactoInicial, proce
                   </button>
                   <button
                     onClick={() => guardar(contenidoEditado)}
-                    disabled={guardando}
+                    disabled={guardando || motivoCambio.trim() === ''}
+                    title={motivoCambio.trim() === '' ? 'Escribe el motivo del cambio para poder guardar' : undefined}
                     className="flex items-center gap-1.5 bg-purple-600 hover:bg-purple-700 text-white text-sm px-4 py-2 rounded-lg transition-colors disabled:opacity-50"
                   >
                     {guardando ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}

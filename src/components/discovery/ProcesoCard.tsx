@@ -1,12 +1,12 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import {
-  Brain, Sparkles, ChevronDown, ChevronUp, CheckCircle, XCircle,
+  Brain, Sparkles, ChevronDown, ChevronUp, CheckCircle2, XCircle,
   Clock, Zap, Target, AlertTriangle, TrendingUp, Users, ArrowRight,
   Activity, Shield, BarChart3, Cpu, Layers, FileText, AlertCircle,
-  Edit2, Save, X, RefreshCw
+  Pencil, Save, X, RefreshCw
 } from 'lucide-react'
 import type { ProcesoConHijos, DocAnalisis } from './types'
 import { SALUD_CONFIG, AUTOMATIZACION_CONFIG, CRITICIDAD_CONFIG } from './config'
@@ -137,6 +137,7 @@ export function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: 
   }
 
   async function generarNuevaVersion() {
+    if (generandoVersion) return // guardia síncrona — evita consolidar dos versiones por doble clic
     setGenerandoVersion(true)
     setErrorCorr(null)
     try {
@@ -247,7 +248,16 @@ export function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: 
     }
   }, [tabDoc, glosarioCargado, cargandoGlosario, proyectoId])
 
+  const glosarioPollRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  useEffect(() => {
+    // Si el usuario navega fuera de esta tarjeta a mitad del análisis, el
+    // polling seguía llamando setState sobre un componente ya desmontado.
+    return () => { if (glosarioPollRef.current) clearInterval(glosarioPollRef.current) }
+  }, [])
+
   async function lanzarAnalisisRoles() {
+    if (lanzandoGlosario) return
     setLanzandoGlosario(true)
     setErrorGlosario(null)
     try {
@@ -257,20 +267,20 @@ export function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: 
         body: JSON.stringify({ proyecto_id: proyectoId }),
       })
       const data = await res.json()
-      if (!res.ok) { setErrorGlosario(data.error ?? 'Error al lanzar análisis'); return }
+      if (!res.ok) { setErrorGlosario(data.error ?? 'Error al lanzar análisis'); setLanzandoGlosario(false); return }
       // Polling cada 4s hasta que el estado sea completado o error (máx 60s)
       let intentos = 0
-      const poll = setInterval(async () => {
+      glosarioPollRef.current = setInterval(async () => {
         intentos++
         const r = await fetch(`/api/portal/glosario-roles?proyecto_id=${proyectoId}`)
         const d = await r.json()
         if (d.analisis?.estado === 'completado') {
           setGlosarioData(d.analisis)
-          clearInterval(poll)
+          if (glosarioPollRef.current) clearInterval(glosarioPollRef.current)
           setLanzandoGlosario(false)
         } else if (d.analisis?.estado === 'error' || intentos >= 15) {
           setErrorGlosario(d.analisis?.error_msg ?? 'El análisis tardó demasiado. Intenta de nuevo.')
-          clearInterval(poll)
+          if (glosarioPollRef.current) clearInterval(glosarioPollRef.current)
           setLanzandoGlosario(false)
         }
       }, 4000)
@@ -374,7 +384,7 @@ export function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: 
     } finally { setAnalizando(false) }
   }
 
-  async function cambiarEstado(nuevoEstado: 'aceptado' | 'rechazado') {
+  async function cambiarEstado(nuevoEstado: 'aceptado' | 'rechazado' | 'propuesto') {
     setAprobando(true)
     try {
       const res = await fetch(`/api/procesos/${proceso.id}/revisar`, {
@@ -407,7 +417,7 @@ export function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: 
   }
 
   const estadoIcon = estadoLocal === 'aceptado'
-    ? <CheckCircle className="w-4 h-4 text-emerald-400" />
+    ? <CheckCircle2 className="w-4 h-4 text-emerald-400" />
     : estadoLocal === 'rechazado'
     ? <XCircle className="w-4 h-4 text-red-400" />
     : <Clock className="w-4 h-4 text-amber-400" />
@@ -434,6 +444,16 @@ export function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: 
           estadoLocal === 'rechazado' ? 'opacity-50' : ''
         } ${expandido ? 'bg-slate-900/70' : 'bg-slate-900/40 hover:bg-slate-900/60 cursor-pointer'}`}
         onClick={() => { if (!expandido) { setExpandido(true); cargarDocAnalisis() } }}
+        role={expandido ? undefined : 'button'}
+        tabIndex={expandido ? undefined : 0}
+        aria-expanded={expandido}
+        onKeyDown={e => {
+          if (!expandido && (e.key === 'Enter' || e.key === ' ')) {
+            e.preventDefault()
+            setExpandido(true)
+            cargarDocAnalisis()
+          }
+        }}
       >
         {/* Accent left bar */}
         <div className={`absolute left-0 top-0 bottom-0 w-0.5 ${accentBar}`} />
@@ -455,7 +475,7 @@ export function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: 
           </div>
           <div className="flex items-center gap-2 shrink-0">
             {estadoLocal === 'aceptado' && (
-              <span className="flex items-center gap-1 text-xs text-emerald-400 font-medium"><CheckCircle className="w-3.5 h-3.5" /> Aceptado</span>
+              <span className="flex items-center gap-1 text-xs text-emerald-400 font-medium"><CheckCircle2 className="w-3.5 h-3.5" /> Aceptado</span>
             )}
             {estadoLocal === 'rechazado' && (
               <span className="flex items-center gap-1 text-xs text-red-400 font-medium"><XCircle className="w-3.5 h-3.5" /> Rechazado</span>
@@ -466,7 +486,7 @@ export function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: 
               <span className="text-xs px-2 py-0.5 rounded-full bg-blue-950/50 text-blue-300 border border-blue-800/40 font-medium">📄 Detectado</span>
             )}
             {expandido
-              ? <ChevronUp className="w-4 h-4 text-slate-500 cursor-pointer" onClick={e => { e.stopPropagation(); setExpandido(false) }} />
+              ? <button aria-label="Contraer proceso" className="text-slate-400 hover:text-slate-300 transition-colors" onClick={e => { e.stopPropagation(); setExpandido(false) }}><ChevronUp className="w-4 h-4" /></button>
               : <ChevronDown className="w-4 h-4 text-slate-500" />
             }
           </div>
@@ -501,7 +521,7 @@ export function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: 
                       className={`flex items-center gap-1.5 px-3 py-3 text-xs font-semibold border-b-2 transition-all ${
                         tabDoc === t.id
                           ? 'border-violet-500 text-violet-300'
-                          : 'border-transparent text-slate-500 hover:text-slate-300'
+                          : 'border-transparent text-slate-400 hover:text-slate-300'
                       }`}
                     >
                       <t.icon className="w-3.5 h-3.5" />{t.label}
@@ -554,7 +574,7 @@ export function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: 
                             <div className="h-full rounded-full transition-all duration-500"
                               style={{ width: `${pct}%`, background: pct === 100 ? 'linear-gradient(90deg,#059669,#34d399)' : pct > 50 ? 'linear-gradient(90deg,#d97706,#fbbf24)' : 'linear-gradient(90deg,#dc2626,#f87171)' }} />
                           </div>
-                          <p className="text-xs text-slate-500 mt-1.5">{resueltos} de {totalItems} puntos resueltos</p>
+                          <p className="text-xs text-slate-400 mt-1.5">{resueltos} de {totalItems} puntos resueltos</p>
                         </div>
                       )}
 
@@ -568,7 +588,7 @@ export function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: 
                               </div>
                               <div>
                                 <p className="text-xs font-bold text-red-400 uppercase tracking-widest">Exposiciones operacionales</p>
-                                <p className="text-xs text-slate-600">Riesgos activos identificados en el documento</p>
+                                <p className="text-xs text-slate-400">Riesgos activos identificados en el documento</p>
                               </div>
                             </div>
                             <span className="text-xs font-bold px-2 py-1 rounded-full bg-red-950/60 border border-red-800/40 text-red-300">
@@ -600,7 +620,7 @@ export function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: 
 
                                     <div className="flex-1 px-4 py-3.5">
                                       <div className="flex items-start gap-3">
-                                        <p className={`text-sm font-semibold leading-snug flex-1 ${atendido ? 'line-through text-slate-500' : 'text-white'}`}>{r.riesgo}</p>
+                                        <p className={`text-sm font-semibold leading-snug flex-1 ${atendido ? 'line-through text-slate-400' : 'text-white'}`}>{r.riesgo}</p>
                                         <div className="flex items-center gap-1 shrink-0 pt-0.5">
                                           {[1, 2, 3].map(n => (
                                             <div key={n} className={`w-2 h-2 rounded-full ${
@@ -616,7 +636,7 @@ export function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: 
                                       </div>
 
                                       {r.evidencia && !atendido && (
-                                        <p className="text-slate-500 text-xs mt-2 leading-relaxed">
+                                        <p className="text-slate-400 text-xs mt-2 leading-relaxed">
                                           <span className="text-red-400/70 font-medium">Evidencia · </span>{r.evidencia}
                                         </p>
                                       )}
@@ -625,12 +645,12 @@ export function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: 
                                         {!atendido ? (
                                           <button onClick={() => setExpandCorr(p => ({ ...p, [key]: !p[key] }))}
                                             className="text-xs text-slate-400 hover:text-emerald-400 flex items-center gap-1.5 transition-colors">
-                                            <Edit2 className="w-3 h-3" />
+                                            <Pencil className="w-3 h-3" />
                                             {abierto ? 'Cerrar' : 'Registrar modificación y/o observación →'}
                                           </button>
                                         ) : (
                                           <button onClick={() => desmarcarAtendido('riesgo', i)}
-                                            className="text-xs text-slate-600 hover:text-red-400 transition-colors">
+                                            className="text-xs text-slate-400 hover:text-red-400 transition-colors">
                                             Reactivar
                                           </button>
                                         )}
@@ -652,10 +672,10 @@ export function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: 
                                       <div className="flex items-center gap-3">
                                         <button onClick={() => marcarAtendido('riesgo', i)} disabled={guardandoCorr}
                                           className="flex items-center gap-1.5 text-sm font-bold bg-emerald-700 hover:bg-emerald-600 text-white px-4 py-2 rounded-xl transition-colors disabled:opacity-50">
-                                          <CheckCircle className="w-4 h-4" /> Marcar como mitigado
+                                          <CheckCircle2 className="w-4 h-4" /> Marcar como mitigado
                                         </button>
                                         <button onClick={() => setExpandCorr(p => ({ ...p, [key]: false }))}
-                                          className="text-xs text-slate-500 hover:text-slate-300 transition-colors">
+                                          className="text-xs text-slate-400 hover:text-slate-300 transition-colors">
                                           Cancelar
                                         </button>
                                       </div>
@@ -677,7 +697,7 @@ export function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: 
                             </div>
                             <div>
                               <p className="text-xs font-bold text-amber-400 uppercase tracking-widest">Puntos de atención</p>
-                              <p className="text-xs text-slate-600">Aspectos críticos del estado actual · confirma cuáles ya están resueltos</p>
+                              <p className="text-xs text-slate-400">Aspectos críticos del estado actual · confirma cuáles ya están resueltos</p>
                             </div>
                           </div>
 
@@ -698,7 +718,7 @@ export function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: 
                                         atendido ? 'border-emerald-600/60 bg-emerald-900/50' : 'border-amber-600/50 bg-amber-950/40'
                                       }`}>
                                         {atendido
-                                          ? <CheckCircle className="w-4 h-4 text-emerald-400" />
+                                          ? <CheckCircle2 className="w-4 h-4 text-emerald-400" />
                                           : <span className="text-amber-300 text-sm font-black">{i + 1}</span>
                                         }
                                       </div>
@@ -706,17 +726,17 @@ export function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: 
                                       <div className={`flex-1 rounded-2xl border p-3.5 ${
                                         atendido ? 'border-emerald-800/20 bg-emerald-950/5' : 'border-slate-700/30 bg-slate-800/20'
                                       }`}>
-                                        <p className={`text-sm leading-relaxed ${atendido ? 'line-through text-slate-500' : 'text-slate-200'}`}>{h}</p>
+                                        <p className={`text-sm leading-relaxed ${atendido ? 'line-through text-slate-400' : 'text-slate-200'}`}>{h}</p>
                                         <div className="flex items-center gap-3 mt-2.5">
                                           {!atendido ? (
                                             <button onClick={() => setExpandCorr(p => ({ ...p, [key]: !p[key] }))}
                                               className="text-xs text-slate-400 hover:text-emerald-400 flex items-center gap-1.5 transition-colors">
-                                              <Edit2 className="w-3 h-3" /> {abierto ? 'Cerrar' : 'Registrar modificación y/o observación →'}
+                                              <Pencil className="w-3 h-3" /> {abierto ? 'Cerrar' : 'Registrar modificación y/o observación →'}
                                             </button>
                                           ) : (
                                             <span className="flex items-center gap-2 text-xs">
-                                              <span className="text-emerald-400 font-semibold flex items-center gap-1"><CheckCircle className="w-3 h-3" /> Resuelto</span>
-                                              <button onClick={() => desmarcarAtendido('hallazgo', i)} className="text-slate-600 hover:text-slate-400 transition-colors">· desmarcar</button>
+                                              <span className="text-emerald-400 font-semibold flex items-center gap-1"><CheckCircle2 className="w-3 h-3" /> Resuelto</span>
+                                              <button onClick={() => desmarcarAtendido('hallazgo', i)} className="text-slate-400 hover:text-slate-400 transition-colors">· desmarcar</button>
                                             </span>
                                           )}
                                         </div>
@@ -737,10 +757,10 @@ export function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: 
                                         <div className="flex items-center gap-3">
                                           <button onClick={() => marcarAtendido('hallazgo', i)}
                                             className="flex items-center gap-1.5 text-sm font-bold bg-emerald-700 hover:bg-emerald-600 text-white px-4 py-2 rounded-xl transition-colors">
-                                            <CheckCircle className="w-4 h-4" /> Marcar como resuelto
+                                            <CheckCircle2 className="w-4 h-4" /> Marcar como resuelto
                                           </button>
                                           <button onClick={() => setExpandCorr(p => ({ ...p, [key]: false }))}
-                                            className="text-xs text-slate-500 hover:text-slate-300 transition-colors">
+                                            className="text-xs text-slate-400 hover:text-slate-300 transition-colors">
                                             Cancelar
                                           </button>
                                         </div>
@@ -763,7 +783,7 @@ export function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: 
                             </div>
                             <div>
                               <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Oportunidades de formalización</p>
-                              <p className="text-xs text-slate-600">Áreas sin definición formal detectadas · indica cuáles ya están documentadas</p>
+                              <p className="text-xs text-slate-400">Áreas sin definición formal detectadas · indica cuáles ya están documentadas</p>
                             </div>
                           </div>
 
@@ -780,17 +800,17 @@ export function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: 
                                       : 'border-slate-700/30 bg-slate-800/15'
                                   }`}>
                                     <div className={`w-2 h-2 rounded-full mt-2 shrink-0 ${atendido ? 'bg-emerald-500' : 'bg-slate-500'}`} />
-                                    <p className={`flex-1 text-sm leading-relaxed ${atendido ? 'line-through text-slate-500' : 'text-slate-300'}`}>{b}</p>
+                                    <p className={`flex-1 text-sm leading-relaxed ${atendido ? 'line-through text-slate-400' : 'text-slate-300'}`}>{b}</p>
                                     <div className="shrink-0 flex items-center gap-3">
                                       {!atendido ? (
                                         <button onClick={() => setExpandCorr(p => ({ ...p, [key]: !p[key] }))}
                                           className="text-xs text-slate-400 hover:text-emerald-400 flex items-center gap-1.5 transition-colors whitespace-nowrap">
-                                          <Edit2 className="w-3 h-3" /> {abierto ? 'Cerrar' : 'Registrar oportunidad →'}
+                                          <Pencil className="w-3 h-3" /> {abierto ? 'Cerrar' : 'Registrar oportunidad →'}
                                         </button>
                                       ) : (
                                         <div className="flex items-center gap-2">
-                                          <span className="text-xs text-emerald-400 flex items-center gap-1 font-semibold"><CheckCircle className="w-3 h-3" /> Formalizado</span>
-                                          <button onClick={() => desmarcarAtendido('brecha', i)} className="text-xs text-slate-600 hover:text-slate-400 transition-colors">· desmarcar</button>
+                                          <span className="text-xs text-emerald-400 flex items-center gap-1 font-semibold"><CheckCircle2 className="w-3 h-3" /> Formalizado</span>
+                                          <button onClick={() => desmarcarAtendido('brecha', i)} className="text-xs text-slate-400 hover:text-slate-400 transition-colors">· desmarcar</button>
                                         </div>
                                       )}
                                     </div>
@@ -810,10 +830,10 @@ export function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: 
                                       <div className="flex items-center gap-3">
                                         <button onClick={() => marcarAtendido('brecha', i)}
                                           className="flex items-center gap-1.5 text-sm font-bold bg-emerald-700 hover:bg-emerald-600 text-white px-4 py-2 rounded-xl transition-colors">
-                                          <CheckCircle className="w-4 h-4" /> Marcar como formalizado
+                                          <CheckCircle2 className="w-4 h-4" /> Marcar como formalizado
                                         </button>
                                         <button onClick={() => setExpandCorr(p => ({ ...p, [key]: false }))}
-                                          className="text-xs text-slate-500 hover:text-slate-300 transition-colors">
+                                          className="text-xs text-slate-400 hover:text-slate-300 transition-colors">
                                           Cancelar
                                         </button>
                                       </div>
@@ -866,7 +886,7 @@ export function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: 
                               </div>
                               <div>
                                 <p className="text-xs font-bold text-emerald-400 uppercase tracking-widest">Quick wins</p>
-                                <p className="text-xs text-slate-600">Acciones ejecutables en menos de 30 días · {quickWins.length - qwCheckedIdx.size} activos{qwHistorial.length > 0 ? ` · ${qwHistorial.length} en historial` : ''}</p>
+                                <p className="text-xs text-slate-400">Acciones ejecutables en menos de 30 días · {quickWins.length - qwCheckedIdx.size} activos{qwHistorial.length > 0 ? ` · ${qwHistorial.length} en historial` : ''}</p>
                               </div>
                             </div>
                             <div className="grid gap-2">
@@ -881,7 +901,7 @@ export function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: 
                                     />
                                     <div className="flex-1">
                                       <p className="text-slate-100 text-sm leading-relaxed font-medium">{q}</p>
-                                      <button onClick={() => toggleQW(i, q, 'descartado')} className="mt-1 text-xs text-slate-600 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100">Descartar →</button>
+                                      <button onClick={() => toggleQW(i, q, 'descartado')} className="mt-1 text-xs text-slate-400 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100">Descartar →</button>
                                     </div>
                                     <span className="shrink-0 text-xs px-2 py-1 rounded-full bg-emerald-950/60 border border-emerald-800/40 text-emerald-400 font-semibold whitespace-nowrap">≤ 30 días</span>
                                   </div>
@@ -891,17 +911,17 @@ export function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: 
                             {qwHistorial.length > 0 && (
                               <div className="mt-3 rounded-xl border border-slate-700/30 bg-slate-900/40 overflow-hidden">
                                 <div className="px-4 py-2.5 border-b border-slate-700/30 flex items-center gap-2">
-                                  <CheckCircle className="w-3.5 h-3.5 text-slate-500" />
-                                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-widest">Historial — {qwHistorial.length} quick win{qwHistorial.length > 1 ? 's' : ''}</p>
+                                  <CheckCircle2 className="w-3.5 h-3.5 text-slate-500" />
+                                  <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest">Historial — {qwHistorial.length} quick win{qwHistorial.length > 1 ? 's' : ''}</p>
                                 </div>
                                 <div className="divide-y divide-slate-700/20">
                                   {qwHistorial.map((h, hi) => (
                                     <div key={hi} className="px-4 py-3 flex items-start gap-3">
-                                      <span className={`text-xs font-bold px-2 py-0.5 rounded-full border shrink-0 mt-0.5 ${h.accion === 'realizado' ? 'bg-emerald-950/40 border-emerald-700/30 text-emerald-400' : 'bg-slate-800/60 border-slate-700/30 text-slate-500'}`}>
+                                      <span className={`text-xs font-bold px-2 py-0.5 rounded-full border shrink-0 mt-0.5 ${h.accion === 'realizado' ? 'bg-emerald-950/40 border-emerald-700/30 text-emerald-400' : 'bg-slate-800/60 border-slate-700/30 text-slate-400'}`}>
                                         {h.accion === 'realizado' ? '✓ Realizado' : '✕ Descartado'}
                                       </span>
-                                      <p className="flex-1 text-xs text-slate-600 line-through leading-relaxed">{h.texto}</p>
-                                      <button onClick={() => toggleQW(h.indice, h.texto, h.accion)} className="text-xs text-slate-600 hover:text-emerald-400 transition-colors shrink-0">Restaurar</button>
+                                      <p className="flex-1 text-xs text-slate-400 line-through leading-relaxed">{h.texto}</p>
+                                      <button onClick={() => toggleQW(h.indice, h.texto, h.accion)} className="text-xs text-slate-400 hover:text-emerald-400 transition-colors shrink-0">Restaurar</button>
                                     </div>
                                   ))}
                                 </div>
@@ -925,7 +945,7 @@ export function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: 
                                 </div>
                                 <div>
                                   <p className="text-xs font-bold text-indigo-400 uppercase tracking-widest">Oportunidades de valor</p>
-                                  <p className="text-xs text-slate-600">Iniciativas de mayor alcance · {activas.length} activas{historial.length > 0 ? ` · ${historial.length} en historial` : ''}</p>
+                                  <p className="text-xs text-slate-400">Iniciativas de mayor alcance · {activas.length} activas{historial.length > 0 ? ` · ${historial.length} en historial` : ''}</p>
                                 </div>
                               </div>
                             </div>
@@ -955,7 +975,7 @@ export function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: 
                                         {/* Acción descartar */}
                                         <button
                                           onClick={() => toggleOportunidad(i, o.oportunidad, 'descartado')}
-                                          className="mt-2 text-xs text-slate-600 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100"
+                                          className="mt-2 text-xs text-slate-400 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100"
                                         >
                                           Descartar →
                                         </button>
@@ -981,8 +1001,8 @@ export function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: 
                             {historial.length > 0 && (
                               <div className="mt-4 rounded-xl border border-slate-700/30 bg-slate-900/40 overflow-hidden">
                                 <div className="px-4 py-2.5 border-b border-slate-700/30 flex items-center gap-2">
-                                  <CheckCircle className="w-3.5 h-3.5 text-slate-500" />
-                                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-widest">Historial — {historial.length} oportunidad{historial.length > 1 ? 'es' : ''}</p>
+                                  <CheckCircle2 className="w-3.5 h-3.5 text-slate-500" />
+                                  <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest">Historial — {historial.length} oportunidad{historial.length > 1 ? 'es' : ''}</p>
                                 </div>
                                 <div className="divide-y divide-slate-700/20">
                                   {historial.map((h, hi) => {
@@ -992,25 +1012,25 @@ export function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: 
                                         <span className={`text-xs font-bold px-2 py-0.5 rounded-full border shrink-0 mt-0.5 ${
                                           h.accion === 'realizado'
                                             ? 'bg-emerald-950/40 border-emerald-700/30 text-emerald-400'
-                                            : 'bg-slate-800/60 border-slate-700/30 text-slate-500'
+                                            : 'bg-slate-800/60 border-slate-700/30 text-slate-400'
                                         }`}>
                                           {h.accion === 'realizado' ? '✓ Realizado' : '✕ Descartado'}
                                         </span>
                                         <div className="flex-1 min-w-0">
-                                          <p className={`text-xs leading-relaxed ${h.accion === 'realizado' ? 'text-slate-400 line-through' : 'text-slate-600 line-through'}`}>
+                                          <p className={`text-xs leading-relaxed ${h.accion === 'realizado' ? 'text-slate-400 line-through' : 'text-slate-400 line-through'}`}>
                                             {h.texto}
                                           </p>
                                           {original?.impacto_estimado && (
-                                            <p className="text-xs text-slate-600 mt-0.5">{original.impacto_estimado}</p>
+                                            <p className="text-xs text-slate-400 mt-0.5">{original.impacto_estimado}</p>
                                           )}
-                                          <p className="text-xs text-slate-700 mt-1">
+                                          <p className="text-xs text-slate-400 mt-1">
                                             {new Date(h.fecha).toLocaleDateString('es-CL', { day:'2-digit', month:'short', year:'numeric' })}
                                           </p>
                                         </div>
                                         {/* Restaurar */}
                                         <button
                                           onClick={() => toggleOportunidad(h.indice, h.texto, h.accion)}
-                                          className="text-xs text-slate-600 hover:text-indigo-400 transition-colors shrink-0"
+                                          className="text-xs text-slate-400 hover:text-indigo-400 transition-colors shrink-0"
                                           title="Restaurar a activas"
                                         >
                                           Restaurar
@@ -1038,7 +1058,7 @@ export function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: 
                               </div>
                               <div>
                                 <p className="text-xs font-bold text-amber-400 uppercase tracking-widest">Próximos pasos</p>
-                                <p className="text-xs text-slate-600">Secuencia recomendada · {pasosActivos.length} pendientes{pasosHistorial.length > 0 ? ` · ${pasosHistorial.length} en historial` : ''}</p>
+                                <p className="text-xs text-slate-400">Secuencia recomendada · {pasosActivos.length} pendientes{pasosHistorial.length > 0 ? ` · ${pasosHistorial.length} en historial` : ''}</p>
                               </div>
                             </div>
                             <div className="relative">
@@ -1062,7 +1082,7 @@ export function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: 
                                     <div className={`flex-1 rounded-2xl border p-3.5 mb-1 ${activoIdx === 0 ? 'border-amber-700/40 bg-amber-950/15' : 'border-slate-700/30 bg-slate-800/15'}`}>
                                       {activoIdx === 0 && <p className="text-xs font-bold text-amber-400 mb-1 uppercase tracking-wider">Siguiente</p>}
                                       <p className="text-sm text-slate-200 leading-relaxed">{paso}</p>
-                                      <button onClick={() => togglePaso(i, paso, 'descartado')} className="mt-1.5 text-xs text-slate-600 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100">Descartar →</button>
+                                      <button onClick={() => togglePaso(i, paso, 'descartado')} className="mt-1.5 text-xs text-slate-400 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100">Descartar →</button>
                                     </div>
                                   </div>
                                 )
@@ -1071,17 +1091,17 @@ export function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: 
                             {pasosHistorial.length > 0 && (
                               <div className="mt-3 rounded-xl border border-slate-700/30 bg-slate-900/40 overflow-hidden">
                                 <div className="px-4 py-2.5 border-b border-slate-700/30 flex items-center gap-2">
-                                  <CheckCircle className="w-3.5 h-3.5 text-slate-500" />
-                                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-widest">Historial — {pasosHistorial.length} paso{pasosHistorial.length > 1 ? 's' : ''}</p>
+                                  <CheckCircle2 className="w-3.5 h-3.5 text-slate-500" />
+                                  <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest">Historial — {pasosHistorial.length} paso{pasosHistorial.length > 1 ? 's' : ''}</p>
                                 </div>
                                 <div className="divide-y divide-slate-700/20">
                                   {pasosHistorial.map((h, hi) => (
                                     <div key={hi} className="px-4 py-3 flex items-start gap-3">
-                                      <span className={`text-xs font-bold px-2 py-0.5 rounded-full border shrink-0 mt-0.5 ${h.accion === 'realizado' ? 'bg-emerald-950/40 border-emerald-700/30 text-emerald-400' : 'bg-slate-800/60 border-slate-700/30 text-slate-500'}`}>
+                                      <span className={`text-xs font-bold px-2 py-0.5 rounded-full border shrink-0 mt-0.5 ${h.accion === 'realizado' ? 'bg-emerald-950/40 border-emerald-700/30 text-emerald-400' : 'bg-slate-800/60 border-slate-700/30 text-slate-400'}`}>
                                         {h.accion === 'realizado' ? '✓ Completado' : '✕ Descartado'}
                                       </span>
-                                      <p className="flex-1 text-xs text-slate-600 line-through leading-relaxed">{h.texto}</p>
-                                      <button onClick={() => togglePaso(h.indice, h.texto, h.accion)} className="text-xs text-slate-600 hover:text-amber-400 transition-colors shrink-0">Restaurar</button>
+                                      <p className="flex-1 text-xs text-slate-400 line-through leading-relaxed">{h.texto}</p>
+                                      <button onClick={() => togglePaso(h.indice, h.texto, h.accion)} className="text-xs text-slate-400 hover:text-amber-400 transition-colors shrink-0">Restaurar</button>
                                     </div>
                                   ))}
                                 </div>
@@ -1094,7 +1114,7 @@ export function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: 
                       {quickWins.length === 0 && oportunidades.length === 0 && pasos.length === 0 && (
                         <div className="py-12 text-center">
                           <TrendingUp className="w-8 h-8 text-slate-700 mx-auto mb-3" />
-                          <p className="text-slate-500 text-sm">El análisis del documento no detectó oportunidades de valor aún.</p>
+                          <p className="text-slate-400 text-sm">El análisis del documento no detectó oportunidades de valor aún.</p>
                         </div>
                       )}
 
@@ -1124,7 +1144,7 @@ export function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: 
                         <div className="flex-1 h-1.5 rounded-full bg-slate-700 overflow-hidden">
                           <div className={`h-full rounded-full ${color}`} style={{ width: `${pct}%` }} />
                         </div>
-                        <span className="text-[10px] text-slate-500 tabular-nums w-6 text-right">{pct}%</span>
+                        <span className="text-[10px] text-slate-400 tabular-nums w-6 text-right">{pct}%</span>
                       </div>
                     )
                   }
@@ -1134,7 +1154,7 @@ export function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: 
 
                       {/* Loading state */}
                       {cargandoGlosario && (
-                        <div className="flex items-center gap-2 text-xs text-slate-500 py-4">
+                        <div className="flex items-center gap-2 text-xs text-slate-400 py-4">
                           <RefreshCw className="w-3.5 h-3.5 text-violet-400 animate-spin" />
                           Cruzando roles del proceso con tu organigrama…
                         </div>
@@ -1157,14 +1177,14 @@ export function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: 
                             </div>
                             <div>
                               <p className="text-sm font-semibold text-slate-200">Cruce de roles pendiente</p>
-                              <p className="text-xs text-slate-500 mt-0.5">
+                              <p className="text-xs text-slate-400 mt-0.5">
                                 AICOUNTS leerá los roles de tus documentos de proceso y los cruzará con tu organigrama usando IA.
                               </p>
                             </div>
                           </div>
                           {proceso.roles_involucrados && proceso.roles_involucrados.length > 0 && (
                             <div className="pt-2 border-t border-slate-700/30 space-y-1.5">
-                              <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-widest">Roles identificados en el proceso</p>
+                              <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest">Roles identificados en el proceso</p>
                               <div className="flex flex-wrap gap-1.5">
                                 {proceso.roles_involucrados.map(r => (
                                   <span key={r} className="text-xs bg-slate-700/60 text-slate-300 px-2.5 py-1 rounded-lg border border-slate-600/40">{r}</span>
@@ -1183,7 +1203,7 @@ export function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: 
                             }
                           </button>
                           {lanzandoGlosario && (
-                            <p className="text-xs text-slate-500 text-center">Esto puede tomar 20–40 segundos. No cierres esta pestaña.</p>
+                            <p className="text-xs text-slate-400 text-center">Esto puede tomar 20–40 segundos. No cierres esta pestaña.</p>
                           )}
                         </div>
                       )}
@@ -1202,7 +1222,7 @@ export function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: 
                           <button
                             onClick={lanzarAnalisisRoles}
                             disabled={lanzandoGlosario}
-                            className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-violet-400 transition-colors disabled:opacity-40"
+                            className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-violet-400 transition-colors disabled:opacity-40"
                           >
                             <RefreshCw className={`w-3 h-3 ${lanzandoGlosario ? 'animate-spin' : ''}`} />
                             {lanzandoGlosario ? 'Analizando…' : 'Re-analizar roles'}
@@ -1227,7 +1247,7 @@ export function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: 
                                   ${score >= 70 ? 'border-emerald-600/50 bg-emerald-950/40 text-emerald-400' : score >= 40 ? 'border-amber-600/50 bg-amber-950/40 text-amber-400' : 'border-red-600/50 bg-red-950/40 text-red-400'}`}>
                                   {score}
                                 </div>
-                                <span className="text-[9px] text-slate-600 text-center leading-tight">cobertura<br/>org.</span>
+                                <span className="text-[9px] text-slate-400 text-center leading-tight">cobertura<br/>org.</span>
                               </div>
                             )}
                           </div>
@@ -1243,7 +1263,7 @@ export function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: 
                       {directos.length > 0 && (
                         <div className="space-y-2">
                           <p className="text-[10px] font-semibold text-emerald-400 uppercase tracking-widest flex items-center gap-1.5">
-                            <CheckCircle className="w-3 h-3" /> Match directo en tu organigrama
+                            <CheckCircle2 className="w-3 h-3" /> Match directo en tu organigrama
                           </p>
                           {directos.map((m, i) => (
                             <div key={i} className="flex gap-0 rounded-2xl border border-emerald-800/30 overflow-hidden">
@@ -1251,14 +1271,14 @@ export function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: 
                               <div className="flex-1 px-4 py-3 space-y-2">
                                 <div className="flex items-start justify-between gap-2">
                                   <div>
-                                    <p className="text-xs text-slate-500">Rol en el proceso</p>
+                                    <p className="text-xs text-slate-400">Rol en el proceso</p>
                                     <p className="text-sm font-semibold text-slate-200">{m.rol_proceso}</p>
                                   </div>
                                   <div className="shrink-0 text-right">
-                                    <p className="text-[10px] text-slate-500">Asignar a</p>
+                                    <p className="text-[10px] text-slate-400">Asignar a</p>
                                     <p className="text-sm font-semibold text-emerald-300">{m.persona_sugerida ?? m.cargo_sugerido ?? '—'}</p>
                                     {m.persona_sugerida && m.cargo_sugerido && (
-                                      <p className="text-[10px] text-slate-500">{m.cargo_sugerido}</p>
+                                      <p className="text-[10px] text-slate-400">{m.cargo_sugerido}</p>
                                     )}
                                   </div>
                                 </div>
@@ -1286,11 +1306,11 @@ export function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: 
                               <div className="flex-1 px-4 py-3 space-y-2">
                                 <div className="flex items-start justify-between gap-2">
                                   <div>
-                                    <p className="text-xs text-slate-500">Rol en el proceso</p>
+                                    <p className="text-xs text-slate-400">Rol en el proceso</p>
                                     <p className="text-sm font-semibold text-slate-200">{m.rol_proceso}</p>
                                   </div>
                                   <div className="shrink-0 text-right">
-                                    <p className="text-[10px] text-slate-500">Cargo equivalente</p>
+                                    <p className="text-[10px] text-slate-400">Cargo equivalente</p>
                                     <p className="text-sm font-semibold text-amber-300">{m.cargo_sugerido ?? '—'}</p>
                                   </div>
                                 </div>
@@ -1323,7 +1343,7 @@ export function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: 
                               <div className="w-[3px] shrink-0 bg-red-500 rounded-l-2xl" />
                               <div className="flex-1 px-4 py-3 space-y-2">
                                 <div>
-                                  <p className="text-xs text-slate-500">Rol en el proceso</p>
+                                  <p className="text-xs text-slate-400">Rol en el proceso</p>
                                   <p className="text-sm font-semibold text-slate-200">{m.rol_proceso}</p>
                                 </div>
                                 {m.skills_requeridos && m.skills_requeridos.length > 0 && (
@@ -1387,7 +1407,7 @@ export function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: 
                               <span key={r} className="text-xs bg-slate-800/60 border border-slate-700/50 text-slate-300 px-3 py-1.5 rounded-xl">{r}</span>
                             ))}
                           </div>
-                          <p className="text-[10px] text-slate-600">El análisis de glosario existe pero no incluyó roles específicos de este proceso.</p>
+                          <p className="text-[10px] text-slate-400">El análisis de glosario existe pero no incluyó roles específicos de este proceso.</p>
                         </div>
                       )}
 
@@ -1407,23 +1427,23 @@ export function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: 
                                   <div className={`pb-3 ${i < (docAnalisis.analisis_ia?.roles_y_responsabilidades?.brechas_de_rol?.length ?? 0) - 1 ? 'border-b border-amber-800/20' : ''}`}>
                                     <div className="flex items-start gap-2.5">
                                       <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${atendido ? 'bg-emerald-900/50 border border-emerald-700/40' : 'bg-amber-900/50 border border-amber-700/40'}`}>
-                                        {atendido ? <CheckCircle className="w-3 h-3 text-emerald-400" /> : <span className="text-amber-400 text-xs font-bold">{i + 1}</span>}
+                                        {atendido ? <CheckCircle2 className="w-3 h-3 text-emerald-400" /> : <span className="text-amber-400 text-xs font-bold">{i + 1}</span>}
                                       </div>
-                                      <p className={`text-sm leading-relaxed flex-1 ${atendido ? 'line-through text-slate-500' : 'text-slate-300'}`}>{b}</p>
+                                      <p className={`text-sm leading-relaxed flex-1 ${atendido ? 'line-through text-slate-400' : 'text-slate-300'}`}>{b}</p>
                                     </div>
                                     <div className="flex items-center gap-3 pl-7 mt-2">
                                       {!atendido ? (
                                         <button onClick={() => setExpandCorr(p => ({ ...p, [key]: !p[key] }))}
-                                          className="text-xs text-slate-500 hover:text-slate-300 flex items-center gap-1 transition-colors">
-                                          <Edit2 className="w-3 h-3" /> {abierto ? 'Cerrar' : 'Comentar y resolver'}
+                                          className="text-xs text-slate-400 hover:text-slate-300 flex items-center gap-1 transition-colors">
+                                          <Pencil className="w-3 h-3" /> {abierto ? 'Cerrar' : 'Comentar y resolver'}
                                         </button>
                                       ) : (
                                         <div className="flex items-center gap-3">
                                           <span className="flex items-center gap-1 text-xs font-semibold text-emerald-400">
-                                            <CheckCircle className="w-3 h-3" /> Resuelto
+                                            <CheckCircle2 className="w-3 h-3" /> Resuelto
                                           </span>
                                           <button onClick={() => desmarcarAtendido('rol', i)}
-                                            className="text-xs text-slate-600 hover:text-slate-400 transition-colors">
+                                            className="text-xs text-slate-400 hover:text-slate-400 transition-colors">
                                             · Desmarcar
                                           </button>
                                         </div>
@@ -1442,10 +1462,10 @@ export function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: 
                                       <div className="flex items-center gap-2">
                                         <button onClick={() => marcarAtendido('rol', i)}
                                           className="flex items-center gap-1.5 text-xs font-semibold bg-emerald-700 hover:bg-emerald-600 text-white px-3 py-1.5 rounded-lg transition-colors">
-                                          <CheckCircle className="w-3 h-3" /> Marcar como resuelto
+                                          <CheckCircle2 className="w-3 h-3" /> Marcar como resuelto
                                         </button>
                                         <button onClick={() => setExpandCorr(p => ({ ...p, [key]: false }))}
-                                          className="text-xs text-slate-600 hover:text-slate-400 transition-colors">
+                                          className="text-xs text-slate-400 hover:text-slate-400 transition-colors">
                                           Cancelar
                                         </button>
                                       </div>
@@ -1471,7 +1491,7 @@ export function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: 
                           <Clock className="w-6 h-6 text-slate-500" />
                         </div>
                         <p className="text-slate-400 text-sm font-medium">Sin versiones consolidadas</p>
-                        <p className="text-slate-600 text-xs max-w-xs mx-auto">
+                        <p className="text-slate-400 text-xs max-w-xs mx-auto">
                           Cuando marques hallazgos como resueltos y consolides, cada versión quedará disponible aquí para descarga.
                         </p>
                       </div>
@@ -1553,8 +1573,8 @@ export function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: 
                                         </p>
                                         {esUltima && <span className="text-xs font-normal text-violet-400 bg-violet-950/60 border border-violet-800/40 px-2 py-0.5 rounded-full">Última</span>}
                                       </div>
-                                      <p className="text-xs text-slate-500 mt-0.5">{vDesc}</p>
-                                      <p className="text-xs text-slate-600 mt-0.5">
+                                      <p className="text-xs text-slate-400 mt-0.5">{vDesc}</p>
+                                      <p className="text-xs text-slate-400 mt-0.5">
                                         {new Date(vFecha).toLocaleDateString('es-CL', { day: '2-digit', month: 'long', year: 'numeric' })}
                                         {vCount > 0 && ` · ${vCount} mejora${vCount > 1 ? 's' : ''}`}
                                       </p>
@@ -1611,7 +1631,7 @@ export function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: 
                                 {abierto && (
                                   <div className="border-t border-slate-700/40 bg-slate-900/60">
                                     {cargandoVisor && (
-                                      <div className="flex items-center justify-center gap-2 py-8 text-slate-500 text-xs">
+                                      <div className="flex items-center justify-center gap-2 py-8 text-slate-400 text-xs">
                                         <span className="w-4 h-4 border-2 border-slate-600 border-t-indigo-400 rounded-full animate-spin" />
                                         Cargando documento...
                                       </div>
@@ -1623,7 +1643,7 @@ export function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: 
                                         <div className={`${docVisorUrl ? 'w-72 shrink-0 border-r border-slate-700/40 overflow-y-auto' : 'w-full'} p-4 space-y-3`} style={docVisorUrl ? { maxHeight: '560px' } : {}}>
                                           {detalle.length > 0 ? (
                                             <>
-                                              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Cambios en esta versión</p>
+                                              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Cambios en esta versión</p>
                                               {detalle.map((d, di) => (
                                                 <div key={di} className="rounded-lg border border-slate-700/30 bg-slate-800/30 p-3 space-y-2">
                                                   <div className="flex items-center gap-2 flex-wrap">
@@ -1651,17 +1671,17 @@ export function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: 
                                                     </p>
                                                   )}
                                                   <div className="flex items-start gap-2">
-                                                    <CheckCircle className="w-3 h-3 text-emerald-400 shrink-0 mt-0.5" />
+                                                    <CheckCircle2 className="w-3 h-3 text-emerald-400 shrink-0 mt-0.5" />
                                                     <p className="text-[11px] text-emerald-300 italic leading-relaxed">&quot;{d.observacion}&quot;</p>
                                                   </div>
-                                                  <p className="text-[10px] text-slate-600">
+                                                  <p className="text-[10px] text-slate-400">
                                                     {new Date(d.fecha).toLocaleDateString('es-CL', { day:'2-digit', month:'short', year:'numeric' })}
                                                   </p>
                                                 </div>
                                               ))}
                                             </>
                                           ) : (
-                                            <p className="text-xs text-slate-600 text-center py-2">Versión inicial sin detalle de cambios</p>
+                                            <p className="text-xs text-slate-400 text-center py-2">Versión inicial sin detalle de cambios</p>
                                           )}
                                         </div>
 
@@ -1701,7 +1721,7 @@ export function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: 
                       <div className="grid grid-cols-2 gap-2">
                         <button onClick={() => cambiarEstado('aceptado')} disabled={aprobando}
                           className="flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold bg-emerald-700 hover:bg-emerald-600 text-white transition-all disabled:opacity-50 shadow-lg shadow-emerald-900/40">
-                          <CheckCircle className="w-4 h-4" /> Aceptar proceso
+                          <CheckCircle2 className="w-4 h-4" /> Aceptar proceso
                         </button>
                         <button onClick={() => cambiarEstado('rechazado')} disabled={aprobando}
                           className="flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold bg-red-900/60 hover:bg-red-900/80 text-red-300 border border-red-800/50 transition-all disabled:opacity-50">
@@ -1712,10 +1732,10 @@ export function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: 
                     {estadoLocal === 'aceptado' && (
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2 text-emerald-400">
-                          <CheckCircle className="w-5 h-5" />
+                          <CheckCircle2 className="w-5 h-5" />
                           <span className="text-sm font-bold">Proceso aceptado — inventario oficial</span>
                         </div>
-                        <button onClick={() => cambiarEstado('rechazado')} disabled={aprobando} className="text-xs text-slate-500 hover:text-red-400 transition-colors">Rechazar</button>
+                        <button onClick={() => cambiarEstado('rechazado')} disabled={aprobando} className="text-xs text-slate-400 hover:text-red-400 transition-colors">Rechazar</button>
                       </div>
                     )}
                     {estadoLocal === 'rechazado' && (
@@ -1724,7 +1744,7 @@ export function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: 
                           <XCircle className="w-5 h-5" />
                           <span className="text-sm font-bold">Proceso rechazado — la consultora revisará</span>
                         </div>
-                        <button onClick={() => setEstadoLocal('propuesto')} disabled={aprobando} className="text-xs text-slate-500 hover:text-emerald-400 transition-colors">Deshacer</button>
+                        <button onClick={() => cambiarEstado('propuesto')} disabled={aprobando} className="text-xs text-slate-400 hover:text-emerald-400 transition-colors">Deshacer</button>
                       </div>
                     )}
                   </div>
@@ -1746,7 +1766,7 @@ export function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: 
                         </button>
                       )}
                       {proyeccion && (
-                        <button onClick={generarProyeccion} disabled={proyectando} className="text-xs text-slate-500 hover:text-violet-400 transition-colors flex items-center gap-1">
+                        <button onClick={generarProyeccion} disabled={proyectando} className="text-xs text-slate-400 hover:text-violet-400 transition-colors flex items-center gap-1">
                           <RefreshCw className="w-3 h-3" /> Actualizar
                         </button>
                       )}
@@ -1782,7 +1802,7 @@ export function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: 
                         <div className="rounded-xl bg-slate-800/40 border border-slate-700/40 p-3 space-y-1.5">
                           <p className="text-xs text-slate-400 leading-relaxed">{proyeccion.estado_actual?.diagnostico}</p>
                           <div className="flex items-center gap-3 flex-wrap">
-                            <span className="text-xs text-slate-500">Madurez: <span className="text-white font-semibold">Nivel {proyeccion.estado_actual?.nivel_madurez}/5</span></span>
+                            <span className="text-xs text-slate-400">Madurez: <span className="text-white font-semibold">Nivel {proyeccion.estado_actual?.nivel_madurez}/5</span></span>
                             {proyeccion.estado_actual?.costo_ineficiencia_estimado && (
                               <span className="text-xs text-amber-400">⚡ {proyeccion.estado_actual.costo_ineficiencia_estimado}</span>
                             )}
@@ -1796,7 +1816,7 @@ export function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: 
                         <div className="flex gap-1 bg-slate-800/40 rounded-xl p-1">
                           {(['mejoras', 'escenarios', 'roadmap', 'kpis'] as const).map(t => (
                             <button key={t} onClick={() => setTabProyeccion(t)}
-                              className={`flex-1 py-1.5 text-xs font-medium rounded-lg transition-all capitalize ${tabProyeccion === t ? 'bg-slate-700 text-white' : 'text-slate-500 hover:text-slate-300'}`}>
+                              className={`flex-1 py-1.5 text-xs font-medium rounded-lg transition-all capitalize ${tabProyeccion === t ? 'bg-slate-700 text-white' : 'text-slate-400 hover:text-slate-300'}`}>
                               {t === 'kpis' ? 'KPIs' : t.charAt(0).toUpperCase() + t.slice(1)}
                             </button>
                           ))}
@@ -1819,7 +1839,7 @@ export function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: 
                                   </div>
                                 </div>
                                 <p className="text-xs text-slate-400 leading-relaxed">{m.descripcion}</p>
-                                <div className="flex gap-3 text-xs text-slate-500">
+                                <div className="flex gap-3 text-xs text-slate-400">
                                   <span>⏱ {m.plazo_semanas} sem</span>
                                   {m.valor_estimado && <span className="text-emerald-400">💰 {m.valor_estimado}</span>}
                                 </div>
@@ -1839,7 +1859,7 @@ export function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: 
                                 <div key={esc} className={`rounded-xl bg-${color}-950/20 border border-${color}-800/30 p-3 space-y-1`}>
                                   <div className="flex items-center justify-between">
                                     <span className={`text-xs font-semibold text-${color}-400 capitalize`}>{esc}</span>
-                                    <span className="text-xs text-slate-500">{e.probabilidad}% prob.</span>
+                                    <span className="text-xs text-slate-400">{e.probabilidad}% prob.</span>
                                   </div>
                                   <p className="text-xs text-slate-300 leading-relaxed">{e.descripcion}</p>
                                   {e.ahorro_estimado && <p className="text-xs text-emerald-400 font-medium">💰 {e.ahorro_estimado}</p>}
@@ -1859,7 +1879,7 @@ export function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: 
                                 </div>
                                 <div className="flex-1 py-1">
                                   <p className="text-xs text-white font-medium">{r.accion}</p>
-                                  <p className="text-xs text-slate-500">{r.responsable} · {r.entregable}</p>
+                                  <p className="text-xs text-slate-400">{r.responsable} · {r.entregable}</p>
                                 </div>
                               </div>
                             ))}
@@ -1871,7 +1891,7 @@ export function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: 
                           <div className="overflow-x-auto">
                             <table className="w-full text-xs">
                               <thead>
-                                <tr className="text-slate-500 border-b border-slate-700/40">
+                                <tr className="text-slate-400 border-b border-slate-700/40">
                                   <th className="text-left py-2 pr-3 font-medium">KPI</th>
                                   <th className="text-right py-2 px-2 font-medium">Actual</th>
                                   <th className="text-right py-2 px-2 font-medium text-blue-400">6 meses</th>
@@ -1881,7 +1901,7 @@ export function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: 
                               <tbody className="divide-y divide-slate-700/20">
                                 {(proyeccion.proyeccion_kpis ?? []).map((k, i) => (
                                   <tr key={i}>
-                                    <td className="py-2 pr-3 text-slate-300">{k.kpi} <span className="text-slate-600">({k.unidad})</span></td>
+                                    <td className="py-2 pr-3 text-slate-300">{k.kpi} <span className="text-slate-400">({k.unidad})</span></td>
                                     <td className="py-2 px-2 text-right text-slate-400">{k.valor_actual}</td>
                                     <td className="py-2 px-2 text-right text-blue-300 font-medium">{k.valor_6_meses}</td>
                                     <td className="py-2 pl-2 text-right text-emerald-300 font-bold">{k.valor_12_meses}</td>
@@ -1919,10 +1939,22 @@ export function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: 
       )}
 
       <div className={critCfg ? 'pl-4' : ''}>
-        {/* Header — click to toggle expanded */}
+        {/* Header — click to toggle expanded. No es un <button> real porque
+            contiene botones anidados (fila de acciones más abajo) — HTML no
+            permite button dentro de button. Se hace accesible por teclado
+            con role/tabIndex/onKeyDown en su lugar. */}
         <div
           className="p-5 cursor-pointer select-none"
           onClick={() => !editando && setExpandido(v => !v)}
+          role="button"
+          tabIndex={0}
+          aria-expanded={expandido}
+          onKeyDown={e => {
+            if ((e.key === 'Enter' || e.key === ' ') && !editando) {
+              e.preventDefault()
+              setExpandido(v => !v)
+            }
+          }}
         >
           <div className="flex items-start gap-4">
             <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-violet-900/40 text-violet-300">
@@ -1959,7 +1991,7 @@ export function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: 
             </div>
 
             {/* Expand chevron */}
-            <div className="shrink-0 mt-1 text-slate-500 group-hover:text-slate-300 transition-colors">
+            <div className="shrink-0 mt-1 text-slate-400 group-hover:text-slate-300 transition-colors">
               {expandido ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
             </div>
           </div>
@@ -1989,15 +2021,15 @@ export function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: 
             {/* Edit toggle */}
             <button
               onClick={(e) => { e.stopPropagation(); setEditando(v => !v); setExpandido(true) }}
-              className="ml-auto flex items-center gap-1 text-xs text-slate-500 hover:text-violet-300 transition-colors px-2 py-1 rounded-lg hover:bg-slate-800/60"
+              className="ml-auto flex items-center gap-1 text-xs text-slate-400 hover:text-violet-300 transition-colors px-2 py-1 rounded-lg hover:bg-slate-800/60"
             >
-              <Edit2 className="w-3.5 h-3.5" /> {editando ? 'Cerrar editor' : 'Editar'}
+              <Pencil className="w-3.5 h-3.5" /> {editando ? 'Cerrar editor' : 'Editar'}
             </button>
 
             {tieneHijos && (
               <button
                 onClick={(e) => { e.stopPropagation(); setExpandido(v => !v) }}
-                className="flex items-center gap-1 text-xs text-slate-500 hover:text-indigo-300 transition-colors px-2 py-1 rounded-lg hover:bg-slate-800/60"
+                className="flex items-center gap-1 text-xs text-slate-400 hover:text-indigo-300 transition-colors px-2 py-1 rounded-lg hover:bg-slate-800/60"
               >
                 <Layers className="w-3.5 h-3.5" />
                 {proceso.hijos.length} proceso{proceso.hijos.length !== 1 ? 's' : ''}
@@ -2021,7 +2053,7 @@ export function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: 
                   <button
                     onClick={reanalizarConIA}
                     disabled={analizando}
-                    className="flex items-center gap-1 text-xs text-slate-500 hover:text-violet-300 transition-colors disabled:opacity-50"
+                    className="flex items-center gap-1 text-xs text-slate-400 hover:text-violet-300 transition-colors disabled:opacity-50"
                   >
                     <RefreshCw className="w-3 h-3" /> Volver a analizar
                   </button>
@@ -2039,14 +2071,14 @@ export function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: 
                     </div>
                     <div>
                       <p className="text-violet-300 text-sm font-medium">IA analizando proceso...</p>
-                      <p className="text-slate-500 text-xs">Evaluando criticidad, riesgos y oportunidades</p>
+                      <p className="text-slate-400 text-xs">Evaluando criticidad, riesgos y oportunidades</p>
                     </div>
                   </div>
                   <div className="space-y-2">
                     {['Leyendo contexto del proceso', 'Evaluando riesgos operacionales', 'Identificando quick wins', 'Calculando potencial de automatización'].map((step, i) => (
                       <div key={i} className="flex items-center gap-2">
                         <div className="w-1.5 h-1.5 rounded-full bg-violet-500/60 animate-pulse" style={{ animationDelay: `${i * 200}ms` }} />
-                        <span className="text-xs text-slate-500">{step}</span>
+                        <span className="text-xs text-slate-400">{step}</span>
                       </div>
                     ))}
                   </div>
@@ -2066,7 +2098,7 @@ export function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: 
                       </button>
                     </>
                   ) : (
-                    <p className="text-slate-500 text-xs">Presiona &quot;Analizar con IA&quot; para obtener el diagnóstico completo de este {esHijo ? 'proceso' : 'macroproceso'}.</p>
+                    <p className="text-slate-400 text-xs">Presiona &quot;Analizar con IA&quot; para obtener el diagnóstico completo de este {esHijo ? 'proceso' : 'macroproceso'}.</p>
                   )}
                 </div>
               )}
@@ -2227,7 +2259,7 @@ export function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: 
             {editando && (
               <div className="rounded-xl bg-slate-800/40 border border-violet-700/30 p-4 space-y-3">
                 <div className="flex items-center gap-2 mb-1">
-                  <Edit2 className="w-3.5 h-3.5 text-violet-400" />
+                  <Pencil className="w-3.5 h-3.5 text-violet-400" />
                   <span className="text-violet-300 text-xs font-semibold uppercase tracking-widest">Editar proceso</span>
                 </div>
                 <div className="space-y-2">
@@ -2274,7 +2306,7 @@ export function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: 
                 <div className="flex items-center gap-2 mb-3">
                   <Layers className="w-3.5 h-3.5 text-slate-400" />
                   <span className="text-slate-400 text-xs font-semibold uppercase tracking-widest">Procesos ({proceso.hijos.length})</span>
-                  <span className="text-slate-600 text-xs">— Acepta o rechaza cada uno</span>
+                  <span className="text-slate-400 text-xs">— Acepta o rechaza cada uno</span>
                 </div>
                 <div className="space-y-2 pl-4 border-l border-slate-700/50">
                   {proceso.hijos.map((hijo) => (
@@ -2301,7 +2333,7 @@ export function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: 
                     </button>
                   )}
                   {proyeccion && (
-                    <button onClick={generarProyeccion} disabled={proyectando} className="text-xs text-slate-500 hover:text-violet-400 transition-colors flex items-center gap-1">
+                    <button onClick={generarProyeccion} disabled={proyectando} className="text-xs text-slate-400 hover:text-violet-400 transition-colors flex items-center gap-1">
                       <RefreshCw className="w-3 h-3" /> Actualizar
                     </button>
                   )}
@@ -2341,7 +2373,7 @@ export function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: 
                     <div className="rounded-xl bg-slate-800/40 border border-slate-700/40 p-3 space-y-1.5">
                       <p className="text-xs text-slate-400 leading-relaxed">{proyeccion.estado_actual?.diagnostico}</p>
                       <div className="flex items-center gap-3 flex-wrap">
-                        <span className="text-xs text-slate-500">Madurez: <span className="text-white font-semibold">Nivel {proyeccion.estado_actual?.nivel_madurez}/5</span></span>
+                        <span className="text-xs text-slate-400">Madurez: <span className="text-white font-semibold">Nivel {proyeccion.estado_actual?.nivel_madurez}/5</span></span>
                         {proyeccion.estado_actual?.costo_ineficiencia_estimado && (
                           <span className="text-xs text-amber-400">⚡ {proyeccion.estado_actual.costo_ineficiencia_estimado}</span>
                         )}
@@ -2355,7 +2387,7 @@ export function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: 
                     <div className="flex gap-1 bg-slate-800/40 rounded-xl p-1">
                       {(['mejoras', 'escenarios', 'roadmap', 'kpis'] as const).map(t => (
                         <button key={t} onClick={() => setTabProyeccion(t)}
-                          className={`flex-1 py-1.5 text-xs font-medium rounded-lg transition-all capitalize ${tabProyeccion === t ? 'bg-slate-700 text-white' : 'text-slate-500 hover:text-slate-300'}`}>
+                          className={`flex-1 py-1.5 text-xs font-medium rounded-lg transition-all capitalize ${tabProyeccion === t ? 'bg-slate-700 text-white' : 'text-slate-400 hover:text-slate-300'}`}>
                           {t === 'kpis' ? 'KPIs' : t.charAt(0).toUpperCase() + t.slice(1)}
                         </button>
                       ))}
@@ -2378,7 +2410,7 @@ export function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: 
                               </div>
                             </div>
                             <p className="text-xs text-slate-400 leading-relaxed">{m.descripcion}</p>
-                            <div className="flex gap-3 text-xs text-slate-500">
+                            <div className="flex gap-3 text-xs text-slate-400">
                               <span>⏱ {m.plazo_semanas} sem</span>
                               {m.valor_estimado && <span className="text-emerald-400">💰 {m.valor_estimado}</span>}
                             </div>
@@ -2398,7 +2430,7 @@ export function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: 
                             <div key={esc} className={`rounded-xl bg-${color}-950/20 border border-${color}-800/30 p-3 space-y-1`}>
                               <div className="flex items-center justify-between">
                                 <span className={`text-xs font-semibold text-${color}-400 capitalize`}>{esc}</span>
-                                <span className="text-xs text-slate-500">{e.probabilidad}% prob.</span>
+                                <span className="text-xs text-slate-400">{e.probabilidad}% prob.</span>
                               </div>
                               <p className="text-xs text-slate-300 leading-relaxed">{e.descripcion}</p>
                               {e.ahorro_estimado && <p className="text-xs text-emerald-400 font-medium">💰 {e.ahorro_estimado}</p>}
@@ -2418,7 +2450,7 @@ export function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: 
                             </div>
                             <div className="flex-1 py-1">
                               <p className="text-xs text-white font-medium">{r.accion}</p>
-                              <p className="text-xs text-slate-500">{r.responsable} · {r.entregable}</p>
+                              <p className="text-xs text-slate-400">{r.responsable} · {r.entregable}</p>
                             </div>
                           </div>
                         ))}
@@ -2430,7 +2462,7 @@ export function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: 
                       <div className="overflow-x-auto">
                         <table className="w-full text-xs">
                           <thead>
-                            <tr className="text-slate-500 border-b border-slate-700/40">
+                            <tr className="text-slate-400 border-b border-slate-700/40">
                               <th className="text-left py-2 pr-3 font-medium">KPI</th>
                               <th className="text-right py-2 px-2 font-medium">Actual</th>
                               <th className="text-right py-2 px-2 font-medium text-blue-400">6 meses</th>
@@ -2440,7 +2472,7 @@ export function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: 
                           <tbody className="divide-y divide-slate-700/20">
                             {(proyeccion.proyeccion_kpis ?? []).map((k, i) => (
                               <tr key={i}>
-                                <td className="py-2 pr-3 text-slate-300">{k.kpi} <span className="text-slate-600">({k.unidad})</span></td>
+                                <td className="py-2 pr-3 text-slate-300">{k.kpi} <span className="text-slate-400">({k.unidad})</span></td>
                                 <td className="py-2 px-2 text-right text-slate-400">{k.valor_actual}</td>
                                 <td className="py-2 px-2 text-right text-blue-300 font-medium">{k.valor_6_meses}</td>
                                 <td className="py-2 pl-2 text-right text-emerald-300 font-bold">{k.valor_12_meses}</td>

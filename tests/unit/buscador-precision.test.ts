@@ -103,7 +103,7 @@ function precision_at_k(
 
 // ── Setup: generar embeddings del corpus (una sola vez) ──────────────────────
 
-let corpusEmbeddings: Map<string, number[]> = new Map()
+const corpusEmbeddings: Map<string, number[]> = new Map()
 
 beforeAll(async () => {
   for (const doc of CORPUS) {

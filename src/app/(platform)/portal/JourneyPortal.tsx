@@ -2,10 +2,11 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { toast } from 'sonner'
+import { formatFecha as fecha } from '@/lib/format'
 import {
   Upload, FileText, Loader2, CheckCircle2, XCircle,
   ChevronRight, ChevronLeft, AlertTriangle, TrendingUp,
-  Users, Monitor, Edit3, Zap, ArrowRight,
+  Users, Monitor, Pencil, Zap, ArrowRight,
   Clock, Star, Sparkles, Rocket, BookOpen, ChevronDown
 } from 'lucide-react'
 import Link from 'next/link'
@@ -48,8 +49,6 @@ interface DocProcesando {
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-const fecha = (s: string) =>
-  new Date(s).toLocaleDateString('es-CL', { day: '2-digit', month: 'short', year: 'numeric' })
 
 // ── Zona de upload ─────────────────────────────────────────────────────────────
 function UploadZona({ proyectoId, onSubido }: { proyectoId: string; onSubido: () => void }) {
@@ -157,7 +156,7 @@ function ProcesoCard({ proceso, onAbrir }: { proceso: ProcesoResumen; onAbrir: (
               )}
             </p>
           )}
-          <p className="text-xs text-slate-600 mt-2">{fecha(proceso.created_at)}</p>
+          <p className="text-xs text-slate-400 mt-2">{fecha(proceso.created_at)}</p>
         </div>
         <ChevronRight className="w-5 h-5 text-slate-600 group-hover:text-indigo-400 transition-colors shrink-0 mt-1" />
       </div>
@@ -172,7 +171,7 @@ function DocProcesandoCard({ doc }: { doc: DocProcesando }) {
       <Loader2 className="w-5 h-5 text-indigo-400 animate-spin shrink-0" />
       <div className="min-w-0">
         <p className="text-sm text-slate-300 truncate">{doc.nombre_archivo}</p>
-        <p className="text-xs text-slate-500">La IA está analizando el proceso...</p>
+        <p className="text-xs text-slate-400">La IA está analizando el proceso...</p>
       </div>
     </div>
   )
@@ -283,7 +282,7 @@ function JourneyProceso({ procesoId, onCerrar }: { procesoId: string; onCerrar: 
 
   const PASOS: Array<{ id: JourneyStep; label: string; icon: React.ReactNode }> = [
     { id: 'vista', label: 'Proceso', icon: <FileText className="w-4 h-4" /> },
-    { id: 'editor', label: 'Editar', icon: <Edit3 className="w-4 h-4" /> },
+    { id: 'editor', label: 'Editar', icon: <Pencil className="w-4 h-4" /> },
     { id: 'aprobacion', label: 'Aprobar', icon: <CheckCircle2 className="w-4 h-4" /> },
   ]
 
@@ -300,7 +299,7 @@ function JourneyProceso({ procesoId, onCerrar }: { procesoId: string; onCerrar: 
           <div className="flex-1 min-w-0">
             <p className="text-sm font-semibold text-slate-100 truncate">{proceso.nombre_proceso}</p>
             {proceso.macroproceso && (
-              <p className="text-xs text-slate-500 truncate">
+              <p className="text-xs text-slate-400 truncate">
                 {proceso.macroproceso}
                 {proceso.numero_en_macroproceso != null && ` · ${proceso.numero_en_macroproceso} de ${proceso.total_en_macroproceso}`}
               </p>
@@ -318,7 +317,7 @@ function JourneyProceso({ procesoId, onCerrar }: { procesoId: string; onCerrar: 
               key={p.id}
               onClick={() => setPaso(p.id)}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors
-                ${paso === p.id ? 'bg-indigo-600 text-white' : i < pasoActual ? 'text-emerald-400 bg-emerald-900/20' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800'}`}
+                ${paso === p.id ? 'bg-indigo-600 text-white' : i < pasoActual ? 'text-emerald-400 bg-emerald-900/20' : 'text-slate-400 hover:text-slate-300 hover:bg-slate-800'}`}
             >
               {i < pasoActual ? <CheckCircle2 className="w-3.5 h-3.5" /> : p.icon}
               <span className="hidden sm:inline">{p.label}</span>
@@ -538,7 +537,7 @@ function JourneyProceso({ procesoId, onCerrar }: { procesoId: string; onCerrar: 
                     <p className="text-slate-400 text-sm mt-4">El equipo revisará sus observaciones y volverá con una versión actualizada.</p>
                   </div>
                   <button onClick={onCerrar} className="w-full flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 text-slate-300 px-6 py-3 rounded-xl font-medium border border-slate-700 transition-colors">
-                    <ChevronLeft className="w-4 h-4" /> Volver al portal
+                    <ChevronLeft className="w-4 h-4" /> Volver
                   </button>
                 </div>
               ) : (
@@ -726,7 +725,7 @@ export function JourneyPortal({ proyectos, nombreUsuario }: JourneyPortalProps) 
             )}
 
             {procesos.length === 0 && !procesando.length && !cargandoProcesos && (
-              <p className="text-slate-500 text-sm">Aún no tienes procesos analizados. Sube tu primer documento.</p>
+              <p className="text-slate-400 text-sm">Aún no tienes procesos analizados. Sube tu primer documento.</p>
             )}
 
             {procesos.length > 0 && (
@@ -749,7 +748,7 @@ export function JourneyPortal({ proyectos, nombreUsuario }: JourneyPortalProps) 
         )}
 
         {proyectos.length === 0 && (
-          <p className="text-slate-500 text-sm">Aún no tienes proyectos asignados. El equipo te notificará cuando estés listo.</p>
+          <p className="text-slate-400 text-sm">Aún no tienes proyectos asignados. El equipo te notificará cuando estés listo.</p>
         )}
       </div>
     </>

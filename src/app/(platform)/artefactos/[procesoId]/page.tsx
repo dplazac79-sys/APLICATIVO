@@ -65,7 +65,7 @@ export default async function ProcesoArtefactosPage({ params }: Props) {
         <div className="space-y-1 min-w-0">
           <Link
             href="/artefactos"
-            className="flex items-center gap-1 text-slate-500 hover:text-slate-300 text-xs transition-colors"
+            className="flex items-center gap-1 text-slate-400 hover:text-slate-300 text-xs transition-colors"
           >
             <ChevronLeft className="w-3.5 h-3.5" /> Process Architect
           </Link>
@@ -80,7 +80,7 @@ export default async function ProcesoArtefactosPage({ params }: Props) {
           </h1>
           <p className="text-slate-400 text-sm">
             {String(proyecto?.nombre ?? '')}
-            <span className="text-slate-600"> · {String(cliente?.razon_social ?? '')}</span>
+            <span className="text-slate-400"> · {String(cliente?.razon_social ?? '')}</span>
           </p>
         </div>
         {totalPublicados > 0 && (
@@ -121,7 +121,7 @@ export default async function ProcesoArtefactosPage({ params }: Props) {
               style={{ width: `${(totalPendientes / ORDEN_GENERACION.length) * 100}%` }}
             />
           </div>
-          <div className="flex gap-4 mt-2 text-xs text-slate-500">
+          <div className="flex gap-4 mt-2 text-xs text-slate-400">
             {totalPublicados > 0 && <span className="flex items-center gap-1"><span className="w-2 h-2 bg-blue-500 rounded-full" />{totalPublicados} publicados</span>}
             {totalValidados > 0 && <span className="flex items-center gap-1"><span className="w-2 h-2 bg-emerald-500 rounded-full" />{totalValidados} validados</span>}
             {totalPendientes > 0 && <span className="flex items-center gap-1"><span className="w-2 h-2 bg-amber-600 rounded-full" />{totalPendientes} pendientes revisión</span>}

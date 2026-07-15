@@ -33,7 +33,7 @@ export default async function VersionesPage() {
 
   if (!proyectoId) {
     return (
-      <div className="flex items-center justify-center h-64 text-slate-500 text-sm">
+      <div className="flex items-center justify-center h-64 text-slate-400 text-sm">
         No hay proyecto activo asignado.
       </div>
     )
@@ -100,7 +100,7 @@ export default async function VersionesPage() {
       <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center">
         <div className="text-center space-y-3">
           <p className="text-slate-400 text-sm">No hay procesos aceptados en este proyecto aún.</p>
-          <p className="text-slate-600 text-xs">Completa el Process Discovery primero.</p>
+          <p className="text-slate-400 text-xs">Completa el Process Discovery primero.</p>
         </div>
       </div>
     )

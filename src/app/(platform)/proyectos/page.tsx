@@ -1,12 +1,14 @@
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { Card, CardContent } from '@/components/ui/card'
-import { Briefcase, ChevronRight, AlertTriangle, CheckCircle, Clock } from 'lucide-react'
+import { Briefcase, ChevronRight, AlertTriangle, CheckCircle2, Clock } from 'lucide-react'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import type { WorkflowEstadoTipo } from '@/types/database'
 
 export const dynamic = 'force-dynamic'
+
+const PAGE_SIZE = 25
 
 const ESTADO_COLOR: Record<WorkflowEstadoTipo, string> = {
   'Scheduled':        'bg-slate-800 text-slate-400 border-slate-700',
@@ -15,13 +17,13 @@ const ESTADO_COLOR: Record<WorkflowEstadoTipo, string> = {
   'Pending Approval': 'bg-amber-950 text-amber-400 border-amber-800',
   'Approved':         'bg-emerald-950 text-emerald-400 border-emerald-800',
   'Implemented':      'bg-teal-950 text-teal-400 border-teal-800',
-  'Closed':           'bg-slate-900 text-slate-500 border-slate-800',
+  'Closed':           'bg-slate-900 text-slate-400 border-slate-800',
 }
 
 // evitar warning de variable no usada — se usa como referencia de tipos
 void ESTADO_COLOR
 
-export default async function ProyectosPage() {
+export default async function ProyectosPage({ searchParams }: { searchParams: { page?: string } }) {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
@@ -36,19 +38,26 @@ export default async function ProyectosPage() {
 
   if (usuario?.rol !== 'super_admin') redirect('/dashboard')
 
-  const { data: proyectos } = await admin
+  const page = Math.max(1, parseInt(searchParams.page ?? '1', 10) || 1)
+  const from = (page - 1) * PAGE_SIZE
+  const to = from + PAGE_SIZE - 1
+
+  const { data: proyectos, count: totalProyectos } = await admin
     .from('proyecto')
-    .select('*, cliente(razon_social, industria)')
+    .select('*, cliente(razon_social, industria)', { count: 'exact' })
     .order('created_at', { ascending: false })
+    .range(from, to)
+  const totalPaginas = Math.max(1, Math.ceil((totalProyectos ?? 0) / PAGE_SIZE))
 
-  const { data: workflows } = await admin
-    .from('workflow_estado')
-    .select('proyecto_id, estado, nivel_escalacion')
+  const proyectoIdsPagina = (proyectos ?? []).map(p => p.id)
 
-  const { data: riesgos } = await admin
-    .from('riesgo')
-    .select('proyecto_id, nivel_riesgo, estado')
-    .eq('estado', 'activo')
+  const { data: workflows } = proyectoIdsPagina.length
+    ? await admin.from('workflow_estado').select('proyecto_id, estado, nivel_escalacion').in('proyecto_id', proyectoIdsPagina)
+    : { data: [] }
+
+  const { data: riesgos } = proyectoIdsPagina.length
+    ? await admin.from('riesgo').select('proyecto_id, nivel_riesgo, estado').eq('estado', 'activo').in('proyecto_id', proyectoIdsPagina)
+    : { data: [] }
 
   const wfPorProyecto = (workflows ?? []).reduce((acc, w) => {
     if (!acc[w.proyecto_id]) acc[w.proyecto_id] = []
@@ -90,18 +99,18 @@ export default async function ProyectosPage() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <h2 className="text-white font-semibold text-base truncate">{proyecto.nombre}</h2>
-                        <span className={`text-xs px-1.5 py-0.5 rounded border ${proyecto.estado_general === 'activo' ? 'bg-emerald-950 text-emerald-400 border-emerald-800' : 'bg-slate-800 text-slate-500 border-slate-700'}`}>
+                        <span className={`text-xs px-1.5 py-0.5 rounded border ${proyecto.estado_general === 'activo' ? 'bg-emerald-950 text-emerald-400 border-emerald-800' : 'bg-slate-800 text-slate-400 border-slate-700'}`}>
                           {proyecto.estado_general}
                         </span>
                       </div>
-                      <p className="text-slate-500 text-sm mt-0.5">
+                      <p className="text-slate-400 text-sm mt-0.5">
                         {String(cliente?.razon_social ?? '')}
                         {cliente?.industria ? ` · ${String(cliente.industria)}` : ''}
                       </p>
                       <div className="mt-3 space-y-1">
                         {total > 0 ? (
                           <>
-                            <div className="flex justify-between text-xs text-slate-500">
+                            <div className="flex justify-between text-xs text-slate-400">
                               <span>Avance workflow</span>
                               <span>{avance}% ({cerrados}/{total} procesos cerrados)</span>
                             </div>
@@ -110,7 +119,7 @@ export default async function ProyectosPage() {
                             </div>
                           </>
                         ) : (
-                          <div className="flex items-center gap-1.5 text-xs text-slate-600">
+                          <div className="flex items-center gap-1.5 text-xs text-slate-400">
                             <span className="w-1.5 h-1.5 rounded-full bg-slate-700 shrink-0" />
                             Sin flujo de trabajo configurado aún
                           </div>
@@ -133,7 +142,7 @@ export default async function ProyectosPage() {
                           <AlertTriangle className="w-3.5 h-3.5" />{riesgosActivos} riesgo{riesgosActivos > 1 ? 's' : ''}
                         </span>
                       )}
-                      {avance === 100 && total > 0 && <CheckCircle className="w-4 h-4 text-emerald-400" />}
+                      {avance === 100 && total > 0 && <CheckCircle2 className="w-4 h-4 text-emerald-400" />}
                       <ChevronRight className="w-4 h-4 text-slate-600" />
                     </div>
                   </div>
@@ -151,6 +160,24 @@ export default async function ProyectosPage() {
           </Card>
         )}
       </div>
+
+      {totalPaginas > 1 && (
+        <div className="flex items-center justify-between pt-2">
+          <p className="text-xs text-slate-400">Página {page} de {totalPaginas} · {totalProyectos} proyecto{totalProyectos !== 1 ? 's' : ''} en total</p>
+          <div className="flex items-center gap-2">
+            {page > 1 ? (
+              <Link href={`/proyectos?page=${page - 1}`} className="text-xs px-3 py-1.5 rounded-lg border border-slate-700 text-slate-300 hover:border-slate-500 transition-colors">← Anterior</Link>
+            ) : (
+              <span className="text-xs px-3 py-1.5 rounded-lg border border-slate-800 text-slate-400">← Anterior</span>
+            )}
+            {page < totalPaginas ? (
+              <Link href={`/proyectos?page=${page + 1}`} className="text-xs px-3 py-1.5 rounded-lg border border-slate-700 text-slate-300 hover:border-slate-500 transition-colors">Siguiente →</Link>
+            ) : (
+              <span className="text-xs px-3 py-1.5 rounded-lg border border-slate-800 text-slate-400">Siguiente →</span>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

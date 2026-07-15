@@ -19,7 +19,7 @@ export default function GlobalError({
             Nuestro equipo fue notificado automáticamente. Puedes intentar recargar la página.
           </p>
           {error.digest && (
-            <p className="text-xs text-slate-600 font-mono">ID: {error.digest}</p>
+            <p className="text-xs text-slate-400 font-mono">ID: {error.digest}</p>
           )}
           <button
             onClick={reset}

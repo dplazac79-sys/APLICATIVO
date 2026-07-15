@@ -49,7 +49,7 @@ export default function ClientesLista({ clientes }: { clientes: ClienteRow[] }) 
           </div>
           <div>
             <p className="text-lg font-bold text-white leading-none">{stats.totalClientes}</p>
-            <p className="text-xs text-slate-500 mt-1">Cliente{stats.totalClientes !== 1 ? 's' : ''}</p>
+            <p className="text-xs text-slate-400 mt-1">Cliente{stats.totalClientes !== 1 ? 's' : ''}</p>
           </div>
         </div>
         <div className="bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 flex items-center gap-3">
@@ -58,7 +58,7 @@ export default function ClientesLista({ clientes }: { clientes: ClienteRow[] }) 
           </div>
           <div>
             <p className="text-lg font-bold text-white leading-none">{stats.proyectosActivos}</p>
-            <p className="text-xs text-slate-500 mt-1">Proyecto{stats.proyectosActivos !== 1 ? 's' : ''} activo{stats.proyectosActivos !== 1 ? 's' : ''}</p>
+            <p className="text-xs text-slate-400 mt-1">Proyecto{stats.proyectosActivos !== 1 ? 's' : ''} activo{stats.proyectosActivos !== 1 ? 's' : ''}</p>
           </div>
         </div>
         <div className="bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 flex items-center gap-3">
@@ -67,7 +67,7 @@ export default function ClientesLista({ clientes }: { clientes: ClienteRow[] }) 
           </div>
           <div>
             <p className="text-lg font-bold text-white leading-none">{stats.industrias}</p>
-            <p className="text-xs text-slate-500 mt-1">Industria{stats.industrias !== 1 ? 's' : ''}</p>
+            <p className="text-xs text-slate-400 mt-1">Industria{stats.industrias !== 1 ? 's' : ''}</p>
           </div>
         </div>
       </div>
@@ -133,15 +133,15 @@ export default function ClientesLista({ clientes }: { clientes: ClienteRow[] }) 
                             <span className="text-sm text-slate-400">{cliente.industria}</span>
                           )}
                           {cliente.tamano && (
-                            <span className="text-sm text-slate-600">· {cliente.tamano}</span>
+                            <span className="text-sm text-slate-400">· {cliente.tamano}</span>
                           )}
-                          <span className={`text-sm flex items-center gap-1 ${sinProyecto ? 'text-amber-500' : 'text-slate-600'}`}>
+                          <span className={`text-sm flex items-center gap-1 ${sinProyecto ? 'text-amber-500' : 'text-slate-400'}`}>
                             · {sinProyecto && <Users2 className="w-3 h-3" />}
                             {proyectosActivos} proyecto{proyectosActivos !== 1 ? 's' : ''} activo{proyectosActivos !== 1 ? 's' : ''}
                           </span>
                         </div>
                       </div>
-                      <ChevronRight className="w-4 h-4 text-slate-600 shrink-0" />
+                      <ChevronRight className="w-4 h-4 text-slate-400 shrink-0" />
                     </div>
                   </CardContent>
                 </Card>

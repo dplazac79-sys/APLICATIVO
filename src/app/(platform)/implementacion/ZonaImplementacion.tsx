@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { toast } from 'sonner'
+import { formatFecha as fecha } from '@/lib/format'
 import { CheckCircle2, Upload, Zap, Database, Users, BarChart3, Bot, Globe, ArrowRight, ChevronRight } from 'lucide-react'
 import Link from 'next/link'
 
@@ -38,9 +39,6 @@ const SISTEMAS_IMPL: Array<{
   { id: 'portal', nombre: 'Portal / Intranet', descripcion: 'SharePoint, Portal interno — colaboración', icon: <Globe className="w-5 h-5" />, color: 'border-slate-700 bg-slate-800/40 text-slate-300' },
 ]
 
-function fecha(s: string) {
-  return new Date(s).toLocaleDateString('es-CL', { day: '2-digit', month: 'short', year: 'numeric' })
-}
 
 function ProcesoImplCard({ proceso }: { proceso: ProcesoAprobado }) {
   const [sistemaSeleccionado, setSistemaSeleccionado] = useState<string | null>(null)
@@ -74,10 +72,10 @@ function ProcesoImplCard({ proceso }: { proceso: ProcesoAprobado }) {
               )}
             </div>
             <h3 className="font-semibold text-slate-100 mt-1">{proceso.nombre_proceso}</h3>
-            {proceso.macroproceso && <p className="text-sm text-slate-500 mt-0.5">{proceso.macroproceso}</p>}
+            {proceso.macroproceso && <p className="text-sm text-slate-400 mt-0.5">{proceso.macroproceso}</p>}
           </div>
           {proceso.aprobado_at && (
-            <p className="text-xs text-slate-600 shrink-0">{fecha(proceso.aprobado_at)}</p>
+            <p className="text-xs text-slate-400 shrink-0">{fecha(proceso.aprobado_at)}</p>
           )}
         </div>
         {proceso.valor_negocio && (
@@ -161,7 +159,7 @@ export function ZonaImplementacion({ proyectos, procesosAprobados, nombreUsuario
         <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
           <div className="flex items-center justify-between mb-3">
             <p className="text-sm font-medium text-slate-300">Progreso del inventario de procesos</p>
-            <span className="text-sm font-bold text-indigo-400">{aprobados} / {totalEsperados} aprobados</span>
+            <span className="text-sm font-bold text-emerald-400">{aprobados} / {totalEsperados} aprobados</span>
           </div>
           <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
             <div
@@ -170,7 +168,7 @@ export function ZonaImplementacion({ proyectos, procesosAprobados, nombreUsuario
             />
           </div>
           {aprobados < totalEsperados && (
-            <p className="text-xs text-slate-500 mt-3">
+            <p className="text-xs text-slate-400 mt-3">
               Faltan {totalEsperados - aprobados} proceso(s) por revisar y aprobar
             </p>
           )}
@@ -199,7 +197,7 @@ export function ZonaImplementacion({ proyectos, procesosAprobados, nombreUsuario
           <BarChart3 className="w-5 h-5 shrink-0 text-amber-400" />
           <div>
             <p className="font-semibold text-sm">{aprobados} proceso{aprobados !== 1 ? 's' : ''} aprobado{aprobados !== 1 ? 's' : ''}</p>
-            <p className="text-xs text-slate-500 mt-0.5">Listos para implementar</p>
+            <p className="text-xs text-slate-400 mt-0.5">Listos para implementar</p>
           </div>
         </div>
       </div>
@@ -209,7 +207,7 @@ export function ZonaImplementacion({ proyectos, procesosAprobados, nombreUsuario
         <div className="text-center py-16 space-y-4">
           <CheckCircle2 className="w-12 h-12 text-slate-700 mx-auto" />
           <p className="text-slate-400 font-medium">Aún no hay procesos aprobados</p>
-          <p className="text-slate-500 text-sm">Ve al portal, sube un documento y aprueba el análisis para verlo aquí.</p>
+          <p className="text-slate-400 text-sm">Ve al portal, sube un documento y aprueba el análisis para verlo aquí.</p>
           <Link
             href="/portal"
             className="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl text-sm font-medium transition-colors mt-2"
