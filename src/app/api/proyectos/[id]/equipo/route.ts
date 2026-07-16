@@ -4,6 +4,95 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { registrarAudit } from '@/lib/audit'
 import { requireRole } from '@/lib/auth/tenant'
 
+// Mismas 5 reglas del resto de la plataforma (cambiar-password, onboarding).
+function cumpleRequisitos(pwd: string): boolean {
+  return typeof pwd === 'string' && pwd.length >= 8
+    && /[A-Z]/.test(pwd)
+    && /[a-z]/.test(pwd)
+    && /[0-9]/.test(pwd)
+    && /[!@#$%^&*()_\-+=\[\]{};':"\\|,.<>/?]/.test(pwd)
+}
+
+// POST: agrega a alguien al equipo de un proyecto ya existente — antes esto
+// solo era posible al crear el proyecto desde el wizard de onboarding, sin
+// forma de sumar gente después. Si el correo ya tiene cuenta en la
+// plataforma, solo se vincula al proyecto (no se toca su rol global ni su
+// contraseña). Si no existe, se crea una cuenta nueva con contraseña
+// temporal — igual que en onboarding.
+export async function POST(
+  req: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  const supabase = createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+
+  if (!(await requireRole(user.id, ['super_admin']))) {
+    return NextResponse.json({ error: 'Solo super_admin puede gestionar el equipo de un proyecto' }, { status: 403 })
+  }
+
+  const { email, nombre, rol, password } = await req.json() as {
+    email?: string; nombre?: string; rol?: string; password?: string
+  }
+  if (!email?.trim()) return NextResponse.json({ error: 'Falta el correo' }, { status: 400 })
+
+  const admin = createAdminClient()
+
+  const { data: proyecto } = await admin.from('proyecto').select('id').eq('id', params.id).single()
+  if (!proyecto) return NextResponse.json({ error: 'Proyecto no encontrado' }, { status: 404 })
+
+  const { data: existente } = await admin
+    .from('usuario')
+    .select('id, nombre')
+    .eq('email', email.trim())
+    .maybeSingle()
+
+  let usuarioId: string
+
+  if (existente) {
+    usuarioId = existente.id
+  } else {
+    if (!nombre?.trim() || !rol?.trim()) {
+      return NextResponse.json({ error: 'Falta nombre o rol para crear la cuenta nueva' }, { status: 400 })
+    }
+    if (!password || !cumpleRequisitos(password)) {
+      return NextResponse.json({ error: 'La contraseña temporal no cumple los requisitos de seguridad (mínimo 8 caracteres, mayúscula, minúscula, número y carácter especial)' }, { status: 400 })
+    }
+    const { data: creado, error: errCreate } = await admin.auth.admin.createUser({
+      email: email.trim(),
+      password,
+      email_confirm: true,
+      user_metadata: { full_name: nombre, must_change_password: true },
+    })
+    if (errCreate || !creado?.user) {
+      return NextResponse.json({ error: errCreate?.message ?? 'No se pudo crear la cuenta' }, { status: 500 })
+    }
+    await admin.from('usuario').insert({
+      id: creado.user.id,
+      email: email.trim(),
+      nombre: nombre.trim(),
+      rol: rol as never,
+      activo: true,
+    })
+    usuarioId = creado.user.id
+  }
+
+  const { error: errLink } = await admin
+    .from('usuario_proyecto')
+    .upsert({ usuario_id: usuarioId, proyecto_id: params.id }, { onConflict: 'usuario_id,proyecto_id' })
+
+  if (errLink) return NextResponse.json({ error: errLink.message }, { status: 500 })
+
+  await registrarAudit({
+    accion: 'CREATE',
+    entidad: 'usuario_proyecto',
+    entidad_id: `${params.id}:${usuarioId}`,
+    detalle: { proyecto_id: params.id, usuario_id: usuarioId, cuenta_nueva: !existente },
+  })
+
+  return NextResponse.json({ ok: true, cuenta_nueva: !existente })
+}
+
 // DELETE: quita a un usuario del equipo de un proyecto (no elimina la cuenta,
 // solo su membresía usuario_proyecto) — necesario para limpiar cuentas de
 // prueba de un proyecto antes de entregarlo a un cliente real, sin tener que

@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation'
 import {
   Calendar, Users, Target, Layers, ChevronDown, ChevronUp,
   CheckCircle2, XCircle, Pencil, Save, X, FileText, Brain,
-  Clock, ArrowRight, AlertCircle, UserMinus,
+  Clock, ArrowRight, AlertCircle, UserMinus, UserPlus, Loader2,
 } from 'lucide-react'
 import type { Fase } from '@/lib/fases'
 
@@ -77,6 +77,10 @@ export default function ResumenProyecto({ proyecto, cliente, equipo, rol, stats,
   const [quitando, setQuitando] = useState<string | null>(null)
   const [confirmandoQuitar, setConfirmandoQuitar] = useState<string | null>(null)
   const [errorQuitar, setErrorQuitar] = useState<string | null>(null)
+  const [mostrarAgregar, setMostrarAgregar] = useState(false)
+  const [agregando, setAgregando] = useState(false)
+  const [errorAgregar, setErrorAgregar] = useState<string | null>(null)
+  const [nuevoMiembro, setNuevoMiembro] = useState({ email: '', nombre: '', rol: 'consultor', password: '' })
   const [editando, setEditando] = useState(false)
   const [form, setForm] = useState({
     contexto: proyecto.contexto ?? '',
@@ -111,6 +115,27 @@ export default function ResumenProyecto({ proyecto, cliente, equipo, rol, stats,
       setErrorQuitar('Error de red al quitar del equipo')
     } finally {
       setQuitando(null)
+    }
+  }
+
+  async function agregarAlEquipo() {
+    setAgregando(true)
+    setErrorAgregar(null)
+    try {
+      const res = await fetch(`/api/proyectos/${proyecto.id}/equipo`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(nuevoMiembro),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) { setErrorAgregar(data.error ?? 'No se pudo agregar al equipo'); return }
+      setMostrarAgregar(false)
+      setNuevoMiembro({ email: '', nombre: '', rol: 'consultor', password: '' })
+      router.refresh()
+    } catch {
+      setErrorAgregar('Error de red al agregar al equipo')
+    } finally {
+      setAgregando(false)
     }
   }
 
@@ -404,7 +429,72 @@ export default function ResumenProyecto({ proyecto, cliente, equipo, rol, stats,
                 <Users className="w-4 h-4 text-slate-400" />
                 <p className="text-slate-400 text-xs uppercase tracking-wide">Equipo asignado</p>
                 <span className="text-xs text-slate-400">({equipo.length} persona{equipo.length !== 1 ? 's' : ''})</span>
+                {puedeEditar && (
+                  <button
+                    onClick={() => { setMostrarAgregar(v => !v); setErrorAgregar(null) }}
+                    className="ml-auto flex items-center gap-1 text-xs text-indigo-400 hover:text-indigo-300"
+                  >
+                    <UserPlus className="w-3.5 h-3.5" /> Agregar
+                  </button>
+                )}
               </div>
+
+              {mostrarAgregar && (
+                <div className="mb-3 p-3 rounded-lg border border-slate-700 bg-slate-800/60 space-y-2">
+                  <p className="text-xs text-slate-400">Correo de la persona — si ya tiene cuenta en la plataforma, solo se vincula a este proyecto.</p>
+                  <input
+                    type="email"
+                    placeholder="correo@empresa.cl"
+                    value={nuevoMiembro.email}
+                    onChange={e => setNuevoMiembro(v => ({ ...v, email: e.target.value }))}
+                    className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-sm text-white placeholder-slate-500"
+                  />
+                  <div className="grid grid-cols-2 gap-2">
+                    <input
+                      type="text"
+                      placeholder="Nombre (solo si es cuenta nueva)"
+                      value={nuevoMiembro.nombre}
+                      onChange={e => setNuevoMiembro(v => ({ ...v, nombre: e.target.value }))}
+                      className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-sm text-white placeholder-slate-500"
+                    />
+                    <select
+                      value={nuevoMiembro.rol}
+                      onChange={e => setNuevoMiembro(v => ({ ...v, rol: e.target.value }))}
+                      className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-sm text-white"
+                    >
+                      <option value="sponsor_cliente">Sponsor Cliente</option>
+                      <option value="usuario_cliente">Cliente Observador</option>
+                      <option value="consultor">Consultor</option>
+                      <option value="director_proyecto">Director de Proyecto</option>
+                    </select>
+                  </div>
+                  <input
+                    type="text"
+                    placeholder="Contraseña temporal (solo si es cuenta nueva)"
+                    value={nuevoMiembro.password}
+                    onChange={e => setNuevoMiembro(v => ({ ...v, password: e.target.value }))}
+                    className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-sm text-white placeholder-slate-500"
+                  />
+                  {errorAgregar && <p className="text-red-400 text-xs">{errorAgregar}</p>}
+                  <div className="flex gap-2 pt-1">
+                    <button
+                      onClick={agregarAlEquipo}
+                      disabled={agregando || !nuevoMiembro.email.trim()}
+                      className="flex items-center gap-1 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-xs px-3 py-1.5 rounded"
+                    >
+                      {agregando ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <UserPlus className="w-3.5 h-3.5" />}
+                      Agregar al proyecto
+                    </button>
+                    <button
+                      onClick={() => setMostrarAgregar(false)}
+                      className="text-slate-400 hover:text-slate-300 text-xs px-2"
+                    >
+                      Cancelar
+                    </button>
+                  </div>
+                </div>
+              )}
+
               {errorQuitar && <p className="text-red-400 text-xs mb-2">{errorQuitar}</p>}
               <div className="flex flex-wrap gap-2">
                 {equipo.length === 0 ? (
