@@ -210,7 +210,7 @@ export default async function DashboardPage() {
             <div className="absolute right-0 top-0 w-32 h-32 bg-cyan-500/10 rounded-full blur-2xl pointer-events-none" />
             <div className="relative flex items-center justify-between gap-6 flex-wrap">
               <div className="space-y-1">
-                <p className="text-xs text-cyan-300 uppercase tracking-widest font-medium">Paso 1 · Fase 2</p>
+                <p className="text-xs text-cyan-300 uppercase tracking-widest font-medium">Paso 1 · Fase 1</p>
                 <h3 className="text-white text-base font-semibold">Carga los documentos del proyecto</h3>
                 <p className="text-slate-400 text-sm max-w-md">
                   Sube los documentos base: propuesta, diagnóstico, organigramas, manuales. El Centro Documental los organiza y la IA los analizará para extraer contexto del negocio.
@@ -228,7 +228,7 @@ export default async function DashboardPage() {
             <div className="absolute right-0 top-0 w-32 h-32 bg-cyan-500/10 rounded-full blur-2xl pointer-events-none" />
             <div className="relative flex items-center justify-between gap-6 flex-wrap">
               <div className="space-y-1">
-                <p className="text-xs text-cyan-300 uppercase tracking-widest font-medium">Paso 2 · Fase 2 — {stats.documentos} doc{stats.documentos !== 1 ? 's' : ''} disponible{stats.documentos !== 1 ? 's' : ''}</p>
+                <p className="text-xs text-cyan-300 uppercase tracking-widest font-medium">Paso 2 · Fase 1 — {stats.documentos} doc{stats.documentos !== 1 ? 's' : ''} disponible{stats.documentos !== 1 ? 's' : ''}</p>
                 <h3 className="text-white text-base font-semibold">Revisa los documentos del proyecto</h3>
                 <p className="text-slate-400 text-sm max-w-md">
                   Hay documentos cargados por el equipo consultor. Revísalos en el Centro Documental y sube los tuyos si tienes información adicional del negocio. Cuando estés listo, pasa a Process Discovery AI.
@@ -246,7 +246,7 @@ export default async function DashboardPage() {
             <div className="absolute right-0 top-0 w-32 h-32 bg-violet-500/10 rounded-full blur-2xl pointer-events-none" />
             <div className="relative flex items-center justify-between gap-6 flex-wrap">
               <div className="space-y-1">
-                <p className="text-xs text-violet-300 uppercase tracking-widest font-medium">Paso 1 · Fase 3 — {stats.docsListos} doc{stats.docsListos !== 1 ? 's' : ''} analizado{stats.docsListos !== 1 ? 's' : ''}</p>
+                <p className="text-xs text-violet-300 uppercase tracking-widest font-medium">Paso 1 · Fase 2 — {stats.docsListos} doc{stats.docsListos !== 1 ? 's' : ''} analizado{stats.docsListos !== 1 ? 's' : ''}</p>
                 <h3 className="text-white text-base font-semibold">Ejecuta el Process Discovery AI</h3>
                 <p className="text-slate-400 text-sm max-w-md">
                   Los documentos están analizados. Ahora ejecuta Discovery AI para que el sistema identifique automáticamente todos los procesos del negocio a partir del contenido.
@@ -264,7 +264,7 @@ export default async function DashboardPage() {
             <div className="absolute right-0 top-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none" />
             <div className="relative flex items-center justify-between gap-6 flex-wrap">
               <div className="space-y-1">
-                <p className="text-xs text-emerald-300 uppercase tracking-widest font-medium">Paso 2 de la Fase 3 · {stats.procesosAprobados}/{stats.procesosTotal} aprobados</p>
+                <p className="text-xs text-emerald-300 uppercase tracking-widest font-medium">Paso 2 · Fase 2 — {stats.procesosAprobados}/{stats.procesosTotal} aprobados</p>
                 <h3 className="text-white text-base font-semibold">Revisa y aprueba los procesos descubiertos</h3>
                 <p className="text-slate-400 text-sm max-w-md">
                   La IA ya identificó {stats.procesosTotal} procesos. Revísalos, edítalos si es necesario y aprueba los que sean correctos para avanzar a la siguiente fase.
