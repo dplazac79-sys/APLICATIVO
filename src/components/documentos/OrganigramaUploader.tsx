@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { Upload, FileText, CheckCircle2, AlertCircle, RefreshCw, Users, Sparkles, ChevronDown, ChevronUp, ChevronRight } from 'lucide-react'
+import { Upload, FileText, CheckCircle2, AlertCircle, RefreshCw, Users, Sparkles, ChevronDown, ChevronUp, ChevronRight, Info } from 'lucide-react'
 import ProyectoSelectorDropdown from './ProyectoSelectorDropdown'
 
 interface Organigrama {
@@ -285,6 +285,31 @@ export default function OrganigramaUploader({ proyectos, proyectoPreseleccionado
                       <CheckCircle2 className="w-3 h-3 text-emerald-500 shrink-0" />{v}
                     </span>
                   ))}
+                </div>
+
+                {/* Cómo debe estar escrito — sin esto, un cliente sube "cualquier
+                    archivo" (una foto del organigrama de la pared, un PDF con solo
+                    nombres sin cargo, etc.) esperando el mismo resultado que un
+                    archivo bien estructurado, y el cruce de roles sale pobre o
+                    vacío sin que entienda por qué. */}
+                <div className="mt-4 rounded-xl border border-violet-700/20 bg-violet-950/10 p-4">
+                  <p className="text-[10px] font-bold text-violet-400 uppercase tracking-widest mb-2 flex items-center gap-1.5">
+                    <Info className="w-3 h-3" /> Cómo debe estar escrito para que el cruce funcione
+                  </p>
+                  <p className="text-xs text-slate-300 leading-relaxed mb-2">
+                    Por cada persona, el documento debe indicar tres datos como texto (no como imagen dentro del PDF):
+                  </p>
+                  <ul className="text-xs text-slate-400 leading-relaxed space-y-1 mb-3 list-disc list-inside">
+                    <li><span className="text-slate-200 font-medium">Cargo</span> — lo más específico posible. &quot;Jefe de Bodega Central&quot; le sirve más a la IA que &quot;Encargado&quot;.</li>
+                    <li><span className="text-slate-200 font-medium">Nombre</span> de la persona que ocupa ese cargo.</li>
+                    <li><span className="text-slate-200 font-medium">Área o departamento</span> al que pertenece.</li>
+                  </ul>
+                  <p className="text-xs text-slate-400 leading-relaxed mb-2">
+                    Ejemplo de una línea bien escrita: <span className="text-slate-300 font-mono text-[11px]">Jefe de Supply Chain — Carolina Vidal — Área: Cadena de Suministro</span>
+                  </p>
+                  <p className="text-xs text-slate-400 leading-relaxed">
+                    Con esos tres datos por persona, la IA puede comparar cada cargo real contra los roles que exige cada proceso y decidir: si hay un <span className="text-emerald-400">calce directo</span>, si alguien de tu equipo podría cubrirlo por <span className="text-amber-400">equivalencia de funciones</span> aunque el cargo se llame distinto, o si de verdad falta <span className="text-red-400">crear el cargo</span>. Sin cargo o sin nombre, ese cruce no se puede hacer — la persona queda invisible para el análisis aunque el archivo se haya subido bien.
+                  </p>
                 </div>
               </div>
 
