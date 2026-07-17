@@ -220,7 +220,7 @@ describeOrSkip('RLS — aislamiento de datos por proyecto y rol', () => {
     if (data?.id) await admin.from('documento').delete().eq('id', data.id)
   })
 
-  it('un sponsor_cliente puede ver documentos de su proyecto pero no puede insertar', async () => {
+  it('un sponsor_cliente puede ver e insertar documentos de su proyecto', async () => {
     const client = await clienteComo(`sponsor-${sufijo}@test.processos.local`)
 
     const { data: docInsertado } = await admin.from('documento').insert({
@@ -232,14 +232,16 @@ describeOrSkip('RLS — aislamiento de datos por proyecto y rol', () => {
     const { data: visibles } = await client.from('documento').select('id').eq('proyecto_id', proyectoAId)
     expect((visibles ?? []).some(d => d.id === docInsertado!.id)).toBe(true)
 
-    const { error: errorInsert } = await client.from('documento').insert({
+    const { data: propioInsertado, error: errorInsert } = await client.from('documento').insert({
       proyecto_id: proyectoAId,
-      nombre_archivo: 'intento-sponsor.txt',
-      url_storage: `${proyectoAId}/intento-sponsor.txt`,
-    })
-    expect(errorInsert).not.toBeNull()
+      nombre_archivo: 'subido-por-sponsor.txt',
+      url_storage: `${proyectoAId}/subido-por-sponsor.txt`,
+    }).select().single()
+    expect(errorInsert).toBeNull()
+    expect(propioInsertado?.proyecto_id).toBe(proyectoAId)
 
     if (docInsertado?.id) await admin.from('documento').delete().eq('id', docInsertado.id)
+    if (propioInsertado?.id) await admin.from('documento').delete().eq('id', propioInsertado.id)
   })
 })
 
