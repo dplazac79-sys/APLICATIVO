@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation'
 import {
   Calendar, Users, Target, Layers, ChevronDown, ChevronUp,
   CheckCircle2, XCircle, Pencil, Save, X, FileText, Brain,
-  Clock, ArrowRight, AlertCircle, UserMinus, UserPlus, Loader2,
+  Clock, ArrowRight, UserMinus, UserPlus, Loader2,
 } from 'lucide-react'
 import type { Fase } from '@/lib/fases'
 
@@ -268,44 +268,25 @@ export default function ResumenProyecto({ proyecto, cliente, equipo, rol, stats,
             ))}
           </div>
 
-          {/* Fase actual + próximo paso */}
+          {/* Fase activa — indicador de solo lectura; la acción a tomar ya
+              se muestra una sola vez, en la tarjeta "Qué te toca hacer
+              ahora" que antecede a este resumen (antes este mismo botón
+              "Continuar" se repetía acá y en un tercer banner ámbar más
+              abajo, las tres apuntando al mismo lugar). */}
           {faseActual && (
-            <div className="border-t border-slate-800 px-5 py-4 flex items-center justify-between gap-4 bg-indigo-950/20">
-              <div className="flex items-center gap-3 min-w-0">
-                <div className="w-8 h-8 rounded-lg bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center shrink-0">
-                  <span className="text-indigo-300 text-xs font-bold">F{faseActual.id}</span>
-                </div>
-                <div className="min-w-0">
-                  <p className="text-xs text-slate-400 uppercase tracking-wide">Fase activa</p>
-                  <p className="text-white text-sm font-medium truncate">{faseActual.nombre}</p>
-                </div>
-                <div className="hidden sm:flex items-center gap-2 ml-2">
-                  <div className="w-24 h-1.5 bg-slate-800 rounded-full overflow-hidden">
-                    <div className="h-full bg-indigo-500 rounded-full" style={{ width: `${faseActual.progreso}%` }} />
-                  </div>
-                  <span className="text-xs text-indigo-400">{faseActual.progreso}%</span>
-                </div>
+            <div className="border-t border-slate-800 px-5 py-3 flex items-center gap-3 bg-indigo-950/20">
+              <div className="w-7 h-7 rounded-lg bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center shrink-0">
+                <span className="text-indigo-300 text-xs font-bold">F{faseActual.id}</span>
               </div>
-              <Link
-                href={faseActual.href}
-                onClick={e => e.stopPropagation()}
-                className="flex items-center gap-1.5 text-xs bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg transition-colors shrink-0"
-              >
-                Continuar <ArrowRight className="w-3 h-3" />
-              </Link>
-            </div>
-          )}
-
-          {/* Alerta si faltan documentos */}
-          {stats.documentos === 0 && (
-            <div className="border-t border-slate-800 px-5 py-3 flex items-center gap-3 bg-amber-950/20">
-              <AlertCircle className="w-4 h-4 text-amber-400 shrink-0" />
-              <p className="text-amber-300 text-sm flex-1">
-                Sin documentos cargados. Para ejecutar Discovery AI necesitas subir al menos un documento del proyecto.
+              <p className="text-sm text-slate-300 min-w-0 truncate">
+                <span className="text-slate-400">Fase activa:</span> {faseActual.nombre}
               </p>
-              <Link href="/documentos" onClick={e => e.stopPropagation()} className="text-xs text-amber-400 hover:text-amber-300 underline shrink-0">
-                Cargar ahora
-              </Link>
+              <div className="hidden sm:flex items-center gap-2 ml-auto shrink-0">
+                <div className="w-24 h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                  <div className="h-full bg-indigo-500 rounded-full" style={{ width: `${faseActual.progreso}%` }} />
+                </div>
+                <span className="text-xs text-indigo-400">{faseActual.progreso}%</span>
+              </div>
             </div>
           )}
 

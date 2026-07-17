@@ -137,10 +137,17 @@ export default async function BienvenidaPage() {
             <div>
               <Saludo nombre={nombre} />
               {proyectoMeta ? (
-                <p className="text-slate-400 mt-2 text-base">
-                  Proyecto activo: <span className="text-slate-200 font-medium">{proyectoMeta.nombre}</span>
-                  {cliente?.razon_social && <> · <span className="text-slate-300">{cliente.razon_social}</span></>}
-                </p>
+                <>
+                  <p className="text-slate-400 mt-2 text-base">
+                    Proyecto activo: <span className="text-slate-200 font-medium">{proyectoMeta.nombre}</span>
+                    {cliente?.razon_social && <> · <span className="text-slate-300">{cliente.razon_social}</span></>}
+                  </p>
+                  {!esSuperAdmin && (
+                    <p className="text-slate-500 mt-1 text-sm">
+                      Esta es tu página de inicio: cada vez que entres vas a ver aquí el estado del proyecto y qué te toca revisar.
+                    </p>
+                  )}
+                </>
               ) : (
                 <p className="text-slate-400 mt-2">No hay proyectos activos asignados aún.</p>
               )}
@@ -323,24 +330,27 @@ export default async function BienvenidaPage() {
         /* Vista cliente: ResumenProyecto + CTA prominente hacia la fase activa */
         (() => {
           const faseActual = fases?.find(f => f.status === 'activa') ?? null
+          // Un solo texto de acción por estado — antes esto se repetía (con
+          // palabras distintas) en 3 lugares de la página: acá, en la franja
+          // "Fase activa" del resumen, y en el banner ámbar de "sin
+          // documentos", dejando al usuario sin saber cuál era la acción real.
+          const descripcionAccion = faseActual?.id === 1 && statsProyecto.documentos === 0
+            ? 'Aún no hay documentos cargados. Sube el primero para que la IA pueda empezar a mapear tus procesos.'
+            : faseActual
+            ? faseActual.descripcion
+            : 'En el Dashboard verás el progreso detallado de cada fase, los documentos cargados, los procesos descubiertos y el próximo módulo a trabajar.'
           return (
             <div className="space-y-4">
-              <ResumenProyecto proyecto={proyectoMeta as unknown as ProyectoResumen} cliente={cliente} equipo={equipo} rol={usuario?.rol ?? ''} stats={statsProyecto} faseActual={faseActual} />
-
-              {/* CTA: siguiente paso hacia la fase activa (no siempre es Dashboard) */}
+              {/* CTA: la única acción a tomar ahora — primero en la página, antes de cualquier información de referencia */}
               <div className="relative overflow-hidden bg-gradient-to-r from-indigo-900/40 via-indigo-800/20 to-slate-900 border border-indigo-500/30 rounded-2xl p-6">
                 <div className="absolute right-0 top-0 w-40 h-40 bg-indigo-500/10 rounded-full blur-2xl pointer-events-none" />
                 <div className="relative flex items-center justify-between gap-6 flex-wrap">
                   <div className="space-y-1">
-                    <p className="text-xs text-indigo-300 uppercase tracking-widest font-medium">Siguiente paso</p>
+                    <p className="text-xs text-indigo-300 uppercase tracking-widest font-medium">Qué te toca hacer ahora</p>
                     <h3 className="text-white text-lg font-semibold">
                       {faseActual ? faseActual.nombre : 'Revisa el avance del proyecto'}
                     </h3>
-                    <p className="text-slate-400 text-sm max-w-md">
-                      {faseActual
-                        ? faseActual.descripcion
-                        : 'En el Dashboard verás el progreso detallado de cada fase, los documentos cargados, los procesos descubiertos y el próximo módulo a trabajar.'}
-                    </p>
+                    <p className="text-slate-400 text-sm max-w-md">{descripcionAccion}</p>
                   </div>
                   <Link
                     href={faseActual?.href ?? '/dashboard'}
@@ -351,6 +361,9 @@ export default async function BienvenidaPage() {
                   </Link>
                 </div>
               </div>
+
+              {/* Resumen del proyecto — información de referencia, va después de la acción */}
+              <ResumenProyecto proyecto={proyectoMeta as unknown as ProyectoResumen} cliente={cliente} equipo={equipo} rol={usuario?.rol ?? ''} stats={statsProyecto} faseActual={faseActual} />
             </div>
           )
         })()
