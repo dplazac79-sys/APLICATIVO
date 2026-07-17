@@ -57,12 +57,22 @@ export async function POST(req: NextRequest) {
   }
 
   // Auto-recolectar roles de TODOS los documentos del proyecto con analisis_ia
-  const { data: documentos } = await admin
+  // — el select original pedía un embed `proceso:proceso_id(nombre)`, pero
+  // `documento` nunca tuvo una columna proceso_id (no existe esa relación
+  // directa; es `proceso.documento_origen_id` la que apunta al revés). Esa
+  // consulta le devolvía a Postgrest un error de relación inexistente en
+  // TODAS las ejecuciones, y como el `error` de la respuesta nunca se
+  // revisaba, `documentos` quedaba `null` en silencio — cero roles
+  // recolectados, siempre, para cualquier proyecto. Por eso esta función
+  // jamás llegó a generar un análisis real.
+  const { data: documentos, error: errDocumentos } = await admin
     .from('documento')
-    .select('nombre_archivo, analisis_ia, proceso:proceso_id(nombre)')
+    .select('nombre_archivo, analisis_ia')
     .eq('proyecto_id', body.proyecto_id)
     .eq('estado_procesamiento', 'listo')
     .not('analisis_ia', 'is', null)
+
+  if (errDocumentos) return jsonError(errDocumentos)
 
   // Agregar roles únicos de todos los documentos
   const rolesMap = new Map<string, { rol: string; descripcion: string; procesos: string[] }>()
@@ -70,7 +80,7 @@ export async function POST(req: NextRequest) {
   for (const doc of documentos ?? []) {
     const ia = doc.analisis_ia as Record<string, unknown>
     const rolesDoc = ia?.roles_y_responsabilidades as Record<string, unknown> | undefined
-    const procesosDocName = (doc.proceso as unknown as Record<string,string> | null)?.nombre ?? doc.nombre_archivo
+    const procesosDocName = doc.nombre_archivo
 
     // roles_identificados: string[]
     const rolesId = (rolesDoc?.roles_identificados as string[] | undefined) ?? []

@@ -76,9 +76,12 @@ export async function POST(req: NextRequest) {
   // Auto-trigger: si hay documentos procesados, recolectar roles y lanzar análisis IA
   if (textoExtraido) {
     try {
+      // documento no tiene columna proceso_id (ver nota igual en
+      // glosario-roles/route.ts) — ese embed hacía fallar esta consulta en
+      // silencio y el auto-trigger nunca recolectaba roles.
       const { data: documentos } = await admin
         .from('documento')
-        .select('nombre_archivo, analisis_ia, proceso:proceso_id(nombre)')
+        .select('nombre_archivo, analisis_ia')
         .eq('proyecto_id', proyectoId)
         .eq('estado_procesamiento', 'listo')
         .not('analisis_ia', 'is', null)
@@ -88,7 +91,7 @@ export async function POST(req: NextRequest) {
         for (const doc of documentos) {
           const ia = doc.analisis_ia as Record<string, unknown>
           const rolesDoc = ia?.roles_y_responsabilidades as Record<string, unknown> | undefined
-          const docName = (doc.proceso as unknown as Record<string,string> | null)?.nombre ?? doc.nombre_archivo
+          const docName = doc.nombre_archivo
           const rolesId = (rolesDoc?.roles_identificados as string[] | undefined) ?? []
           for (const rol of rolesId) {
             if (!rol?.trim()) continue
