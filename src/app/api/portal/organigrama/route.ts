@@ -37,14 +37,29 @@ export async function POST(req: NextRequest) {
   })
   if (uploadError) return NextResponse.json({ error: uploadError.message }, { status: 500 })
 
-  // Extraer texto si es PDF
+  // Extraer texto — solo sabemos leer PDF con texto real embebido (pdf-parse
+  // lee la capa de texto del PDF, no hace OCR). Antes, subir una imagen, un
+  // PDF escaneado o un .doc/.docx quedaba "aceptado" sin ningún aviso y el
+  // registro se quedaba en estado 'pendiente' para siempre — el análisis de
+  // Glosario de Roles nunca podía correr y nadie entendía por qué.
   let textoExtraido: string | null = null
-  if (file.type === 'application/pdf') {
+  let advertencia: string | null = null
+
+  if (file.type !== 'application/pdf') {
+    advertencia = 'Solo se puede leer el texto de archivos PDF con texto seleccionable (exportados desde Word, Excel o Google Docs). Este archivo se guardó, pero no se pudo analizar — vuelve a subirlo como PDF.'
+  } else {
     try {
       // eslint-disable-next-line @typescript-eslint/no-require-imports
       const pdfParse = require('pdf-parse') as (buf: Buffer) => Promise<{ text: string }>
-      textoExtraido = (await pdfParse(buf)).text
-    } catch { /* imagen u otro formato */ }
+      const extraido = (await pdfParse(buf)).text
+      if (extraido.trim().length >= 20) {
+        textoExtraido = extraido
+      } else {
+        advertencia = 'No se pudo leer texto en este PDF — probablemente es un documento escaneado o una foto guardada como PDF, sin texto seleccionable. Exporta el organigrama como PDF desde Word, Excel o Google Docs (no una imagen) y vuelve a subirlo.'
+      }
+    } catch {
+      advertencia = 'No se pudo leer texto en este PDF. Exporta el organigrama como PDF desde Word, Excel o Google Docs (no una imagen ni un escaneo) y vuelve a subirlo.'
+    }
   }
 
   const { data: org, error: dbError } = await admin.from('organigrama_cliente').insert({
@@ -52,7 +67,7 @@ export async function POST(req: NextRequest) {
     storage_path: path,
     nombre_archivo: file.name,
     texto_extraido: textoExtraido,
-    estado: textoExtraido ? 'listo' : 'pendiente',
+    estado: textoExtraido ? 'listo' : 'error',
     subido_por: user.id,
   }).select().single()
 
@@ -101,7 +116,7 @@ export async function POST(req: NextRequest) {
     } catch { /* best effort — no bloquear la respuesta al usuario */ }
   }
 
-  return NextResponse.json({ ok: true, organigrama: org })
+  return NextResponse.json({ ok: true, organigrama: org, advertencia })
 }
 
 export async function GET(req: NextRequest) {

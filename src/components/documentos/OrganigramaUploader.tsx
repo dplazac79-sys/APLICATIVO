@@ -59,6 +59,7 @@ export default function OrganigramaUploader({ proyectos, proyectoPreseleccionado
   const [dragging, setDragging] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [advertenciaSubida, setAdvertenciaSubida] = useState<string | null>(null)
   const [expandido, setExpandido] = useState(false)
   const [verMapeos, setVerMapeos] = useState(false)
   const [lanzando, setLanzando] = useState(false)
@@ -107,6 +108,7 @@ export default function OrganigramaUploader({ proyectos, proyectoPreseleccionado
     const err = validarArchivo(file)
     if (err) { setError(err); return }
     setError(null)
+    setAdvertenciaSubida(null)
     setUploading(true)
     try {
       const fd = new FormData()
@@ -116,7 +118,15 @@ export default function OrganigramaUploader({ proyectos, proyectoPreseleccionado
       const data = await res.json()
       if (!res.ok) { setError(data.error ?? 'Error al subir'); return }
       await cargarDatos(proyectoId)
-      iniciarPolling(proyectoId)
+      // Si el backend no pudo leer texto del archivo (imagen, escaneo, u
+      // otro formato), no hay análisis que lanzar — antes esto igual
+      // arrancaba el polling y mostraba "Analizando roles con IA…" 80
+      // segundos sin que nada estuviera corriendo.
+      if (data.advertencia) {
+        setAdvertenciaSubida(data.advertencia)
+      } else {
+        iniciarPolling(proyectoId)
+      }
     } catch { setError('Error de red al subir el archivo.') }
     finally { setUploading(false) }
   }
@@ -211,6 +221,15 @@ export default function OrganigramaUploader({ proyectos, proyectoPreseleccionado
             </div>
           )}
 
+          {/* Advertencia: el archivo se guardó pero no se pudo leer su texto */}
+          {advertenciaSubida && (
+            <div className="rounded-lg border border-amber-700/40 bg-amber-950/20 px-4 py-2 text-xs text-amber-300 flex items-start gap-2">
+              <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+              <span className="flex-1">{advertenciaSubida}</span>
+              <button onClick={() => setAdvertenciaSubida(null)} className="text-amber-500 hover:text-amber-300 shrink-0">✕</button>
+            </div>
+          )}
+
           {/* ── SELECTOR DE PROYECTO ── */}
           <div>
             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Proyecto</p>
@@ -261,7 +280,7 @@ export default function OrganigramaUploader({ proyectos, proyectoPreseleccionado
                   )}
                 </div>
                 <div className="mt-3 flex flex-wrap gap-4">
-                  {['PDF / PNG / JPG', `Máx ${MAX_SIZE_MB} MB`, 'Texto extraído automáticamente', 'Cruce IA con procesos'].map((v, i) => (
+                  {['PDF con texto seleccionable', `Máx ${MAX_SIZE_MB} MB`, 'No sirven fotos ni escaneos', 'Cruce IA con procesos'].map((v, i) => (
                     <span key={i} className="flex items-center gap-1.5 text-xs text-slate-400">
                       <CheckCircle2 className="w-3 h-3 text-emerald-500 shrink-0" />{v}
                     </span>
@@ -279,16 +298,24 @@ export default function OrganigramaUploader({ proyectos, proyectoPreseleccionado
                     <p className="text-sm text-slate-200 font-medium truncate">{orgActual.nombre_archivo}</p>
                     <p className="text-xs text-slate-400 mt-0.5">
                       {new Date(orgActual.created_at).toLocaleDateString('es-CL', { day: '2-digit', month: 'short', year: 'numeric' })}
-                      {orgActual.estado === 'listo' ? ' · Texto extraído ✓' : ' · Procesando…'}
+                      {orgActual.estado === 'listo' ? ' · Texto extraído ✓' : orgActual.estado === 'error' ? ' · No se pudo leer el texto' : ' · Procesando…'}
                     </p>
                   </div>
                   <span className={`text-xs px-2 py-1 rounded-full font-semibold border ${
                     orgActual.estado === 'listo'
                       ? 'bg-emerald-950/40 border-emerald-700/30 text-emerald-400'
+                      : orgActual.estado === 'error'
+                      ? 'bg-red-950/40 border-red-700/30 text-red-400'
                       : 'bg-amber-950/40 border-amber-700/30 text-amber-400'
                   }`}>
-                    {orgActual.estado === 'listo' ? 'Listo' : 'Procesando'}
+                    {orgActual.estado === 'listo' ? 'Listo' : orgActual.estado === 'error' ? 'No legible' : 'Procesando'}
                   </span>
+                </div>
+              )}
+
+              {tieneOrg && orgActual.estado === 'error' && (
+                <div className="rounded-lg border border-red-700/30 bg-red-950/10 px-4 py-2.5 text-xs text-red-300">
+                  No se pudo leer el texto de este archivo, así que no se puede cruzar con los procesos. Sube una versión en PDF con texto seleccionable (exportada desde Word, Excel o Google Docs) — no una foto ni un escaneo.
                 </div>
               )}
 
