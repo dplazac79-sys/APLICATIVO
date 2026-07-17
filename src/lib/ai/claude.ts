@@ -39,6 +39,28 @@ export function extractJson(text: string): unknown {
   return JSON.parse(raw)
 }
 
+// Cuando un parámetro de tool-call se declara como `{ type: 'object' }` sin un
+// `properties` interno (como clasificacion/analisis/proyeccion más abajo —
+// describir el schema completo de esos tipos sería enorme), Llama 3.3 vía
+// Together AI a veces no rellena el objeto directo: en su lugar devuelve un
+// envoltorio `{ type: 'object', value: {...datos reales...} }`, imitando la
+// forma del propio JSON Schema en vez de una instancia de él. Esto pasó
+// desapercibido — el objeto sí es válido y no truena en ningún try/catch, solo
+// hace que cualquier lectura de sus campos internos (ej. .roles_identificados)
+// devuelva undefined en silencio. Se corrige acá, en el único punto donde se
+// parsea la respuesta del modelo, para no perseguir cada lector por separado.
+function desenvolverSiEsquemaFiltrado<T>(valor: unknown): T {
+  if (
+    valor && typeof valor === 'object' && !Array.isArray(valor)
+    && Object.keys(valor).length === 2
+    && 'type' in valor && (valor as { type: unknown }).type === 'object'
+    && 'value' in valor
+  ) {
+    return (valor as { value: T }).value
+  }
+  return valor as T
+}
+
 // ─── Análisis unificado: clasificación + diagnóstico en 1 sola llamada ────────
 // Usa prompt caching de Anthropic (beta) para cachear el system prompt entre docs
 // del mismo proyecto → ~50% ahorro en input tokens y ~30% menos latencia
@@ -107,7 +129,11 @@ async function analizarSeccion(
   })
   const toolCall = completion.choices[0]?.message?.tool_calls?.[0] as { function: { arguments: string } } | undefined
   if (!toolCall) throw new Error('No se recibió resultado del motor de inteligencia')
-  return JSON.parse(toolCall.function.arguments) as { clasificacion: ClasificacionDoc; analisis: ResumenDoc }
+  const parsed = JSON.parse(toolCall.function.arguments) as { clasificacion: unknown; analisis: unknown }
+  return {
+    clasificacion: desenvolverSiEsquemaFiltrado<ClasificacionDoc>(parsed.clasificacion),
+    analisis: desenvolverSiEsquemaFiltrado<ResumenDoc>(parsed.analisis),
+  }
 }
 
 async function consolidarSecciones(
@@ -627,5 +653,6 @@ IMPORTANTE: No inventes cifras en $ ni porcentajes exactos sin respaldo en los d
   })
   const toolCall = completion.choices[0]?.message?.tool_calls?.[0] as { function: { arguments: string } } | undefined
   if (!toolCall) throw new Error('Sin respuesta de proyección')
-  return (JSON.parse(toolCall.function.arguments) as { proyeccion: ProyeccionProceso }).proyeccion
+  const parsed = JSON.parse(toolCall.function.arguments) as { proyeccion: unknown }
+  return desenvolverSiEsquemaFiltrado<ProyeccionProceso>(parsed.proyeccion)
 }
