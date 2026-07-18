@@ -3,11 +3,12 @@ import { createClient } from '@/lib/supabase/server'
 import {
   Layers, FileText, CheckCircle2, Clock,
   AlertTriangle, Brain, Zap, BarChart3, Shield, GitBranch, Users, Target, TrendingUp, ArrowUpRight,
-  FolderOpen, Info
+  FolderOpen, Info, ArrowRight
 } from 'lucide-react'
 import Link from 'next/link'
 import type { Proceso, Artefacto } from '@/types/database'
 import { LABEL_ARTEFACTO, ORDEN_GENERACION } from '@/lib/artefactos-meta'
+import { getFasesProyecto } from '@/lib/fases'
 
 export const dynamic = 'force-dynamic'
 
@@ -128,6 +129,16 @@ export default async function ArtefactosPage() {
   const aprobadosSinCambios = aprobados.filter(a => a.version === 1 && a.generado_por_ia).length
   // Aprobados con modificaciones del cliente (version > 1 o generado_por_ia false)
   const aprobadosConCambios = totalAprobados - aprobadosSinCambios
+
+  // Próximo paso — solo para roles cliente, y solo cuando ya no queda ningún
+  // artefacto de ningún proceso aceptado sin aprobar. Mismo faltante que en
+  // el resto de la plataforma: terminar de aprobar acá sin ninguna señal de
+  // qué sigue dejaba al cliente sin saber si ya podía avanzar.
+  let faseActual: Awaited<ReturnType<typeof getFasesProyecto>>['fases'][number] | null = null
+  if (esCliente && proyectos?.[0] && totalArtefactos > 0 && totalAprobados === totalArtefactos) {
+    const { fases } = await getFasesProyecto(proyectos[0].id, rolUsuario)
+    faseActual = fases.find(f => f.status === 'activa' && f.href !== '/artefactos') ?? null
+  }
 
   function renderArbol(lista: Proceso[], padreId: string | null, nivel: number): React.ReactNode {
     const hijos = lista.filter(p => p.padre_id === padreId)
@@ -463,6 +474,26 @@ export default async function ArtefactosPage() {
           </span>
         ))}
       </div>
+
+      {faseActual && (
+        <div className="relative overflow-hidden bg-gradient-to-r from-indigo-900/40 via-indigo-800/20 to-slate-900 border border-indigo-500/30 rounded-2xl p-6">
+          <div className="absolute right-0 top-0 w-40 h-40 bg-indigo-500/10 rounded-full blur-2xl pointer-events-none" />
+          <div className="relative flex items-center justify-between gap-6 flex-wrap">
+            <div className="space-y-1">
+              <p className="text-xs text-indigo-300 uppercase tracking-widest font-medium">Qué te toca hacer ahora</p>
+              <h3 className="text-white text-lg font-semibold">{faseActual.nombre}</h3>
+              <p className="text-slate-400 text-sm max-w-md">{faseActual.descripcion}</p>
+            </div>
+            <Link
+              href={faseActual.href}
+              className="flex items-center gap-3 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-semibold px-6 py-3.5 rounded-xl transition-all text-sm shadow-lg shadow-indigo-900/40 shrink-0"
+            >
+              Ir a {faseActual.nombre}
+              <ArrowRight className="w-5 h-5" />
+            </Link>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
