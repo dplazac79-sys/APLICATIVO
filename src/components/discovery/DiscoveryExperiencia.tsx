@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import {
-  Brain, Sparkles, CheckCircle2, XCircle, Clock, Users, Activity, Layers, FileText
+  Brain, Sparkles, CheckCircle2, XCircle, Clock, Users, Activity, Layers
 } from 'lucide-react'
 import { GlosarioRoles } from '@/app/(platform)/portal/GlosarioRoles'
 import DiscoveryAcciones from './DiscoveryAcciones'
@@ -58,7 +58,7 @@ export default function DiscoveryExperiencia({
           {totalProcesos > 0 && (
             <div className="flex items-center gap-2 text-xs text-slate-400">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              <span>Análisis activo · {totalProcesos} procesos</span>
+              <span><span className="text-emerald-400 font-semibold">{totalProcesos}</span> procesos mapeados</span>
             </div>
           )}
         </div>
@@ -67,99 +67,41 @@ export default function DiscoveryExperiencia({
         {totalProcesos > 0 && (
           <div className="mt-5 pt-5 border-t border-slate-800 space-y-4">
 
-            {/* Narrativa clara del resultado */}
+            {/* Narrativa clara del resultado — qué encontró la IA y qué significa */}
             <div className="bg-violet-950/30 border border-violet-800/30 rounded-xl px-4 py-4 space-y-3">
               <div className="flex items-start gap-3">
                 <Sparkles className="w-4 h-4 text-violet-400 shrink-0 mt-0.5" />
                 <div className="space-y-1">
                   <p className="text-sm text-white font-semibold">
-                    Se analizaron {documentos.filter(d => d.estado_procesamiento === 'listo').length} documentos y se encontró {macroprocesos.length} macroproceso: <span className="text-violet-300">{macroprocesos[0]?.nombre ?? 'Cadena de Suministro'}</span>
+                    La IA leyó {documentos.filter(d => d.estado_procesamiento === 'listo').length} de tus documentos y mapeó el macroproceso <span className="text-violet-300">{macroprocesos[0]?.nombre ?? 'Cadena de Suministro'}</span>
                   </p>
                   <p className="text-sm text-slate-300 leading-relaxed">
-                    Dentro de ese macroproceso se identificaron{' '}
-                    <span className="text-emerald-400 font-semibold">{procesosDetectados} proceso{procesosDetectados !== 1 ? 's' : ''} existentes</span>
-                    {' '}(uno por cada documento analizado){procesosPropeustosIA > 0 && (
-                      <> y <span className="text-amber-400 font-semibold">{procesosPropeustosIA} proceso{procesosPropeustosIA !== 1 ? 's' : ''} propuesto{procesosPropeustosIA !== 1 ? 's' : ''} por IA</span> — actividades que deberían existir en esta organización pero aún no están documentadas.</>
+                    Encontró <span className="text-emerald-400 font-semibold">{procesosDetectados} proceso{procesosDetectados !== 1 ? 's' : ''}</span> ya documentado{procesosDetectados !== 1 ? 's' : ''} en lo que subiste
+                    {procesosPropeustosIA > 0 && (
+                      <> y detectó <span className="text-amber-400 font-semibold">{procesosPropeustosIA} proceso{procesosPropeustosIA !== 1 ? 's' : ''} más</span> que tu organización probablemente ejecuta pero que todavía nadie documentó — una brecha que tú decides si vale la pena cerrar.</>
                     )}{procesosPropeustosIA === 0 && '.'}
                   </p>
                 </div>
               </div>
-              {procesosPropeustosIA > 0 && (
-                <div className="flex items-center gap-4 pt-1 border-t border-violet-800/20 text-xs">
-                  <span className="flex items-center gap-1.5 text-slate-400">
-                    <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" />
-                    <span className="text-emerald-400 font-medium">{procesosDetectados} detectados</span> en tus documentos
-                  </span>
-                  <span className="flex items-center gap-1.5 text-slate-400">
-                    <span className="w-2 h-2 rounded-full bg-amber-400 shrink-0" />
-                    <span className="text-amber-400 font-medium">{procesosPropeustosIA} propuestos por IA</span> — brechas identificadas
-                  </span>
-                </div>
-              )}
             </div>
 
-            {/* Navegación de etapas — clickeables */}
-            <div className="grid grid-cols-3 gap-3">
-              {[
-                {
-                  step: '1',
-                  icon: FileText,
-                  label: 'Centro Documental',
-                  desc: 'Vuelve a revisar o agregar documentos al proyecto.',
-                  color: 'text-violet-400',
-                  bg: 'bg-violet-950/20 border-violet-800/20',
-                  href: '/documentos',
-                  done: true,
-                },
-                {
-                  step: '2',
-                  icon: Brain,
-                  label: 'Discovery ejecutado',
-                  desc: `${documentos.filter(d => d.estado_procesamiento === 'listo').length} documentos analizados. Puedes re-ejecutar desde Centro Documental si subes nuevos archivos.`,
-                  color: 'text-emerald-400',
-                  bg: 'bg-emerald-950/20 border-emerald-800/20',
-                  href: null,
-                  done: true,
-                },
-                {
-                  step: '3',
-                  icon: CheckCircle2,
-                  label: pendientes === 0 ? 'Revisión completa' : 'Revisión en curso',
-                  desc: `${aceptados} aceptados · ${pendientes} pendientes. Acepta o rechaza cada proceso y profundiza con IA.`,
-                  color: pendientes === 0 ? 'text-emerald-400' : 'text-blue-400',
-                  bg: pendientes === 0 ? 'bg-emerald-950/20 border-emerald-800/20' : 'bg-blue-950/30 border-blue-800/40',
-                  href: null,
-                  done: pendientes === 0,
-                },
-              ].map(({ step, icon: Icon, label, desc, color, bg, href, done }) => (
-                href ? (
-                  <a key={step} href={href} className={`rounded-xl border px-3 py-3 ${bg} hover:brightness-125 transition-all cursor-pointer block`}>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <span className="text-xs font-bold text-slate-400">PASO {step}</span>
-                      <span className="text-xs text-emerald-500 font-semibold">✓ Hecho</span>
-                    </div>
-                    <div className="flex items-center gap-1.5 mb-1.5">
-                      <Icon className={`w-3.5 h-3.5 ${color}`} />
-                      <span className={`text-sm font-semibold ${color}`}>{label}</span>
-                    </div>
-                    <p className="text-xs text-slate-400 leading-relaxed">{desc}</p>
-                    <p className="text-xs text-violet-400 mt-1.5">→ Ir a documentos</p>
-                  </a>
-                ) : (
-                  <div key={step} className={`rounded-xl border px-3 py-3 ${bg}`}>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <span className="text-xs font-bold text-slate-400">PASO {step}</span>
-                      {done && <span className="text-xs text-emerald-500 font-semibold">✓ Hecho</span>}
-                      {!done && <span className="text-xs text-blue-400 font-semibold animate-pulse">● Aquí ahora</span>}
-                    </div>
-                    <div className="flex items-center gap-1.5 mb-1.5">
-                      <Icon className={`w-3.5 h-3.5 ${color}`} />
-                      <span className={`text-sm font-semibold ${color}`}>{label}</span>
-                    </div>
-                    <p className="text-xs text-slate-400 leading-relaxed">{desc}</p>
-                  </div>
-                )
-              ))}
+            {/* Qué te toca hacer ahora — una sola instrucción, sin duplicar la barra de abajo */}
+            <div className="flex items-center gap-3 bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3">
+              {pendientes === 0 ? (
+                <>
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <p className="text-sm text-slate-300">
+                    <span className="text-emerald-400 font-semibold">Ya revisaste todo.</span> Este mapa de procesos es la base del resto del proyecto — Artefactos, Roadmap y Simulador se construyen sobre lo que aceptaste aquí.
+                  </p>
+                </>
+              ) : (
+                <>
+                  <Clock className="w-4 h-4 text-amber-400 shrink-0" />
+                  <p className="text-sm text-slate-300">
+                    <span className="text-amber-400 font-semibold">Te toca revisar {pendientes} proceso{pendientes !== 1 ? 's' : ''}.</span> Abre cada uno abajo y decide si corresponde a tu organización — nada queda oficial hasta que tú lo apruebas.
+                  </p>
+                </>
+              )}
             </div>
 
             {/* Barra de progreso de validación */}
