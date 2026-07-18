@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import DiscoveryExperiencia from '@/components/discovery/DiscoveryExperiencia'
+import { getFasesProyecto } from '@/lib/fases'
 import type { Proceso, Proyecto } from '@/types/database'
 import type { ProcesoConHijos, DocumentoItem } from '@/components/discovery/types'
 
@@ -21,7 +22,8 @@ export default async function DiscoveryPage() {
   const { data: usuarioActual } = user
     ? await admin.from('usuario').select('rol').eq('id', user.id).single()
     : { data: null }
-  const esInterno = ROL_INTERNO.includes(usuarioActual?.rol ?? '')
+  const rolActual = usuarioActual?.rol ?? 'usuario_cliente'
+  const esInterno = ROL_INTERNO.includes(rolActual)
 
   // Antes esto traía TODOS los procesos y TODOS los documentos de la
   // plataforma entera (todos los clientes, todos los proyectos) y filtraba
@@ -100,6 +102,17 @@ export default async function DiscoveryPage() {
       return !ROL_INTERNO.includes(subidoPor?.rol ?? '')
     })
 
+  // Próximo paso — solo para roles cliente, y solo una vez que ya no queda
+  // nada pendiente por revisar acá (mismo patrón que Centro Documental):
+  // mientras haya procesos sin aceptar/rechazar, el propio panel de arriba
+  // ya le dice al cliente qué hacer — el "siguiente paso" recién aplica
+  // cuando terminó con esta fase.
+  let faseActual: Awaited<ReturnType<typeof getFasesProyecto>>['fases'][number] | null = null
+  if (!esInterno && procesosNivel1.length > 0 && pendientes.length === 0) {
+    const { fases } = await getFasesProyecto(proyecto.id, rolActual)
+    faseActual = fases.find(f => f.status === 'activa' && f.href !== '/discovery') ?? null
+  }
+
   return (
     <DiscoveryExperiencia
       proyectoId={proyecto.id}
@@ -117,6 +130,7 @@ export default async function DiscoveryPage() {
       proyectosParaAcciones={proyectos.map(p => ({ id: p.id, nombre: p.nombre }))}
       documentos={documentosProyecto as unknown as DocumentoItem[]}
       esInterno={esInterno}
+      faseActual={faseActual}
     />
   )
 }

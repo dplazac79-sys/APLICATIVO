@@ -1,14 +1,21 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import {
-  Brain, Sparkles, CheckCircle2, XCircle, Clock, Users, Activity, Layers
+  Brain, Sparkles, CheckCircle2, XCircle, Clock, Users, Activity, Layers, ArrowRight
 } from 'lucide-react'
 import { GlosarioRoles } from '@/app/(platform)/portal/GlosarioRoles'
 import DiscoveryAcciones from './DiscoveryAcciones'
 import type { ProcesoConHijos, DocumentoItem } from './types'
 import { ProcesoCard } from './ProcesoCard'
 import { EstadoVacioDiscovery } from './EstadoVacioDiscovery'
+
+interface FaseInfo {
+  nombre: string
+  descripcion: string
+  href: string
+}
 
 interface Props {
   proyectoId: string
@@ -26,13 +33,14 @@ interface Props {
   proyectosParaAcciones: { id: string; nombre: string }[]
   documentos: DocumentoItem[]
   esInterno: boolean
+  faseActual: FaseInfo | null
 }
 
 export default function DiscoveryExperiencia({
   proyectoId, nombreProyecto, clienteNombre,
   macroprocesos, totalProcesos, aceptados, pendientes, rechazados,
   procesosDetectados, procesosPropeustosIA,
-  resumenDiscovery, rolesDetectados, proyectosParaAcciones, documentos, esInterno,
+  resumenDiscovery, rolesDetectados, proyectosParaAcciones, documentos, esInterno, faseActual,
 }: Props) {
   const [tab, setTab] = useState<'procesos' | 'glosario'>('procesos')
 
@@ -259,6 +267,26 @@ export default function DiscoveryExperiencia({
             nombreProyecto={nombreProyecto}
             rolesDetectados={rolesDetectados}
           />
+        </div>
+      )}
+
+      {faseActual && (
+        <div className="relative overflow-hidden bg-gradient-to-r from-indigo-900/40 via-indigo-800/20 to-slate-900 border border-indigo-500/30 rounded-2xl p-6">
+          <div className="absolute right-0 top-0 w-40 h-40 bg-indigo-500/10 rounded-full blur-2xl pointer-events-none" />
+          <div className="relative flex items-center justify-between gap-6 flex-wrap">
+            <div className="space-y-1">
+              <p className="text-xs text-indigo-300 uppercase tracking-widest font-medium">Qué te toca hacer ahora</p>
+              <h3 className="text-white text-lg font-semibold">{faseActual.nombre}</h3>
+              <p className="text-slate-400 text-sm max-w-md">{faseActual.descripcion}</p>
+            </div>
+            <Link
+              href={faseActual.href}
+              className="flex items-center gap-3 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-semibold px-6 py-3.5 rounded-xl transition-all text-sm shadow-lg shadow-indigo-900/40 shrink-0"
+            >
+              Ir a {faseActual.nombre}
+              <ArrowRight className="w-5 h-5" />
+            </Link>
+          </div>
         </div>
       )}
     </div>
