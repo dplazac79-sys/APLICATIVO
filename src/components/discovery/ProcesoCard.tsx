@@ -54,6 +54,7 @@ interface MetadataIA {
   versiones?: VersionDoc[]
   documento_referencia?: string
   justificacion_ia?: string
+  puntos_mejora?: Array<{ id: string; texto: string; categoria: string | null; justificacion: string | null; estado: 'propuesto' | 'aceptado' | 'rechazado' }>
   [key: string]: unknown
 }
 
@@ -84,6 +85,26 @@ export function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: 
   const [pasosChecked, setPasosChecked] = useState<ChecklistItem[]>(
     ((proceso.metadata_ia as MetadataIA | null)?.pasos_checkeados ?? [])
   )
+
+  // Puntos de mejora detectados por Discovery IA sobre este proceso —
+  // cada uno se acepta o rechaza por separado, no en bloque.
+  type PuntoMejora = { id: string; texto: string; categoria: string | null; justificacion: string | null; estado: 'propuesto' | 'aceptado' | 'rechazado' }
+  const [puntosMejora, setPuntosMejora] = useState<PuntoMejora[]>(
+    ((proceso.metadata_ia as MetadataIA | null)?.puntos_mejora ?? []) as PuntoMejora[]
+  )
+  const [guardandoPunto, setGuardandoPunto] = useState<string | null>(null)
+  async function cambiarEstadoPunto(puntoId: string, estado: PuntoMejora['estado']) {
+    setGuardandoPunto(puntoId)
+    try {
+      const res = await fetch(`/api/procesos/${proceso.id}/puntos-mejora`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ punto_id: puntoId, estado }),
+      })
+      if (!res.ok) return
+      setPuntosMejora(prev => prev.map(p => p.id === puntoId ? { ...p, estado } : p))
+    } finally { setGuardandoPunto(null) }
+  }
 
   // Correcciones y versiones
   const metaInit = (proceso.metadata_ia ?? {}) as Record<string, unknown>
@@ -873,6 +894,82 @@ export function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: 
                   const pasos = (docAnalisis?.analisis_ia?.proximos_pasos_sugeridos ?? []) as string[]
                   return (
                     <div className="p-5 space-y-7">
+
+                      {/* ── Puntos de mejora detectados por Discovery IA — accept/reject individual ── */}
+                      {puntosMejora.length > 0 && (() => {
+                        const pendientes = puntosMejora.filter(p => p.estado === 'propuesto')
+                        const decididos = puntosMejora.filter(p => p.estado !== 'propuesto')
+                        const CATEGORIA_LABEL: Record<string, string> = {
+                          eficiencia: 'Eficiencia', riesgo: 'Riesgo', automatizacion: 'Automatización',
+                          responsabilidad: 'Responsabilidad', cumplimiento: 'Cumplimiento',
+                        }
+                        return (
+                          <div>
+                            <div className="flex items-center gap-2 mb-3">
+                              <div className="w-6 h-6 rounded-lg bg-violet-950/70 border border-violet-800/50 flex items-center justify-center">
+                                <Sparkles className="w-3.5 h-3.5 text-violet-400" />
+                              </div>
+                              <div>
+                                <p className="text-xs font-bold text-violet-400 uppercase tracking-widest">Puntos de mejora — Discovery IA</p>
+                                <p className="text-xs text-slate-400">
+                                  Sugerencias sobre este documento · {pendientes.length} pendiente{pendientes.length !== 1 ? 's' : ''} de decidir
+                                  {decididos.length > 0 ? ` · ${decididos.length} decidido${decididos.length !== 1 ? 's' : ''}` : ''}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="space-y-2">
+                              {puntosMejora.map(p => {
+                                const guardando = guardandoPunto === p.id
+                                const borde = p.estado === 'aceptado' ? 'border-emerald-700/40' : p.estado === 'rechazado' ? 'border-red-800/30 opacity-50' : 'border-violet-800/25'
+                                return (
+                                  <div key={p.id} className={`rounded-2xl border ${borde} bg-gradient-to-br from-violet-950/15 to-slate-900/20 p-4`}>
+                                    <div className="flex items-start justify-between gap-3">
+                                      <div className="min-w-0">
+                                        {p.categoria && (
+                                          <span className="inline-block text-[10px] font-bold uppercase tracking-wide text-violet-300 bg-violet-900/40 border border-violet-700/40 rounded-full px-2 py-0.5 mb-1.5">
+                                            {CATEGORIA_LABEL[p.categoria] ?? p.categoria}
+                                          </span>
+                                        )}
+                                        <p className="text-white text-sm font-medium leading-snug">{p.texto}</p>
+                                        {p.justificacion && (
+                                          <p className="text-slate-400 text-xs leading-relaxed mt-1.5">{p.justificacion}</p>
+                                        )}
+                                      </div>
+                                      <div className="shrink-0 flex items-center gap-2">
+                                        {p.estado === 'propuesto' ? (
+                                          <>
+                                            <button
+                                              onClick={() => cambiarEstadoPunto(p.id, 'aceptado')}
+                                              disabled={guardando}
+                                              className="text-xs font-semibold text-emerald-400 hover:text-emerald-300 transition-colors disabled:opacity-50"
+                                            >Aceptar</button>
+                                            <button
+                                              onClick={() => cambiarEstadoPunto(p.id, 'rechazado')}
+                                              disabled={guardando}
+                                              className="text-xs font-semibold text-slate-400 hover:text-red-400 transition-colors disabled:opacity-50"
+                                            >Rechazar</button>
+                                          </>
+                                        ) : (
+                                          <>
+                                            <span className={`text-xs font-semibold ${p.estado === 'aceptado' ? 'text-emerald-400' : 'text-red-400'}`}>
+                                              {p.estado === 'aceptado' ? '✓ Aceptado' : '✕ Rechazado'}
+                                            </span>
+                                            <button
+                                              onClick={() => cambiarEstadoPunto(p.id, 'propuesto')}
+                                              disabled={guardando}
+                                              className="text-xs text-slate-500 hover:text-slate-300 transition-colors disabled:opacity-50"
+                                            >Deshacer</button>
+                                          </>
+                                        )}
+                                      </div>
+                                    </div>
+                                  </div>
+                                )
+                              })}
+                            </div>
+                          </div>
+                        )
+                      })()}
 
                       {/* ── Quick wins con checklist ── */}
                       {quickWins.length > 0 && (() => {

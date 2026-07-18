@@ -91,7 +91,8 @@ export async function GET(
   // Add metadata_ia analysis summary
   const hallazgos = (meta.hallazgos_criticos ?? []) as string[]
   const riesgos = (meta.riesgos_criticos ?? []) as Array<{ riesgo: string; impacto?: string }>
-  const oportunidades = (meta.oportunidades_mejora ?? []) as string[]
+  const puntosMejora = (meta.puntos_mejora ?? []) as Array<{ texto: string; estado?: string }>
+  const oportunidades = puntosMejora.filter(p => p.estado !== 'rechazado').map(p => p.texto)
 
   if (hallazgos.length > 0 || riesgos.length > 0 || oportunidades.length > 0) {
     lines.push(`───────────────────────────────────────────────────────────────`)

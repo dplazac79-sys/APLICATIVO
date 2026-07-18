@@ -242,26 +242,44 @@ async function discoveryAIBody({ proyecto_id, usuario_id, documento_ids, job_id,
     })
 
     await step.run('guardar-procesos', async () => {
-      // Solo se reemplazan las propuestas que nadie ha revisado todavía
+      // Solo se reemplazan los procesos que nadie ha revisado todavía
       // (estado_oferta='propuesto'). Un proceso ya aceptado o rechazado es
       // una decisión humana tomada — y si fue aceptado, puede tener
       // artefactos ya validados por el cliente (artefacto.proceso_id tiene
-      // ON DELETE CASCADE). Antes este delete no filtraba por estado_oferta
-      // y volver a ejecutar Discovery después de subir un documento nuevo
-      // borraba en cascada todo el trabajo ya aprobado, sin aviso.
+      // ON DELETE CASCADE). El macroproceso (nivel 0) YA NO se borra ni se
+      // recrea en cada corrida: la IA nunca inventa macroprocesos, solo
+      // extrae el nombre que ya está escrito en el documento, así que se
+      // reutiliza por nombre (case-insensitive) en vez de duplicar.
       await admin.from('proceso').delete()
         .eq('proyecto_id', proyecto_id)
+        .eq('nivel', 1)
         .in('origen', ['detectado', 'propuesta_ia'])
         .eq('estado_oferta', 'propuesto')
+
+      const { data: macrosExistentes } = await admin.from('proceso')
+        .select('id, nombre')
+        .eq('proyecto_id', proyecto_id)
+        .eq('nivel', 0)
+
       for (const macro of resultado.macroprocesos) {
         const docs = datos.documentos
         const docOrigen = docs.find((d: { nombre_archivo: string }) => d.nombre_archivo === macro.documento_referencia)
-        const { data: macroRow } = await admin.from('proceso').insert({
-          proyecto_id, nombre: macro.nombre, descripcion: macro.descripcion,
-          nivel: 0, tipo: 'macroproceso', origen: macro.origen, estado_oferta: 'propuesto',
-          documento_origen_id: docOrigen?.id ?? null,
-          metadata_ia: { criticidad: macro.criticidad, estado_actual: macro.estado_actual },
-        }).select().single()
+
+        const existente = macrosExistentes?.find(
+          m => m.nombre.trim().toLowerCase() === macro.nombre.trim().toLowerCase()
+        )
+        let macroRow: { id: string } | null = existente ?? null
+        if (!macroRow) {
+          const { data: nuevo } = await admin.from('proceso').insert({
+            proyecto_id, nombre: macro.nombre, descripcion: macro.descripcion,
+            nivel: 0, tipo: 'macroproceso', origen: 'detectado', estado_oferta: 'propuesto',
+            documento_origen_id: docOrigen?.id ?? null,
+            metadata_ia: { criticidad: macro.criticidad, estado_actual: macro.estado_actual },
+          }).select('id').single()
+          macroRow = nuevo
+          if (macroRow) macrosExistentes?.push({ id: macroRow.id, nombre: macro.nombre })
+        }
+
         const procesosHijos = Array.isArray(macro.procesos) ? macro.procesos : []
         if (!macroRow || !procesosHijos.length) continue
         await admin.from('proceso').insert(
@@ -271,22 +289,26 @@ async function discoveryAIBody({ proyecto_id, usuario_id, documento_ids, job_id,
             const codigo = docRef ? docRef.replace(/\.[^.]+$/, '').toUpperCase() : null
             // Derive numeric order from SC code: "SC01" → 1
             const ordenNum = codigo ? (parseInt(codigo.replace(/\D/g, ''), 10) || i + 1) : i + 1
+            const puntosMejora = Array.isArray(p.puntos_mejora) ? p.puntos_mejora as Array<Record<string, unknown>> : []
             return {
-              proyecto_id, padre_id: macroRow.id, nombre: p.nombre, descripcion: p.descripcion,
-              nivel: 1, tipo: 'proceso', origen: p.origen, estado_oferta: 'propuesto',
+              proyecto_id, padre_id: macroRow!.id, nombre: p.nombre, descripcion: p.descripcion,
+              nivel: 1, tipo: 'proceso', origen: 'detectado', estado_oferta: 'propuesto',
               codigo,
               documento_origen_id: docs.find((d: { nombre_archivo: string }) => d.nombre_archivo === docRef)?.id ?? null,
               roles_involucrados: p.roles_involucrados, riesgos_detectados: p.riesgos_si_no_existe_o_falla,
               metadata_ia: {
                 criticidad: p.criticidad,
-                justificacion_ia: p.justificacion_ia ?? null,
                 evidencia_documento: p.evidencia_documento ?? null,
                 documento_referencia: docRef,
-                oportunidades_mejora: p.oportunidades_mejora ?? [],
-                oportunidades_automatizacion: p.oportunidades_automatizacion ?? [],
                 kpis_recomendados: p.kpis_recomendados ?? [],
                 benchmark_industria: p.benchmark_industria ?? null,
-                especulativo: p.origen === 'propuesta_ia',
+                puntos_mejora: puntosMejora.map((pm) => ({
+                  id: crypto.randomUUID(),
+                  texto: pm.texto,
+                  categoria: pm.categoria ?? null,
+                  justificacion: pm.justificacion ?? null,
+                  estado: 'propuesto',
+                })),
               },
               orden: ordenNum,
             }

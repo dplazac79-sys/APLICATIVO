@@ -76,10 +76,7 @@ export default function DiscoveryExperiencia({
                     La IA leyó {documentos.filter(d => d.estado_procesamiento === 'listo').length} de tus documentos y mapeó el macroproceso <span className="text-violet-300">{macroprocesos[0]?.nombre ?? 'Cadena de Suministro'}</span>
                   </p>
                   <p className="text-sm text-slate-300 leading-relaxed">
-                    Encontró <span className="text-emerald-400 font-semibold">{procesosDetectados} proceso{procesosDetectados !== 1 ? 's' : ''}</span> ya documentado{procesosDetectados !== 1 ? 's' : ''} en lo que subiste
-                    {procesosPropeustosIA > 0 && (
-                      <> y detectó <span className="text-amber-400 font-semibold">{procesosPropeustosIA} proceso{procesosPropeustosIA !== 1 ? 's' : ''} más</span> que tu organización probablemente ejecuta pero que todavía nadie documentó — una brecha que tú decides si vale la pena cerrar.</>
-                    )}{procesosPropeustosIA === 0 && '.'}
+                    Revisó <span className="text-emerald-400 font-semibold">{procesosDetectados} proceso{procesosDetectados !== 1 ? 's' : ''}</span> ya documentado{procesosDetectados !== 1 ? 's' : ''} en lo que subiste y, dentro de cada uno, buscó puntos de mejora concretos — cada sugerencia la revisas y decides tú si aplicarla, documento por documento.
                   </p>
                 </div>
               </div>

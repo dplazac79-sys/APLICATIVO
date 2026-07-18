@@ -395,22 +395,19 @@ export interface DiscoveryResult {
       tipo: string
       origen: string
       documento_referencia: string | null
-      justificacion_ia?: string
       evidencia_documento?: string
       criticidad: string
       roles_involucrados: string[]
       riesgos_si_no_existe_o_falla: string[]
-      oportunidades_mejora: string[]
-      oportunidades_automatizacion: string[]
       kpis_recomendados: string[]
       benchmark_industria: string
+      puntos_mejora: Array<{ texto: string; categoria: string; justificacion: string }>
     }>
   }>
   resumen_ejecutivo_discovery: string
   industria_detectada: string
   nivel_madurez_operacional: string
   cobertura_documentacion: string
-  top_3_brechas_criticas: Array<{ brecha: string; impacto_negocio: string; urgencia: string }>
   top_3_oportunidades_valor: Array<{ oportunidad: string; valor_potencial: string; complejidad: string; tiempo_implementacion: string }>
   quick_wins_90_dias: string[]
   roadmap_transformacion: { fase_1_0_3_meses: string; fase_2_3_6_meses: string; fase_3_6_12_meses: string }

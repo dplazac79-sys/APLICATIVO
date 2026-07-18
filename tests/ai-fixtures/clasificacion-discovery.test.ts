@@ -38,19 +38,28 @@ describe.each(FIXTURES)('Fixture de industria: $nombre', ({ nombre, industriaEsp
     expect(resumen.riesgos_criticos.length).toBeGreaterThan(0)
   }, 180000)
 
-  it('Process Discovery AI detecta la industria correcta y produce inventario nivel 0-1', async () => {
+  it('Process Discovery AI detecta la industria correcta y no inventa procesos ni macroprocesos', async () => {
     const resumen = await resumirDocumento(texto)
     const contexto = `Documento de prueba: ${nombre}`
 
     const resultado = await discoveryProcesos(contexto, [resumen.resumen_ejecutivo])
 
     expect(resultado.industria_detectada).toMatch(industriaEsperada)
-    expect(resultado.macroprocesos.length).toBeGreaterThanOrEqual(3)
+    // Un solo documento de entrada → un solo macroproceso (el que el propio
+    // documento indica), nunca varios inventados por la IA.
+    expect(resultado.macroprocesos.length).toBe(1)
 
     const totalProcesosNivel1 = resultado.macroprocesos.reduce((acc, m) => acc + m.procesos.length, 0)
-    expect(totalProcesosNivel1).toBeGreaterThan(0)
+    // Un documento de entrada → exactamente un proceso, nunca "propuesta_ia".
+    expect(totalProcesosNivel1).toBe(1)
+    resultado.macroprocesos.forEach(m => {
+      expect(m.origen).toBe('detectado')
+      m.procesos.forEach(p => {
+        expect(p.origen).toBe('detectado')
+        expect(Array.isArray(p.puntos_mejora)).toBe(true)
+      })
+    })
 
-    expect(resultado.top_3_brechas_criticas.length).toBeGreaterThan(0)
     expect(resultado.recomendacion_ceo.length).toBeGreaterThan(0)
   }, 240000)
 })
