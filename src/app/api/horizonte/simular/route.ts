@@ -74,6 +74,32 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  // Modificaciones ya aceptadas por el cliente (Hallazgos + ediciones de
+  // artefactos) — la proyección debe reflejar el proceso en su estado REAL,
+  // no el documento original antes de cualquier decisión del cliente. Se
+  // busca acá de forma independiente (no confía en lo que mande el
+  // frontend) porque afecta directamente el prompt que ve la IA.
+  const meta = (proceso.metadata_ia ?? {}) as Record<string, unknown>
+  const versionesDoc = (meta.versiones ?? []) as Array<Record<string, unknown>>
+  const modificacionesDoc = versionesDoc.flatMap(v => (v.detalle_correcciones ?? []) as Array<Record<string, unknown>>)
+
+  const { data: historialArtefactosRaw } = await admin
+    .from('artefacto_historial')
+    .select('tipo, motivo_cambio')
+    .eq('proceso_id', proceso_id)
+    .order('created_at', { ascending: true })
+
+  const lineasModificaciones = [
+    ...modificacionesDoc.map(d => {
+      const obs = (d.observacion as string)?.trim()
+      return `- [${(d.tipo as string)?.toUpperCase() ?? 'CAMBIO'}] ${obs || `"${(d.texto_original as string) ?? ''}" — aceptado tal cual, sin cambios`}`
+    }),
+    ...(historialArtefactosRaw ?? []).map(h => `- [ARTEFACTO ${(h.tipo as string)?.toUpperCase()}] ${(h.motivo_cambio as string)?.trim() || 'Edición sin motivo registrado'}`),
+  ]
+  const modificacionesYaAplicadas = lineasModificaciones.length
+    ? `\n\n═══ MODIFICACIONES YA ACEPTADAS POR EL CLIENTE (ya vigentes, no son propuestas) ═══\n${lineasModificaciones.slice(0, 15).join('\n')}\n\nLa proyección debe partir de que estos cambios YA están incorporados al proceso — no los vuelvas a proponer como si fueran mejoras futuras, y considera su efecto ya aplicado al calcular el estado actual/línea base.`
+    : ''
+
   const hallazgos = (analisisIA.hallazgos_criticos as string[]) ?? []
   const riesgos = (analisisIA.riesgos_criticos as Array<{ riesgo: string; impacto: string }>) ?? []
   const oportunidades = (analisisIA.oportunidades_valor as Array<{ oportunidad: string; complejidad_implementacion: string }>) ?? []
@@ -103,6 +129,7 @@ ${oportunidades.slice(0, 4).map(o => `- [${o.complejidad_implementacion}] ${o.op
 Quick wins posibles: ${quickWins.slice(0, 3).join(' | ')}
 
 ${contenidoArtefactos ? `Artefactos del proceso:\n${contenidoArtefactos.slice(0, 1500)}` : ''}
+${modificacionesYaAplicadas}
 
 ═══ INSTRUCCIÓN ═══
 Genera una simulación REALISTA y ESPECÍFICA de qué pasaría si este proceso se implementa exitosamente en ${razonSocial}. Los números deben ser creíbles para la industria ${industria}. Sé concreto, evita generalidades.

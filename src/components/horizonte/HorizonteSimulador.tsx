@@ -11,6 +11,7 @@ import {
 
 interface Proceso { id: string; nombre: string; codigo: string }
 interface Artefacto { id: string; tipo: string; version: number }
+interface Modificacion { origen: 'documento' | 'artefacto'; tipo: string; texto: string; fecha: string }
 
 interface SinImplementacion {
   headline: string
@@ -483,6 +484,7 @@ interface SimulacionGuardada {
 interface Props {
   procesos: Proceso[]
   artefactosPorProceso: Record<string, Artefacto[]>
+  modificacionesPorProceso: Record<string, Modificacion[]>
   proyectoNombre: string
   clienteNombre: string
   industria?: string
@@ -491,7 +493,13 @@ interface Props {
 
 const ROLES_GUARDAN = ['super_admin', 'director_proyecto', 'consultor']
 
-export default function HorizonteSimulador({ procesos, artefactosPorProceso, proyectoNombre, clienteNombre, industria, rol }: Props) {
+const TIPO_MOD_LABEL: Record<string, string> = {
+  hallazgo: 'Hallazgo', riesgo: 'Riesgo', brecha: 'Brecha', rol: 'Rol',
+  sipoc: 'SIPOC', as_is: 'AS-IS', bpmn: 'BPMN', raci: 'RACI',
+  riesgo_control: 'Riesgo-Control', kpi_sla: 'KPI-SLA', diagnostico: 'Diagnóstico', to_be: 'TO-BE',
+}
+
+export default function HorizonteSimulador({ procesos, artefactosPorProceso, modificacionesPorProceso, proyectoNombre, clienteNombre, industria, rol }: Props) {
   const [procesoId, setProcesoId] = useState('')
   const [artefactoIds, setArtefactoIds] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
@@ -536,6 +544,7 @@ export default function HorizonteSimulador({ procesos, artefactosPorProceso, pro
 
   const procesoActual = procesos.find(p => p.id === procesoId)
   const artefactos = artefactosPorProceso[procesoId] ?? []
+  const modificaciones = modificacionesPorProceso[procesoId] ?? []
 
   // Reinicia la selección solo al cambiar de proceso. `artefactos` no entra en
   // deps a propósito: es un array derivado de `artefactosPorProceso[procesoId]`
@@ -725,6 +734,47 @@ export default function HorizonteSimulador({ procesos, artefactosPorProceso, pro
                     </button>
                   ))}
                 </div>
+              </div>
+            )}
+
+            {/* Modificaciones ya aplicadas — la proyección de impacto debe
+                reflejar el estado REAL del proceso (con las decisiones que
+                el cliente ya aceptó en Hallazgos y las ediciones de
+                artefactos), no el documento original sin tocar. Se muestra
+                antes de proyectar para que quede claro qué está incluido. */}
+            {procesoId && (
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-[10px] uppercase tracking-widest text-slate-400">
+                    Modificaciones que se incluyen en la proyección
+                  </p>
+                  {modificaciones.length > 0 && (
+                    <p className="text-[10px] text-slate-400">{modificaciones.length} cambio{modificaciones.length !== 1 ? 's' : ''}</p>
+                  )}
+                </div>
+                {modificaciones.length > 0 ? (
+                  <div className="rounded-2xl border border-emerald-500/15 bg-emerald-950/[0.12] p-3.5 space-y-2 max-h-56 overflow-y-auto">
+                    {modificaciones.map((m, i) => (
+                      <div key={i} className="flex items-start gap-2.5 text-xs">
+                        <span className={`shrink-0 mt-0.5 px-1.5 py-0.5 rounded-md font-semibold text-[9px] uppercase tracking-wide ${
+                          m.origen === 'documento'
+                            ? 'bg-sky-500/15 text-sky-300 border border-sky-500/25'
+                            : 'bg-violet-500/15 text-violet-300 border border-violet-500/25'
+                        }`}>
+                          {TIPO_MOD_LABEL[m.tipo] ?? m.tipo}
+                        </span>
+                        <p className="text-slate-300 leading-relaxed flex-1">{m.texto}</p>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="rounded-2xl border border-white/8 bg-white/[0.02] p-3.5 flex items-start gap-2.5">
+                    <AlertCircle className="w-3.5 h-3.5 text-slate-400 shrink-0 mt-0.5" />
+                    <p className="text-xs text-slate-400 leading-relaxed">
+                      Este proceso no tiene modificaciones registradas todavía — la proyección se hace sobre el documento original tal como se subió.
+                    </p>
+                  </div>
+                )}
               </div>
             )}
 

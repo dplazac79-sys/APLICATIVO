@@ -103,10 +103,54 @@ export default async function HorizontePage() {
     artefactosPorProceso[pid].push({ id: a.id, tipo: a.tipo, version: a.version })
   }
 
+  // Modificaciones ya aplicadas a cada proceso — para que Horizonte de
+  // Impacto proyecte sobre el estado REAL (decisiones aceptadas en
+  // Hallazgos + ediciones de artefactos), no sobre el documento original
+  // sin tocar. Documento: proceso.metadata_ia.versiones[].detalle_correcciones
+  // (ya viene seleccionado arriba). Artefactos: artefacto_historial.
+  type Modificacion = { origen: 'documento' | 'artefacto'; tipo: string; texto: string; fecha: string }
+  const modificacionesPorProceso: Record<string, Modificacion[]> = {}
+
+  for (const p of procesosOrdenados) {
+    const pp = p as { id: string; metadata_ia: Record<string, unknown> | null }
+    const versiones = (pp.metadata_ia?.versiones ?? []) as Array<Record<string, unknown>>
+    const detalles = versiones.flatMap(v => (v.detalle_correcciones ?? []) as Array<Record<string, unknown>>)
+    if (detalles.length) {
+      modificacionesPorProceso[pp.id] = detalles.map(d => ({
+        origen: 'documento' as const,
+        tipo: (d.tipo as string) ?? 'proceso',
+        texto: (d.observacion as string)?.trim() || `"${(d.texto_original as string) ?? ''}" — aceptado tal cual`,
+        fecha: (d.fecha as string) ?? '',
+      }))
+    }
+  }
+
+  const { data: historialArtefactosRaw } = await admin
+    .from('artefacto_historial')
+    .select('tipo, motivo_cambio, created_at, proceso_id')
+    .in('proceso_id', procesoIds)
+    .order('created_at', { ascending: true })
+
+  for (const h of historialArtefactosRaw ?? []) {
+    const pid = h.proceso_id as string
+    if (!modificacionesPorProceso[pid]) modificacionesPorProceso[pid] = []
+    modificacionesPorProceso[pid].push({
+      origen: 'artefacto',
+      tipo: h.tipo as string,
+      texto: (h.motivo_cambio as string)?.trim() || 'Edición sin motivo registrado',
+      fecha: h.created_at as string,
+    })
+  }
+  // Cronológico, más antiguo primero — igual que Control de Versiones
+  for (const pid in modificacionesPorProceso) {
+    modificacionesPorProceso[pid].sort((a, b) => new Date(a.fecha).getTime() - new Date(b.fecha).getTime())
+  }
+
   return (
     <HorizonteSimulador
       procesos={procesos}
       artefactosPorProceso={artefactosPorProceso}
+      modificacionesPorProceso={modificacionesPorProceso}
       proyectoNombre={proyecto?.nombre ?? ''}
       clienteNombre={clienteNombre}
       industria={industria}
