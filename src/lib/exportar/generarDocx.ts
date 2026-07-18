@@ -223,6 +223,103 @@ function buildGenericoChildren(contenido: Record<string, unknown>): (Paragraph |
   return blocks
 }
 
+// ── Nueva versión de documento de proceso (regenerada por IA) ─────────────────
+export interface VersionDocumentoDocx {
+  codigo: string
+  nombre: string
+  numero: number
+  proyecto: string
+  fecha: string
+  textoCompleto: string
+  cambiosAplicados: Array<{ seccion: string; tipo: string; descripcion: string }>
+  resumenCambios: string
+}
+
+const TIPO_CAMBIO_LABEL: Record<string, string> = {
+  riesgo: 'Riesgo', hallazgo: 'Hallazgo', brecha: 'Brecha de documentación', rol: 'Rol',
+}
+
+export async function generarVersionDocumentoDocx(v: VersionDocumentoDocx): Promise<Buffer> {
+  const registroCambios: Paragraph[] = v.cambiosAplicados.length > 0
+    ? v.cambiosAplicados.map((c, i) => new Paragraph({
+        children: [
+          new TextRun({ text: `${i + 1}. `, bold: true, color: ACCENT, size: 20 }),
+          new TextRun({ text: `[${TIPO_CAMBIO_LABEL[c.tipo] ?? c.tipo}] `, bold: true, color: SLATE500, size: 20 }),
+          new TextRun({ text: c.seccion ? `${c.seccion} — ` : '', italics: true, color: SLATE500, size: 20 }),
+          new TextRun({ text: c.descripcion, color: SLATE800, size: 20 }),
+        ],
+        spacing: { after: 140 },
+      }))
+    : [para('Sin cambios registrados respecto a la versión anterior.', { muted: true })]
+
+  const cuerpoDocumento = v.textoCompleto
+    .split(/\n{2,}/)
+    .map(bloque => bloque.trim())
+    .filter(Boolean)
+    .map(bloque => new Paragraph({
+      children: [new TextRun({ text: bloque, color: SLATE800, size: 20 })],
+      spacing: { after: 200 },
+    }))
+
+  const doc = new Document({
+    numbering: { config: [] },
+    styles: {
+      default: {
+        document: { run: { font: 'Calibri', size: 20, color: SLATE800 } },
+      },
+    },
+    sections: [{
+      headers: {
+        default: new Header({
+          children: [new Paragraph({
+            children: [
+              new TextRun({ text: 'ProcessOS — AICOUNTS Consultores', bold: true, color: ACCENT, size: 18 }),
+              new TextRun({ text: `   |   ${v.proyecto}`, color: SLATE500, size: 18 }),
+            ],
+            border: { bottom: { style: BorderStyle.SINGLE, size: 4, color: ACCENT, space: 4 } },
+          })],
+        }),
+      },
+      footers: {
+        default: new Footer({
+          children: [new Paragraph({
+            alignment: AlignmentType.CENTER,
+            children: [
+              new TextRun({ text: `Confidencial — AICOUNTS Consultores   |   ${v.fecha}   |   Pág. `, color: SLATE500, size: 16 }),
+              new PageNumberElement(),
+            ],
+          })],
+        }),
+      },
+      children: [
+        new Paragraph({
+          children: [new TextRun({ text: `${v.codigo} — VERSIÓN ${v.numero}`, color: ACCENT, bold: true, size: 18 })],
+          spacing: { before: 0, after: 200 },
+        }),
+        new Paragraph({
+          text: v.nombre,
+          heading: HeadingLevel.HEADING_1,
+          spacing: { before: 0, after: 300 },
+        }),
+        para(`Proyecto: ${v.proyecto}`, { muted: true }),
+        para(`Fecha: ${v.fecha}`, { muted: true }),
+        new Paragraph({ spacing: { after: 400 } }),
+
+        heading2(`Registro de cambios — Versión ${v.numero}`),
+        para(v.resumenCambios),
+        new Paragraph({ spacing: { after: 100 } }),
+        ...registroCambios,
+        new Paragraph({ spacing: { after: 400 } }),
+
+        heading2('Documento actualizado'),
+        ...cuerpoDocumento,
+      ],
+    }],
+  })
+
+  return Packer.toBuffer(doc)
+}
+
 // ── Función principal ─────────────────────────────────────────────────────────
 export async function generarEntregableDocx(e: EntregablePdf): Promise<Buffer> {
   const TIPO_LABEL: Record<string, string> = {

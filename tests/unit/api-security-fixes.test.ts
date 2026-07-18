@@ -170,6 +170,7 @@ describe('POST /api/procesos/[id]/nueva-version — assertProyectoAccess', () =>
     const { POST } = await import('@/app/api/procesos/[id]/nueva-version/route')
     mockCreateAdminClient.mockReturnValue(
       fakeAdmin((table) => {
+        if (table === 'usuario') return fakeQuery({ data: { rol: 'consultor' } })
         if (table === 'proceso') return fakeQuery({ data: { metadata_ia: {}, documento_origen_id: null, proyecto_id: OTRO_PROYECTO_ID } })
         throw new Error(`tabla inesperada: ${table}`)
       })

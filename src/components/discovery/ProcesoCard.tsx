@@ -866,34 +866,26 @@ export function ProcesoCard({ proceso, esHijo = false, proyectoId, esInterno = f
                         </div>
                       )}
 
-                      {/* ── CTA nueva versión — consolidar es trabajo de la
-                          consultora (el backend ya lo restringe a
-                          super_admin/director_proyecto/consultor); el
-                          cliente ve el progreso pero no el botón, que de
-                          todas formas le devolvía un 403 silencioso. */}
+                      {/* ── CTA nueva versión — la reescritura del documento la
+                          hace la IA (regenerarDocumentoConCambios), no un
+                          consultor a mano, así que cualquier miembro del
+                          proyecto puede disparar la consolidación. */}
                       {atendidasActivas > 0 && (
                         <div className="rounded-2xl border border-emerald-700/40 bg-gradient-to-r from-emerald-950/30 to-transparent p-4 flex items-center justify-between gap-4">
                           <div>
                             <p className="text-sm font-bold text-emerald-300">{atendidasActivas} punto{atendidasActivas > 1 ? 's' : ''} resuelto{atendidasActivas > 1 ? 's' : ''}</p>
                             <p className="text-xs text-slate-400 mt-0.5">
-                              {esInterno
-                                ? `Genera la v${versiones.length + 1} del documento excluyendo los hallazgos ya incorporados en tu organización.`
-                                : `La v${versiones.length + 1} de ${proceso.nombre} va a estar disponible en Control de Versiones, con la traza completa de qué cambió.`}
+                              {generandoVersion
+                                ? 'La IA está reescribiendo el documento con tus cambios — puede tardar hasta un minuto.'
+                                : `La IA va a generar la v${versiones.length + 1} de ${proceso.nombre}, disponible en Control de Versiones con la traza completa de qué cambió.`}
                             </p>
                           </div>
-                          {esInterno ? (
-                            <button onClick={generarNuevaVersion} disabled={generandoVersion}
-                              className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-black bg-emerald-700 hover:bg-emerald-600 text-white transition-all disabled:opacity-50 shrink-0 shadow-lg shadow-emerald-900/50">
-                              {generandoVersion
-                                ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Generando...</>
-                                : <><Zap className="w-4 h-4" /> Consolidar v{versiones.length + 1}</>}
-                            </button>
-                          ) : (
-                            <button onClick={() => setTabDoc('versiones')}
-                              className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold text-emerald-300 border border-emerald-700/50 hover:bg-emerald-900/30 transition-all shrink-0">
-                              Ver Control de Versiones <ArrowRight className="w-3.5 h-3.5" />
-                            </button>
-                          )}
+                          <button onClick={generarNuevaVersion} disabled={generandoVersion}
+                            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-black bg-emerald-700 hover:bg-emerald-600 text-white transition-all disabled:opacity-50 shrink-0 shadow-lg shadow-emerald-900/50">
+                            {generandoVersion
+                              ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Generando...</>
+                              : <><Zap className="w-4 h-4" /> Consolidar v{versiones.length + 1}</>}
+                          </button>
                         </div>
                       )}
 
@@ -1616,23 +1608,21 @@ export function ProcesoCard({ proceso, esHijo = false, proyectoId, esInterno = f
                             {atendidasActivas} hallazgo{atendidasActivas > 1 ? 's' : ''} resuelto{atendidasActivas > 1 ? 's' : ''} sin consolidar
                           </p>
                           <p className="text-xs text-slate-400 mt-0.5">
-                            {esInterno
-                              ? `La v${versiones.length + 1} se generará con estos hallazgos excluidos.`
-                              : `La v${versiones.length + 1} de ${proceso.nombre} va a aparecer justo aquí, con la traza completa de qué cambió.`}
+                            {generandoVersion
+                              ? 'La IA está reescribiendo el documento con tus cambios — puede tardar hasta un minuto.'
+                              : `La IA va a generar la v${versiones.length + 1} con estos hallazgos incorporados, y va a aparecer justo aquí.`}
                           </p>
                         </div>
-                        {esInterno && (
-                          <button
-                            onClick={generarNuevaVersion}
-                            disabled={generandoVersion}
-                            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold bg-emerald-700 hover:bg-emerald-600 text-white transition-all disabled:opacity-50 shrink-0"
-                          >
-                            {generandoVersion
-                              ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Generando...</>
-                              : <><Zap className="w-4 h-4" /> Crear v{versiones.length + 1}</>
-                            }
-                          </button>
-                        )}
+                        <button
+                          onClick={generarNuevaVersion}
+                          disabled={generandoVersion}
+                          className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold bg-emerald-700 hover:bg-emerald-600 text-white transition-all disabled:opacity-50 shrink-0"
+                        >
+                          {generandoVersion
+                            ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Generando...</>
+                            : <><Zap className="w-4 h-4" /> Crear v{versiones.length + 1}</>
+                          }
+                        </button>
                       </div>
                     )}
 

@@ -447,6 +447,51 @@ ${resumenesTruncados.map((d, i) => `--- Documento ${i + 1} ---\n${d}`).join('\n\
   return extractJson(completion.choices[0]?.message?.content ?? '') as DiscoveryResult
 }
 
+export interface RegeneracionDocumento {
+  texto_completo: string
+  cambios_aplicados: Array<{ seccion: string; tipo: string; descripcion: string }>
+  resumen_cambios: string
+}
+
+// Máximo de caracteres del documento original que se envían — evita que un
+// documento excepcionalmente largo (decenas de miles de palabras) reviente
+// el context window junto con las decisiones del cliente. La gran mayoría
+// de los documentos de proceso (SC0X) están muy por debajo de este límite.
+const MAX_CHARS_DOCUMENTO_ORIGINAL = 24000
+
+export async function regenerarDocumentoConCambios(
+  textoOriginal: string,
+  decisiones: Array<{ tipo: string; texto_original: string; observacion: string; tipoAceptacion: 'tal_cual' | 'con_observacion' }>,
+): Promise<RegeneracionDocumento> {
+  const system = loadPrompt('regenerar-documento')
+
+  const textoTruncado = textoOriginal.length > MAX_CHARS_DOCUMENTO_ORIGINAL
+    ? textoOriginal.slice(0, MAX_CHARS_DOCUMENTO_ORIGINAL) + '\n[documento truncado por longitud]'
+    : textoOriginal
+
+  const decisionesTexto = decisiones.map((d, i) => `${i + 1}. [${d.tipo.toUpperCase()}] ${d.texto_original}
+   Decisión del cliente: ${d.tipoAceptacion === 'tal_cual' ? 'Aceptado tal cual, sin cambios.' : `Aceptado con observación — "${d.observacion}"`}`).join('\n\n')
+
+  const contenido = `
+Documento original:
+${textoTruncado}
+
+Decisiones del cliente:
+${decisionesTexto}
+`
+
+  const completion = await chatCompletion({
+    model: MODELOS.potente,
+    max_tokens: 8000,
+    temperature: 0.2,
+    messages: [
+      { role: 'system', content: system },
+      { role: 'user', content: contenido },
+    ],
+  })
+  return extractJson(completion.choices[0]?.message?.content ?? '') as RegeneracionDocumento
+}
+
 // ── Glosario de Roles ─────────────────────────────────────────────────────────
 export interface RolProceso {
   rol: string

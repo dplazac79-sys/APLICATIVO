@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { assertProyectoAccess } from '@/lib/auth/tenant'
 
 export async function GET(
   req: NextRequest,
@@ -21,6 +22,9 @@ export async function GET(
     .single()
 
   if (!proceso) return NextResponse.json({ error: 'Proceso no encontrado' }, { status: 404 })
+  if (!(await assertProyectoAccess(user.id, proceso.proyecto_id as string))) {
+    return NextResponse.json({ error: 'Sin acceso a este proceso' }, { status: 403 })
+  }
 
   const meta = (proceso.metadata_ia ?? {}) as Record<string, unknown>
   const versiones = (meta.versiones ?? []) as Array<Record<string, unknown>>
@@ -40,11 +44,34 @@ export async function GET(
     return NextResponse.json({ error: 'Versión no encontrada' }, { status: 404 })
   }
 
+  const vLabel = versionNum === 0 ? 'Original' : version ? `V${version.numero}` : 'Versión actual'
+
+  // Versiones generadas por IA (a partir de este cambio) tienen un .docx real
+  // guardado en Storage — el documento completo reescrito, con su registro
+  // de cambios incluido. Se sirve tal cual en vez del resumen en texto plano.
+  const urlStorageVersion = version?.url_storage_version as string | undefined
+  if (urlStorageVersion) {
+    const { data: fileData, error: errorDescarga } = await admin.storage.from('documentos').download(urlStorageVersion)
+    if (errorDescarga || !fileData) {
+      return NextResponse.json({ error: 'No se pudo leer el documento de esta versión.' }, { status: 500 })
+    }
+    const buffer = Buffer.from(await fileData.arrayBuffer())
+    const filename = `${codigo}_${vLabel.replace(/\s/g, '_')}.docx`
+    return new NextResponse(new Uint8Array(buffer), {
+      headers: {
+        'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'Content-Disposition': `attachment; filename="${filename}"`,
+        'Content-Length': String(buffer.length),
+      },
+    })
+  }
+
   const detalleCorrecciones = version
     ? (version.detalle_correcciones ?? []) as Array<{ tipo: string; observacion: string; texto_original?: string; fecha?: string }>
     : []
 
-  const vLabel = versionNum === 0 ? 'Original' : version ? `V${version.numero}` : 'Versión actual'
+  // Fallback en texto plano — solo para versiones anteriores a la
+  // regeneración por IA, que no tienen un .docx real guardado.
   const fecha = version
     ? new Date(version.fecha as string).toLocaleDateString('es-CL', { day: '2-digit', month: 'long', year: 'numeric' })
     : new Date().toLocaleDateString('es-CL', { day: '2-digit', month: 'long', year: 'numeric' })
@@ -128,12 +155,12 @@ export async function GET(
   lines.push(`═══════════════════════════════════════════════════════════════`)
 
   const content = lines.join('\n')
-  const filename = `${codigo}_${vLabel.replace(/\s/g, '_')}.txt`
+  const filenameTxt = `${codigo}_${vLabel.replace(/\s/g, '_')}.txt`
 
   return new NextResponse(content, {
     headers: {
       'Content-Type': 'text/plain; charset=utf-8',
-      'Content-Disposition': `attachment; filename="${filename}"`,
+      'Content-Disposition': `attachment; filename="${filenameTxt}"`,
     },
   })
 }
