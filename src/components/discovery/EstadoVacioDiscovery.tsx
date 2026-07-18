@@ -9,6 +9,17 @@ import DiscoveryAcciones from './DiscoveryAcciones'
 import type { DocumentoItem } from './types'
 import { PollingScreen } from './PollingScreen'
 
+// Narrativa rotativa del Hero — 4 formas de contar la misma promesa central
+// (borrador inteligente en minutos, criterio experto de AICOUNTS encima) para
+// que la propuesta de valor no se sienta como una sola frase de marketing
+// sino como algo genuinamente rico, visto desde distintos ángulos.
+const NARRATIVAS_HERO = [
+  'No tienes que hacer nada manual: en 1 a 3 minutos vas a tener en pantalla los tres resultados de abajo, listos para que los revises y decidas qué aceptar. Es el primer borrador inteligente que le ahorra semanas de lectura a tu equipo consultor AICOUNTS, para que ellos enfoquen su tiempo en lo que realmente mueve la aguja: el análisis experto y las decisiones estratégicas de tu proyecto.',
+  'Este es el motor de inteligencia que distingue a AICOUNTS Consultores: mientras la IA convierte tu documentación en un mapa estructurado en minutos, tu equipo consultor invierte ese tiempo ganado en profundizar el diagnóstico, validar cada hallazgo y diseñar recomendaciones a la medida de tu organización.',
+  'Ninguna otra consultora te entrega esto tan rápido: un vistazo objetivo y completo de cómo opera hoy tu organización, generado en minutos y curado después por especialistas AICOUNTS. Tecnología de punta al servicio de un criterio humano que no se automatiza.',
+  'Piensa en esto como tu punto de partida acelerado: la IA hace el barrido inicial sobre tus documentos para que el tiempo de tus consultores —tu recurso más valioso— se destine íntegramente a interpretar, cuestionar y enriquecer cada hallazgo con su experiencia real en terreno.',
+]
+
 export function EstadoVacioDiscovery({
   proyectosParaAcciones,
   documentos,
@@ -18,6 +29,14 @@ export function EstadoVacioDiscovery({
   documentos: DocumentoItem[]
   proyectoId: string
 }) {
+  const [narrativaIdx, setNarrativaIdx] = useState(0)
+  useEffect(() => {
+    const id = setInterval(() => {
+      setNarrativaIdx(i => (i + 1) % NARRATIVAS_HERO.length)
+    }, 7000)
+    return () => clearInterval(id)
+  }, [])
+
   const listos = documentos.filter(d => d.estado_procesamiento === 'listo')
   const noListos = documentos.filter(d => d.estado_procesamiento !== 'listo')
   const tieneListos = listos.length > 0
@@ -126,9 +145,29 @@ export function EstadoVacioDiscovery({
             La IA de AICOUNTS lee tu documentación<br />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-300 via-fuchsia-300 to-indigo-300">y te entrega el mapa completo de tu organización.</span>
           </h2>
-          <p className="text-slate-300 text-base leading-relaxed mb-6 max-w-2xl">
-            No tienes que hacer nada manual: en 1 a 3 minutos vas a tener en pantalla los tres resultados de abajo, listos para que los revises y decidas qué aceptar. Es el primer borrador inteligente que le ahorra semanas de lectura a tu equipo consultor AICOUNTS, para que ellos enfoquen su tiempo en lo que realmente mueve la aguja: el análisis experto y las decisiones estratégicas de tu proyecto.
-          </p>
+          <style>{`
+            @keyframes narrativaFadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+          `}</style>
+          <div className="mb-6 max-w-2xl min-h-[72px] sm:min-h-[48px]">
+            <p
+              key={narrativaIdx}
+              className="text-slate-300 text-base leading-relaxed"
+              style={{ animation: 'narrativaFadeIn 0.5s ease' }}
+            >
+              {NARRATIVAS_HERO[narrativaIdx]}
+            </p>
+          </div>
+          <div className="flex items-center gap-1.5 mb-6">
+            {NARRATIVAS_HERO.map((_, i) => (
+              <button
+                key={i}
+                type="button"
+                onClick={() => setNarrativaIdx(i)}
+                aria-label={`Ver mensaje ${i + 1} de ${NARRATIVAS_HERO.length}`}
+                className={`h-1.5 rounded-full transition-all ${i === narrativaIdx ? 'w-6 bg-violet-400' : 'w-1.5 bg-violet-800/60 hover:bg-violet-700'}`}
+              />
+            ))}
+          </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 max-w-2xl">
             {[
               { icon: Activity, color: 'text-violet-300', bg: 'bg-violet-950/40', border: 'border-violet-800/40', label: 'Vas a ver', value: 'Tus procesos mapeados' },
