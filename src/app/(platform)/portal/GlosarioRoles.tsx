@@ -244,7 +244,6 @@ export function GlosarioRoles({ proyectoId, nombreProyecto: _nombreProyecto, rol
 
   async function lanzarAnalisis() {
     if (!orgSeleccionado) { toast.error('Primero sube el organigrama'); return }
-    if (rolesDetectados.length === 0) { toast.error('No hay roles detectados en los procesos'); return }
 
     const r = await fetch('/api/portal/glosario-roles', {
       method: 'POST',

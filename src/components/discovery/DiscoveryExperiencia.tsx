@@ -306,50 +306,20 @@ export default function DiscoveryExperiencia({
           <DiscoveryAcciones proyectos={proyectosParaAcciones} variant="bottom" />
         </div>
       ) : (
-        /* Feature 3: Glosario de Roles tab */
-        rolesDetectados.length === 0 ? (
-          <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-10 text-center space-y-4">
-            <div className="w-14 h-14 rounded-2xl bg-indigo-900/40 border border-indigo-800/50 flex items-center justify-center mx-auto">
-              <Users className="w-7 h-7 text-indigo-400" />
-            </div>
-            <div>
-              <h3 className="text-white font-bold text-lg mb-2">Acepta procesos primero para ver roles detectados</h3>
-              <p className="text-slate-400 text-sm max-w-md mx-auto leading-relaxed">
-                El Glosario de Roles se construye a partir de los roles involucrados en los procesos que hayas <span className="text-emerald-400 font-medium">aceptado</span>. Ve a la pestaña <span className="text-violet-300 font-medium">Macroprocesos y Procesos</span> y valida los procesos relevantes para desbloquear este análisis.
-              </p>
-            </div>
-            <div className="flex items-start gap-3 max-w-sm mx-auto bg-slate-800/50 border border-slate-700/50 rounded-xl p-4 text-left mt-2">
-              <div className="space-y-2 text-xs text-slate-400">
-                <div className="flex items-center gap-2">
-                  <span className="w-5 h-5 rounded-full bg-violet-600 text-white text-xs font-bold flex items-center justify-center shrink-0">1</span>
-                  Abre la pestaña <strong className="text-slate-300">Macroprocesos y Procesos</strong>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="w-5 h-5 rounded-full bg-violet-600 text-white text-xs font-bold flex items-center justify-center shrink-0">2</span>
-                  Haz clic en <strong className="text-emerald-400">Aceptar proceso</strong> en los procesos relevantes
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="w-5 h-5 rounded-full bg-violet-600 text-white text-xs font-bold flex items-center justify-center shrink-0">3</span>
-                  Vuelve aquí para el análisis completo de roles
-                </div>
-              </div>
-            </div>
-            <button
-              onClick={() => setTab('procesos')}
-              className="inline-flex items-center gap-2 mt-2 px-5 py-2.5 bg-violet-600 hover:bg-violet-500 text-white text-sm font-semibold rounded-xl transition-colors"
-            >
-              <Activity className="w-4 h-4" /> Ver Macroprocesos y Procesos
-            </button>
-          </div>
-        ) : (
-          <div id="glosario-roles">
-            <GlosarioRoles
-              proyectoId={proyectoId}
-              nombreProyecto={nombreProyecto}
-              rolesDetectados={rolesDetectados}
-            />
-          </div>
-        )
+        /* Feature 3: Glosario de Roles tab — el análisis se arma a partir de
+           los documentos ya procesados del proyecto (roles_y_responsabilidades
+           de analisis_ia en /api/portal/glosario-roles), no de procesos
+           aceptados. rolesDetectados (roles de procesos con estado_oferta =
+           'aceptado') nunca llega a usarse en el backend, así que exigir
+           aceptar procesos antes de ver esta pestaña era una restricción
+           artificial que no reflejaba cómo funciona realmente el análisis. */
+        <div id="glosario-roles">
+          <GlosarioRoles
+            proyectoId={proyectoId}
+            nombreProyecto={nombreProyecto}
+            rolesDetectados={rolesDetectados}
+          />
+        </div>
       )}
     </div>
   )
