@@ -34,6 +34,11 @@ type Correccion = {
   observacion: string
   estado: 'atendido' | 'archivado'
   fecha: string
+  // tal_cual: el cliente está de acuerdo, no agregó nada. con_observacion:
+  // el cliente dejó una nota explicando cómo lo gestiona o por qué no aplica.
+  // Ausente en registros creados antes de este campo (siempre traían
+  // observación obligatoria).
+  tipoAceptacion?: 'tal_cual' | 'con_observacion'
 }
 type VersionDoc = {
   numero: number
@@ -119,12 +124,19 @@ export function ProcesoCard({ proceso, esHijo = false, proyectoId, esInterno = f
     return correcciones.some(c => c.tipo === (tipo as Correccion['tipo']) && c.indice === indice && (c.estado === 'atendido' || c.estado === 'archivado'))
   }
 
-  async function marcarAtendido(tipo: Correccion['tipo'], indice: number) {
+  // aceptarTalCual=true: el cliente está de acuerdo tal como está, sin
+  // agregar nada — no exige observación. Si no, el cliente está registrando
+  // un desacuerdo/matiz y debe explicar qué está pasando en su organización.
+  async function marcarAtendido(tipo: Correccion['tipo'], indice: number, aceptarTalCual = false) {
     const obs = textoCorr[claveCorr(tipo, indice)] ?? ''
-    if (!obs.trim()) { setErrorCorr('Debes escribir una observación antes de registrar.'); return }
+    if (!aceptarTalCual && !obs.trim()) { setErrorCorr('Escribe tu observación, o usa "Aceptar tal cual" si estás de acuerdo sin cambios.'); return }
     setErrorCorr(null)
     const nuevas = correcciones.filter(c => !(c.tipo === tipo && c.indice === indice))
-    const nueva: Correccion = { tipo, indice, observacion: obs, estado: 'atendido', fecha: new Date().toISOString() }
+    const nueva: Correccion = {
+      tipo, indice, estado: 'atendido', fecha: new Date().toISOString(),
+      observacion: aceptarTalCual ? '' : obs,
+      tipoAceptacion: aceptarTalCual ? 'tal_cual' : 'con_observacion',
+    }
     const updated = [...nuevas, nueva]
     setCorrecciones(updated)
     setExpandCorr(prev => ({ ...prev, [claveCorr(tipo, indice)]: false }))
@@ -633,11 +645,17 @@ export function ProcesoCard({ proceso, esHijo = false, proyectoId, esInterno = f
 
                                       <div className="flex items-center gap-4 mt-3 pt-2.5 border-t border-white/5">
                                         {!atendido ? (
-                                          <button onClick={() => setExpandCorr(p => ({ ...p, [key]: !p[key] }))}
-                                            className="text-xs text-slate-400 hover:text-emerald-400 flex items-center gap-1.5 transition-colors">
-                                            <Pencil className="w-3 h-3" />
-                                            {abierto ? 'Cerrar' : 'Registrar modificación y/o observación →'}
-                                          </button>
+                                          <>
+                                            <button onClick={() => marcarAtendido('riesgo', i, true)} disabled={guardandoCorr}
+                                              className="text-xs text-emerald-400 hover:text-emerald-300 font-medium flex items-center gap-1.5 transition-colors disabled:opacity-50">
+                                              <CheckCircle2 className="w-3 h-3" /> Aceptar tal cual
+                                            </button>
+                                            <button onClick={() => setExpandCorr(p => ({ ...p, [key]: !p[key] }))}
+                                              className="text-xs text-slate-400 hover:text-emerald-400 flex items-center gap-1.5 transition-colors">
+                                              <Pencil className="w-3 h-3" />
+                                              {abierto ? 'Cerrar' : 'No estoy de acuerdo / agregar observación →'}
+                                            </button>
+                                          </>
                                         ) : (
                                           <button onClick={() => desmarcarAtendido('riesgo', i)}
                                             className="text-xs text-slate-400 hover:text-red-400 transition-colors">
@@ -719,10 +737,16 @@ export function ProcesoCard({ proceso, esHijo = false, proyectoId, esInterno = f
                                         <p className={`text-sm leading-relaxed ${atendido ? 'line-through text-slate-400' : 'text-slate-200'}`}>{h}</p>
                                         <div className="flex items-center gap-3 mt-2.5">
                                           {!atendido ? (
-                                            <button onClick={() => setExpandCorr(p => ({ ...p, [key]: !p[key] }))}
-                                              className="text-xs text-slate-400 hover:text-emerald-400 flex items-center gap-1.5 transition-colors">
-                                              <Pencil className="w-3 h-3" /> {abierto ? 'Cerrar' : 'Registrar modificación y/o observación →'}
-                                            </button>
+                                            <>
+                                              <button onClick={() => marcarAtendido('hallazgo', i, true)} disabled={guardandoCorr}
+                                                className="text-xs text-emerald-400 hover:text-emerald-300 font-medium flex items-center gap-1.5 transition-colors disabled:opacity-50">
+                                                <CheckCircle2 className="w-3 h-3" /> Aceptar tal cual
+                                              </button>
+                                              <button onClick={() => setExpandCorr(p => ({ ...p, [key]: !p[key] }))}
+                                                className="text-xs text-slate-400 hover:text-emerald-400 flex items-center gap-1.5 transition-colors">
+                                                <Pencil className="w-3 h-3" /> {abierto ? 'Cerrar' : 'No estoy de acuerdo / agregar observación →'}
+                                              </button>
+                                            </>
                                           ) : (
                                             <span className="flex items-center gap-2 text-xs">
                                               <span className="text-emerald-400 font-semibold flex items-center gap-1"><CheckCircle2 className="w-3 h-3" /> Resuelto</span>
@@ -793,10 +817,16 @@ export function ProcesoCard({ proceso, esHijo = false, proyectoId, esInterno = f
                                     <p className={`flex-1 text-sm leading-relaxed ${atendido ? 'line-through text-slate-400' : 'text-slate-300'}`}>{b}</p>
                                     <div className="shrink-0 flex items-center gap-3">
                                       {!atendido ? (
-                                        <button onClick={() => setExpandCorr(p => ({ ...p, [key]: !p[key] }))}
-                                          className="text-xs text-slate-400 hover:text-emerald-400 flex items-center gap-1.5 transition-colors whitespace-nowrap">
-                                          <Pencil className="w-3 h-3" /> {abierto ? 'Cerrar' : 'Registrar oportunidad →'}
-                                        </button>
+                                        <>
+                                          <button onClick={() => marcarAtendido('brecha', i, true)} disabled={guardandoCorr}
+                                            className="text-xs text-emerald-400 hover:text-emerald-300 font-medium flex items-center gap-1.5 transition-colors disabled:opacity-50 whitespace-nowrap">
+                                            <CheckCircle2 className="w-3 h-3" /> Aceptar tal cual
+                                          </button>
+                                          <button onClick={() => setExpandCorr(p => ({ ...p, [key]: !p[key] }))}
+                                            className="text-xs text-slate-400 hover:text-emerald-400 flex items-center gap-1.5 transition-colors whitespace-nowrap">
+                                            <Pencil className="w-3 h-3" /> {abierto ? 'Cerrar' : 'Registrar oportunidad →'}
+                                          </button>
+                                        </>
                                       ) : (
                                         <div className="flex items-center gap-2">
                                           <span className="text-xs text-emerald-400 flex items-center gap-1 font-semibold"><CheckCircle2 className="w-3 h-3" /> Formalizado</span>
@@ -1738,7 +1768,9 @@ export function ProcesoCard({ proceso, esHijo = false, proyectoId, esInterno = f
                                                   )}
                                                   <div className="flex items-start gap-2">
                                                     <CheckCircle2 className="w-3 h-3 text-emerald-400 shrink-0 mt-0.5" />
-                                                    <p className="text-[11px] text-emerald-300 italic leading-relaxed">&quot;{d.observacion}&quot;</p>
+                                                    <p className="text-[11px] text-emerald-300 italic leading-relaxed">
+                                                      {d.observacion ? <>&quot;{d.observacion}&quot;</> : 'Aceptado tal cual, sin observaciones'}
+                                                    </p>
                                                   </div>
                                                   <p className="text-[10px] text-slate-400">
                                                     {new Date(d.fecha).toLocaleDateString('es-CL', { day:'2-digit', month:'short', year:'numeric' })}

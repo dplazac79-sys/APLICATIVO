@@ -80,7 +80,7 @@ export async function GET(
       if (c.texto_original) {
         lines.push(`     Texto original: ${c.texto_original}`)
       }
-      lines.push(`     Observación    : ${c.observacion}`)
+      lines.push(`     Observación    : ${c.observacion || 'Aceptado tal cual, sin observaciones'}`)
       if (c.fecha) {
         lines.push(`     Fecha          : ${new Date(c.fecha).toLocaleDateString('es-CL')}`)
       }
