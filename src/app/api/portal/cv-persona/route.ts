@@ -20,8 +20,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Faltan campos requeridos' }, { status: 400 })
 
   const admin = createAdminClient()
+  // usuario_proyecto no tiene columna id (llave compuesta usuario_id+proyecto_id).
   const { data: acceso } = await admin.from('usuario_proyecto')
-    .select('id').eq('usuario_id', user.id).eq('proyecto_id', body.proyecto_id).maybeSingle()
+    .select('usuario_id').eq('usuario_id', user.id).eq('proyecto_id', body.proyecto_id).maybeSingle()
   if (!acceso) return NextResponse.json({ error: 'Sin acceso' }, { status: 403 })
 
   const { data, error } = await admin.from('cv_persona_org').insert({

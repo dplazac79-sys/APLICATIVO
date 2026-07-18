@@ -24,8 +24,9 @@ export async function POST(req: NextRequest) {
   const admin = createAdminClient()
 
   // Verificar acceso al proyecto
+  // usuario_proyecto no tiene columna id (llave compuesta usuario_id+proyecto_id).
   const { data: acceso } = await admin.from('usuario_proyecto')
-    .select('id').eq('usuario_id', user.id).eq('proyecto_id', proyectoId).maybeSingle()
+    .select('usuario_id').eq('usuario_id', user.id).eq('proyecto_id', proyectoId).maybeSingle()
   if (!acceso) return NextResponse.json({ error: 'Sin acceso al proyecto' }, { status: 403 })
 
   const ext  = file.name.split('.').pop()

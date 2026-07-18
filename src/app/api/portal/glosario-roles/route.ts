@@ -39,8 +39,13 @@ export async function POST(req: NextRequest) {
   const { data: usuarioDB } = await admin.from('usuario').select('rol').eq('id', user.id).single()
   const esInterno = usuarioDB?.rol === 'super_admin' || usuarioDB?.rol === 'consultor'
   if (!esInterno) {
+    // usuario_proyecto no tiene columna id (su llave es compuesta
+    // usuario_id+proyecto_id) — pedir select('id') hacía que Postgrest
+    // devolviera error en cada llamada, descartado en silencio, así que todo
+    // sponsor_cliente/usuario_cliente recibía "Sin acceso" sin importar si
+    // realmente pertenecía al proyecto.
     const { data: acceso } = await admin.from('usuario_proyecto')
-      .select('id').eq('usuario_id', user.id).eq('proyecto_id', body.proyecto_id).maybeSingle()
+      .select('usuario_id').eq('usuario_id', user.id).eq('proyecto_id', body.proyecto_id).maybeSingle()
     if (!acceso) return NextResponse.json({ error: 'Sin acceso' }, { status: 403 })
   }
 
