@@ -165,34 +165,41 @@ export default async function ArtefactosPage() {
                 <span className={`text-[10px] ${cfg.color} shrink-0 opacity-50 font-medium`}>{cfg.label}</span>
               </div>
               <div className="flex items-center gap-4 shrink-0 ml-4">
-                {generados === 0 && (
-                  <span className="text-[11px] text-slate-400 font-medium">Sin artefactos</span>
-                )}
-                {generados > 0 && (
-                  <div className="flex items-center gap-2">
-                    <div className="w-16 h-1 bg-slate-800 rounded-full overflow-hidden hidden sm:block">
-                      <div
-                        className={`h-full rounded-full transition-all ${pct === 100 ? 'bg-emerald-500' : 'bg-violet-500'}`}
-                        style={{ width: `${pct}%` }}
-                      />
-                    </div>
-                    <span className={`text-[11px] font-semibold ${pct === 100 ? 'text-emerald-400' : 'text-slate-400'}`}>
-                      {generados}/{total}
-                    </span>
-                  </div>
-                )}
-                {publicados > 0 && (
-                  <span className="flex items-center gap-1 text-[11px] text-emerald-400 font-medium">
-                    <CheckCircle2 className="w-3 h-3" />{publicados} aprobados
-                  </span>
-                )}
-                {generados === total && total > 0 && publicados === 0 && (
-                  <span className="flex items-center gap-1 text-[11px] text-slate-400 font-medium">
-                    <Clock className="w-3 h-3" />Sin aprobar
-                  </span>
-                )}
-                {hayIncompletos && (
-                  <AlertTriangle className="w-3.5 h-3.5 text-amber-500/70" />
+                {/* Los artefactos se generan por proceso, no por macroproceso
+                    — mostrar "Sin artefactos" en la fila del macroproceso no
+                    dice nada real, ahí nunca va a haber artefactos propios. */}
+                {!esMacroproceso && (
+                  <>
+                    {generados === 0 && (
+                      <span className="text-[11px] text-slate-400 font-medium">Sin artefactos</span>
+                    )}
+                    {generados > 0 && (
+                      <div className="flex items-center gap-2">
+                        <div className="w-16 h-1 bg-slate-800 rounded-full overflow-hidden hidden sm:block">
+                          <div
+                            className={`h-full rounded-full transition-all ${pct === 100 ? 'bg-emerald-500' : 'bg-violet-500'}`}
+                            style={{ width: `${pct}%` }}
+                          />
+                        </div>
+                        <span className={`text-[11px] font-semibold ${pct === 100 ? 'text-emerald-400' : 'text-slate-400'}`}>
+                          {generados}/{total}
+                        </span>
+                      </div>
+                    )}
+                    {publicados > 0 && (
+                      <span className="flex items-center gap-1 text-[11px] text-emerald-400 font-medium">
+                        <CheckCircle2 className="w-3 h-3" />{publicados} aprobados
+                      </span>
+                    )}
+                    {generados === total && total > 0 && publicados === 0 && (
+                      <span className="flex items-center gap-1 text-[11px] text-slate-400 font-medium">
+                        <Clock className="w-3 h-3" />Sin aprobar
+                      </span>
+                    )}
+                    {hayIncompletos && (
+                      <AlertTriangle className="w-3.5 h-3.5 text-amber-500/70" />
+                    )}
+                  </>
                 )}
                 {esClickable && (
                   <ArrowUpRight className="w-3.5 h-3.5 text-slate-600 group-hover:text-slate-400 transition-colors" />
