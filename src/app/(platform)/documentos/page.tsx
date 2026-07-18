@@ -129,7 +129,11 @@ export default async function DocumentosPage({ searchParams }: { searchParams: {
   let faseActual: Awaited<ReturnType<typeof getFasesProyecto>>['fases'][number] | null = null
   if (!esInterno && proyectoActivo) {
     const { fases } = await getFasesProyecto(proyectoActivo.id, rolActual)
-    faseActual = fases.find(f => f.status === 'activa' && f.id !== 2) ?? null
+    // Comparar por href (no por id): getFasesProyecto devuelve una
+    // numeración de fases distinta para roles cliente (Centro Documental es
+    // id 1 ahí, no 2 como en el modelo interno de 7 fases) — filtrar por un
+    // id fijo excluía la fase equivocada y dejaba faseActual siempre null.
+    faseActual = fases.find(f => f.status === 'activa' && f.href !== '/documentos') ?? null
   }
 
   return (
