@@ -231,13 +231,15 @@ export interface VersionDocumentoDocx {
   proyecto: string
   fecha: string
   textoCompleto: string
-  cambiosAplicados: Array<{ seccion: string; tipo: string; descripcion: string }>
+  cambiosAplicados: Array<{ seccion: string; tipo: string; descripcion: string; aplicado?: boolean }>
   resumenCambios: string
 }
 
 const TIPO_CAMBIO_LABEL: Record<string, string> = {
   riesgo: 'Riesgo', hallazgo: 'Hallazgo', brecha: 'Brecha de documentación', rol: 'Rol',
 }
+
+const AMBER = 'B45309'
 
 export async function generarVersionDocumentoDocx(v: VersionDocumentoDocx): Promise<Buffer> {
   const registroCambios: Paragraph[] = v.cambiosAplicados.length > 0
@@ -247,6 +249,9 @@ export async function generarVersionDocumentoDocx(v: VersionDocumentoDocx): Prom
           new TextRun({ text: `[${TIPO_CAMBIO_LABEL[c.tipo] ?? c.tipo}] `, bold: true, color: SLATE500, size: 20 }),
           new TextRun({ text: c.seccion ? `${c.seccion} — ` : '', italics: true, color: SLATE500, size: 20 }),
           new TextRun({ text: c.descripcion, color: SLATE800, size: 20 }),
+          ...(c.aplicado === false
+            ? [new TextRun({ text: '  (revisar manualmente — no se ubicó automáticamente en el documento)', italics: true, color: AMBER, size: 18 })]
+            : []),
         ],
         spacing: { after: 140 },
       }))

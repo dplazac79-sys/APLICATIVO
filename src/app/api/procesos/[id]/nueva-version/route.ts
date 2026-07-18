@@ -127,7 +127,7 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
     return NextResponse.json({ error: msg }, { status: 500 })
   }
 
-  await registrarUsoIA({ proyecto_id: proceso.proyecto_id as string, usuario_id: user.id, tipo: 'generacion', tokens_input: 10000, tokens_output: 6000 })
+  await registrarUsoIA({ proyecto_id: proceso.proyecto_id as string, usuario_id: user.id, tipo: 'generacion', tokens_input: 10000, tokens_output: 3000 })
 
   const maxNumero = versionesActuales.reduce((max, v) => Math.max(max, (v as Record<string, unknown>).numero as number ?? 0), 0)
   const numeroNuevaVersion = Math.max(versionesActuales.length === 0 ? 2 : maxNumero + 1, 2)
@@ -135,14 +135,30 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
   const proyectoInfo = proceso.proyecto as unknown as { nombre: string; cliente: { razon_social: string } | null } | null
   const codigo = proceso.codigo ?? documentoOrigen.nombre_archivo.replace(/\.[^.]+$/, '').toUpperCase()
 
+  // Aplica cada reemplazo devuelto por la IA sobre el texto real del
+  // documento — la IA nunca escribe el documento completo, solo indica qué
+  // fragmento exacto buscar y por qué reemplazarlo. Si el fragmento no
+  // aparece literalmente (la IA parafraseó en vez de copiar textual), el
+  // cambio queda marcado como no aplicado automáticamente en el registro,
+  // en vez de fallar silenciosamente o corromper el documento.
+  let textoActualizado = textoOriginal
+  const cambiosConEstado = (regenerado.cambios_aplicados ?? []).map(c => {
+    if (!c.buscar) return { ...c, aplicado: true as const } // "aceptado tal cual" — sin cambio de texto
+    if (textoActualizado.includes(c.buscar)) {
+      textoActualizado = textoActualizado.replace(c.buscar, c.reemplazar_por)
+      return { ...c, aplicado: true as const }
+    }
+    return { ...c, aplicado: false as const }
+  })
+
   const docxBuffer = await generarVersionDocumentoDocx({
     codigo,
     nombre: proceso.nombre,
     numero: numeroNuevaVersion,
     proyecto: proyectoInfo?.cliente?.razon_social ? `${proyectoInfo.cliente.razon_social} — ${proyectoInfo.nombre}` : (proyectoInfo?.nombre ?? 'Proyecto'),
     fecha: new Date().toLocaleDateString('es-CL', { day: '2-digit', month: 'long', year: 'numeric' }),
-    textoCompleto: regenerado.texto_completo,
-    cambiosAplicados: regenerado.cambios_aplicados ?? [],
+    textoCompleto: textoActualizado,
+    cambiosAplicados: cambiosConEstado,
     resumenCambios: regenerado.resumen_cambios ?? '',
   })
 
@@ -161,7 +177,7 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
     correcciones_aplicadas: atendidas.length,
     descripcion: regenerado.resumen_cambios || 'Nueva versión generada por IA',
     detalle_correcciones: detalleCorrecciones,
-    cambios_aplicados: regenerado.cambios_aplicados ?? [],
+    cambios_aplicados: cambiosConEstado,
     documento_id: proceso.documento_origen_id ?? null,
     url_storage_version: pathStorage,
     generado_por_ia: true,

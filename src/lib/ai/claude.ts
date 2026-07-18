@@ -447,9 +447,16 @@ ${resumenesTruncados.map((d, i) => `--- Documento ${i + 1} ---\n${d}`).join('\n\
   return extractJson(completion.choices[0]?.message?.content ?? '') as DiscoveryResult
 }
 
+export interface ReemplazoDocumento {
+  tipo: string
+  seccion: string
+  buscar: string
+  reemplazar_por: string
+  descripcion: string
+}
+
 export interface RegeneracionDocumento {
-  texto_completo: string
-  cambios_aplicados: Array<{ seccion: string; tipo: string; descripcion: string }>
+  cambios_aplicados: ReemplazoDocumento[]
   resumen_cambios: string
 }
 
@@ -459,6 +466,10 @@ export interface RegeneracionDocumento {
 // de los documentos de proceso (SC0X) están muy por debajo de este límite.
 const MAX_CHARS_DOCUMENTO_ORIGINAL = 24000
 
+// La IA nunca reescribe el documento completo (eso arriesga cortar la
+// respuesta a mitad de un JSON de decenas de miles de caracteres y romper
+// el parseo) — solo devuelve los reemplazos puntuales de texto, que el
+// backend aplica programáticamente sobre el documento real.
 export async function regenerarDocumentoConCambios(
   textoOriginal: string,
   decisiones: Array<{ tipo: string; texto_original: string; observacion: string; tipoAceptacion: 'tal_cual' | 'con_observacion' }>,
@@ -482,7 +493,7 @@ ${decisionesTexto}
 
   const completion = await chatCompletion({
     model: MODELOS.potente,
-    max_tokens: 8000,
+    max_tokens: 4000,
     temperature: 0.2,
     messages: [
       { role: 'system', content: system },
