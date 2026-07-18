@@ -295,7 +295,7 @@ export default async function ArtefactosPage() {
                   <div>
                     <p className="text-sky-100 text-xs font-medium">Revisar y validar</p>
                     <p className="text-slate-400 text-[11px] mt-0.5 leading-snug">
-                      Abre cualquier proceso (SC01–SC06), revisa cada artefacto y usa el botón <span className="text-white font-medium">Validar</span> para aprobarlo.
+                      Abre cualquier proceso de la lista de abajo, revisa cada artefacto y usa el botón <span className="text-white font-medium">Validar</span> para aprobarlo.
                     </p>
                   </div>
                 </div>
