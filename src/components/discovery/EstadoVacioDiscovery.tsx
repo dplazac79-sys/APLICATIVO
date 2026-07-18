@@ -2,22 +2,54 @@
 
 import { useState, useEffect } from 'react'
 import {
-  Brain, Sparkles, CheckCircle2, Users,
+  Brain, Sparkles, CheckCircle2, Users, Clock,
   Layers, FileText, AlertCircle, Lock, X, Activity, Zap
 } from 'lucide-react'
 import DiscoveryAcciones from './DiscoveryAcciones'
 import type { DocumentoItem } from './types'
 import { PollingScreen } from './PollingScreen'
 
-// Narrativa rotativa del Hero — 4 formas de contar la misma promesa central
-// (borrador inteligente en minutos, criterio experto de AICOUNTS encima) para
-// que la propuesta de valor no se sienta como una sola frase de marketing
-// sino como algo genuinamente rico, visto desde distintos ángulos.
-const NARRATIVAS_HERO = [
-  'No tienes que hacer nada manual: en 1 a 3 minutos vas a tener en pantalla los tres resultados de abajo, listos para que los revises y decidas qué aceptar. Es el primer borrador inteligente que le ahorra semanas de lectura a tu equipo consultor AICOUNTS, para que ellos enfoquen su tiempo en lo que realmente mueve la aguja: el análisis experto y las decisiones estratégicas de tu proyecto.',
-  'Este es el motor de inteligencia que distingue a AICOUNTS Consultores: mientras la IA convierte tu documentación en un mapa estructurado en minutos, tu equipo consultor invierte ese tiempo ganado en profundizar el diagnóstico, validar cada hallazgo y diseñar recomendaciones a la medida de tu organización.',
-  'Ninguna otra consultora te entrega esto tan rápido: un vistazo objetivo y completo de cómo opera hoy tu organización, generado en minutos y curado después por especialistas AICOUNTS. Tecnología de punta al servicio de un criterio humano que no se automatiza.',
-  'Piensa en esto como tu punto de partida acelerado: la IA hace el barrido inicial sobre tus documentos para que el tiempo de tus consultores —tu recurso más valioso— se destine íntegramente a interpretar, cuestionar y enriquecer cada hallazgo con su experiencia real en terreno.',
+// Narrativa rotativa del Hero — 5 formas de contar la misma promesa central
+// (motor de IA propio de AICOUNTS, construido sobre el trabajo riguroso que
+// ya hizo la consultora levantando tus procesos, puesto al servicio de que
+// tú decidas en minutos lo que antes tomaba días o semanas) para que la
+// propuesta de valor no se sienta como una sola frase de marketing sino
+// como algo genuinamente rico, visto desde distintos ángulos. Algunas
+// vienen acompañadas de las cajitas de vista previa; otras son solo texto.
+const NARRATIVAS_HERO: Array<{
+  texto: string
+  cajas?: Array<{ icon: typeof Activity; color: string; bg: string; border: string; label: string; value: string }>
+}> = [
+  {
+    texto: 'No tienes que hacer nada manual: en apenas 1 a 3 minutos vas a tener en pantalla los tres resultados de abajo, listos para que los revises y decidas qué aceptar. Este es el motor de Inteligencia Artificial propio de AICOUNTS Consultores, entrenado específicamente para leer documentación empresarial completa y transformarla en información accionable — el mismo insumo que, revisado a mano por tu equipo, tomaría semanas de trabajo dedicado.',
+    cajas: [
+      { icon: Activity, color: 'text-violet-300', bg: 'bg-violet-950/40', border: 'border-violet-800/40', label: 'Vas a ver', value: 'Tus procesos mapeados' },
+      { icon: Users, color: 'text-indigo-300', bg: 'bg-indigo-950/40', border: 'border-indigo-800/40', label: 'Vas a ver', value: 'Quién hace qué en tu equipo' },
+      { icon: Zap, color: 'text-amber-300', bg: 'bg-amber-950/30', border: 'border-amber-800/30', label: 'Vas a ver', value: 'Qué mejorar primero' },
+    ],
+  },
+  {
+    texto: 'En AICOUNTS Consultores nos ponemos en tu lugar: sabemos que como cliente no siempre tienes semanas para esperar un diagnóstico, ni el tiempo para leer cientos de páginas de procesos internos antes de tomar una decisión. Por eso diseñamos y construimos este motor de IA de última generación — para ponerlo directamente en tus manos y devolverte, en minutos, la misma claridad que antes solo llegaba al final de un largo proceso de consultoría tradicional.',
+  },
+  {
+    texto: 'Todo el trabajo riguroso de levantar, entrevistar, documentar y estructurar tus procesos de negocio sigue siendo obra de consultores senior AICOUNTS — eso no cambia y es la base de todo lo que ves aquí. Lo que sí cambia es la velocidad a la que ahora puedes analizarlo, mejorarlo y aprobarlo: lo que antes te tomaba días o semanas de revisión manual, hoy lo resuelves en minutos gracias a un motor de IA construido específicamente para acompañar tu toma de decisiones como cliente.',
+    cajas: [
+      { icon: Clock, color: 'text-slate-300', bg: 'bg-slate-800/40', border: 'border-slate-700/50', label: 'Antes', value: 'Días o semanas de revisión' },
+      { icon: Zap, color: 'text-amber-300', bg: 'bg-amber-950/30', border: 'border-amber-800/30', label: 'Ahora', value: 'Minutos con IA AICOUNTS' },
+      { icon: CheckCircle2, color: 'text-emerald-300', bg: 'bg-emerald-950/30', border: 'border-emerald-800/30', label: 'Siempre', value: 'Tú apruebas, no la máquina' },
+    ],
+  },
+  {
+    texto: 'No es un chatbot genérico ni una plantilla automática: es un motor de análisis particular y único, diseñado por AICOUNTS Consultores específicamente para interpretar la documentación de procesos de tu organización, cruzarla con criterios de la industria y devolverte hallazgos con el mismo estándar profesional que verías en un informe de consultoría tradicional — pero a la velocidad que solo la inteligencia artificial puede ofrecer.',
+  },
+  {
+    texto: 'Piensa en esta pantalla como tu centro de decisiones ejecutivo: en minutos vas a tener sobre la mesa un mapa completo de cómo opera tu organización hoy, las oportunidades de mejora más relevantes para tu negocio y quién en tu equipo debería asumir cada responsabilidad — toda la información que necesitas para decidir con confianza, sin semanas de espera de por medio. Así es como AICOUNTS Consultores pone la tecnología más avanzada al servicio directo de tus resultados.',
+    cajas: [
+      { icon: Layers, color: 'text-violet-300', bg: 'bg-violet-950/40', border: 'border-violet-800/40', label: 'Obtienes', value: 'Diagnóstico completo' },
+      { icon: Users, color: 'text-indigo-300', bg: 'bg-indigo-950/40', border: 'border-indigo-800/40', label: 'Obtienes', value: 'Responsables claros' },
+      { icon: Sparkles, color: 'text-amber-300', bg: 'bg-amber-950/30', border: 'border-amber-800/30', label: 'Obtienes', value: 'Prioridades de mejora' },
+    ],
+  },
 ]
 
 export function EstadoVacioDiscovery({
@@ -148,13 +180,13 @@ export function EstadoVacioDiscovery({
           <style>{`
             @keyframes narrativaFadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
           `}</style>
-          <div className="mb-6 max-w-2xl min-h-[72px] sm:min-h-[48px]">
+          <div className="mb-6 max-w-2xl min-h-[96px] sm:min-h-[72px]">
             <p
               key={narrativaIdx}
               className="text-slate-300 text-base leading-relaxed"
               style={{ animation: 'narrativaFadeIn 0.5s ease' }}
             >
-              {NARRATIVAS_HERO[narrativaIdx]}
+              {NARRATIVAS_HERO[narrativaIdx].texto}
             </p>
           </div>
           <div className="flex items-center gap-1.5 mb-6">
@@ -168,21 +200,19 @@ export function EstadoVacioDiscovery({
               />
             ))}
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 max-w-2xl">
-            {[
-              { icon: Activity, color: 'text-violet-300', bg: 'bg-violet-950/40', border: 'border-violet-800/40', label: 'Vas a ver', value: 'Tus procesos mapeados' },
-              { icon: Users, color: 'text-indigo-300', bg: 'bg-indigo-950/40', border: 'border-indigo-800/40', label: 'Vas a ver', value: 'Quién hace qué en tu equipo' },
-              { icon: Zap, color: 'text-amber-300', bg: 'bg-amber-950/30', border: 'border-amber-800/30', label: 'Vas a ver', value: 'Qué mejorar primero' },
-            ].map(({ icon: Icon, color, bg, border, label, value }) => (
-              <div key={value} className={`flex items-center gap-2.5 rounded-xl border ${bg} ${border} px-3 py-2.5`}>
-                <Icon className={`w-4 h-4 shrink-0 ${color}`} />
-                <div className="min-w-0">
-                  <p className="text-[10px] text-slate-400 uppercase tracking-wide leading-none mb-0.5">{label}</p>
-                  <p className={`text-xs font-semibold leading-tight ${color}`}>{value}</p>
+          {NARRATIVAS_HERO[narrativaIdx].cajas && (
+            <div key={`cajas-${narrativaIdx}`} className="grid grid-cols-1 sm:grid-cols-3 gap-3 max-w-2xl" style={{ animation: 'narrativaFadeIn 0.5s ease' }}>
+              {NARRATIVAS_HERO[narrativaIdx].cajas!.map(({ icon: Icon, color, bg, border, label, value }) => (
+                <div key={value} className={`flex items-center gap-2.5 rounded-xl border ${bg} ${border} px-3 py-2.5`}>
+                  <Icon className={`w-4 h-4 shrink-0 ${color}`} />
+                  <div className="min-w-0">
+                    <p className="text-[10px] text-slate-400 uppercase tracking-wide leading-none mb-0.5">{label}</p>
+                    <p className={`text-xs font-semibold leading-tight ${color}`}>{value}</p>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
