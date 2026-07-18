@@ -1,15 +1,18 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
 import { notFound, redirect } from 'next/navigation'
-import { Layers, ChevronLeft, Printer, FileCheck2 } from 'lucide-react'
+import { Layers, ChevronLeft, Printer, FileCheck2, ArrowRight } from 'lucide-react'
 import Link from 'next/link'
 import type { Artefacto } from '@/types/database'
 import ArtefactoCardEditor from '@/components/artefactos/ArtefactoCardEditor'
 import ImportadorArtefactos from '@/components/artefactos/ImportadorArtefactos'
 import BotonReextraer from '@/components/artefactos/BotonReextraer'
 import { ORDEN_GENERACION } from '@/lib/artefactos-meta'
+import { getFasesProyecto } from '@/lib/fases'
 
 export const dynamic = 'force-dynamic'
+
+const ROL_INTERNO = ['super_admin', 'director_proyecto', 'consultor']
 
 interface Props { params: { procesoId: string } }
 
@@ -57,6 +60,17 @@ export default async function ProcesoArtefactosPage({ params }: Props) {
   const totalPendientes = artefactos.filter(a => a.estado_validacion === 'pendiente').length
 
   const sinArtefactos = totalGenerados === 0
+
+  // Próximo paso — solo para roles cliente, y solo cuando este proceso ya
+  // no tiene nada pendiente de revisar (los 8 artefactos generados y
+  // ninguno en estado "pendiente"). Mismo patrón que en el resto de la
+  // plataforma: sin esto, el cliente terminaba de revisar y no sabía que
+  // ya había terminado ni hacia dónde seguir.
+  let faseActual: Awaited<ReturnType<typeof getFasesProyecto>>['fases'][number] | null = null
+  if (!ROL_INTERNO.includes(rolUsuario) && totalGenerados >= ORDEN_GENERACION.length && totalPendientes === 0) {
+    const { fases } = await getFasesProyecto(proceso.proyecto_id as string, rolUsuario)
+    faseActual = fases.find(f => f.status === 'activa' && f.href !== '/artefactos') ?? null
+  }
 
   return (
     <div className="space-y-5">
@@ -155,6 +169,26 @@ export default async function ProcesoArtefactosPage({ params }: Props) {
           <ArtefactoCardEditor key={tipo} artefacto={art} procesoId={params.procesoId} numero={idx + 1} rol={rolUsuario} />
         )
       })}
+
+      {faseActual && (
+        <div className="relative overflow-hidden bg-gradient-to-r from-indigo-900/40 via-indigo-800/20 to-slate-900 border border-indigo-500/30 rounded-2xl p-6">
+          <div className="absolute right-0 top-0 w-40 h-40 bg-indigo-500/10 rounded-full blur-2xl pointer-events-none" />
+          <div className="relative flex items-center justify-between gap-6 flex-wrap">
+            <div className="space-y-1">
+              <p className="text-xs text-indigo-300 uppercase tracking-widest font-medium">Qué te toca hacer ahora</p>
+              <h3 className="text-white text-lg font-semibold">{faseActual.nombre}</h3>
+              <p className="text-slate-400 text-sm max-w-md">{faseActual.descripcion}</p>
+            </div>
+            <Link
+              href={faseActual.href}
+              className="flex items-center gap-3 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-semibold px-6 py-3.5 rounded-xl transition-all text-sm shadow-lg shadow-indigo-900/40 shrink-0"
+            >
+              Ir a {faseActual.nombre}
+              <ArrowRight className="w-5 h-5" />
+            </Link>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
