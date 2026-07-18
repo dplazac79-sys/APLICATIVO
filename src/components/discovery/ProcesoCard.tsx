@@ -878,15 +878,20 @@ export function ProcesoCard({ proceso, esHijo = false, proyectoId, esInterno = f
                             <p className="text-xs text-slate-400 mt-0.5">
                               {esInterno
                                 ? `Genera la v${versiones.length + 1} del documento excluyendo los hallazgos ya incorporados en tu organización.`
-                                : 'Tu consultor AICOUNTS va a consolidar estos puntos en la próxima versión del documento.'}
+                                : `La v${versiones.length + 1} de ${proceso.nombre} va a estar disponible en Control de Versiones, con la traza completa de qué cambió.`}
                             </p>
                           </div>
-                          {esInterno && (
+                          {esInterno ? (
                             <button onClick={generarNuevaVersion} disabled={generandoVersion}
                               className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-black bg-emerald-700 hover:bg-emerald-600 text-white transition-all disabled:opacity-50 shrink-0 shadow-lg shadow-emerald-900/50">
                               {generandoVersion
                                 ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Generando...</>
                                 : <><Zap className="w-4 h-4" /> Consolidar v{versiones.length + 1}</>}
+                            </button>
+                          ) : (
+                            <button onClick={() => setTabDoc('versiones')}
+                              className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold text-emerald-300 border border-emerald-700/50 hover:bg-emerald-900/30 transition-all shrink-0">
+                              Ver Control de Versiones <ArrowRight className="w-3.5 h-3.5" />
                             </button>
                           )}
                         </div>
@@ -1613,7 +1618,7 @@ export function ProcesoCard({ proceso, esHijo = false, proyectoId, esInterno = f
                           <p className="text-xs text-slate-400 mt-0.5">
                             {esInterno
                               ? `La v${versiones.length + 1} se generará con estos hallazgos excluidos.`
-                              : 'Tu consultor AICOUNTS va a consolidar estos puntos en la próxima versión.'}
+                              : `La v${versiones.length + 1} de ${proceso.nombre} va a aparecer justo aquí, con la traza completa de qué cambió.`}
                           </p>
                         </div>
                         {esInterno && (
