@@ -866,19 +866,29 @@ export function ProcesoCard({ proceso, esHijo = false, proyectoId, esInterno = f
                         </div>
                       )}
 
-                      {/* ── CTA nueva versión ── */}
+                      {/* ── CTA nueva versión — consolidar es trabajo de la
+                          consultora (el backend ya lo restringe a
+                          super_admin/director_proyecto/consultor); el
+                          cliente ve el progreso pero no el botón, que de
+                          todas formas le devolvía un 403 silencioso. */}
                       {atendidasActivas > 0 && (
                         <div className="rounded-2xl border border-emerald-700/40 bg-gradient-to-r from-emerald-950/30 to-transparent p-4 flex items-center justify-between gap-4">
                           <div>
                             <p className="text-sm font-bold text-emerald-300">{atendidasActivas} punto{atendidasActivas > 1 ? 's' : ''} resuelto{atendidasActivas > 1 ? 's' : ''}</p>
-                            <p className="text-xs text-slate-400 mt-0.5">Genera la v{versiones.length + 1} del documento excluyendo los hallazgos ya incorporados en tu organización.</p>
+                            <p className="text-xs text-slate-400 mt-0.5">
+                              {esInterno
+                                ? `Genera la v${versiones.length + 1} del documento excluyendo los hallazgos ya incorporados en tu organización.`
+                                : 'Tu consultor AICOUNTS va a consolidar estos puntos en la próxima versión del documento.'}
+                            </p>
                           </div>
-                          <button onClick={generarNuevaVersion} disabled={generandoVersion}
-                            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-black bg-emerald-700 hover:bg-emerald-600 text-white transition-all disabled:opacity-50 shrink-0 shadow-lg shadow-emerald-900/50">
-                            {generandoVersion
-                              ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Generando...</>
-                              : <><Zap className="w-4 h-4" /> Consolidar v{versiones.length + 1}</>}
-                          </button>
+                          {esInterno && (
+                            <button onClick={generarNuevaVersion} disabled={generandoVersion}
+                              className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-black bg-emerald-700 hover:bg-emerald-600 text-white transition-all disabled:opacity-50 shrink-0 shadow-lg shadow-emerald-900/50">
+                              {generandoVersion
+                                ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Generando...</>
+                                : <><Zap className="w-4 h-4" /> Consolidar v{versiones.length + 1}</>}
+                            </button>
+                          )}
                         </div>
                       )}
 
@@ -1601,19 +1611,23 @@ export function ProcesoCard({ proceso, esHijo = false, proyectoId, esInterno = f
                             {atendidasActivas} hallazgo{atendidasActivas > 1 ? 's' : ''} resuelto{atendidasActivas > 1 ? 's' : ''} sin consolidar
                           </p>
                           <p className="text-xs text-slate-400 mt-0.5">
-                            La v{versiones.length + 1} se generará con estos hallazgos excluidos.
+                            {esInterno
+                              ? `La v${versiones.length + 1} se generará con estos hallazgos excluidos.`
+                              : 'Tu consultor AICOUNTS va a consolidar estos puntos en la próxima versión.'}
                           </p>
                         </div>
-                        <button
-                          onClick={generarNuevaVersion}
-                          disabled={generandoVersion}
-                          className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold bg-emerald-700 hover:bg-emerald-600 text-white transition-all disabled:opacity-50 shrink-0"
-                        >
-                          {generandoVersion
-                            ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Generando...</>
-                            : <><Zap className="w-4 h-4" /> Crear v{versiones.length + 1}</>
-                          }
-                        </button>
+                        {esInterno && (
+                          <button
+                            onClick={generarNuevaVersion}
+                            disabled={generandoVersion}
+                            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold bg-emerald-700 hover:bg-emerald-600 text-white transition-all disabled:opacity-50 shrink-0"
+                          >
+                            {generandoVersion
+                              ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Generando...</>
+                              : <><Zap className="w-4 h-4" /> Crear v{versiones.length + 1}</>
+                            }
+                          </button>
+                        )}
                       </div>
                     )}
 
