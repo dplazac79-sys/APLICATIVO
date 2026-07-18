@@ -458,12 +458,14 @@ export function EstadoVacioDiscovery({
                 <FileText className="w-3.5 h-3.5 text-slate-400" />
                 <span className="text-xs font-semibold text-slate-400 uppercase tracking-widest">Documentos a analizar</span>
               </div>
-              <button
-                onClick={toggleTodos}
-                className="text-xs text-violet-300 hover:text-violet-100 font-medium transition-colors"
-              >
-                {todosSeleccionados ? 'Quitar todos' : 'Seleccionar todos'}
-              </button>
+              {listos.length > 1 && (
+                <button
+                  onClick={toggleTodos}
+                  className="text-xs text-violet-300 hover:text-violet-100 font-medium transition-colors"
+                >
+                  {todosSeleccionados ? 'Quitar todos' : 'Seleccionar todos'}
+                </button>
+              )}
             </div>
             <div className="flex flex-wrap gap-2">
               {listos.map(doc => {
