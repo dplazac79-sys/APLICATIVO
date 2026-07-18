@@ -111,7 +111,7 @@ describe('getFasesProyecto — rol cliente (sponsor_cliente/usuario_cliente)', (
     const { fases } = await getFasesProyecto('proy-1', 'sponsor_cliente')
     expect(fases).toHaveLength(5)
     expect(fases.map(f => f.href)).toEqual([
-      '/documentos', '/discovery', '/artefactos', '/versiones', '/horizonte',
+      '/documentos', '/discovery', '/artefactos', '/horizonte', '/versiones',
     ])
   })
 

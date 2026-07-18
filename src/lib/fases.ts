@@ -229,20 +229,13 @@ export async function getFasesProyecto(pid: string, rol?: string): Promise<{ pro
         ],
       },
       {
+        // Horizonte de Impacto va antes que Control de Versiones: ambas se
+        // desbloquean con el mismo requisito (vDone), pero Control de
+        // Versiones es un archivo de referencia que queda "completado" de
+        // inmediato apenas existe un artefacto (no requiere ninguna acción
+        // del cliente) — el verdadero siguiente paso accionable después de
+        // Artefactos es correr una simulación acá.
         id: 4,
-        nombre: 'Control de Versiones',
-        descripcion: 'Historial de cambios de procesos y artefactos, con descarga por versión.',
-        icono: '🔀',
-        color: 'teal',
-        href: '/versiones',
-        status: !f4Done ? 'bloqueada' : vDone ? 'completada' : 'activa',
-        progreso: !f4Done ? 0 : vDone ? 100 : 0,
-        items: [
-          { label: `Artefactos con historial (${artefactos ?? 0})`, done: (artefactos ?? 0) >= 1 },
-        ],
-      },
-      {
-        id: 5,
         nombre: 'Horizonte de Impacto',
         descripcion: 'Simulación del impacto de negocio esperado del proyecto.',
         icono: '📈',
@@ -255,6 +248,19 @@ export async function getFasesProyecto(pid: string, rol?: string): Promise<{ pro
         progreso: !vDone ? 0 : 10,
         items: [
           { label: 'Procesos y artefactos aprobados listos para simular', done: vDone },
+        ],
+      },
+      {
+        id: 5,
+        nombre: 'Control de Versiones',
+        descripcion: 'Historial de cambios de procesos y artefactos, con descarga por versión.',
+        icono: '🔀',
+        color: 'teal',
+        href: '/versiones',
+        status: !f4Done ? 'bloqueada' : vDone ? 'completada' : 'activa',
+        progreso: !f4Done ? 0 : vDone ? 100 : 0,
+        items: [
+          { label: `Artefactos con historial (${artefactos ?? 0})`, done: (artefactos ?? 0) >= 1 },
         ],
       },
       // Nota: Dashboard NO se incluye aquí a propósito — no es una fase de trabajo,

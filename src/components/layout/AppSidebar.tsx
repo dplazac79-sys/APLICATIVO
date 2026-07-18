@@ -36,12 +36,18 @@ const navItems: NavItem[] = [
   { label: 'Centro Documental', href: '/documentos', icon: FileText, roles: ['super_admin', 'director_proyecto', 'consultor', 'sponsor_cliente'], badge: 'F1' },
   { label: 'Process Discovery IA', href: '/discovery', icon: BrainCircuit, roles: ['super_admin', 'director_proyecto', 'consultor', 'sponsor_cliente'], badge: 'F2' },
   { label: 'Artefactos', href: '/artefactos', icon: Layers, roles: ['super_admin', 'director_proyecto', 'consultor', 'sponsor_cliente'], badge: 'F3' },
-  { label: 'Control de Versiones', href: '/versiones', icon: GitBranch, roles: ['super_admin', 'director_proyecto', 'consultor', 'sponsor_cliente', 'usuario_cliente'], badge: 'F4' },
-  { label: 'Horizonte de Impacto', href: '/horizonte', icon: BarChart3, roles: ['sponsor_cliente', 'usuario_cliente'], badge: 'F5' },
+  // Horizonte de Impacto va antes que Control de Versiones: ambas se
+  // desbloquean al mismo tiempo, pero Control de Versiones queda
+  // "completada" de inmediato apenas existe un artefacto (es un archivo
+  // de referencia, no requiere acción del cliente) — el siguiente paso
+  // accionable real después de Artefactos es correr una simulación en
+  // Horizonte de Impacto. Mismo orden que fasesCliente en fases.ts.
+  { label: 'Horizonte de Impacto', href: '/horizonte', icon: BarChart3, roles: ['sponsor_cliente', 'usuario_cliente'], badge: 'F4' },
+  { label: 'Control de Versiones', href: '/versiones', icon: GitBranch, roles: ['super_admin', 'director_proyecto', 'consultor', 'sponsor_cliente', 'usuario_cliente'], badge: 'F5' },
   { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, roles: ['super_admin', 'director_proyecto', 'consultor', 'sponsor_cliente'] },
-  { label: 'Project Control Center', href: '/proyectos', icon: Briefcase, roles: ['super_admin'], badge: 'F5' },
-  { label: 'Simulador de Escenarios', href: '/impacto', icon: BarChart3, roles: ['super_admin', 'director_proyecto', 'consultor'], badge: 'F6' },
-  { label: 'Automation Studio', href: '/automation', icon: Zap, roles: ['super_admin', 'director_proyecto', 'consultor'], badge: 'F7' },
+  { label: 'Project Control Center', href: '/proyectos', icon: Briefcase, roles: ['super_admin'], badge: 'F6' },
+  { label: 'Simulador de Escenarios', href: '/impacto', icon: BarChart3, roles: ['super_admin', 'director_proyecto', 'consultor'], badge: 'F7' },
+  { label: 'Automation Studio', href: '/automation', icon: Zap, roles: ['super_admin', 'director_proyecto', 'consultor'], badge: 'F8' },
 ]
 
 const adminItems: NavItem[] = [
