@@ -58,7 +58,7 @@ interface MetadataIA {
   [key: string]: unknown
 }
 
-export function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: ProcesoConHijos; esHijo?: boolean; proyectoId: string }) {
+export function ProcesoCard({ proceso, esHijo = false, proyectoId, esInterno = false }: { proceso: ProcesoConHijos; esHijo?: boolean; proyectoId: string; esInterno?: boolean }) {
   const router = useRouter()
   const [expandido, setExpandido] = useState(false)
   const [tabDoc, setTabDoc] = useState<'proceso' | 'hallazgos' | 'oportunidades' | 'roles' | 'versiones'>('proceso')
@@ -2115,18 +2115,24 @@ export function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: 
             </button>
 
 
-            {/* Edit toggle */}
-            <button
-              onClick={(e) => { e.stopPropagation(); setEditando(v => !v); setExpandido(true) }}
-              className="ml-auto flex items-center gap-1 text-xs text-slate-400 hover:text-violet-300 transition-colors px-2 py-1 rounded-lg hover:bg-slate-800/60"
-            >
-              <Pencil className="w-3.5 h-3.5" /> {editando ? 'Cerrar editor' : 'Editar'}
-            </button>
+            {/* Edit toggle — el macroproceso/proceso ya no lo decide la IA,
+                corregirlo es trabajo de la consultora, no del cliente. El
+                backend (PATCH /api/procesos/[id]) ya rechaza esto para
+                roles cliente; acá se oculta para no ofrecer una acción que
+                de todas formas va a fallar con un 403. */}
+            {esInterno && (
+              <button
+                onClick={(e) => { e.stopPropagation(); setEditando(v => !v); setExpandido(true) }}
+                className="ml-auto flex items-center gap-1 text-xs text-slate-400 hover:text-violet-300 transition-colors px-2 py-1 rounded-lg hover:bg-slate-800/60"
+              >
+                <Pencil className="w-3.5 h-3.5" /> {editando ? 'Cerrar editor' : 'Editar'}
+              </button>
+            )}
 
             {tieneHijos && (
               <button
                 onClick={(e) => { e.stopPropagation(); setExpandido(v => !v) }}
-                className="flex items-center gap-1 text-xs text-slate-400 hover:text-indigo-300 transition-colors px-2 py-1 rounded-lg hover:bg-slate-800/60"
+                className={`flex items-center gap-1 text-xs text-slate-400 hover:text-indigo-300 transition-colors px-2 py-1 rounded-lg hover:bg-slate-800/60 ${esInterno ? '' : 'ml-auto'}`}
               >
                 <Layers className="w-3.5 h-3.5" />
                 {proceso.hijos.length} proceso{proceso.hijos.length !== 1 ? 's' : ''}
@@ -2407,7 +2413,7 @@ export function ProcesoCard({ proceso, esHijo = false, proyectoId }: { proceso: 
                 </div>
                 <div className="space-y-2 pl-4 border-l border-slate-700/50">
                   {proceso.hijos.map((hijo) => (
-                    <ProcesoCard key={hijo.id} proceso={hijo as ProcesoConHijos} esHijo proyectoId={proyectoId} />
+                    <ProcesoCard key={hijo.id} proceso={hijo as ProcesoConHijos} esHijo proyectoId={proyectoId} esInterno={esInterno} />
                   ))}
                 </div>
               </div>

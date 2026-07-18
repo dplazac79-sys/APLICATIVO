@@ -25,13 +25,14 @@ interface Props {
   rolesDetectados: Array<{ rol: string; descripcion: string; procesos: string[] }>
   proyectosParaAcciones: { id: string; nombre: string }[]
   documentos: DocumentoItem[]
+  esInterno: boolean
 }
 
 export default function DiscoveryExperiencia({
   proyectoId, nombreProyecto, clienteNombre,
   macroprocesos, totalProcesos, aceptados, pendientes, rechazados,
   procesosDetectados, procesosPropeustosIA,
-  resumenDiscovery, rolesDetectados, proyectosParaAcciones, documentos,
+  resumenDiscovery, rolesDetectados, proyectosParaAcciones, documentos, esInterno,
 }: Props) {
   const [tab, setTab] = useState<'procesos' | 'glosario'>('procesos')
 
@@ -205,7 +206,7 @@ export default function DiscoveryExperiencia({
 
           <div className="space-y-3">
             {macroprocesos.map(macro => (
-              <ProcesoCard key={macro.id} proceso={macro} proyectoId={proyectoId} />
+              <ProcesoCard key={macro.id} proceso={macro} proyectoId={proyectoId} esInterno={esInterno} />
             ))}
           </div>
 

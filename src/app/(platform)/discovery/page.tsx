@@ -1,12 +1,27 @@
 export const dynamic = 'force-dynamic'
 
+import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import DiscoveryExperiencia from '@/components/discovery/DiscoveryExperiencia'
 import type { Proceso, Proyecto } from '@/types/database'
 import type { ProcesoConHijos, DocumentoItem } from '@/components/discovery/types'
 
+const ROL_INTERNO = ['super_admin', 'director_proyecto', 'consultor']
+
 export default async function DiscoveryPage() {
   const admin = createAdminClient()
+
+  // Editar el nombre/descripción de un macroproceso o proceso es una acción
+  // de la consultora (el macroproceso ya no lo decide la IA, así que
+  // corregirlo es trabajo de super_admin/director_proyecto/consultor) — el
+  // botón "Editar" de ProcesoCard no debe aparecer para roles cliente, que
+  // de todas formas reciben 403 del backend si lo intentan usar.
+  const supabase = createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  const { data: usuarioActual } = user
+    ? await admin.from('usuario').select('rol').eq('id', user.id).single()
+    : { data: null }
+  const esInterno = ROL_INTERNO.includes(usuarioActual?.rol ?? '')
 
   // Antes esto traía TODOS los procesos y TODOS los documentos de la
   // plataforma entera (todos los clientes, todos los proyectos) y filtraba
@@ -79,7 +94,6 @@ export default async function DiscoveryPage() {
       .map((p: Proceso) => p.nombre),
   }))
 
-  const ROL_INTERNO = ['super_admin', 'director_proyecto', 'consultor']
   const documentosProyecto = (documentosRaw ?? [])
     .filter((d: { subido_por: { rol: string } | { rol: string }[] | null }) => {
       const subidoPor = Array.isArray(d.subido_por) ? d.subido_por[0] : d.subido_por
@@ -102,6 +116,7 @@ export default async function DiscoveryPage() {
       rolesDetectados={rolesDetectados}
       proyectosParaAcciones={proyectos.map(p => ({ id: p.id, nombre: p.nombre }))}
       documentos={documentosProyecto as unknown as DocumentoItem[]}
+      esInterno={esInterno}
     />
   )
 }
