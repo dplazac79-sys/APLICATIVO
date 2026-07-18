@@ -1,8 +1,11 @@
+import Link from 'next/link'
+import { ArrowRight } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import DocumentUploader from '@/components/documentos/DocumentUploader'
 import DocumentosFiltroWrapper, { type DocRow } from '@/components/documentos/DocumentosFiltroWrapper'
 import OrganigramaUploader from '@/components/documentos/OrganigramaUploader'
+import { getFasesProyecto } from '@/lib/fases'
 
 export const dynamic = 'force-dynamic'
 
@@ -118,6 +121,17 @@ export default async function DocumentosPage({ searchParams }: { searchParams: {
     signedUrl: signedUrlPorPath.get(doc.url_storage) ?? null,
   }))
 
+  // Próximo paso — solo para roles cliente: esta pantalla es una herramienta
+  // (subir/gestionar), no un flujo guiado, así que antes no había ninguna
+  // pista de qué hacer después de terminar acá. Se reutiliza el mismo
+  // cálculo de fases que ya usa Bienvenida, para no duplicar la lógica de
+  // "qué fase sigue" en un segundo lugar con su propio criterio.
+  let faseActual: Awaited<ReturnType<typeof getFasesProyecto>>['fases'][number] | null = null
+  if (!esInterno && proyectoActivo) {
+    const { fases } = await getFasesProyecto(proyectoActivo.id, rolActual)
+    faseActual = fases.find(f => f.status === 'activa' && f.id !== 2) ?? null
+  }
+
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
       <div className="flex items-start justify-between gap-4 flex-wrap">
@@ -140,6 +154,26 @@ export default async function DocumentosPage({ searchParams }: { searchParams: {
           </a>
         )}
       </div>
+
+      {faseActual && (
+        <div className="relative overflow-hidden bg-gradient-to-r from-indigo-900/40 via-indigo-800/20 to-slate-900 border border-indigo-500/30 rounded-2xl p-6">
+          <div className="absolute right-0 top-0 w-40 h-40 bg-indigo-500/10 rounded-full blur-2xl pointer-events-none" />
+          <div className="relative flex items-center justify-between gap-6 flex-wrap">
+            <div className="space-y-1">
+              <p className="text-xs text-indigo-300 uppercase tracking-widest font-medium">Qué te toca hacer ahora</p>
+              <h3 className="text-white text-lg font-semibold">{faseActual.nombre}</h3>
+              <p className="text-slate-400 text-sm max-w-md">{faseActual.descripcion}</p>
+            </div>
+            <Link
+              href={faseActual.href}
+              className="flex items-center gap-3 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-semibold px-6 py-3.5 rounded-xl transition-all text-sm shadow-lg shadow-indigo-900/40 shrink-0"
+            >
+              Ir a {faseActual.nombre}
+              <ArrowRight className="w-5 h-5" />
+            </Link>
+          </div>
+        </div>
+      )}
 
       {(esInterno || rolActual === 'sponsor_cliente') && (
         <DocumentUploader
