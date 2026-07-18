@@ -511,6 +511,14 @@ export function GlosarioRoles({ proyectoId, nombreProyecto: _nombreProyecto, rol
             </div>
           )}
 
+          {/* Leyenda del % de confianza — sin esto nadie entendía qué medía */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderRadius: 8, background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', marginBottom: 12 }}>
+            <Sparkles size={12} style={{ color: '#64748b', flexShrink: 0 }} />
+            <p style={{ color: '#64748b', fontSize: 11, lineHeight: 1.5, margin: 0 }}>
+              El <strong style={{ color: '#94a3b8' }}>%</strong> junto a cada fila es la confianza de la IA en esa recomendación puntual — qué tan segura está de que ese cargo o esa persona corresponde al rol. No es un puntaje del organigrama completo, cada fila tiene el suyo.
+            </p>
+          </div>
+
           {/* Mapeos */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {analisis.mapeos.map((m, i) => <MapeoCard key={i} mapeo={m} index={i} />)}
