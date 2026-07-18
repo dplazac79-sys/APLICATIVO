@@ -23,18 +23,44 @@ export default async function DocumentosPage({ searchParams }: { searchParams: {
   const esInterno = ROL_INTERNO.includes(rolActual)
 
   const admin = createAdminClient()
-  const proyectoFiltro = searchParams.proyecto_id ?? null
 
-  const { data: proyectosRaw } = await admin
+  // Antes esta consulta traía TODOS los proyectos activos de TODOS los
+  // clientes sin filtrar por membresía, y cuando no había ?proyecto_id= en
+  // la URL (el caso normal al entrar por el menú lateral) la lista de
+  // documentos tampoco se acotaba a ningún proyecto — un sponsor_cliente/
+  // usuario_cliente entrando directo a /documentos veía y podía elegir
+  // proyectos de otros clientes en los selectores de subida, y la lista de
+  // documentos mostrada quedaba sin ningún filtro de tenant.
+  let idsProyectosPermitidos: string[] | null = null
+  if (!esInterno) {
+    const { data: membresias } = await admin
+      .from('usuario_proyecto')
+      .select('proyecto_id')
+      .eq('usuario_id', user!.id)
+    idsProyectosPermitidos = (membresias ?? []).map(m => m.proyecto_id)
+  }
+
+  let queryProyectos = admin
     .from('proyecto')
     .select('id, nombre, cliente(razon_social)')
     .eq('estado_general', 'activo')
+  if (idsProyectosPermitidos) queryProyectos = queryProyectos.in('id', idsProyectosPermitidos)
+  const { data: proyectosRaw } = await queryProyectos
 
   const proyectos = (proyectosRaw ?? []).map(p => ({
     id: p.id as string,
     nombre: p.nombre as string,
     cliente: Array.isArray(p.cliente) ? (p.cliente[0] ?? null) : p.cliente,
   }))
+
+  // Si no viene proyecto_id en la URL, se usa el único proyecto del usuario
+  // (caso normal de sponsor_cliente/usuario_cliente) en vez de dejar la
+  // pantalla sin ningún proyecto seleccionado — antes eso dejaba el
+  // buscador de IA permanentemente deshabilitado para cualquiera que
+  // entrara por el menú lateral en vez de un link con el query param.
+  const proyectoFiltroParam = searchParams.proyecto_id ?? null
+  const proyectoFiltro = proyectoFiltroParam
+    ?? (idsProyectosPermitidos?.length === 1 ? idsProyectosPermitidos[0] : null)
 
   const proyectoActivo = proyectoFiltro ? proyectos.find(p => p.id === proyectoFiltro) : null
 
@@ -51,7 +77,14 @@ export default async function DocumentosPage({ searchParams }: { searchParams: {
     .order('created_at', { ascending: false })
     .range(from, to)
 
-  if (proyectoFiltro) query = query.eq('proyecto_id', proyectoFiltro)
+  if (proyectoFiltro) {
+    query = query.eq('proyecto_id', proyectoFiltro)
+  } else if (idsProyectosPermitidos) {
+    // No interno y sin proyecto único ni seleccionado explícitamente (caso
+    // con más de un proyecto asignado) — acotar igual a sus proyectos en
+    // vez de dejar la consulta sin filtro de tenant.
+    query = query.in('proyecto_id', idsProyectosPermitidos.length > 0 ? idsProyectosPermitidos : ['00000000-0000-0000-0000-000000000000'])
+  }
 
   const { data: documentosRaw, count: totalDocumentos } = await query
   const totalPaginas = Math.max(1, Math.ceil((totalDocumentos ?? 0) / PAGE_SIZE))
