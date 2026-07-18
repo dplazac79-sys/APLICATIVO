@@ -61,6 +61,7 @@ const mockExtraerTextoDOCX = vi.fn()
 vi.mock('@/lib/extract-text', () => ({
   extraerTextoPDF: (...a: unknown[]) => mockExtraerTextoPDF(...a),
   extraerTextoDOCX: (...a: unknown[]) => mockExtraerTextoDOCX(...a),
+  extraerMacroprocesoDeTexto: () => null,
 }))
 
 const step = { run: (_name: string, fn: () => unknown) => Promise.resolve(fn()) }
@@ -184,12 +185,15 @@ describe('discoveryAI', () => {
     })
     mockCreateAdminClient.mockReturnValue(admin)
     mockVerificarLimiteIA.mockResolvedValue({ permitido: true })
-    mockBuildProyectoContext.mockResolvedValue({ empresa: 'Empresa X', documentos_resumenes: ['resumen'] })
+    mockBuildProyectoContext.mockResolvedValue({
+      empresa: 'Empresa X', documentos_resumenes: ['resumen'],
+      macroprocesos_por_documento: { 'SC01.pdf': 'Cadena de Suministro' },
+    })
     mockDiscoveryProcesos.mockResolvedValue({
       macroprocesos: [{
         nombre: 'Cadena de Suministro', descripcion: 'd', origen: 'detectado', criticidad: 'alta', estado_actual: 'manual',
         documento_referencia: 'SC01.pdf',
-        procesos: [{ nombre: 'Compras', descripcion: 'd', origen: 'detectado', documento_referencia: 'SC01.pdf', roles_involucrados: [], criticidad: 'media' }],
+        procesos: [{ nombre: 'Compras', descripcion: 'd', origen: 'detectado', documento_referencia: 'SC01.pdf', roles_involucrados: [], criticidad: 'media', puntos_mejora: [] }],
       }],
     })
 
@@ -225,7 +229,7 @@ describe('discoveryAI', () => {
     })
     mockCreateAdminClient.mockReturnValue(admin)
     mockVerificarLimiteIA.mockResolvedValue({ permitido: true })
-    mockBuildProyectoContext.mockResolvedValue({ empresa: 'X', documentos_resumenes: ['r'] })
+    mockBuildProyectoContext.mockResolvedValue({ empresa: 'X', documentos_resumenes: ['r'], macroprocesos_por_documento: {} })
     mockDiscoveryProcesos.mockRejectedValue(new Error('modelo caído'))
 
     await expect(

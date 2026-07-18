@@ -24,6 +24,7 @@ interface DocumentoOrigenResumen {
   resumen_ejecutivo: string | null
   analisis_ia: { clasificacion?: unknown; analisis?: ResumenDoc } | null
   clasificacion: Record<string, unknown> | null
+  macroproceso: string | null
 }
 
 export interface ContextoCompleto {
@@ -172,11 +173,15 @@ export async function buildProyectoContext(
 ): Promise<{
   empresa: string
   documentos_resumenes: string[]
+  // Macroproceso declarado en la carátula de cada documento (extraído por
+  // regex al procesar el documento, no por IA) — la fuente de verdad para
+  // agrupar procesos en Discovery, indexado por nombre_archivo.
+  macroprocesos_por_documento: Record<string, string | null>
 }> {
   const admin = createAdminClient()
 
   let docsQuery = admin.from('documento')
-    .select('nombre_archivo, resumen_ejecutivo, analisis_ia, clasificacion')
+    .select('nombre_archivo, resumen_ejecutivo, analisis_ia, clasificacion, macroproceso')
     .eq('proyecto_id', proyectoId)
     .eq('estado_procesamiento', 'listo')
     .limit(MAX_DOCS_DISCOVERY)
@@ -207,8 +212,15 @@ export async function buildProyectoContext(
     const analisis = docTyped.analisis_ia?.analisis
     const resumen = analisis?.resumen_ejecutivo ?? docTyped.resumen_ejecutivo ?? 'Sin resumen'
     const tipo = (docTyped.clasificacion as { tipo_documento?: string } | null)?.tipo_documento ?? ''
-    return `[${docTyped.nombre_archivo}${tipo ? ` — ${tipo}` : ''}]\n${resumen.slice(0, 800)}`
+    const macroLinea = docTyped.macroproceso ? `\n[MACROPROCESO DECLARADO: ${docTyped.macroproceso}]` : ''
+    return `[${docTyped.nombre_archivo}${tipo ? ` — ${tipo}` : ''}]${macroLinea}\n${resumen.slice(0, 800)}`
   })
 
-  return { empresa, documentos_resumenes }
+  const macroprocesos_por_documento: Record<string, string | null> = {}
+  for (const d of docs ?? []) {
+    const docTyped = d as unknown as DocumentoOrigenResumen
+    macroprocesos_por_documento[docTyped.nombre_archivo] = docTyped.macroproceso ?? null
+  }
+
+  return { empresa, documentos_resumenes, macroprocesos_por_documento }
 }

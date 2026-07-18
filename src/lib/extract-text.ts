@@ -20,3 +20,17 @@ export async function extraerTextoDOCX(buffer: Buffer): Promise<string> {
   const result = await mammothLib.extractRawText({ buffer })
   return result.value
 }
+
+// Extracción determinística (sin IA) del macroproceso declarado en la
+// carátula del documento — ej. "MACROPROCESO: CADENA DE SUMINISTRO". Esta es
+// la fuente de verdad: el macroproceso lo define la consultora al construir
+// el documento, nunca lo decide ni lo infiere la IA de Discovery. Busca solo
+// en los primeros ~3000 caracteres (la carátula), para no capturar una
+// mención casual de "macroproceso" en el cuerpo del documento.
+export function extraerMacroprocesoDeTexto(texto: string): string | null {
+  const caratula = texto.slice(0, 3000)
+  const match = caratula.match(/macro\s*[-–]?\s*proceso\s*:\s*([^\n\r]{2,120})/i)
+  if (!match) return null
+  const nombre = match[1].trim().replace(/\s+/g, ' ')
+  return nombre.length > 0 ? nombre : null
+}

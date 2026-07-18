@@ -12,7 +12,7 @@ import { generarEmbedding, generarEmbeddingsBatch } from '@/lib/ai/embeddings'
 import { chunkearTexto } from '@/lib/ai/chunker'
 import { registrarAudit } from '@/lib/audit'
 import { verificarLimiteIA, registrarUsoIA } from '@/lib/ai/rate-limit'
-import { extraerTextoPDF, extraerTextoDOCX } from '@/lib/extract-text'
+import { extraerTextoPDF, extraerTextoDOCX, extraerMacroprocesoDeTexto } from '@/lib/extract-text'
 
 // ─── Job 1: Procesar documento ────────────────────────────────────────────────
 export const procesarDocumento = inngest.createFunction(
@@ -109,6 +109,7 @@ async function procesarDocumentoBody({ documento_id, usuario_id, admin, step }: 
         analisis_ia: resumen,
         embedding_ref: embedding,
         estado_procesamiento: 'listo',
+        macroproceso: extraerMacroprocesoDeTexto(texto),
       }).eq('id', documento_id)
 
       // Sincronizar roles reales del RACI al proceso que originó este documento
@@ -247,9 +248,8 @@ async function discoveryAIBody({ proyecto_id, usuario_id, documento_ids, job_id,
       // una decisión humana tomada — y si fue aceptado, puede tener
       // artefactos ya validados por el cliente (artefacto.proceso_id tiene
       // ON DELETE CASCADE). El macroproceso (nivel 0) YA NO se borra ni se
-      // recrea en cada corrida: la IA nunca inventa macroprocesos, solo
-      // extrae el nombre que ya está escrito en el documento, así que se
-      // reutiliza por nombre (case-insensitive) en vez de duplicar.
+      // recrea en cada corrida: se reutiliza por nombre (case-insensitive)
+      // en vez de duplicar.
       await admin.from('proceso').delete()
         .eq('proyecto_id', proyecto_id)
         .eq('nivel', 1)
@@ -261,40 +261,69 @@ async function discoveryAIBody({ proyecto_id, usuario_id, documento_ids, job_id,
         .eq('proyecto_id', proyecto_id)
         .eq('nivel', 0)
 
-      for (const macro of resultado.macroprocesos) {
-        const docs = datos.documentos
-        const docOrigen = docs.find((d: { nombre_archivo: string }) => d.nombre_archivo === macro.documento_referencia)
+      const docs = datos.documentos
+
+      // El macroproceso NUNCA se toma de lo que agrupó la IA — se toma del
+      // campo `documento.macroproceso`, extraído por regex de la carátula
+      // real del archivo al procesarlo (ver extraerMacroprocesoDeTexto en
+      // extract-text.ts). Esto evita depender de que el modelo lea bien un
+      // resumen ejecutivo truncado y evita que "adivine" un área de negocio
+      // distinta a la que el propio documento declara. Se aplana la
+      // respuesta de la IA (todos sus procesos, sin importar bajo qué
+      // macroproceso los agrupó) y se reagrupa acá con la fuente de verdad.
+      const todosLosProcesos = resultado.macroprocesos.flatMap(m => m.procesos ?? [])
+
+      // Fallback: si algún doc no tiene macroproceso detectado en su
+      // carátula, usamos lo que diga la IA para ese proceso puntual (mejor
+      // que nada) antes de caer al texto genérico.
+      const macroFallback = new Map(
+        resultado.macroprocesos.flatMap(m => (m.procesos ?? []).map(p => [p.documento_referencia, m] as const))
+      )
+
+      const grupos = new Map<string, Array<Record<string, unknown>>>()
+      for (const p of todosLosProcesos as Array<Record<string, unknown>>) {
+        const docRef = p.documento_referencia as string | null
+        const docOrigen = docs.find((d: { nombre_archivo: string }) => d.nombre_archivo === docRef)
+        const nombreMacro = datos.ctx.macroprocesos_por_documento[docRef ?? '']
+          ?? macroFallback.get(docRef ?? '')?.nombre
+          ?? 'Sin macroproceso identificado'
+        const key = nombreMacro.trim().toLowerCase()
+        if (!grupos.has(key)) grupos.set(key, [])
+        grupos.get(key)!.push({ ...p, __nombre_macro: nombreMacro, __doc_origen: docOrigen })
+      }
+
+      let i = 0
+      for (const [, procesosDelGrupo] of Array.from(grupos.entries())) {
+        const nombreMacro = procesosDelGrupo[0].__nombre_macro as string
+        const infoIA = macroFallback.get(procesosDelGrupo[0].documento_referencia as string)
 
         const existente = macrosExistentes?.find(
-          m => m.nombre.trim().toLowerCase() === macro.nombre.trim().toLowerCase()
+          m => m.nombre.trim().toLowerCase() === nombreMacro.trim().toLowerCase()
         )
         let macroRow: { id: string } | null = existente ?? null
         if (!macroRow) {
           const { data: nuevo } = await admin.from('proceso').insert({
-            proyecto_id, nombre: macro.nombre, descripcion: macro.descripcion,
+            proyecto_id, nombre: nombreMacro, descripcion: infoIA?.descripcion ?? '',
             nivel: 0, tipo: 'macroproceso', origen: 'detectado', estado_oferta: 'propuesto',
-            documento_origen_id: docOrigen?.id ?? null,
-            metadata_ia: { criticidad: macro.criticidad, estado_actual: macro.estado_actual },
+            documento_origen_id: (procesosDelGrupo[0].__doc_origen as { id: string } | undefined)?.id ?? null,
+            metadata_ia: { criticidad: infoIA?.criticidad ?? 'media', estado_actual: infoIA?.estado_actual ?? null },
           }).select('id').single()
           macroRow = nuevo
-          if (macroRow) macrosExistentes?.push({ id: macroRow.id, nombre: macro.nombre })
+          if (macroRow) macrosExistentes?.push({ id: macroRow.id, nombre: nombreMacro })
         }
+        if (!macroRow) continue
 
-        const procesosHijos = Array.isArray(macro.procesos) ? macro.procesos : []
-        if (!macroRow || !procesosHijos.length) continue
         await admin.from('proceso').insert(
-          procesosHijos.map((p: Record<string, unknown>, i: number) => {
+          procesosDelGrupo.map((p: Record<string, unknown>) => {
             const docRef = p.documento_referencia as string | null
-            // Derive SC code from document filename: "SC01.pdf" → "SC01"
             const codigo = docRef ? docRef.replace(/\.[^.]+$/, '').toUpperCase() : null
-            // Derive numeric order from SC code: "SC01" → 1
-            const ordenNum = codigo ? (parseInt(codigo.replace(/\D/g, ''), 10) || i + 1) : i + 1
+            const ordenNum = codigo ? (parseInt(codigo.replace(/\D/g, ''), 10) || ++i) : ++i
             const puntosMejora = Array.isArray(p.puntos_mejora) ? p.puntos_mejora as Array<Record<string, unknown>> : []
             return {
               proyecto_id, padre_id: macroRow!.id, nombre: p.nombre, descripcion: p.descripcion,
               nivel: 1, tipo: 'proceso', origen: 'detectado', estado_oferta: 'propuesto',
               codigo,
-              documento_origen_id: docs.find((d: { nombre_archivo: string }) => d.nombre_archivo === docRef)?.id ?? null,
+              documento_origen_id: (p.__doc_origen as { id: string } | undefined)?.id ?? null,
               roles_involucrados: p.roles_involucrados, riesgos_detectados: p.riesgos_si_no_existe_o_falla,
               metadata_ia: {
                 criticidad: p.criticidad,
