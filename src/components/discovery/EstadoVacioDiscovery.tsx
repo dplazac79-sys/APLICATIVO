@@ -127,7 +127,7 @@ export function EstadoVacioDiscovery({
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-300 via-fuchsia-300 to-indigo-300">y te entrega el mapa completo de tu organización.</span>
           </h2>
           <p className="text-slate-300 text-base leading-relaxed mb-6 max-w-2xl">
-            No tienes que hacer nada manual: en 1 a 3 minutos vas a tener en pantalla los tres resultados de abajo, listos para que los revises y decidas qué aceptar. Es exactamente el mismo trabajo que un consultor senior haría leyendo tus documentos a mano — solo que en minutos, no semanas.
+            No tienes que hacer nada manual: en 1 a 3 minutos vas a tener en pantalla los tres resultados de abajo, listos para que los revises y decidas qué aceptar. Es el primer borrador inteligente que le ahorra semanas de lectura a tu equipo consultor AICOUNTS, para que ellos enfoquen su tiempo en lo que realmente mueve la aguja: el análisis experto y las decisiones estratégicas de tu proyecto.
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 max-w-2xl">
             {[
