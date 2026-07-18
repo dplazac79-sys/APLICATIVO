@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import {
-  Brain, Sparkles, CheckCircle2, TrendingUp, Users, Shield,
-  Cpu, Layers, FileText, AlertCircle, Lock, X, Activity, Zap
+  Brain, Sparkles, CheckCircle2, Users,
+  Layers, FileText, AlertCircle, Lock, X, Activity, Zap
 } from 'lucide-react'
 import DiscoveryAcciones from './DiscoveryAcciones'
 import type { DocumentoItem } from './types'
@@ -123,21 +123,24 @@ export function EstadoVacioDiscovery({
             <span className="text-violet-300 text-xs font-bold uppercase tracking-[0.15em]">AICOUNTS Intelligence Engine</span>
           </div>
           <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4 leading-tight max-w-2xl">
-            Tu documentación contiene el<br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-300 via-fuchsia-300 to-indigo-300">mapa completo de tu organización.</span>
+            La IA de AICOUNTS lee tu documentación<br />
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-300 via-fuchsia-300 to-indigo-300">y te entrega el mapa completo de tu organización.</span>
           </h2>
           <p className="text-slate-300 text-base leading-relaxed mb-6 max-w-2xl">
-            AICOUNTS Consultores despliega su framework propietario sobre tu documentación para extraer la arquitectura de procesos críticos, los roles de decisión y las brechas operacionales que ningún diagnóstico tradicional detecta con esta velocidad y precisión. El resultado es inteligencia estratégica lista para ser ejecutada por tu directorio.
+            No tienes que hacer nada manual: en 1 a 3 minutos vas a tener en pantalla los tres resultados de abajo, listos para que los revises y decidas qué aceptar. Es exactamente el mismo trabajo que un consultor senior haría leyendo tus documentos a mano — solo que en minutos, no semanas.
           </p>
-          <div className="flex items-center gap-4 flex-wrap">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 max-w-2xl">
             {[
-              { icon: Shield, color: 'text-violet-400', label: 'Metodología certificada AICOUNTS' },
-              { icon: TrendingUp, color: 'text-emerald-400', label: 'Inteligencia lista para la dirección' },
-              { icon: Cpu, color: 'text-blue-400', label: 'Motor de análisis de última generación' },
-            ].map(({ icon: Icon, color, label }) => (
-              <div key={label} className="flex items-center gap-2 text-sm text-slate-400">
-                <Icon className={`w-4 h-4 ${color}`} />
-                <span>{label}</span>
+              { icon: Activity, color: 'text-violet-300', bg: 'bg-violet-950/40', border: 'border-violet-800/40', label: 'Vas a ver', value: 'Tus procesos mapeados' },
+              { icon: Users, color: 'text-indigo-300', bg: 'bg-indigo-950/40', border: 'border-indigo-800/40', label: 'Vas a ver', value: 'Quién hace qué en tu equipo' },
+              { icon: Zap, color: 'text-amber-300', bg: 'bg-amber-950/30', border: 'border-amber-800/30', label: 'Vas a ver', value: 'Qué mejorar primero' },
+            ].map(({ icon: Icon, color, bg, border, label, value }) => (
+              <div key={value} className={`flex items-center gap-2.5 rounded-xl border ${bg} ${border} px-3 py-2.5`}>
+                <Icon className={`w-4 h-4 shrink-0 ${color}`} />
+                <div className="min-w-0">
+                  <p className="text-[10px] text-slate-400 uppercase tracking-wide leading-none mb-0.5">{label}</p>
+                  <p className={`text-xs font-semibold leading-tight ${color}`}>{value}</p>
+                </div>
               </div>
             ))}
           </div>
@@ -463,10 +466,14 @@ export function EstadoVacioDiscovery({
             ))}
           </div>
 
-          <div className="px-6 pb-6 flex items-center gap-4">
+          <div className="px-6 pb-2 flex items-center gap-4">
             <DiscoveryAcciones proyectos={proyectosParaAcciones} documentoIds={seleccionados} disabled={seleccionados.length === 0} />
             <span className="text-xs text-slate-400">Diagnóstico de alta precisión · 1–3 minutos · puedes seguir navegando</span>
           </div>
+          <p className="px-6 pb-6 text-xs text-slate-500 flex items-center gap-1.5">
+            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500/70 shrink-0" />
+            Cuando termine, esta misma pantalla se actualiza sola y te muestra los resultados — no tienes que hacer nada más.
+          </p>
         </div>
       ) : (
         <div className="rounded-2xl border border-slate-800/40 bg-slate-900/20 p-6 opacity-40 pointer-events-none select-none">
@@ -482,6 +489,21 @@ export function EstadoVacioDiscovery({
           </div>
         </div>
       )}
+
+      {/* ── Paso 3: qué sigue — nunca quedaba dicho en esta pantalla que
+          revisar y aprobar procesos es un paso tuyo, no automático de la IA. */}
+      <div className="rounded-2xl border border-slate-800/60 bg-slate-900/20 p-6">
+        <div className="flex items-center gap-4">
+          <span className="w-7 h-7 rounded-full bg-slate-700 text-slate-300 text-xs font-bold flex items-center justify-center shrink-0">3</span>
+          <div className="w-10 h-10 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center shrink-0">
+            <CheckCircle2 className="w-5 h-5 text-slate-400" />
+          </div>
+          <div>
+            <p className="text-slate-300 font-semibold text-sm">Revisas y apruebas lo que la IA encontró</p>
+            <p className="text-slate-500 text-xs mt-0.5">Nada queda oficial solo por generarse. Vas a decidir, proceso por proceso, cuáles corresponden a tu organización — ese criterio tuyo es el que arma el proyecto final.</p>
+          </div>
+        </div>
+      </div>
 
     </div>
   )
