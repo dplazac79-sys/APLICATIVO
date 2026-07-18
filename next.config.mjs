@@ -20,6 +20,12 @@ const nextConfig = {
   output: 'standalone',
   eslint: { ignoreDuringBuilds: true },
   typescript: { ignoreBuildErrors: false },
+  // Next.js 14.x todavía requiere este flag para cargar src/instrumentation.ts
+  // (se volvió estable recién en Next 15) — sin él, el archivo se ignora por
+  // completo y no aparece ni en el build de standalone.
+  experimental: {
+    instrumentationHook: true,
+  },
   // Incluir archivos de prompts .md en el standalone build (no son detectados automáticamente)
   outputFileTracingIncludes: {
     '/api/**': ['./src/lib/prompts/**'],
