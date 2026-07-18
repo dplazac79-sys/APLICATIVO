@@ -1183,7 +1183,7 @@ export function ProcesoCard({ proceso, esHijo = false, proyectoId, esInterno = f
                                       <p className="text-sm text-slate-200 leading-relaxed">{paso}</p>
                                       <div className="flex items-center gap-4 mt-2">
                                         <button onClick={() => togglePaso(i, paso, 'realizado')} className="text-xs font-semibold text-emerald-400 hover:text-emerald-300 transition-colors flex items-center gap-1">
-                                          <CheckCircle2 className="w-3.5 h-3.5" /> Completado
+                                          <CheckCircle2 className="w-3.5 h-3.5" /> Aceptar
                                         </button>
                                         <button onClick={() => togglePaso(i, paso, 'descartado')} className="text-xs text-slate-400 hover:text-red-400 transition-colors">Descartar →</button>
                                       </div>
@@ -1202,7 +1202,7 @@ export function ProcesoCard({ proceso, esHijo = false, proyectoId, esInterno = f
                                   {pasosHistorial.map((h, hi) => (
                                     <div key={hi} className="px-4 py-3 flex items-start gap-3">
                                       <span className={`text-xs font-bold px-2 py-0.5 rounded-full border shrink-0 mt-0.5 ${h.accion === 'realizado' ? 'bg-emerald-950/40 border-emerald-700/30 text-emerald-400' : 'bg-slate-800/60 border-slate-700/30 text-slate-400'}`}>
-                                        {h.accion === 'realizado' ? '✓ Completado' : '✕ Descartado'}
+                                        {h.accion === 'realizado' ? '✓ Aceptado' : '✕ Descartado'}
                                       </span>
                                       <p className="flex-1 text-xs text-slate-400 line-through leading-relaxed">{h.texto}</p>
                                       <button onClick={() => togglePaso(h.indice, h.texto, h.accion)} className="text-xs text-slate-400 hover:text-amber-400 transition-colors shrink-0">Restaurar</button>
