@@ -243,6 +243,9 @@ const Resultado = memo(function Resultado({ sim }: { sim: SimulacionResult }) {
               </div>
               <h2 className="text-2xl font-black text-white leading-tight">{sim.headline}</h2>
               <p className="text-slate-400 text-sm leading-relaxed">{sim.subtitulo}</p>
+              <p className="text-slate-400 text-xs leading-relaxed pt-1">
+                <span className="text-indigo-300 font-semibold">{sim.impacto_global_score}/100</span> es el puntaje de oportunidad que le da la IA a implementar este proceso — combina qué tan grande es el ahorro esperado, qué tan rápido se recupera la inversión y qué tan bien respaldados están los hallazgos que lo sustentan. No es una nota del proceso en sí, es qué tan atractivo es actuar sobre él ahora.
+              </p>
             </div>
           </div>
         </div>
@@ -807,6 +810,43 @@ export default function HorizonteSimulador({ procesos, artefactosPorProceso, mod
         )}
 
         {sim && !loading && <Resultado sim={sim} />}
+
+        {/* ── Qué sigue — Horizonte de Impacto es la última fase accionable
+            del recorrido guiado; no hay un "siguiente módulo" obligatorio
+            después de esto, así que en vez de forzar un link a una fase que
+            no existe, se ofrece lo que realmente tiene sentido hacer ahora. */}
+        {sim && !loading && (
+          <div className="relative overflow-hidden bg-gradient-to-r from-indigo-900/40 via-indigo-800/20 to-slate-900 border border-indigo-500/30 rounded-2xl p-6">
+            <div className="absolute right-0 top-0 w-40 h-40 bg-indigo-500/10 rounded-full blur-2xl pointer-events-none" />
+            <div className="relative space-y-4">
+              <div>
+                <p className="text-xs text-indigo-300 uppercase tracking-widest font-medium mb-1">Qué te toca hacer ahora</p>
+                <p className="text-slate-300 text-sm leading-relaxed max-w-2xl">
+                  Ya tienes la proyección de impacto de {procesoActual?.codigo ?? 'este proceso'}. Compártela con quien decide en tu organización —
+                  {procesos.length > 1 ? ' puedes proyectar otro de tus procesos aceptados, o' : ''} revisa Control de Versiones para ver el rastro completo de todo lo que se ha construido en tu proyecto.
+                </p>
+              </div>
+              <div className="flex items-center gap-3 flex-wrap">
+                {procesos.length > 1 && (
+                  <button
+                    onClick={() => { setSim(null); setError(null); setProcesoId('') }}
+                    className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-semibold px-5 py-3 rounded-xl transition-all text-sm shadow-lg shadow-indigo-900/40"
+                  >
+                    <RefreshCw className="w-4 h-4" />
+                    Proyectar otro proceso
+                  </button>
+                )}
+                <a
+                  href="/versiones"
+                  className="flex items-center gap-2 border border-indigo-500/40 hover:bg-indigo-900/30 text-indigo-300 font-semibold px-5 py-3 rounded-xl transition-all text-sm"
+                >
+                  Ir a Control de Versiones
+                  <ArrowRight className="w-4 h-4" />
+                </a>
+              </div>
+            </div>
+          </div>
+        )}
 
       </div>
     </div>
