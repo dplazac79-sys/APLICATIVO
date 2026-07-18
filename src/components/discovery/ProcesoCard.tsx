@@ -1171,13 +1171,9 @@ export function ProcesoCard({ proceso, esHijo = false, proyectoId, esInterno = f
                                 return (
                                   <div key={i} className="group flex gap-3 mb-3 last:mb-0">
                                     <div className="flex flex-col items-center shrink-0">
-                                      <button
-                                        onClick={() => togglePaso(i, paso, 'realizado')}
-                                        title="Marcar como completado"
-                                        className="w-8 h-8 rounded-full border-2 border-amber-600/50 bg-amber-950/40 hover:border-emerald-500 hover:bg-emerald-950/40 transition-all flex items-center justify-center"
-                                      >
-                                        <span className="text-amber-300 group-hover:text-emerald-300 text-xs font-black transition-colors">{activoIdx + 1}</span>
-                                      </button>
+                                      <div className="w-8 h-8 rounded-full border-2 border-amber-600/50 bg-amber-950/40 flex items-center justify-center">
+                                        <span className="text-amber-300 text-xs font-black">{activoIdx + 1}</span>
+                                      </div>
                                       {activoIdx < pasosActivos.length - 1 && (
                                         <div className="w-px flex-1 min-h-[12px] bg-gradient-to-b from-amber-700/40 to-transparent mt-1" />
                                       )}
@@ -1185,7 +1181,12 @@ export function ProcesoCard({ proceso, esHijo = false, proyectoId, esInterno = f
                                     <div className={`flex-1 rounded-2xl border p-3.5 mb-1 ${activoIdx === 0 ? 'border-amber-700/40 bg-amber-950/15' : 'border-slate-700/30 bg-slate-800/15'}`}>
                                       {activoIdx === 0 && <p className="text-xs font-bold text-amber-400 mb-1 uppercase tracking-wider">Siguiente</p>}
                                       <p className="text-sm text-slate-200 leading-relaxed">{paso}</p>
-                                      <button onClick={() => togglePaso(i, paso, 'descartado')} className="mt-1.5 text-xs text-slate-400 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100">Descartar →</button>
+                                      <div className="flex items-center gap-4 mt-2">
+                                        <button onClick={() => togglePaso(i, paso, 'realizado')} className="text-xs font-semibold text-emerald-400 hover:text-emerald-300 transition-colors flex items-center gap-1">
+                                          <CheckCircle2 className="w-3.5 h-3.5" /> Completado
+                                        </button>
+                                        <button onClick={() => togglePaso(i, paso, 'descartado')} className="text-xs text-slate-400 hover:text-red-400 transition-colors">Descartar →</button>
+                                      </div>
                                     </div>
                                   </div>
                                 )
