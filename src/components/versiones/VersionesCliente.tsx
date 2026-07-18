@@ -2,10 +2,11 @@
 
 import { useState } from 'react'
 import { formatFecha } from '@/lib/format'
+import { LABEL_ARTEFACTO } from '@/lib/artefactos-meta'
 import {
   FileText, Download, ChevronDown, Clock,
   GitBranch, Sparkles, Star, AlertCircle,
-  FileCheck, History, ArrowRight,
+  FileCheck, History, ArrowRight, Layers,
 } from 'lucide-react'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -95,14 +96,21 @@ interface CambioDetalle {
 }
 
 interface VersionEntry {
+  // 'documento': una versión del documento completo (Original o V1, V2... generadas
+  // desde Discovery/Hallazgos). 'artefacto': una edición puntual a un artefacto
+  // metodológico (SIPOC, BPMN, etc.) — también es una modificación real sobre el
+  // proceso, así que debe quedar igual de trazable en esta misma línea de tiempo.
+  kind: 'documento' | 'artefacto'
   label: string
-  numero: number
+  numero: number | null
   fecha: string
   descripcion: string
   detalleCorrecciones: CambioDetalle[]
   isLatest: boolean
   isOriginal: boolean
   documentoId: string | null
+  artefactoTipo?: string
+  artefactoVersion?: number
 }
 
 const TIPO_LABELS: Record<string, { label: string; color: string; bg: string; border: string }> = {
@@ -124,6 +132,7 @@ function buildVersionTimeline(p: Proceso, docInfo: DocumentoInfo | undefined): V
   const entries: VersionEntry[] = []
 
   entries.push({
+    kind: 'documento',
     label: 'Original',
     numero: 0,
     fecha: p.created_at,
@@ -141,6 +150,7 @@ function buildVersionTimeline(p: Proceso, docInfo: DocumentoInfo | undefined): V
     const detalleCorrecciones = (v.detalle_correcciones ?? []) as CambioDetalle[]
 
     entries.push({
+      kind: 'documento',
       label: `V${numero}`,
       numero,
       fecha: (v.fecha as string) ?? p.updated_at,
@@ -155,9 +165,43 @@ function buildVersionTimeline(p: Proceso, docInfo: DocumentoInfo | undefined): V
   return entries
 }
 
+// Incorpora las ediciones de artefactos (artefacto_historial) a la misma línea
+// de tiempo — cada edición de un SIPOC, BPMN, etc. es una modificación real
+// sobre el proceso y debe quedar trazable acá, no solo en la ficha del
+// artefacto. Se combina con las versiones de documento y se ordena por fecha.
+function mergeConHistorialArtefactos(
+  timelineDocumentos: VersionEntry[],
+  historialDelProceso: HistorialArtefacto[],
+): VersionEntry[] {
+  const entradasArtefactos: VersionEntry[] = historialDelProceso.map(h => ({
+    kind: 'artefacto',
+    label: LABEL_ARTEFACTO[h.tipo as keyof typeof LABEL_ARTEFACTO] ?? h.tipo,
+    numero: null,
+    fecha: h.created_at,
+    descripcion: h.motivo_cambio?.trim() || 'Edición sin motivo registrado.',
+    detalleCorrecciones: [],
+    isLatest: false,
+    isOriginal: false,
+    documentoId: null,
+    artefactoTipo: h.tipo,
+    artefactoVersion: h.version,
+  }))
+
+  return [...timelineDocumentos, ...entradasArtefactos].sort(
+    (a, b) => new Date(a.fecha).getTime() - new Date(b.fecha).getTime()
+  )
+}
+
 // ─── Version Badge ─────────────────────────────────────────────────────────────
 
-function VersionBadge({ label, isLatest, isOriginal }: { label: string; isLatest: boolean; isOriginal: boolean }) {
+function VersionBadge({ kind, label, isLatest, isOriginal }: { kind: 'documento' | 'artefacto'; label: string; isLatest: boolean; isOriginal: boolean }) {
+  if (kind === 'artefacto') {
+    return (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-violet-500/15 text-violet-300 border border-violet-500/25">
+        <Layers className="w-2.5 h-2.5" /> Artefacto
+      </span>
+    )
+  }
   if (isLatest && !isOriginal) {
     return (
       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
@@ -287,6 +331,7 @@ function VersionRow({ entry, codigoProceso, procesoId, isLast }: {
   isLast: boolean
 }) {
   const totalCambios = entry.detalleCorrecciones.length
+  const esArtefacto = entry.kind === 'artefacto'
 
   return (
     <div className="relative flex gap-4">
@@ -296,7 +341,11 @@ function VersionRow({ entry, codigoProceso, procesoId, isLast }: {
 
       {/* Timeline dot */}
       <div className="flex-shrink-0 mt-1">
-        {entry.isLatest && !entry.isOriginal ? (
+        {esArtefacto ? (
+          <div className="w-10 h-10 rounded-full bg-violet-500/10 border border-violet-500/20 flex items-center justify-center">
+            <Layers className="w-4 h-4 text-violet-400" />
+          </div>
+        ) : entry.isLatest && !entry.isOriginal ? (
           <div className="w-10 h-10 rounded-full bg-emerald-500/20 border-2 border-emerald-500/40 flex items-center justify-center">
             <Star className="w-4 h-4 text-emerald-400" />
           </div>
@@ -311,7 +360,28 @@ function VersionRow({ entry, codigoProceso, procesoId, isLast }: {
         )}
       </div>
 
-      {/* Card */}
+      {/* Card — entradas de artefacto: card compacta, sin descarga ni detalle expandido */}
+      {esArtefacto ? (
+        <div className="flex-1 pb-5">
+          <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4">
+            <div className="flex items-start justify-between gap-3 flex-wrap">
+              <div className="space-y-1.5">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-sm font-bold text-white">{entry.label}</span>
+                  <VersionBadge kind="artefacto" label={entry.label} isLatest={false} isOriginal={false} />
+                </div>
+                <span className="flex items-center gap-1.5 text-xs text-slate-400">
+                  <Clock className="w-3 h-3" />
+                  {fmtDate(entry.fecha)}
+                </span>
+              </div>
+            </div>
+            <p className="mt-2.5 text-xs text-slate-400 leading-relaxed">
+              <span className="text-violet-300 font-medium">Motivo del cambio: </span>{entry.descripcion}
+            </p>
+          </div>
+        </div>
+      ) : (
       <div className="flex-1 pb-5">
         <div className={`rounded-2xl border overflow-hidden transition-all
           ${entry.isLatest && !entry.isOriginal
@@ -325,7 +395,7 @@ function VersionRow({ entry, codigoProceso, procesoId, isLast }: {
               <div className="space-y-1.5">
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="text-sm font-bold text-white">{codigoProceso} {entry.label}</span>
-                  <VersionBadge label={entry.label} isLatest={entry.isLatest} isOriginal={entry.isOriginal} />
+                  <VersionBadge kind={entry.kind} label={entry.label} isLatest={entry.isLatest} isOriginal={entry.isOriginal} />
                   {entry.isLatest && !entry.isOriginal && (
                     <span className="text-[10px] text-emerald-400/70 font-semibold">Para entrega tecnológica</span>
                   )}
@@ -391,21 +461,28 @@ function VersionRow({ entry, codigoProceso, procesoId, isLast }: {
           )}
         </div>
       </div>
+      )}
     </div>
   )
 }
 
 // ─── Proceso Card ──────────────────────────────────────────────────────────────
 
-function ProcesoCard({ proceso, artefactos, docInfo, historialProcesos: _historialProcesos }: {
+function ProcesoCard({ proceso, artefactos, docInfo, historialArtefactos, historialProcesos: _historialProcesos }: {
   proceso: Proceso
   artefactos: Artefacto[]
   docInfo: DocumentoInfo | undefined
+  historialArtefactos: HistorialArtefacto[]
   historialProcesos: HistorialProceso[]
 }) {
   const [open, setOpen] = useState(false)
   const codigo = scCode(proceso)
+  // "timeline" (solo documento) define el badge de versión vigente en el
+  // header — la edición de un artefacto no reemplaza el documento entregable.
+  // "timelineCompleta" (documento + artefactos) es lo que se ve al expandir,
+  // para que todo quede trazable en un solo lugar.
   const timeline = buildVersionTimeline(proceso, docInfo)
+  const timelineCompleta = mergeConHistorialArtefactos(timeline, historialArtefactos)
   const latestVersion = timeline[timeline.length - 1]
   const totalArtefactos = artefactos.length
 
@@ -455,19 +532,20 @@ function ProcesoCard({ proceso, artefactos, docInfo, historialProcesos: _histori
             <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-widest">Historial de versiones</span>
           </div>
 
-          {/* Timeline — más reciente arriba, original abajo */}
-          {[...timeline].reverse().map((entry, i) => (
+          {/* Timeline — más reciente arriba, original abajo. Incluye tanto
+              versiones de documento como ediciones puntuales de artefactos. */}
+          {[...timelineCompleta].reverse().map((entry, i) => (
             <VersionRow
-              key={entry.label}
+              key={`${entry.kind}-${entry.label}-${entry.fecha}-${i}`}
               entry={entry}
               codigoProceso={codigo}
               procesoId={proceso.id}
-              isLast={i === timeline.length - 1}
+              isLast={i === timelineCompleta.length - 1}
             />
           ))}
 
           {/* Hint when only Original exists */}
-          {timeline.length === 1 && (
+          {timelineCompleta.length === 1 && (
             <div className="mt-1 p-3 rounded-xl bg-amber-500/[0.05] border border-amber-500/10 flex items-start gap-2.5">
               <Sparkles className="w-3.5 h-3.5 text-amber-400/60 flex-shrink-0 mt-0.5" />
               <p className="text-[11px] text-amber-400/60 leading-relaxed">
@@ -607,6 +685,7 @@ export default function VersionesCliente({
               proceso={p}
               artefactos={artefactos.filter(a => a.proceso_id === p.id)}
               docInfo={p.documento_origen_id ? documentosMap[p.documento_origen_id] : undefined}
+              historialArtefactos={historialArtefactos.filter(h => h.proceso_id === p.id)}
               historialProcesos={historialProcesos.filter(h => h.proceso_id === p.id)}
             />
           ))}
