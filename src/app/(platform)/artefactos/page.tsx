@@ -2,23 +2,16 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
 import {
   Layers, FileText, CheckCircle2, Clock,
-  AlertTriangle, Brain, Zap, BarChart3, Shield, GitBranch, Users, Target, TrendingUp, ArrowUpRight,
+  AlertTriangle, Brain, Zap, BarChart3, Shield, GitBranch, Users, Target, TrendingUp,
   FolderOpen, Info, ArrowRight
 } from 'lucide-react'
 import Link from 'next/link'
 import type { Proceso, Artefacto } from '@/types/database'
 import { LABEL_ARTEFACTO, ORDEN_GENERACION } from '@/lib/artefactos-meta'
 import { getFasesProyecto } from '@/lib/fases'
+import ArbolProcesosArtefactos from '@/components/artefactos/ArbolProcesosArtefactos'
 
 export const dynamic = 'force-dynamic'
-
-const NIVEL_CONFIG = [
-  { label: 'Macroproceso', color: 'text-violet-400',  dot: 'bg-violet-500',  bg: 'bg-violet-950/20 border-violet-800/30 hover:border-violet-600/50' },
-  { label: 'Proceso',      color: 'text-blue-400',    dot: 'bg-blue-500',    bg: 'bg-blue-950/20 border-blue-800/30 hover:border-blue-600/50' },
-  { label: 'Subproceso',   color: 'text-cyan-400',    dot: 'bg-cyan-500',    bg: 'bg-cyan-950/20 border-cyan-800/30 hover:border-cyan-600/50' },
-  { label: 'Actividad',    color: 'text-emerald-400', dot: 'bg-emerald-500', bg: 'bg-emerald-950/20 border-emerald-800/30 hover:border-emerald-600/50' },
-  { label: 'Tarea',        color: 'text-slate-400',   dot: 'bg-slate-500',   bg: 'bg-slate-800/20 border-slate-700/30 hover:border-slate-600/50' },
-]
 
 const ARTEFACTO_ICON: Record<string, React.ReactNode> = {
   sipoc:          <GitBranch className="w-3 h-3" />,
@@ -29,27 +22,6 @@ const ARTEFACTO_ICON: Record<string, React.ReactNode> = {
   kpi_sla:        <BarChart3 className="w-3 h-3" />,
   diagnostico:    <Zap className="w-3 h-3" />,
   to_be:          <TrendingUp className="w-3 h-3" />,
-}
-
-function derivarCodigo(p: Proceso & { documento_origen?: { nombre_archivo: string } | null }, lista: Proceso[]): string | null {
-  const docNombre = p.documento_origen?.nombre_archivo
-  if (docNombre) {
-    const match = docNombre.match(/^([A-Za-z]{1,6}[0-9]{1,3})/i)
-    if (match) return match[1].toUpperCase()
-  }
-  if (p.padre_id) {
-    const padre = lista.find(x => x.id === p.padre_id)
-    if (padre) {
-      const siglas = padre.nombre
-        .split(' ')
-        .filter(w => w.length > 2)
-        .map(w => w[0].toUpperCase())
-        .join('')
-        .slice(0, 3)
-      return `${siglas}${String(p.orden).padStart(2, '0')}`
-    }
-  }
-  return null
 }
 
 export default async function ArtefactosPage() {
@@ -138,98 +110,6 @@ export default async function ArtefactosPage() {
   if (esCliente && proyectos?.[0] && totalArtefactos > 0 && totalAprobados === totalArtefactos) {
     const { fases } = await getFasesProyecto(proyectos[0].id, rolUsuario)
     faseActual = fases.find(f => f.status === 'activa' && f.href !== '/artefactos') ?? null
-  }
-
-  function renderArbol(lista: Proceso[], padreId: string | null, nivel: number): React.ReactNode {
-    const hijos = lista.filter(p => p.padre_id === padreId)
-    if (!hijos.length) return null
-    const hijosOrdenados = [...hijos].sort((a, b) => {
-      const ca = derivarCodigo(a as Proceso & { documento_origen?: { nombre_archivo: string } | null }, lista) ?? ''
-      const cb = derivarCodigo(b as Proceso & { documento_origen?: { nombre_archivo: string } | null }, lista) ?? ''
-      const na = parseInt(ca.replace(/\D/g, '') || '999', 10)
-      const nb = parseInt(cb.replace(/\D/g, '') || '999', 10)
-      if (na !== nb) return na - nb
-      return ca.localeCompare(cb)
-    })
-    return hijosOrdenados.map(p => {
-      const cfg = NIVEL_CONFIG[nivel] ?? NIVEL_CONFIG[4]
-      const arts = artefactosPorProceso[p.id] ?? []
-      const total = ORDEN_GENERACION.length
-      const generados = arts.length
-      const publicados = arts.filter(a => a.estado_validacion === 'validado' || a.estado_validacion === 'publicado').length
-      const hayIncompletos = generados < total && generados > 0
-      const codigo = derivarCodigo(p as Proceso & { documento_origen?: { nombre_archivo: string } | null }, lista)
-      const pct = total > 0 ? Math.round((generados / total) * 100) : 0
-      const esMacroproceso = p.tipo === 'macroproceso' || p.nivel === 0
-      const esClickable = esSuperAdmin || !esMacroproceso
-
-      const cardContent = (
-            <div className={`flex items-center justify-between rounded-xl border px-4 py-2.5 mb-1.5 transition-all duration-200 ${esClickable ? 'cursor-pointer' : 'cursor-default'} ${cfg.bg}`}>
-              <div className="flex items-center gap-3 min-w-0">
-                <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${cfg.dot}`} />
-                {codigo && (
-                  <span className={`text-[10px] font-mono font-bold shrink-0 px-1.5 py-0.5 rounded-md bg-slate-900/60 border border-slate-700/50 ${cfg.color} tracking-wide`}>
-                    {codigo}
-                  </span>
-                )}
-                <span className="text-slate-200 text-sm font-medium truncate">{p.nombre}</span>
-                <span className={`text-[10px] ${cfg.color} shrink-0 opacity-50 font-medium`}>{cfg.label}</span>
-              </div>
-              <div className="flex items-center gap-4 shrink-0 ml-4">
-                {/* Los artefactos se generan por proceso, no por macroproceso
-                    — mostrar "Sin artefactos" en la fila del macroproceso no
-                    dice nada real, ahí nunca va a haber artefactos propios. */}
-                {!esMacroproceso && (
-                  <>
-                    {generados === 0 && (
-                      <span className="text-[11px] text-slate-400 font-medium">Sin artefactos</span>
-                    )}
-                    {generados > 0 && (
-                      <div className="flex items-center gap-2">
-                        <div className="w-16 h-1 bg-slate-800 rounded-full overflow-hidden hidden sm:block">
-                          <div
-                            className={`h-full rounded-full transition-all ${pct === 100 ? 'bg-emerald-500' : 'bg-violet-500'}`}
-                            style={{ width: `${pct}%` }}
-                          />
-                        </div>
-                        <span className={`text-[11px] font-semibold ${pct === 100 ? 'text-emerald-400' : 'text-slate-400'}`}>
-                          {generados}/{total}
-                        </span>
-                      </div>
-                    )}
-                    {publicados > 0 && (
-                      <span className="flex items-center gap-1 text-[11px] text-emerald-400 font-medium">
-                        <CheckCircle2 className="w-3 h-3" />{publicados} aprobados
-                      </span>
-                    )}
-                    {generados === total && total > 0 && publicados === 0 && (
-                      <span className="flex items-center gap-1 text-[11px] text-slate-400 font-medium">
-                        <Clock className="w-3 h-3" />Sin aprobar
-                      </span>
-                    )}
-                    {hayIncompletos && (
-                      <AlertTriangle className="w-3.5 h-3.5 text-amber-500/70" />
-                    )}
-                  </>
-                )}
-                {esClickable && (
-                  <ArrowUpRight className="w-3.5 h-3.5 text-slate-600 group-hover:text-slate-400 transition-colors" />
-                )}
-              </div>
-            </div>
-      )
-
-      return (
-        <div key={p.id} style={{ marginLeft: `${Math.min(nivel * 16, 56)}px` }}>
-          {esClickable ? (
-            <Link href={`/artefactos/${p.id}`} className="block group">{cardContent}</Link>
-          ) : (
-            <div className="group">{cardContent}</div>
-          )}
-          {renderArbol(lista, p.id, nivel + 1)}
-        </div>
-      )
-    })
   }
 
   const stats = [
@@ -453,9 +333,11 @@ export default async function ArtefactosPage() {
                   <span className="text-slate-400 text-xs">· {cliente.razon_social}</span>
                 )}
               </div>
-              <div className="space-y-0">
-                {renderArbol(prosProyecto, null, 0)}
-              </div>
+              <ArbolProcesosArtefactos
+                procesos={prosProyecto}
+                artefactosPorProceso={artefactosPorProceso}
+                esSuperAdmin={esSuperAdmin}
+              />
             </div>
           )
         })
