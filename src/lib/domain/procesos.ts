@@ -80,3 +80,25 @@ export async function contarModificacionesDeProcesosAceptados(proyectoId: string
 
   return { documentos, artefactos, total: documentos + artefactos }
 }
+
+/**
+ * Fecha (ISO) de la modificación más reciente sobre procesos aceptados —
+ * misma fuente de "actividad real" que usa Control de Versiones (artefacto.
+ * updated_at + artefacto_historial.created_at), para que el Dashboard pueda
+ * mostrar "hace X" sin duplicar la lógica de agregación completa del timeline.
+ */
+export async function obtenerUltimaActividadDeProcesosAceptados(proyectoId: string): Promise<string | null> {
+  const { ids } = await getProcesosAceptadosIds(proyectoId)
+  if (ids.length === 0) return null
+
+  const admin = createAdminClient()
+  const [artefactoRes, historialRes] = await Promise.all([
+    admin.from('artefacto').select('updated_at').in('proceso_id', ids).order('updated_at', { ascending: false }).limit(1),
+    admin.from('artefacto_historial').select('created_at').in('proceso_id', ids).order('created_at', { ascending: false }).limit(1),
+  ])
+
+  const candidatos = [artefactoRes.data?.[0]?.updated_at, historialRes.data?.[0]?.created_at].filter(Boolean) as string[]
+  if (candidatos.length === 0) return null
+
+  return candidatos.reduce((latest, d) => (new Date(d).getTime() > new Date(latest).getTime() ? d : latest))
+}

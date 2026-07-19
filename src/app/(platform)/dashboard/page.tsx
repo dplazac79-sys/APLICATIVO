@@ -2,11 +2,12 @@ export const dynamic = 'force-dynamic'
 
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { FileText, FolderOpen, Brain, Layers, Sparkles, ArrowRight, AlertCircle, GitBranch } from 'lucide-react'
+import { FileText, FolderOpen, Brain, Layers, Sparkles, ArrowRight, AlertCircle, GitBranch, Clock } from 'lucide-react'
 import Link from 'next/link'
 import FaseWorkflow from '@/components/fases/FaseWorkflow'
 import { getFasesProyecto } from '@/lib/fases'
-import { getProcesosAceptadosIds, contarArtefactosDeProcesosAceptados, contarModificacionesDeProcesosAceptados } from '@/lib/domain/procesos'
+import { getProcesosAceptadosIds, contarArtefactosDeProcesosAceptados, contarModificacionesDeProcesosAceptados, obtenerUltimaActividadDeProcesosAceptados } from '@/lib/domain/procesos'
+import { formatFechaRelativa } from '@/lib/format'
 
 export default async function DashboardPage() {
   const supabase = createClient()
@@ -51,14 +52,16 @@ export default async function DashboardPage() {
   // Stats del proyecto activo
   let stats = { documentos: 0, docsListos: 0, procesosTotal: 0, procesosAprobados: 0, artefactos: 0 }
   let modificaciones = { documentos: 0, artefactos: 0, total: 0 }
+  let ultimaActividad: string | null = null
   if (proyectoMeta) {
-    const [docsRes, docsListosRes, procesosRes, aceptados, totalArtefactos, modsRes] = await Promise.all([
+    const [docsRes, docsListosRes, procesosRes, aceptados, totalArtefactos, modsRes, ultimaActividadRes] = await Promise.all([
       admin.from('documento').select('id', { count: 'exact', head: true }).eq('proyecto_id', proyectoMeta.id),
       admin.from('documento').select('id', { count: 'exact', head: true }).eq('proyecto_id', proyectoMeta.id).eq('estado_procesamiento', 'listo'),
       admin.from('proceso').select('id', { count: 'exact', head: true }).eq('proyecto_id', proyectoMeta.id),
       getProcesosAceptadosIds(proyectoMeta.id),
       contarArtefactosDeProcesosAceptados(proyectoMeta.id),
       contarModificacionesDeProcesosAceptados(proyectoMeta.id),
+      obtenerUltimaActividadDeProcesosAceptados(proyectoMeta.id),
     ])
     stats = {
       documentos: docsRes.count ?? 0,
@@ -68,6 +71,7 @@ export default async function DashboardPage() {
       artefactos: totalArtefactos,
     }
     modificaciones = modsRes
+    ultimaActividad = ultimaActividadRes
   }
 
   const faseActiva = fases?.find(f => f.status === 'activa')
@@ -145,12 +149,19 @@ export default async function DashboardPage() {
             }
           </p>
         </div>
-        <Link
-          href="/bienvenida"
-          className="flex items-center gap-2 text-sm text-indigo-400 hover:text-indigo-300 border border-indigo-500/30 px-3 py-1.5 rounded-lg hover:bg-indigo-500/10 transition-colors"
-        >
-          <Sparkles className="w-3.5 h-3.5" /> Ver resumen del proyecto
-        </Link>
+        <div className="flex items-center gap-3 flex-wrap">
+          {ultimaActividad && (
+            <span className="flex items-center gap-1.5 text-xs text-emerald-400/80 bg-emerald-500/[0.06] border border-emerald-500/20 px-3 py-1.5 rounded-lg">
+              <Clock className="w-3.5 h-3.5" /> Actividad: {formatFechaRelativa(ultimaActividad)}
+            </span>
+          )}
+          <Link
+            href="/bienvenida"
+            className="flex items-center gap-2 text-sm text-indigo-400 hover:text-indigo-300 border border-indigo-500/30 px-3 py-1.5 rounded-lg hover:bg-indigo-500/10 transition-colors"
+          >
+            <Sparkles className="w-3.5 h-3.5" /> Ver resumen del proyecto
+          </Link>
+        </div>
       </div>
 
       {/* Alerta si no hay documentos */}
