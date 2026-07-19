@@ -57,20 +57,46 @@ export default function FaseWorkflow({ fases, compact, hideProgressHeader }: { f
             />
           </div>
         )}
-        <div className="flex gap-1">
-          {fases.map(f => {
-            const c = COLOR_MAP[f.color]
-            return (
-              <div
-                key={f.id}
-                className={`flex-1 h-1 rounded-full transition-colors ${
-                  f.status === 'completada' ? c.bar :
-                  f.status === 'activa' ? `${c.bar} opacity-50` :
-                  'bg-slate-800'
-                }`}
-              />
-            )
-          })}
+
+        {/* Stepper horizontal — nodos conectados por fase, con icono, estado
+            y glow en la activa. Reemplaza las barritas planas anteriores
+            (que no comunicaban "flujo") por algo que se lee como un mapa de
+            ruta: dónde ya pasó el proyecto, dónde está, qué falta. */}
+        <div className="overflow-x-auto -mx-1 px-1">
+          <div className="flex items-start min-w-[560px]">
+            {fases.map((f, idx) => {
+              const c = COLOR_MAP[f.color]
+              const bloqueada = f.status === 'bloqueada'
+              const completada = f.status === 'completada'
+              const activa = f.status === 'activa'
+              return (
+                <div key={f.id} className={`flex items-start ${idx < fases.length - 1 ? 'flex-1' : ''}`}>
+                  <div className="flex flex-col items-center gap-1.5 w-16 shrink-0">
+                    <div className={`relative w-9 h-9 rounded-full border-2 flex items-center justify-center text-sm shrink-0 transition-all ${
+                      completada ? `${c.bar} border-transparent text-white` :
+                      activa ? `bg-slate-900 ${c.ring} shadow-lg ${c.glow}` :
+                      'bg-slate-900 border-slate-700'
+                    }`}>
+                      {activa && (
+                        <span className={`absolute inset-0 rounded-full ${c.bar} opacity-20 animate-ping`} />
+                      )}
+                      {completada ? <CheckCircle2 className="w-4 h-4" /> : bloqueada ? <Lock className="w-3.5 h-3.5 text-slate-600" /> : <span>{f.icono}</span>}
+                    </div>
+                    <span className={`text-[10px] font-medium text-center leading-tight ${
+                      bloqueada ? 'text-slate-600' : activa ? c.text : 'text-slate-400'
+                    }`}>
+                      F{f.id}
+                      <br />
+                      <span className="line-clamp-1">{f.nombre}</span>
+                    </span>
+                  </div>
+                  {idx < fases.length - 1 && (
+                    <div className={`flex-1 h-0.5 mt-[18px] rounded-full transition-colors ${completada ? c.bar : 'bg-slate-800'}`} />
+                  )}
+                </div>
+              )
+            })}
+          </div>
         </div>
       </div>
 
