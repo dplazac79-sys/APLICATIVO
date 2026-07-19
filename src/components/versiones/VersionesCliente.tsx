@@ -6,7 +6,7 @@ import { LABEL_ARTEFACTO } from '@/lib/artefactos-meta'
 import {
   FileText, Download, ChevronDown, Clock,
   GitBranch, Sparkles, Star, AlertCircle,
-  FileCheck, History, ArrowRight, Layers,
+  FileCheck, History, ArrowRight, Layers, User, Filter,
 } from 'lucide-react'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -42,6 +42,7 @@ interface HistorialArtefacto {
   motivo_cambio: string | null
   created_at: string
   proceso_id: string
+  autor: string | null
 }
 
 interface HistorialProceso {
@@ -111,6 +112,7 @@ interface VersionEntry {
   documentoId: string | null
   artefactoTipo?: string
   artefactoVersion?: number
+  autor?: string | null
 }
 
 const TIPO_LABELS: Record<string, { label: string; color: string; bg: string; border: string }> = {
@@ -185,6 +187,7 @@ function mergeConHistorialArtefactos(
     documentoId: null,
     artefactoTipo: h.tipo,
     artefactoVersion: h.version,
+    autor: h.autor,
   }))
 
   return [...timelineDocumentos, ...entradasArtefactos].sort(
@@ -370,9 +373,17 @@ function VersionRow({ entry, codigoProceso, procesoId, isLast }: {
                   <span className="text-sm font-bold text-white">{entry.label}</span>
                   <VersionBadge kind="artefacto" label={entry.label} isLatest={false} isOriginal={false} />
                 </div>
-                <span className="flex items-center gap-1.5 text-xs text-slate-400">
-                  <Clock className="w-3 h-3" />
-                  {fmtDate(entry.fecha)}
+                <span className="flex items-center gap-3 text-xs text-slate-400 flex-wrap">
+                  <span className="flex items-center gap-1.5">
+                    <Clock className="w-3 h-3" />
+                    {fmtDate(entry.fecha)}
+                  </span>
+                  {entry.autor && (
+                    <span className="flex items-center gap-1.5 text-slate-400">
+                      <User className="w-3 h-3" />
+                      {entry.autor}
+                    </span>
+                  )}
                 </span>
               </div>
             </div>
@@ -476,6 +487,7 @@ function ProcesoCard({ proceso, artefactos, docInfo, historialArtefactos, histor
   historialProcesos: HistorialProceso[]
 }) {
   const [open, setOpen] = useState(false)
+  const [filtro, setFiltro] = useState<'todos' | 'documento' | 'artefacto'>('todos')
   const codigo = scCode(proceso)
   // "timeline" (solo documento) define el badge de versión vigente en el
   // header — la edición de un artefacto no reemplaza el documento entregable.
@@ -483,8 +495,11 @@ function ProcesoCard({ proceso, artefactos, docInfo, historialArtefactos, histor
   // para que todo quede trazable en un solo lugar.
   const timeline = buildVersionTimeline(proceso, docInfo)
   const timelineCompleta = mergeConHistorialArtefactos(timeline, historialArtefactos)
+  const timelineFiltrada = filtro === 'todos' ? timelineCompleta : timelineCompleta.filter(e => e.kind === filtro)
   const latestVersion = timeline[timeline.length - 1]
   const totalArtefactos = artefactos.length
+  const totalDocumento = timelineCompleta.filter(e => e.kind === 'documento').length
+  const totalArtefactoEntradas = timelineCompleta.filter(e => e.kind === 'artefacto').length
 
   return (
     <div className={`rounded-2xl border transition-all duration-200
@@ -526,23 +541,51 @@ function ProcesoCard({ proceso, artefactos, docInfo, historialArtefactos, histor
 
       {open && (
         <div className="px-5 pb-6">
-          {/* Timeline header */}
-          <div className="flex items-center gap-2 mb-4">
-            <History className="w-3.5 h-3.5 text-slate-600" />
-            <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-widest">Historial de versiones</span>
+          {/* Timeline header + filtro por tipo de cambio */}
+          <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
+            <div className="flex items-center gap-2">
+              <History className="w-3.5 h-3.5 text-slate-600" />
+              <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-widest">Historial de versiones</span>
+            </div>
+            {(totalDocumento > 0 && totalArtefactoEntradas > 0) && (
+              <div className="flex items-center gap-1.5">
+                <Filter className="w-3 h-3 text-slate-600 mr-0.5" />
+                {[
+                  { key: 'todos' as const, label: `Todos (${timelineCompleta.length})` },
+                  { key: 'documento' as const, label: `Documento (${totalDocumento})` },
+                  { key: 'artefacto' as const, label: `Artefacto (${totalArtefactoEntradas})` },
+                ].map(f => (
+                  <button
+                    key={f.key}
+                    onClick={() => setFiltro(f.key)}
+                    className={`text-[10px] px-2.5 py-1 rounded-full border transition-all font-medium ${
+                      filtro === f.key
+                        ? 'bg-indigo-500/20 border-indigo-500/40 text-indigo-300'
+                        : 'border-white/8 text-slate-400 hover:text-slate-300 hover:border-white/15'
+                    }`}
+                  >
+                    {f.label}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Timeline — más reciente arriba, original abajo. Incluye tanto
               versiones de documento como ediciones puntuales de artefactos. */}
-          {[...timelineCompleta].reverse().map((entry, i) => (
+          {[...timelineFiltrada].reverse().map((entry, i) => (
             <VersionRow
               key={`${entry.kind}-${entry.label}-${entry.fecha}-${i}`}
               entry={entry}
               codigoProceso={codigo}
               procesoId={proceso.id}
-              isLast={i === timelineCompleta.length - 1}
+              isLast={i === timelineFiltrada.length - 1}
             />
           ))}
+
+          {timelineFiltrada.length === 0 && (
+            <p className="text-xs text-slate-400 py-4 text-center">Sin entradas para este filtro.</p>
+          )}
 
           {/* Hint when only Original exists */}
           {timelineCompleta.length === 1 && (

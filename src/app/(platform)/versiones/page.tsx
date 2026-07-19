@@ -115,7 +115,8 @@ export default async function VersionesPage() {
     .in('proceso_id', procesoIds)
     .order('updated_at', { ascending: false })
 
-  // Historial de artefactos
+  // Historial de artefactos — incluye quién hizo el cambio (modificado_por)
+  // para mostrar autor en la línea de tiempo, no solo qué cambió y cuándo.
   const artefactoIds = (artefactosRaw ?? []).map(a => a.id)
   let historialArtefactosRaw: Array<{
     id: string
@@ -125,15 +126,23 @@ export default async function VersionesPage() {
     motivo_cambio: string | null
     created_at: string
     proceso_id: string
+    modificado_por: string | null
   }> = []
 
   if (artefactoIds.length > 0) {
     const { data: h } = await admin
       .from('artefacto_historial')
-      .select('id, artefacto_id, tipo, version, motivo_cambio, created_at, proceso_id')
+      .select('id, artefacto_id, tipo, version, motivo_cambio, created_at, proceso_id, modificado_por')
       .in('artefacto_id', artefactoIds)
       .order('created_at', { ascending: false })
     historialArtefactosRaw = (h ?? []) as typeof historialArtefactosRaw
+  }
+
+  const autorIds = Array.from(new Set(historialArtefactosRaw.map(h => h.modificado_por).filter(Boolean))) as string[]
+  const autoresMap: Record<string, string> = {}
+  if (autorIds.length > 0) {
+    const { data: autores } = await admin.from('usuario').select('id, nombre').in('id', autorIds)
+    for (const a of autores ?? []) autoresMap[a.id] = a.nombre
   }
 
   // Historial de procesos (tabla proceso_historial si existe)
@@ -171,7 +180,10 @@ export default async function VersionesPage() {
         proceso_id: string
         generado_por_ia: boolean
       }>}
-      historialArtefactos={historialArtefactosRaw}
+      historialArtefactos={historialArtefactosRaw.map(h => ({
+        ...h,
+        autor: h.modificado_por ? (autoresMap[h.modificado_por] ?? null) : null,
+      }))}
       historialProcesos={historialProcesosRaw}
       documentosMap={documentosMap}
       proyectoNombre={proyecto?.nombre ?? ''}
