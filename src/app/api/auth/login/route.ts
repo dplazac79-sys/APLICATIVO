@@ -53,11 +53,20 @@ export async function POST(req: NextRequest) {
 
   if (signInError || !signInData.user) {
     if (authUser) {
-      const failed = (meta.failed_attempts ?? 0) + 1
-      const locked = failed >= MAX_ATTEMPTS
-      await admin.auth.admin.updateUserById(authUser.id, {
-        user_metadata: { ...meta, failed_attempts: failed, locked },
-      })
+      // RPC atómico (advisory lock + UPDATE...RETURNING en una sola
+      // transacción) en vez de leer failed_attempts acá y escribirlo de
+      // vuelta — ese patrón read-then-write permitía que varias requests
+      // concurrentes de login fallido para la misma cuenta pisaran el
+      // conteo de la otra y se saltaran el bloqueo a los 3 intentos.
+      const { data: intento, error: intentoError } = await admin.rpc('registrar_intento_fallido_login', {
+        p_user_id: authUser.id,
+        p_max_attempts: MAX_ATTEMPTS,
+      }).single()
+      if (intentoError || !intento) {
+        return NextResponse.json({ error: 'Credenciales incorrectas.' }, { status: 401 })
+      }
+      const failed = (intento as { failed_attempts: number; locked: boolean }).failed_attempts
+      const locked = (intento as { failed_attempts: number; locked: boolean }).locked
       if (locked) {
         return NextResponse.json({ error: 'Tu cuenta ha sido bloqueada por demasiados intentos fallidos. Contacta al administrador.' }, { status: 423 })
       }
