@@ -5,6 +5,7 @@ import { Layers, ChevronLeft, Printer, FileCheck2, ArrowRight } from 'lucide-rea
 import Link from 'next/link'
 import type { Artefacto } from '@/types/database'
 import ArtefactoCardEditor from '@/components/artefactos/ArtefactoCardEditor'
+import ComparacionAsIsToBe from '@/components/artefactos/ComparacionAsIsToBe'
 import ImportadorArtefactos from '@/components/artefactos/ImportadorArtefactos'
 import BotonReextraer from '@/components/artefactos/BotonReextraer'
 import ValidarTodosButton from '@/components/artefactos/ValidarTodosButton'
@@ -200,8 +201,19 @@ export default async function ProcesoArtefactosPage({ params }: Props) {
         const art = artefactosPorTipo[tipo]
         if (!art) return null
         return (
-          <div key={tipo} id={`artefacto-${tipo}`} className="scroll-mt-4">
+          <div key={tipo} id={`artefacto-${tipo}`} className="scroll-mt-4 space-y-3">
             <ArtefactoCardEditor artefacto={art} procesoId={params.procesoId} numero={idx + 1} rol={rolUsuario} />
+            {/* AS-IS y TO-BE son los dos artefactos pensados para
+                contrastarse, pero quedan en extremos opuestos del listado
+                (posiciones 2 y 8) — la comparación va justo después del
+                AS-IS, cuando ambos ya existen, para no obligar a scrollear
+                entre uno y otro para verlos juntos. */}
+            {tipo === 'as_is' && artefactosPorTipo.to_be && (
+              <ComparacionAsIsToBe
+                contenidoAsIs={art.contenido as Record<string, unknown>}
+                contenidoToBe={artefactosPorTipo.to_be.contenido as Record<string, unknown>}
+              />
+            )}
           </div>
         )
       })}
