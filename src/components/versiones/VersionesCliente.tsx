@@ -96,6 +96,20 @@ interface CambioDetalle {
   fecha?: string
 }
 
+// Reemplazo de texto real que la IA aplicó sobre el documento al consolidar
+// una versión (buscar → reemplazar_por) — guardado en metadata_ia.versiones
+// junto al resto de la versión. A diferencia de detalleCorrecciones (que
+// registra la decisión del cliente), esto es el cambio literal que quedó
+// en el documento, lo que permite mostrar un diff real palabra por palabra.
+interface CambioAplicado {
+  tipo: string
+  seccion: string
+  buscar: string
+  reemplazar_por: string
+  descripcion: string
+  aplicado?: boolean
+}
+
 interface VersionEntry {
   // 'documento': una versión del documento completo (Original o V1, V2... generadas
   // desde Discovery/Hallazgos). 'artefacto': una edición puntual a un artefacto
@@ -107,6 +121,7 @@ interface VersionEntry {
   fecha: string
   descripcion: string
   detalleCorrecciones: CambioDetalle[]
+  cambiosAplicados: CambioAplicado[]
   isLatest: boolean
   isOriginal: boolean
   documentoId: string | null
@@ -142,6 +157,7 @@ function buildVersionTimeline(p: Proceso, docInfo: DocumentoInfo | undefined): V
       ? `Documento base "${docInfo.nombre_archivo}" subido en Centro Documental.`
       : 'Documento base subido en Centro Documental.',
     detalleCorrecciones: [],
+    cambiosAplicados: [],
     isLatest: versiones.length === 0,
     isOriginal: true,
     documentoId: p.documento_origen_id ?? null,
@@ -150,6 +166,7 @@ function buildVersionTimeline(p: Proceso, docInfo: DocumentoInfo | undefined): V
   versiones.forEach((v, i) => {
     const numero = (v.numero as number) ?? (i + 1)
     const detalleCorrecciones = (v.detalle_correcciones ?? []) as CambioDetalle[]
+    const cambiosAplicados = (v.cambios_aplicados ?? []) as CambioAplicado[]
 
     entries.push({
       kind: 'documento',
@@ -158,6 +175,7 @@ function buildVersionTimeline(p: Proceso, docInfo: DocumentoInfo | undefined): V
       fecha: (v.fecha as string) ?? p.updated_at,
       descripcion: (v.descripcion as string) ?? `Versión ${numero}`,
       detalleCorrecciones,
+      cambiosAplicados,
       isLatest: i === versiones.length - 1,
       isOriginal: false,
       documentoId: null,
@@ -182,6 +200,7 @@ function mergeConHistorialArtefactos(
     fecha: h.created_at,
     descripcion: h.motivo_cambio?.trim() || 'Edición sin motivo registrado.',
     detalleCorrecciones: [],
+    cambiosAplicados: [],
     isLatest: false,
     isOriginal: false,
     documentoId: null,
@@ -287,6 +306,71 @@ function DownloadBtn({ entry, codigoProceso, procesoId }: {
   )
 }
 
+// ─── Diff de texto palabra por palabra ─────────────────────────────────────────
+// LCS clásico sobre tokens (palabras + espacios, para conservar el espaciado
+// real) — suficiente para los fragmentos cortos (una oración) que la IA usa
+// como "buscar"/"reemplazar_por" al consolidar una versión.
+
+type TokenDiff = { tipo: 'igual' | 'quitado' | 'agregado'; texto: string }
+
+function diffPalabras(a: string, b: string): TokenDiff[] {
+  const wa = a.split(/(\s+)/)
+  const wb = b.split(/(\s+)/)
+  const n = wa.length
+  const m = wb.length
+  const dp: number[][] = Array.from({ length: n + 1 }, () => new Array(m + 1).fill(0))
+  for (let i = n - 1; i >= 0; i--) {
+    for (let j = m - 1; j >= 0; j--) {
+      dp[i][j] = wa[i] === wb[j] ? dp[i + 1][j + 1] + 1 : Math.max(dp[i + 1][j], dp[i][j + 1])
+    }
+  }
+  const result: TokenDiff[] = []
+  let i = 0, j = 0
+  while (i < n && j < m) {
+    if (wa[i] === wb[j]) { result.push({ tipo: 'igual', texto: wa[i] }); i++; j++ }
+    else if (dp[i + 1][j] >= dp[i][j + 1]) { result.push({ tipo: 'quitado', texto: wa[i] }); i++ }
+    else { result.push({ tipo: 'agregado', texto: wb[j] }); j++ }
+  }
+  while (i < n) { result.push({ tipo: 'quitado', texto: wa[i] }); i++ }
+  while (j < m) { result.push({ tipo: 'agregado', texto: wb[j] }); j++ }
+  return result
+}
+
+function DiffTexto({ antes, despues }: { antes: string; despues: string }) {
+  const tokens = diffPalabras(antes, despues)
+  return (
+    <p className="text-[11px] leading-relaxed font-mono">
+      {tokens.map((t, i) => {
+        if (t.tipo === 'igual') return <span key={i} className="text-slate-400">{t.texto}</span>
+        if (t.tipo === 'quitado') return <span key={i} className="text-red-400/90 line-through bg-red-500/10">{t.texto}</span>
+        return <span key={i} className="text-emerald-300 bg-emerald-500/10">{t.texto}</span>
+      })}
+    </p>
+  )
+}
+
+function CambioAplicadoCard({ cambio }: { cambio: CambioAplicado }) {
+  const cfg = getTipo(cambio.tipo)
+  return (
+    <div className={`rounded-xl border p-3.5 ${cfg.bg} ${cfg.border}`}>
+      <div className="flex items-start justify-between gap-2 mb-2.5">
+        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide ${cfg.color} ${cfg.bg} border ${cfg.border}`}>
+          {cfg.label}
+        </span>
+        {cambio.seccion && (
+          <span className="text-[10px] text-slate-400 italic truncate max-w-[60%] text-right">{cambio.seccion}</span>
+        )}
+      </div>
+      <DiffTexto antes={cambio.buscar} despues={cambio.reemplazar_por} />
+      {cambio.descripcion && (
+        <p className="mt-2.5 text-[11px] text-slate-400 leading-relaxed border-t border-white/[0.05] pt-2">
+          {cambio.descripcion}
+        </p>
+      )}
+    </div>
+  )
+}
+
 // ─── Change Detail Card ────────────────────────────────────────────────────────
 
 function CambioCard({ cambio, index }: { cambio: CambioDetalle; index: number }) {
@@ -335,6 +419,10 @@ function VersionRow({ entry, codigoProceso, procesoId, isLast }: {
 }) {
   const totalCambios = entry.detalleCorrecciones.length
   const esArtefacto = entry.kind === 'artefacto'
+  // Solo los reemplazos con texto real de "antes" y "después" tienen algo
+  // que diffear — las decisiones "aceptado tal cual" no tocaron el
+  // documento, así que no generan buscar/reemplazar_por.
+  const cambiosConDiff = entry.cambiosAplicados.filter(c => c.buscar?.trim() && c.reemplazar_por?.trim() && c.aplicado !== false)
 
   return (
     <div className="relative flex gap-4">
@@ -461,6 +549,25 @@ function VersionRow({ entry, codigoProceso, procesoId, isLast }: {
             </div>
           )}
 
+          {/* Diff real palabra por palabra de lo que la IA cambió en el
+              documento — complementa "Qué cambió" (la decisión del cliente)
+              con el texto literal antes/después. */}
+          {!entry.isOriginal && cambiosConDiff.length > 0 && (
+            <div className="border-t border-white/[0.05] px-4 pt-4 pb-4">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-1 h-4 rounded-full bg-violet-500/50" />
+                <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-widest">
+                  Diff del documento — antes / después
+                </span>
+              </div>
+              <div className="grid gap-2.5">
+                {cambiosConDiff.map((c, i) => (
+                  <CambioAplicadoCard key={i} cambio={c} />
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Original: no changes, just info */}
           {entry.isOriginal && (
             <div className="border-t border-white/[0.04] px-4 py-3 flex items-center gap-2">
@@ -487,8 +594,11 @@ function entryCoincide(entry: VersionEntry, q: string): boolean {
   const t = q.toLowerCase()
   if (entry.descripcion?.toLowerCase().includes(t)) return true
   if (entry.label?.toLowerCase().includes(t)) return true
-  return entry.detalleCorrecciones.some(c =>
+  if (entry.detalleCorrecciones.some(c =>
     c.observacion?.toLowerCase().includes(t) || c.texto_original?.toLowerCase().includes(t)
+  )) return true
+  return entry.cambiosAplicados.some(c =>
+    c.buscar?.toLowerCase().includes(t) || c.reemplazar_por?.toLowerCase().includes(t) || c.seccion?.toLowerCase().includes(t)
   )
 }
 
