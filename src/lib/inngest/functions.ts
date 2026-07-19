@@ -256,6 +256,22 @@ async function discoveryAIBody({ proyecto_id, usuario_id, documento_ids, job_id,
         .in('origen', ['detectado', 'propuesta_ia'])
         .eq('estado_oferta', 'propuesto')
 
+      // Procesos nivel 1 ya decididos (aceptado o rechazado) por documento
+      // origen — el borrado de arriba solo limpia los "propuesto", así que
+      // si el cliente ya aceptó/rechazó el proceso de un documento y
+      // Discovery se vuelve a ejecutar, la IA vuelve a proponer ese mismo
+      // documento y, sin este filtro, se insertaba un duplicado "propuesto"
+      // al lado del proceso ya decidido (mismo documento_origen_id, mismo
+      // código, dos filas). Se filtra por documento_origen_id porque es la
+      // señal estable — el nombre puede variar levemente entre corridas.
+      const { data: decididosExistentes } = await admin.from('proceso')
+        .select('documento_origen_id')
+        .eq('proyecto_id', proyecto_id)
+        .eq('nivel', 1)
+        .in('estado_oferta', ['aceptado', 'rechazado'])
+        .not('documento_origen_id', 'is', null)
+      const docsYaDecididos = new Set((decididosExistentes ?? []).map(p => p.documento_origen_id))
+
       const { data: macrosExistentes } = await admin.from('proceso')
         .select('id, nombre')
         .eq('proyecto_id', proyecto_id)
@@ -313,8 +329,17 @@ async function discoveryAIBody({ proyecto_id, usuario_id, documento_ids, job_id,
         }
         if (!macroRow) continue
 
+        // No reproponer un proceso cuyo documento origen ya tiene una
+        // decisión humana tomada (aceptado o rechazado) — ver comentario
+        // junto a docsYaDecididos más arriba.
+        const procesosAInsertar = procesosDelGrupo.filter(p => {
+          const docId = (p.__doc_origen as { id: string } | undefined)?.id
+          return !docId || !docsYaDecididos.has(docId)
+        })
+        if (procesosAInsertar.length === 0) continue
+
         await admin.from('proceso').insert(
-          procesosDelGrupo.map((p: Record<string, unknown>) => {
+          procesosAInsertar.map((p: Record<string, unknown>) => {
             const docRef = p.documento_referencia as string | null
             const codigo = docRef ? docRef.replace(/\.[^.]+$/, '').toUpperCase() : null
             const ordenNum = codigo ? (parseInt(codigo.replace(/\D/g, ''), 10) || ++i) : ++i
