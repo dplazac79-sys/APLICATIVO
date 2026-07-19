@@ -1,0 +1,26 @@
+-- Migración 048: documenta (para reproducibilidad de entorno) dos cambios
+-- de configuración de Storage ya aplicados directamente vía la Storage
+-- Management API con la service-role key (no requieren SQL, pero se dejan
+-- registrados aquí para que un entorno nuevo quede configurado igual).
+--
+-- Hallazgo de auditoría: el bucket "documentos" tenía public = true, pero
+-- toda la aplicación accede a sus archivos exclusivamente vía URLs firmadas
+-- (createSignedUrl, ver src/app/(platform)/documentos/page.tsx,
+-- src/app/api/documentos/signed-url/route.ts, pdf-proxy/route.ts, etc.) —
+-- nunca vía getPublicUrl. Un bucket público sirve los objetos directamente
+-- en /storage/v1/object/public/{bucket}/{path} sin verificar ninguna
+-- política RLS ni expiración de firma: cualquiera que obtuviera o adivinara
+-- una ruta de archivo (ej. por un log, un header Referer, historial del
+-- navegador) podía leer documentos de clientes sin autenticarse. Se corrigió
+-- con `update storage.buckets set public = false`.
+--
+-- Además existía un bucket duplicado y sin uso "Documentos" (con mayúscula),
+-- vacío y no referenciado en el código — probablemente creado por error al
+-- configurar el storage manualmente. Se eliminó.
+update storage.buckets set public = false where id = 'documentos';
+
+-- El bucket "Documentos" (mayúscula, vacío, sin referencias en el código)
+-- ya fue eliminado directamente vía la Storage Management API. No hay
+-- equivalente en SQL para recrear su eliminación aquí porque storage.buckets
+-- no tiene filas que borrar — se deja este comentario únicamente como
+-- registro histórico del cambio.

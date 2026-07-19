@@ -65,15 +65,17 @@ export async function POST(req: NextRequest) {
       if (intentoError || !intento) {
         return NextResponse.json({ error: 'Credenciales incorrectas.' }, { status: 401 })
       }
-      const failed = (intento as { failed_attempts: number; locked: boolean }).failed_attempts
       const locked = (intento as { failed_attempts: number; locked: boolean }).locked
       if (locked) {
         return NextResponse.json({ error: 'Tu cuenta ha sido bloqueada por demasiados intentos fallidos. Contacta al administrador.' }, { status: 423 })
       }
-      const rem = Math.max(0, MAX_ATTEMPTS - failed)
-      return NextResponse.json({ error: `Credenciales incorrectas.${rem > 0 ? ` Te queda${rem === 1 ? '' : 'n'} ${rem} intento${rem === 1 ? '' : 's'} antes del bloqueo.` : ''}` }, { status: 401 })
+      return NextResponse.json({ error: 'Credenciales incorrectas.' }, { status: 401 })
     }
-    return NextResponse.json({ error: 'Las credenciales proporcionadas no corresponden a un perfil activo.' }, { status: 401 })
+    // Mismo mensaje y status que "contraseña incorrecta" (arriba) — un mensaje
+    // distinto para "el correo no existe / no tiene perfil activo" permite a
+    // un atacante enumerar qué correos están registrados probando contraseñas
+    // al azar. Hallazgo de auditoría de seguridad (enumeración de usuarios).
+    return NextResponse.json({ error: 'Credenciales incorrectas.' }, { status: 401 })
   }
 
   const user = signInData.user
