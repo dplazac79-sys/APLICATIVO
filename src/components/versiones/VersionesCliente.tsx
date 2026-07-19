@@ -916,6 +916,30 @@ export default function VersionesCliente({
           </div>
         )}
 
+        {/* Cierre de flujo — Control de Versiones es la última fase (F5): a
+            diferencia de Artefactos/Horizonte, acá no hay "siguiente paso"
+            dentro del proyecto, así que el CTA lleva de vuelta al Dashboard
+            en lugar de a otra fase. */}
+        {!busqueda && (
+          <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/[0.05] p-5 flex items-center justify-between gap-4 flex-wrap">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-emerald-500/15 border border-emerald-500/25 flex items-center justify-center flex-shrink-0">
+                <FileCheck className="w-4 h-4 text-emerald-400" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-white">Rastro documental completo</p>
+                <p className="text-xs text-slate-400 mt-0.5">Ya revisaste el historial de versiones y cambios del proyecto — puedes volver al Dashboard.</p>
+              </div>
+            </div>
+            <a
+              href="/dashboard"
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/30 transition-colors flex-shrink-0"
+            >
+              Ir al Dashboard <ArrowRight className="w-3.5 h-3.5" />
+            </a>
+          </div>
+        )}
+
       </div>
     </div>
   )
