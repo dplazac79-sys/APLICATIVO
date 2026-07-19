@@ -24,6 +24,7 @@ interface Resumen {
   oportunidades_valor?: string[]
   riesgos_criticos?: string[]
   benchmark_industria?: string
+  herramientas_recomendadas?: Array<{ herramienta: string; para_que: string; como_aplicarla: string }>
   ancla_documental?: boolean
   documentos_considerados?: number
 }
@@ -2154,6 +2155,26 @@ export function ProcesoCard({ proceso, esHijo = false, proyectoId, esInterno = f
                         <BarChart3 className="w-3 h-3" /> Benchmark de industria
                       </p>
                       <p className="text-xs text-slate-300 leading-relaxed">{resumen.benchmark_industria}</p>
+                    </div>
+                  )}
+
+                  {/* Herramientas recomendadas — instrumental clásico de gestión de
+                      procesos (SIPOC, VSM, RACI, DMAIC, etc.) que la IA propone
+                      aplicar a este proceso, más allá de lo que dice el documento. */}
+                  {resumen.herramientas_recomendadas && resumen.herramientas_recomendadas.filter(h => h.herramienta).length > 0 && (
+                    <div className="bg-slate-900/50 rounded-xl p-3 space-y-2.5 border border-indigo-800/20">
+                      <p className="text-[10px] font-semibold text-indigo-400 uppercase tracking-widest flex items-center gap-1.5">
+                        <Layers className="w-3 h-3" /> Herramientas de gestión de procesos recomendadas
+                      </p>
+                      <div className="space-y-2">
+                        {resumen.herramientas_recomendadas.filter(h => h.herramienta).map((h, i) => (
+                          <div key={i} className="rounded-lg bg-indigo-950/20 border border-indigo-800/20 px-3 py-2 space-y-0.5">
+                            <p className="text-xs font-bold text-indigo-300">{h.herramienta}</p>
+                            {h.para_que && <p className="text-[11px] text-slate-400">{h.para_que}</p>}
+                            {h.como_aplicarla && <p className="text-[11px] text-slate-300 italic">→ {h.como_aplicarla}</p>}
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   )}
 
