@@ -3,6 +3,7 @@ import { jsonError } from '@/lib/http/errors'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { inngest } from '@/lib/inngest/client'
+import { obtenerRolesDesdeDocumentos } from '@/lib/domain/roles'
 
 // GET — obtener último análisis
 export async function GET(req: NextRequest) {
@@ -70,50 +71,7 @@ export async function POST(req: NextRequest) {
   // revisaba, `documentos` quedaba `null` en silencio — cero roles
   // recolectados, siempre, para cualquier proyecto. Por eso esta función
   // jamás llegó a generar un análisis real.
-  const { data: documentos, error: errDocumentos } = await admin
-    .from('documento')
-    .select('nombre_archivo, analisis_ia')
-    .eq('proyecto_id', body.proyecto_id)
-    .eq('estado_procesamiento', 'listo')
-    .not('analisis_ia', 'is', null)
-
-  if (errDocumentos) return jsonError(errDocumentos)
-
-  // Agregar roles únicos de todos los documentos
-  const rolesMap = new Map<string, { rol: string; descripcion: string; procesos: string[] }>()
-
-  for (const doc of documentos ?? []) {
-    const ia = doc.analisis_ia as Record<string, unknown>
-    const rolesDoc = ia?.roles_y_responsabilidades as Record<string, unknown> | undefined
-    const procesosDocName = doc.nombre_archivo
-
-    // roles_identificados: string[]
-    const rolesId = (rolesDoc?.roles_identificados as string[] | undefined) ?? []
-    for (const rol of rolesId) {
-      if (!rol?.trim()) continue
-      const key = rol.toLowerCase().trim()
-      if (rolesMap.has(key)) {
-        const existing = rolesMap.get(key)!
-        if (!existing.procesos.includes(procesosDocName)) existing.procesos.push(procesosDocName)
-      } else {
-        rolesMap.set(key, { rol: rol.trim(), descripcion: '', procesos: [procesosDocName] })
-      }
-    }
-
-    // brechas_de_rol: string[] — también los incluimos como roles a cubrir
-    const brechas = (rolesDoc?.brechas_de_rol as string[] | undefined) ?? []
-    for (const brecha of brechas) {
-      if (!brecha?.trim()) continue
-      // Extraer el nombre del rol de la brecha (antes del primer ":")
-      const nombreRol = brecha.split(':')[0].trim()
-      const key = `brecha:${nombreRol.toLowerCase()}`
-      if (!rolesMap.has(key)) {
-        rolesMap.set(key, { rol: nombreRol, descripcion: brecha, procesos: [procesosDocName] })
-      }
-    }
-  }
-
-  const rolesEnProcesos = Array.from(rolesMap.values()).slice(0, 30) // máx 30 roles para no saturar el prompt
+  const rolesEnProcesos = await obtenerRolesDesdeDocumentos(body.proyecto_id) // máx 30 roles para no saturar el prompt
 
   if (rolesEnProcesos.length === 0) {
     return NextResponse.json({

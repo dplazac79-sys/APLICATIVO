@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import DiscoveryExperiencia from '@/components/discovery/DiscoveryExperiencia'
 import { getFasesProyecto } from '@/lib/fases'
+import { obtenerRolesDesdeDocumentos } from '@/lib/domain/roles'
 import type { Proceso, Proyecto } from '@/types/database'
 import type { ProcesoConHijos, DocumentoItem } from '@/components/discovery/types'
 
@@ -85,16 +86,14 @@ export default async function DiscoveryPage() {
   const procesosDetectados = procesosNivel1.filter((p: Proceso) => p.origen === 'detectado').length
   const procesosPropeustosIA = procesosNivel1.filter((p: Proceso) => p.origen === 'propuesta_ia').length
 
-  // Roles únicos de procesos aceptados para Glosario
-  const rolesDetectados = Array.from(
-    new Set(aceptados.flatMap((p: Proceso) => p.roles_involucrados ?? []))
-  ).map((rol: string) => ({
-    rol,
-    descripcion: '',
-    procesos: aceptados
-      .filter((p: Proceso) => (p.roles_involucrados ?? []).includes(rol))
-      .map((p: Proceso) => p.nombre),
-  }))
+  // Roles para Glosario — misma fuente y lógica que usa /api/portal/glosario-roles
+  // al lanzar el análisis IA (documento.analisis_ia, no proceso.roles_involucrados).
+  // Antes se derivaban de los procesos ACEPTADOS con descripción siempre vacía —
+  // un dato que además nunca llegaba a usarse en el análisis real (el endpoint
+  // recalcula los suyos desde los documentos e ignora lo que manda el cliente),
+  // así que el badge del tab "Glosario de Roles" mostraba un conteo que no tenía
+  // relación con lo que esa pestaña realmente iba a mostrar.
+  const rolesDetectados = await obtenerRolesDesdeDocumentos(proyecto.id)
 
   const documentosProyecto = (documentosRaw ?? [])
     .filter((d: { subido_por: { rol: string } | { rol: string }[] | null }) => {
