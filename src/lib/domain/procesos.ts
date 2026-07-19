@@ -158,3 +158,44 @@ export async function obtenerHitosRecientesDeProcesosAceptados(proyectoId: strin
     .sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime())
     .slice(0, limite)
 }
+
+export interface SimulacionResumen {
+  procesoCodigo: string
+  headline: string
+  ahorroAnualClp: number
+  reduccionTiempoPorcentaje: number
+  fecha: string
+}
+
+/**
+ * Última simulación de Horizonte de Impacto guardada (tabla `simulacion`)
+ * sobre un proceso aceptado del proyecto — solo el equipo consultor puede
+ * guardar simulaciones (ver /api/horizonte/simulaciones), así que puede no
+ * existir ninguna; el Dashboard debe manejar el caso null sin romper.
+ */
+export async function obtenerUltimaSimulacionDeProcesosAceptados(proyectoId: string): Promise<SimulacionResumen | null> {
+  const { ids } = await getProcesosAceptadosIds(proyectoId)
+  if (ids.length === 0) return null
+
+  const admin = createAdminClient()
+  const { data } = await admin
+    .from('simulacion')
+    .select('resultados, created_at, proceso:proceso_id(codigo, nombre)')
+    .in('proceso_id', ids)
+    .order('created_at', { ascending: false })
+    .limit(1)
+
+  const row = data?.[0]
+  if (!row) return null
+
+  const r = (row.resultados ?? {}) as Record<string, unknown>
+  const proc = (row.proceso as unknown) as { codigo: string | null; nombre: string } | null
+
+  return {
+    procesoCodigo: proc?.codigo ?? proc?.nombre ?? '',
+    headline: (r.headline as string) ?? '',
+    ahorroAnualClp: (r.ahorro_anual_clp as number) ?? 0,
+    reduccionTiempoPorcentaje: (r.reduccion_tiempo_porcentaje as number) ?? 0,
+    fecha: row.created_at,
+  }
+}

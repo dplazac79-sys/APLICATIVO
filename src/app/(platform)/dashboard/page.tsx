@@ -2,11 +2,11 @@ export const dynamic = 'force-dynamic'
 
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { FileText, FolderOpen, Brain, Layers, Sparkles, ArrowRight, AlertCircle, GitBranch, Clock, History } from 'lucide-react'
+import { FileText, FolderOpen, Brain, Layers, Sparkles, ArrowRight, AlertCircle, GitBranch, Clock, History, TrendingUp } from 'lucide-react'
 import Link from 'next/link'
 import FaseWorkflow from '@/components/fases/FaseWorkflow'
 import { getFasesProyecto } from '@/lib/fases'
-import { getProcesosAceptadosIds, contarArtefactosDeProcesosAceptados, contarModificacionesDeProcesosAceptados, obtenerUltimaActividadDeProcesosAceptados, obtenerHitosRecientesDeProcesosAceptados } from '@/lib/domain/procesos'
+import { getProcesosAceptadosIds, contarArtefactosDeProcesosAceptados, contarModificacionesDeProcesosAceptados, obtenerUltimaActividadDeProcesosAceptados, obtenerHitosRecientesDeProcesosAceptados, obtenerUltimaSimulacionDeProcesosAceptados } from '@/lib/domain/procesos'
 import { formatFechaRelativa } from '@/lib/format'
 import { LABEL_ARTEFACTO } from '@/lib/artefactos-meta'
 
@@ -64,8 +64,9 @@ export default async function DashboardPage() {
   let modificaciones = { documentos: 0, artefactos: 0, total: 0 }
   let ultimaActividad: string | null = null
   let hitosRecientes: Awaited<ReturnType<typeof obtenerHitosRecientesDeProcesosAceptados>> = []
+  let ultimaSimulacion: Awaited<ReturnType<typeof obtenerUltimaSimulacionDeProcesosAceptados>> = null
   if (proyectoMeta) {
-    const [docsRes, docsListosRes, procesosRes, aceptados, totalArtefactos, modsRes, ultimaActividadRes, hitosRes] = await Promise.all([
+    const [docsRes, docsListosRes, procesosRes, aceptados, totalArtefactos, modsRes, ultimaActividadRes, hitosRes, simulacionRes] = await Promise.all([
       admin.from('documento').select('id', { count: 'exact', head: true }).eq('proyecto_id', proyectoMeta.id),
       admin.from('documento').select('id', { count: 'exact', head: true }).eq('proyecto_id', proyectoMeta.id).eq('estado_procesamiento', 'listo'),
       admin.from('proceso').select('id', { count: 'exact', head: true }).eq('proyecto_id', proyectoMeta.id),
@@ -74,6 +75,7 @@ export default async function DashboardPage() {
       contarModificacionesDeProcesosAceptados(proyectoMeta.id),
       obtenerUltimaActividadDeProcesosAceptados(proyectoMeta.id),
       obtenerHitosRecientesDeProcesosAceptados(proyectoMeta.id, 3),
+      obtenerUltimaSimulacionDeProcesosAceptados(proyectoMeta.id),
     ])
     stats = {
       documentos: docsRes.count ?? 0,
@@ -85,6 +87,7 @@ export default async function DashboardPage() {
     modificaciones = modsRes
     ultimaActividad = ultimaActividadRes
     hitosRecientes = hitosRes
+    ultimaSimulacion = simulacionRes
   }
 
   const faseActiva = fases?.find(f => f.status === 'activa')
@@ -211,6 +214,52 @@ export default async function DashboardPage() {
           )
         })}
       </div>
+
+      {/* Impacto proyectado estimado — resumen de la última simulación de
+          Horizonte de Impacto guardada por el equipo consultor. Es el dato
+          que conecta todo el trabajo de fases anteriores con un resultado
+          de negocio concreto, así que va destacado con su propio bloque en
+          vez de camuflado como una KPI card más. Solo existe si el equipo
+          consultor ya guardó una simulación — puede no haber ninguna. */}
+      {ultimaSimulacion && (
+        <Link
+          href="/horizonte"
+          className="relative overflow-hidden flex items-center justify-between gap-6 flex-wrap bg-gradient-to-r from-emerald-900/25 via-emerald-800/10 to-slate-900 border border-emerald-600/30 rounded-2xl p-6 hover:border-emerald-500/50 transition-colors group"
+        >
+          <div className="absolute right-0 top-0 w-40 h-40 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+          <div className="relative flex items-center gap-4">
+            <div className="w-11 h-11 rounded-xl bg-emerald-500/15 border border-emerald-500/25 flex items-center justify-center shrink-0">
+              <TrendingUp className="w-5 h-5 text-emerald-400" />
+            </div>
+            <div>
+              <p className="text-xs text-emerald-300 uppercase tracking-widest font-medium">
+                Impacto proyectado estimado · {ultimaSimulacion.procesoCodigo}
+              </p>
+              <h3 className="text-white text-base font-semibold mt-0.5">
+                {ultimaSimulacion.headline || 'Simulación de impacto disponible'}
+              </h3>
+              <p className="text-slate-400 text-xs mt-1">{formatFechaRelativa(ultimaSimulacion.fecha)}</p>
+            </div>
+          </div>
+          <div className="relative flex items-center gap-6 shrink-0">
+            {ultimaSimulacion.ahorroAnualClp > 0 && (
+              <div className="text-right">
+                <p className="text-2xl font-bold text-emerald-400">
+                  ${ultimaSimulacion.ahorroAnualClp.toLocaleString('es-CL')}
+                </p>
+                <p className="text-[11px] text-slate-400">ahorro anual estimado</p>
+              </div>
+            )}
+            {ultimaSimulacion.reduccionTiempoPorcentaje > 0 && (
+              <div className="text-right">
+                <p className="text-2xl font-bold text-emerald-400">-{ultimaSimulacion.reduccionTiempoPorcentaje}%</p>
+                <p className="text-[11px] text-slate-400">tiempo de proceso</p>
+              </div>
+            )}
+            <ArrowRight className="w-4 h-4 text-emerald-400 group-hover:translate-x-1 transition-transform" />
+          </div>
+        </Link>
+      )}
 
       {/* Fase activa — próximo paso destacado */}
       {faseActiva && (
