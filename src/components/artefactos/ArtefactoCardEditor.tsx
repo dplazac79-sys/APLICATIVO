@@ -6,7 +6,7 @@ import dynamic from 'next/dynamic'
 import {
   Pencil, X, Save, Sparkles, ChevronDown, ChevronUp,
   Loader2, CheckCircle2, Globe, AlertCircle, Plus, Trash2, GripVertical,
-  Download, Eye
+  Download, Eye, GitBranch, Clock, Layers, Users, Shield, BarChart3, Zap, TrendingUp, FileText
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import type { Artefacto, EstadoValidacion, TipoArtefacto } from '@/types/database'
@@ -33,6 +33,21 @@ const BADGE_LABEL: Record<EstadoValidacion, string> = {
   pendiente: 'Pendiente revisión',
   validado: 'Validado',
   publicado: 'Publicado',
+}
+
+// Ícono + color por tipo — mismos 8 usados en la leyenda del listado
+// general (artefactos/page.tsx), para que un mismo tipo se reconozca por su
+// color en ambas pantallas en vez de que las 8 cards del detalle luzcan
+// visualmente idénticas salvo por el texto del label.
+const ICONO_TIPO: Partial<Record<TipoArtefacto, { Icon: typeof GitBranch; color: string; bg: string }>> = {
+  sipoc:          { Icon: GitBranch,  color: 'text-cyan-400',    bg: 'bg-cyan-950/40 border-cyan-800/40' },
+  as_is:          { Icon: Clock,      color: 'text-amber-400',   bg: 'bg-amber-950/40 border-amber-800/40' },
+  bpmn:           { Icon: Layers,     color: 'text-violet-400',  bg: 'bg-violet-950/40 border-violet-800/40' },
+  raci:           { Icon: Users,      color: 'text-blue-400',    bg: 'bg-blue-950/40 border-blue-800/40' },
+  riesgo_control: { Icon: Shield,     color: 'text-red-400',     bg: 'bg-red-950/40 border-red-800/40' },
+  kpi_sla:        { Icon: BarChart3,  color: 'text-indigo-400',  bg: 'bg-indigo-950/40 border-indigo-800/40' },
+  diagnostico:    { Icon: Zap,        color: 'text-orange-400',  bg: 'bg-orange-950/40 border-orange-800/40' },
+  to_be:          { Icon: TrendingUp, color: 'text-emerald-400', bg: 'bg-emerald-950/40 border-emerald-800/40' },
 }
 
 // ─── Tooltip ─────────────────────────────────────────────────────────────────
@@ -882,6 +897,14 @@ export default function ArtefactoCardEditor({ artefacto: artefactoInicial, proce
               {numero !== undefined && (
                 <span className="shrink-0 text-xs font-mono font-bold text-slate-400 w-6 text-right">{numero}.</span>
               )}
+              {(() => {
+                const { Icon, color, bg } = ICONO_TIPO[tipo] ?? { Icon: FileText, color: 'text-slate-400', bg: 'bg-slate-800/40 border-slate-700/40' }
+                return (
+                  <span className={`shrink-0 w-6 h-6 rounded-lg border flex items-center justify-center ${bg}`}>
+                    <Icon className={`w-3.5 h-3.5 ${color}`} />
+                  </span>
+                )
+              })()}
               <h3 className="text-white font-semibold text-sm truncate">{tipoLabel}</h3>
               <div className="flex items-center gap-2 mt-0.5">
                 <span className="text-slate-400 text-xs">v{artefacto.version}</span>
