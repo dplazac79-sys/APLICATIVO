@@ -40,7 +40,17 @@ export async function checkLoginRateLimit(ip: string): Promise<{ permitido: bool
 }
 
 export function getClientIp(req: Request): string {
+  // x-forwarded-for es una cadena de saltos que cada proxy VA AGREGANDO al
+  // final, nunca reemplazando el header completo — así que el primer valor
+  // es el que el propio cliente puede mandar libremente (spoofeable con un
+  // header falso), y el ÚLTIMO es el que agregó el proxy de la plataforma
+  // (Railway) con la IP real de la conexión TCP. Tomar el primero (como
+  // hacía antes) dejaba que cualquiera rotara "su IP" a voluntad y evadiera
+  // por completo el rate-limit por IP — hallazgo de auditoría de seguridad.
   const forwarded = req.headers.get('x-forwarded-for')
-  if (forwarded) return forwarded.split(',')[0].trim()
+  if (forwarded) {
+    const partes = forwarded.split(',').map(p => p.trim()).filter(Boolean)
+    if (partes.length > 0) return partes[partes.length - 1]
+  }
   return req.headers.get('x-real-ip') ?? 'desconocida'
 }

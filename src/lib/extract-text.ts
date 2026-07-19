@@ -11,13 +11,30 @@ const pdfParse = require('pdf-parse') as (buf: Buffer, opts?: Record<string, unk
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const mammothLib = require('mammoth') as { extractRawText: (opts: { buffer: Buffer }) => Promise<{ value: string }> }
 
+// pdf-parse/mammoth no tienen límite propio de tiempo ni de recursos — un
+// PDF/DOCX patológico (muchísimos objetos anidados, "zip bomb" en el
+// contenedor DOCX, etc.) puede colgar el parseo indefinidamente incluso
+// dentro del límite de tamaño del bucket (25MB, ver migración 046). Sin
+// timeout, un solo archivo así puede agotar el tiempo/memoria del worker
+// serverless en cada intento de procesamiento — hallazgo de auditoría.
+const TIMEOUT_EXTRACCION_MS = 30_000
+
+function conTimeout<T>(promise: Promise<T>, ms: number, etiqueta: string): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) =>
+      setTimeout(() => reject(new Error(`Timeout extrayendo texto (${etiqueta}) — el archivo tardó más de ${ms / 1000}s en procesarse`)), ms)
+    ),
+  ])
+}
+
 export async function extraerTextoPDF(buffer: Buffer): Promise<string> {
-  const result = await pdfParse(buffer)
+  const result = await conTimeout(pdfParse(buffer), TIMEOUT_EXTRACCION_MS, 'PDF')
   return result.text
 }
 
 export async function extraerTextoDOCX(buffer: Buffer): Promise<string> {
-  const result = await mammothLib.extractRawText({ buffer })
+  const result = await conTimeout(mammothLib.extractRawText({ buffer }), TIMEOUT_EXTRACCION_MS, 'DOCX')
   return result.value
 }
 
