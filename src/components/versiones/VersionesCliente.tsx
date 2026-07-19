@@ -6,7 +6,7 @@ import { LABEL_ARTEFACTO } from '@/lib/artefactos-meta'
 import {
   FileText, Download, ChevronDown, Clock,
   GitBranch, Sparkles, Star, AlertCircle,
-  FileCheck, History, ArrowRight, Layers, User, Filter,
+  FileCheck, History, ArrowRight, Layers, User, Filter, Search,
 } from 'lucide-react'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -479,15 +479,27 @@ function VersionRow({ entry, codigoProceso, procesoId, isLast }: {
 
 // ─── Proceso Card ──────────────────────────────────────────────────────────────
 
-function ProcesoCard({ proceso, artefactos, docInfo, historialArtefactos, historialProcesos: _historialProcesos }: {
+// Un entry matchea si el texto buscado aparece en su descripción, en
+// cualquiera de sus detalleCorrecciones (observación o texto original), o
+// en su label (ej. el tipo de artefacto).
+function entryCoincide(entry: VersionEntry, q: string): boolean {
+  if (!q) return true
+  const t = q.toLowerCase()
+  if (entry.descripcion?.toLowerCase().includes(t)) return true
+  if (entry.label?.toLowerCase().includes(t)) return true
+  return entry.detalleCorrecciones.some(c =>
+    c.observacion?.toLowerCase().includes(t) || c.texto_original?.toLowerCase().includes(t)
+  )
+}
+
+function ProcesoCard({ proceso, artefactos, docInfo, historialArtefactos, historialProcesos: _historialProcesos, busqueda }: {
   proceso: Proceso
   artefactos: Artefacto[]
   docInfo: DocumentoInfo | undefined
   historialArtefactos: HistorialArtefacto[]
   historialProcesos: HistorialProceso[]
+  busqueda: string
 }) {
-  const [open, setOpen] = useState(false)
-  const [filtro, setFiltro] = useState<'todos' | 'documento' | 'artefacto'>('todos')
   const codigo = scCode(proceso)
   // "timeline" (solo documento) define el badge de versión vigente en el
   // header — la edición de un artefacto no reemplaza el documento entregable.
@@ -495,17 +507,35 @@ function ProcesoCard({ proceso, artefactos, docInfo, historialArtefactos, histor
   // para que todo quede trazable en un solo lugar.
   const timeline = buildVersionTimeline(proceso, docInfo)
   const timelineCompleta = mergeConHistorialArtefactos(timeline, historialArtefactos)
-  const timelineFiltrada = filtro === 'todos' ? timelineCompleta : timelineCompleta.filter(e => e.kind === filtro)
+
+  const q = busqueda.trim().toLowerCase()
+  const procesoCoincide = !q || proceso.nombre.toLowerCase().includes(q) || codigo.toLowerCase().includes(q)
+  // Si el proceso en sí coincide por nombre/código, se muestra la línea de
+  // tiempo completa (no tiene sentido ocultar entradas de un proceso que el
+  // cliente buscó explícitamente); si no, se filtra a las entradas que sí
+  // mencionan el término buscado.
+  const timelineBuscada = !q || procesoCoincide ? timelineCompleta : timelineCompleta.filter(e => entryCoincide(e, q))
+  const hayCoincidencia = !q || procesoCoincide || timelineBuscada.length > 0
+
+  const [openManual, setOpenManual] = useState(false)
+  const [filtro, setFiltro] = useState<'todos' | 'documento' | 'artefacto'>('todos')
+  // Con una búsqueda activa que sí tiene resultados, el proceso se abre solo
+  // — no tiene sentido pedirle al cliente que además haga clic para
+  // desplegar algo que ya encontró.
+  const open = openManual || (q.length > 0 && hayCoincidencia)
+  const timelineFiltrada = filtro === 'todos' ? timelineBuscada : timelineBuscada.filter(e => e.kind === filtro)
   const latestVersion = timeline[timeline.length - 1]
   const totalArtefactos = artefactos.length
-  const totalDocumento = timelineCompleta.filter(e => e.kind === 'documento').length
-  const totalArtefactoEntradas = timelineCompleta.filter(e => e.kind === 'artefacto').length
+  const totalDocumento = timelineBuscada.filter(e => e.kind === 'documento').length
+  const totalArtefactoEntradas = timelineBuscada.filter(e => e.kind === 'artefacto').length
+
+  if (q.length > 0 && !hayCoincidencia) return null
 
   return (
     <div className={`rounded-2xl border transition-all duration-200
       ${open ? 'bg-white/[0.04] border-white/[0.1]' : 'bg-white/[0.02] border-white/[0.06] hover:bg-white/[0.03] hover:border-white/[0.09]'}`}
     >
-      <button onClick={() => setOpen(o => !o)} className="w-full flex items-center gap-4 p-5 text-left">
+      <button onClick={() => setOpenManual(o => !o)} className="w-full flex items-center gap-4 p-5 text-left">
         <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500/25 to-purple-600/25 border border-indigo-400/20 flex items-center justify-center">
           <span className="text-xs font-bold text-indigo-200">{codigo}</span>
         </div>
@@ -551,7 +581,7 @@ function ProcesoCard({ proceso, artefactos, docInfo, historialArtefactos, histor
               <div className="flex items-center gap-1.5">
                 <Filter className="w-3 h-3 text-slate-600 mr-0.5" />
                 {[
-                  { key: 'todos' as const, label: `Todos (${timelineCompleta.length})` },
+                  { key: 'todos' as const, label: `Todos (${timelineBuscada.length})` },
                   { key: 'documento' as const, label: `Documento (${totalDocumento})` },
                   { key: 'artefacto' as const, label: `Artefacto (${totalArtefactoEntradas})` },
                 ].map(f => (
@@ -630,6 +660,18 @@ export default function VersionesCliente({
   const ultimaActividadStr = ultimaActividad
     ? new Date(ultimaActividad).toLocaleDateString('es-CL', { day: '2-digit', month: 'short', year: 'numeric' })
     : '—'
+
+  const [busqueda, setBusqueda] = useState('')
+  const q = busqueda.trim().toLowerCase()
+  const hayResultados = !q || procesos.some(p => {
+    const codigo = scCode(p)
+    if (p.nombre.toLowerCase().includes(q) || codigo.toLowerCase().includes(q)) return true
+    const timeline = mergeConHistorialArtefactos(
+      buildVersionTimeline(p, p.documento_origen_id ? documentosMap[p.documento_origen_id] : undefined),
+      historialArtefactos.filter(h => h.proceso_id === p.id),
+    )
+    return timeline.some(e => entryCoincide(e, q))
+  })
 
   return (
     <div className="min-h-screen bg-[#0a0a0f] text-white">
@@ -720,19 +762,49 @@ export default function VersionesCliente({
           </div>
         </div>
 
-        {/* Processes */}
-        <div className="space-y-3">
-          {procesos.map(p => (
-            <ProcesoCard
-              key={p.id}
-              proceso={p}
-              artefactos={artefactos.filter(a => a.proceso_id === p.id)}
-              docInfo={p.documento_origen_id ? documentosMap[p.documento_origen_id] : undefined}
-              historialArtefactos={historialArtefactos.filter(h => h.proceso_id === p.id)}
-              historialProcesos={historialProcesos.filter(h => h.proceso_id === p.id)}
-            />
-          ))}
+        {/* Buscador de texto libre — sobre motivos, observaciones, textos
+            originales y nombre/código de proceso, en toda la línea de
+            tiempo. Útil recién cuando el historial crece; con poco volumen
+            no aporta mucho, pero no molesta tenerlo siempre disponible. */}
+        <div className="relative">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
+          <input
+            type="text"
+            value={busqueda}
+            onChange={e => setBusqueda(e.target.value)}
+            placeholder="Buscar en el historial — motivo, observación, proceso…"
+            className="w-full pl-11 pr-10 py-3 rounded-2xl border border-white/8 bg-white/[0.02] text-sm text-white placeholder:text-slate-400 focus:outline-none focus:border-indigo-500/40 transition-colors"
+          />
+          {busqueda && (
+            <button
+              onClick={() => setBusqueda('')}
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 text-xs"
+            >
+              Limpiar
+            </button>
+          )}
         </div>
+
+        {/* Processes */}
+        {hayResultados ? (
+          <div className="space-y-3">
+            {procesos.map(p => (
+              <ProcesoCard
+                key={p.id}
+                proceso={p}
+                artefactos={artefactos.filter(a => a.proceso_id === p.id)}
+                docInfo={p.documento_origen_id ? documentosMap[p.documento_origen_id] : undefined}
+                historialArtefactos={historialArtefactos.filter(h => h.proceso_id === p.id)}
+                historialProcesos={historialProcesos.filter(h => h.proceso_id === p.id)}
+                busqueda={busqueda}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="rounded-2xl border border-white/8 bg-white/[0.02] p-8 text-center">
+            <p className="text-sm text-slate-400">Sin resultados para &quot;{busqueda}&quot;.</p>
+          </div>
+        )}
 
       </div>
     </div>
