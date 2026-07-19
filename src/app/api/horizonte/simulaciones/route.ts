@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { assertProyectoAccess, requireRole } from '@/lib/auth/tenant'
 import { registrarAudit } from '@/lib/audit'
+import { errorResponse } from '@/lib/api/error-response'
 
 // Incluye roles cliente: correr una simulación de Horizonte de Impacto es la
 // acción que marca esa fase como completada (ver lib/fases.ts) — si solo el
@@ -33,7 +34,7 @@ export async function GET(req: NextRequest) {
     .eq('proceso_id', procesoId)
     .order('created_at', { ascending: false })
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return errorResponse(error, 500, 'No se pudieron cargar las simulaciones.')
   return NextResponse.json({ simulaciones })
 }
 
@@ -81,7 +82,7 @@ export async function POST(req: NextRequest) {
     .select('id, created_at')
     .single()
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return errorResponse(error, 500, 'No se pudo guardar la simulación.')
 
   await registrarAudit({
     accion: 'CREATE',

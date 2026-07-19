@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { registrarAudit } from '@/lib/audit'
+import { errorResponse } from '@/lib/api/error-response'
 
 // Mismas 5 reglas que el resto de la plataforma (cambiar-password) — el
 // formulario de onboarding solo mostraba un hint de texto "mínimo 6
@@ -66,7 +67,7 @@ export async function POST(req: NextRequest) {
       .single()
 
     if (errCliente || !clienteCreado) {
-      return NextResponse.json({ error: 'Error creando cliente: ' + errCliente?.message }, { status: 500 })
+      return errorResponse(errCliente ?? new Error('cliente no creado'), 500, 'No se pudo crear el cliente.')
     }
 
     // 2. Crear proyecto
@@ -89,7 +90,7 @@ export async function POST(req: NextRequest) {
       .single()
 
     if (errProyecto || !proyectoCreado) {
-      return NextResponse.json({ error: 'Error creando proyecto: ' + errProyecto?.message }, { status: 500 })
+      return errorResponse(errProyecto ?? new Error('proyecto no creado'), 500, 'No se pudo crear el proyecto.')
     }
 
     // 3. Invitar usuarios del equipo
@@ -128,7 +129,8 @@ export async function POST(req: NextRequest) {
             }
             resultadosEquipo.push({ email: miembro.email, status: 'rol_actualizado' })
           } else {
-            resultadosEquipo.push({ email: miembro.email, status: 'error', error: errCreate?.message })
+            console.error(`[onboarding] Falló crear usuario ${miembro.email}:`, errCreate?.message)
+            resultadosEquipo.push({ email: miembro.email, status: 'error', error: 'No se pudo crear la cuenta del usuario.' })
           }
           continue
         }
@@ -161,7 +163,8 @@ export async function POST(req: NextRequest) {
         })
         resultadosEquipo.push({ email: miembro.email, status: 'creado' })
       } catch (e) {
-        resultadosEquipo.push({ email: miembro.email, status: 'error', error: String(e) })
+        console.error(`[onboarding] Error inesperado creando usuario ${miembro.email}:`, e instanceof Error ? e.message : String(e))
+        resultadosEquipo.push({ email: miembro.email, status: 'error', error: 'Error inesperado creando la cuenta del usuario.' })
       }
     }
 
@@ -202,7 +205,6 @@ export async function POST(req: NextRequest) {
       equipo: resultadosEquipo,
     })
   } catch (err) {
-    const msg = err instanceof Error ? err.message : 'Error desconocido'
-    return NextResponse.json({ error: msg }, { status: 500 })
+    return errorResponse(err, 500)
   }
 }

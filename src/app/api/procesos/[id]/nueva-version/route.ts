@@ -8,6 +8,7 @@ import { verificarLimiteIA, registrarUsoIA } from '@/lib/ai/rate-limit'
 import { regenerarDocumentoConCambios } from '@/lib/ai/claude'
 import { extraerTextoPDF, extraerTextoDOCX } from '@/lib/extract-text'
 import { generarVersionDocumentoDocx } from '@/lib/exportar/generarDocx'
+import { errorResponse } from '@/lib/api/error-response'
 
 // Consolidar una versión ya no es una acción de la consultora sobre un
 // documento que ella misma edita a mano — la reescritura la hace la IA a
@@ -123,8 +124,7 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
       })),
     )
   } catch (err) {
-    const msg = err instanceof Error ? err.message : 'Error al regenerar el documento con IA'
-    return NextResponse.json({ error: msg }, { status: 500 })
+    return errorResponse(err, 500, 'Error al regenerar el documento con IA.')
   }
 
   await registrarUsoIA({ proyecto_id: proceso.proyecto_id as string, usuario_id: user.id, tipo: 'generacion', tokens_input: 10000, tokens_output: 3000 })
@@ -168,7 +168,7 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
     upsert: true,
   })
   if (errorUpload) {
-    return NextResponse.json({ error: `No se pudo guardar el documento generado: ${errorUpload.message}` }, { status: 500 })
+    return errorResponse(errorUpload, 500, 'No se pudo guardar el documento generado.')
   }
 
   const nuevaVersion = {

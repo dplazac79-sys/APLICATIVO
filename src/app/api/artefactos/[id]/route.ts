@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { jsonError } from '@/lib/http/errors'
+import { errorResponse } from '@/lib/api/error-response'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { registrarAudit } from '@/lib/audit'
@@ -157,7 +158,7 @@ export async function PATCH(
 
     return NextResponse.json({ ok: true, artefacto: data })
   } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 })
+    return errorResponse(err, 500)
   }
 }
 
@@ -176,9 +177,9 @@ export async function GET(
       .select('*')
       .eq('id', params.id)
       .single()
-    if (error) return NextResponse.json({ error: error.message }, { status: 404 })
+    if (error) return errorResponse(error, 404, 'Artefacto no encontrado')
     return NextResponse.json({ artefacto: data })
   } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 })
+    return errorResponse(err, 500)
   }
 }

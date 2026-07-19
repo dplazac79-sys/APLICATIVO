@@ -3,6 +3,7 @@ import { jsonError } from '@/lib/http/errors'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { registrarAudit } from '@/lib/audit'
+import { errorResponse } from '@/lib/api/error-response'
 
 const ARTEFACTO_LABEL: Record<string, string> = {
   as_is: 'Mapa del proceso actual',
@@ -81,6 +82,6 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ ok: true, notificados: destinatarios.length })
   } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 })
+    return errorResponse(err, 500)
   }
 }

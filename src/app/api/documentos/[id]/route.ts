@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { registrarAudit } from '@/lib/audit'
 import { assertProyectoAccess, requireRole } from '@/lib/auth/tenant'
+import { errorResponse } from '@/lib/api/error-response'
 
 // usuario_cliente es de solo lectura sobre documentos — la política RLS
 // document_update (migración 039) ya restringe la escritura a estos roles,
@@ -48,7 +49,7 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
 
   // Obtener el documento para saber el storage path
   const { data: doc, error: errDoc } = await admin.from('documento').select('url_storage, proyecto_id').eq('id', params.id).single()
-  if (errDoc || !doc) return NextResponse.json({ error: errDoc?.message ?? 'Documento no encontrado' }, { status: 404 })
+  if (errDoc || !doc) return errorResponse(errDoc ?? new Error('not found'), 404, 'Documento no encontrado')
 
   if (!(await assertProyectoAccess(user.id, doc.proyecto_id))) {
     return NextResponse.json({ error: 'Sin acceso a este documento' }, { status: 403 })

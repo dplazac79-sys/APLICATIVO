@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { chatCompletion, MODELOS } from '@/lib/ai/client'
 import { verificarLimiteIA, registrarUsoIA } from '@/lib/ai/rate-limit'
+import { errorResponse } from '@/lib/api/error-response'
 
 export async function POST(req: NextRequest) {
   const supabase = createClient()
@@ -264,8 +265,7 @@ Devuelve este JSON exacto:
       }
     }
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : String(err)
-    return NextResponse.json({ error: `Error IA: ${msg}` }, { status: 502 })
+    return errorResponse(err, 502, 'No se pudo generar el diagnóstico con IA.')
   }
 
   // Persistir en metadata_ia para que el botón muestre "Ver diagnóstico IA" al recargar

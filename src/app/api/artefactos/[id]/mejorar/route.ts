@@ -7,6 +7,7 @@ import { LABEL_ARTEFACTO } from '@/lib/artefactos-meta'
 import { extraerTextoPDF, extraerTextoDOCX } from '@/lib/extract-text'
 import { assertProyectoAccess } from '@/lib/auth/tenant'
 import type { TipoArtefacto } from '@/types/database'
+import { errorResponse } from '@/lib/api/error-response'
 
 export async function POST(
   req: NextRequest,
@@ -167,5 +168,6 @@ Devuelve el JSON completo del artefacto mejorado, manteniendo exactamente la mis
     }
   }
 
-  return NextResponse.json({ error: `Error IA: ${lastError}` }, { status: 500 })
+  console.error(`[artefacto-mejorar] Todos los modelos fallaron para artefacto_id=${params.id}:`, lastError)
+  return errorResponse(new Error(lastError), 500, 'No se pudo generar la mejora del artefacto con IA.')
 }

@@ -12,6 +12,7 @@ import {
   type DocumentoResumen,
 } from '@/lib/ai/artefactos'
 import type { TipoArtefacto } from '@/types/database'
+import { errorResponse } from '@/lib/api/error-response'
 
 // GET: listar artefactos de un proceso
 export async function GET(
@@ -31,7 +32,7 @@ export async function GET(
     if (error) return jsonError(error)
     return NextResponse.json({ artefactos: data ?? [] })
   } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 })
+    return errorResponse(err, 500)
   }
 }
 

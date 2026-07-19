@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { registrarAudit } from '@/lib/audit'
 import { assertProyectoAccess, requireRole } from '@/lib/auth/tenant'
+import { errorResponse } from '@/lib/api/error-response'
 
 export async function POST(_req: NextRequest, { params }: { params: { id: string } }) {
   const supabase = createClient()
@@ -54,7 +55,7 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
     .select()
     .single()
 
-  if (entErr) return NextResponse.json({ error: entErr.message }, { status: 500 })
+  if (entErr) return errorResponse(entErr, 500, 'No se pudo crear el entregable de la simulación.')
 
   // Vincular entregable a la simulación
   await admin.from('simulacion').update({ entregable_id: entregable.id }).eq('id', sim.id)

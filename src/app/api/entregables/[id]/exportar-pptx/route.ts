@@ -4,6 +4,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { registrarAudit } from '@/lib/audit'
 import { generarEntregablePptx } from '@/lib/exportar/generarPptx'
 import { requireRole } from '@/lib/auth/tenant'
+import { errorResponse } from '@/lib/api/error-response'
 
 export const runtime = 'nodejs'
 
@@ -61,6 +62,6 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
       },
     })
   } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 })
+    return errorResponse(err, 500, 'No se pudo generar el documento PPTX.')
   }
 }

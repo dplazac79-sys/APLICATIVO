@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import type { KgNodo, KgRelacionExpandida } from '@/lib/automation/tipos'
+import { errorResponse } from '@/lib/api/error-response'
 
 // GET /api/kg/grafo?industria=X
 // Devuelve el grafo relacional (nodos + relaciones con nombres de extremos) de una industria.
@@ -22,7 +23,7 @@ export async function GET(req: NextRequest) {
     .order('frecuencia', { ascending: false })
 
   if (nodosErr) {
-    return NextResponse.json({ error: nodosErr.message }, { status: 500 })
+    return errorResponse(nodosErr, 500, 'No se pudo cargar el grafo de conocimiento.')
   }
 
   const nodos = (nodosRaw ?? []) as KgNodo[]
@@ -41,7 +42,7 @@ export async function GET(req: NextRequest) {
       .in('nodo_origen', nodoIds)
 
     if (relErr) {
-      return NextResponse.json({ error: relErr.message }, { status: 500 })
+      return errorResponse(relErr, 500, 'No se pudieron cargar las relaciones del grafo.')
     }
 
     relaciones = (relRaw ?? []).map(r => {

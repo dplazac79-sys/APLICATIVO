@@ -3,6 +3,7 @@ import { jsonError } from '@/lib/http/errors'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { registrarAudit } from '@/lib/audit'
+import { errorResponse } from '@/lib/api/error-response'
 
 // GET: artefacto completo (solo publicado), bajo RLS del cliente
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
@@ -23,7 +24,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
 
     return NextResponse.json({ artefacto: data })
   } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 })
+    return errorResponse(err, 500)
   }
 }
 
@@ -95,6 +96,6 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
 
     return NextResponse.json({ ok: true })
   } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 })
+    return errorResponse(err, 500)
   }
 }

@@ -23,10 +23,10 @@ export async function GET() {
 
     return NextResponse.json({ status: 'ok', timestamp: new Date().toISOString() })
   } catch (err) {
-    const mensaje = err instanceof Error ? err.message : 'Error desconocido'
-    console.error('[health] Falló el chequeo de conectividad a la base de datos:', mensaje)
+    const detalle = err instanceof Error ? err.message : 'Error desconocido'
+    console.error('[health] Falló el chequeo de conectividad a la base de datos:', detalle)
     return NextResponse.json(
-      { status: 'error', mensaje, timestamp: new Date().toISOString() },
+      { status: 'error', mensaje: 'No se pudo verificar la conexión a la base de datos.', timestamp: new Date().toISOString() },
       { status: 503 }
     )
   }

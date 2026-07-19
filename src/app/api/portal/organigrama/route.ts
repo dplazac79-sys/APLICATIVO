@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { inngest } from '@/lib/inngest/client'
+import { errorResponse } from '@/lib/api/error-response'
 
 export async function POST(req: NextRequest) {
   const supabase = createClient()
@@ -36,7 +37,7 @@ export async function POST(req: NextRequest) {
   const { error: uploadError } = await admin.storage.from('glosario-roles').upload(path, buf, {
     contentType: file.type, upsert: true,
   })
-  if (uploadError) return NextResponse.json({ error: uploadError.message }, { status: 500 })
+  if (uploadError) return errorResponse(uploadError, 500, 'No se pudo subir el archivo.')
 
   // Extraer texto — solo sabemos leer PDF con texto real embebido (pdf-parse
   // lee la capa de texto del PDF, no hace OCR). Antes, subir una imagen, un
@@ -72,7 +73,7 @@ export async function POST(req: NextRequest) {
     subido_por: user.id,
   }).select().single()
 
-  if (dbError) return NextResponse.json({ error: dbError.message }, { status: 500 })
+  if (dbError) return errorResponse(dbError, 500, 'No se pudo guardar el organigrama.')
 
   // Auto-trigger: si hay documentos procesados, recolectar roles y lanzar análisis IA
   if (textoExtraido) {

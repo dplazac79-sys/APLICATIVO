@@ -4,6 +4,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { registrarAudit } from '@/lib/audit'
 import { assertProyectoAccess } from '@/lib/auth/tenant'
 import { ROLES_EDITAN_ARTEFACTO } from '@/lib/artefactos-estado'
+import { errorResponse } from '@/lib/api/error-response'
 
 // POST: valida en un solo paso todos los artefactos "pendiente" de un
 // proceso (pendiente → validado). Misma transición que ya permite el PATCH
@@ -35,7 +36,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     .eq('estado_validacion', 'pendiente')
     .select('id, tipo')
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return errorResponse(error, 500, 'No se pudieron validar los artefactos.')
 
   if (actualizados && actualizados.length > 0) {
     await registrarAudit({

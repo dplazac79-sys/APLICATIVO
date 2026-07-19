@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { generarEmbedding } from '@/lib/ai/embeddings'
 import { assertProyectoAccess } from '@/lib/auth/tenant'
+import { errorResponse } from '@/lib/api/error-response'
 
 export async function POST(req: NextRequest) {
   const supabase = createClient()
@@ -72,8 +73,6 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ ok: true, resultados })
   } catch (err) {
-    const msg = err instanceof Error ? err.message : 'Error desconocido'
-
-    return NextResponse.json({ error: msg }, { status: 500 })
+    return errorResponse(err, 500)
   }
 }

@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { registrarAudit } from '@/lib/audit'
 import { assertProyectoAccess, requireRole } from '@/lib/auth/tenant'
+import { errorResponse } from '@/lib/api/error-response'
 
 export async function POST(
   _req: NextRequest,
@@ -55,7 +56,7 @@ export async function POST(
     .select()
     .single()
 
-  if (errEnt) return NextResponse.json({ error: errEnt.message }, { status: 500 })
+  if (errEnt) return errorResponse(errEnt, 500, 'No se pudo crear el entregable del roadmap.')
 
   // Vincular entregable al roadmap
   await admin.from('kg_roadmap').update({

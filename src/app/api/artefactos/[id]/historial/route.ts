@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { jsonError } from '@/lib/http/errors'
+import { errorResponse } from '@/lib/api/error-response'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { assertProyectoAccess } from '@/lib/auth/tenant'
@@ -38,7 +39,7 @@ export async function GET(
     if (error) return jsonError(error)
     return NextResponse.json({ historial: data ?? [] })
   } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 })
+    return errorResponse(err, 500)
   }
 }
 
@@ -116,6 +117,6 @@ export async function POST(
 
     return NextResponse.json({ ok: true, version: nuevaVersion })
   } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 })
+    return errorResponse(err, 500)
   }
 }

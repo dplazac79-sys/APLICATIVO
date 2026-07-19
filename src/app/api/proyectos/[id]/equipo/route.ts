@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { registrarAudit } from '@/lib/audit'
 import { requireRole } from '@/lib/auth/tenant'
+import { errorResponse } from '@/lib/api/error-response'
 
 // Mismas 5 reglas del resto de la plataforma (cambiar-password, onboarding).
 function cumpleRequisitos(pwd: string): boolean {
@@ -65,7 +66,7 @@ export async function POST(
       user_metadata: { full_name: nombre, must_change_password: true },
     })
     if (errCreate || !creado?.user) {
-      return NextResponse.json({ error: errCreate?.message ?? 'No se pudo crear la cuenta' }, { status: 500 })
+      return errorResponse(errCreate ?? new Error('user not created'), 500, 'No se pudo crear la cuenta')
     }
     await admin.from('usuario').insert({
       id: creado.user.id,
@@ -81,7 +82,7 @@ export async function POST(
     .from('usuario_proyecto')
     .upsert({ usuario_id: usuarioId, proyecto_id: params.id }, { onConflict: 'usuario_id,proyecto_id' })
 
-  if (errLink) return NextResponse.json({ error: errLink.message }, { status: 500 })
+  if (errLink) return errorResponse(errLink, 500, 'No se pudo vincular al usuario al proyecto.')
 
   await registrarAudit({
     accion: 'CREATE',
@@ -128,7 +129,7 @@ export async function DELETE(
     .eq('proyecto_id', params.id)
     .eq('usuario_id', usuario_id)
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return errorResponse(error, 500, 'No se pudo quitar al usuario del proyecto.')
 
   await registrarAudit({
     accion: 'DELETE',

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { jsonError } from '@/lib/http/errors'
 import { createClient } from '@/lib/supabase/server'
 import { registrarAudit } from '@/lib/audit'
+import { errorResponse } from '@/lib/api/error-response'
 
 export async function GET() {
   const supabase = createClient()
@@ -45,7 +46,6 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ ok: true, proyecto })
   } catch (err) {
-    const msg = err instanceof Error ? err.message : 'Error desconocido'
-    return NextResponse.json({ error: msg }, { status: 500 })
+    return errorResponse(err, 500)
   }
 }

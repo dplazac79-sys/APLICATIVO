@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { errorResponse } from '@/lib/api/error-response'
 
 // Mismas 5 reglas que valida el formulario de cambiar-password/page.tsx —
 // acá se repiten a propósito porque el checklist visual del cliente es
@@ -35,7 +36,7 @@ export async function POST(req: NextRequest) {
     },
   })
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 })
+  if (error) return errorResponse(error, 400, 'No se pudo cambiar la contraseña.')
 
   return NextResponse.json({ ok: true })
 }

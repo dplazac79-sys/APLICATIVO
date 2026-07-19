@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { registrarAudit } from '@/lib/audit'
 import { assertProyectoAccess } from '@/lib/auth/tenant'
+import { errorResponse } from '@/lib/api/error-response'
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   try {
@@ -64,7 +65,6 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
     return NextResponse.json({ ok: true, proceso: data })
   } catch (err) {
-    const msg = err instanceof Error ? err.message : 'Error desconocido'
-    return NextResponse.json({ error: msg }, { status: 500 })
+    return errorResponse(err, 500)
   }
 }
