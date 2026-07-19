@@ -4,7 +4,11 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { assertProyectoAccess, requireRole } from '@/lib/auth/tenant'
 import { registrarAudit } from '@/lib/audit'
 
-const ROLES_GUARDAN = ['super_admin', 'director_proyecto', 'consultor'] as const
+// Incluye roles cliente: correr una simulación de Horizonte de Impacto es la
+// acción que marca esa fase como completada (ver lib/fases.ts) — si solo el
+// equipo consultor pudiera guardar, un cliente que ejecuta su propia
+// simulación nunca vería la fase avanzar, aunque ya hizo lo que se le pedía.
+const ROLES_GUARDAN = ['super_admin', 'director_proyecto', 'consultor', 'sponsor_cliente', 'usuario_cliente'] as const
 
 // GET: lista simulaciones guardadas de un proceso (cualquier rol con acceso al proyecto)
 export async function GET(req: NextRequest) {
@@ -40,7 +44,7 @@ export async function POST(req: NextRequest) {
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
   if (!(await requireRole(user.id, ROLES_GUARDAN))) {
-    return NextResponse.json({ error: 'Solo el equipo consultor puede guardar simulaciones' }, { status: 403 })
+    return NextResponse.json({ error: 'Tu rol no tiene permiso para guardar simulaciones' }, { status: 403 })
   }
 
   const body = await req.json() as {

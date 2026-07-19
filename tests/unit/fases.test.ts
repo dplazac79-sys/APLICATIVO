@@ -122,7 +122,7 @@ describe('getFasesProyecto — rol cliente (sponsor_cliente/usuario_cliente)', (
     expect(fases.slice(1).every(f => f.status === 'bloqueada')).toBe(true) // F2..F5
   })
 
-  it('Horizonte (F5) nunca queda "completada" — no hay forma de persistir que ya se usó', async () => {
+  it('Horizonte (F4) queda "activa" hasta que exista una simulación guardada', async () => {
     mockCreateAdminClient.mockReturnValue(
       armarAdmin({
         documento: { count: 5 },
@@ -134,7 +134,21 @@ describe('getFasesProyecto — rol cliente (sponsor_cliente/usuario_cliente)', (
     const { fases } = await getFasesProyecto('proy-1', 'sponsor_cliente')
     const horizonte = fases.find(f => f.nombre === 'Horizonte de Impacto')
     expect(horizonte?.status).toBe('activa')
-    expect(horizonte?.status).not.toBe('completada')
+  })
+
+  it('Horizonte (F4) queda "completada" una vez que hay al menos una simulación guardada', async () => {
+    mockCreateAdminClient.mockReturnValue(
+      armarAdmin({
+        documento: { count: 5 },
+        proceso: { count: 2, data: [{ id: 'p1' }, { id: 'p2' }] },
+        glosario_roles_analisis: { count: 1 },
+        artefacto: { count: 16 },
+        simulacion: { count: 1 },
+      })
+    )
+    const { fases } = await getFasesProyecto('proy-1', 'sponsor_cliente')
+    const horizonte = fases.find(f => f.nombre === 'Horizonte de Impacto')
+    expect(horizonte?.status).toBe('completada')
   })
 
   it('mismo rol interno (consultor) sigue viendo las 7 fases originales, sin cambios', async () => {

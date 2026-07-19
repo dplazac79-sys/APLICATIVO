@@ -241,13 +241,15 @@ export async function getFasesProyecto(pid: string, rol?: string): Promise<{ pro
         icono: '📈',
         color: 'cyan',
         href: '/horizonte',
-        // Cada simulación se genera al vuelo y no queda guardada en ninguna tabla,
-        // así que no existe forma real de saber si el cliente ya la usó antes —
-        // se muestra disponible una vez desbloqueada, pero nunca "completada".
-        status: !vDone ? 'bloqueada' : 'activa',
-        progreso: !vDone ? 0 : 10,
+        // Cada simulación guardada queda en la tabla `simulacion` (ver
+        // /api/horizonte/simulaciones) — se marca completada apenas existe
+        // al menos una para este proyecto, sea del cliente o del equipo
+        // consultor.
+        status: !vDone ? 'bloqueada' : (simulaciones ?? 0) >= 1 ? 'completada' : 'activa',
+        progreso: !vDone ? 0 : (simulaciones ?? 0) >= 1 ? 100 : 10,
         items: [
           { label: 'Procesos y artefactos aprobados listos para simular', done: vDone },
+          { label: 'Simulación de impacto guardada', done: (simulaciones ?? 0) >= 1 },
         ],
       },
       {

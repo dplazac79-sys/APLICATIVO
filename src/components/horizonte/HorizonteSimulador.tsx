@@ -494,7 +494,11 @@ interface Props {
   rol?: string
 }
 
-const ROLES_GUARDAN = ['super_admin', 'director_proyecto', 'consultor']
+// Mismos roles que /api/horizonte/simulaciones — incluye roles cliente
+// porque guardar la simulación es lo que marca la fase Horizonte de Impacto
+// como completada (ver lib/fases.ts); sin esto un cliente podía "proyectar"
+// pero nunca avanzar de fase con su propia acción.
+const ROLES_GUARDAN = ['super_admin', 'director_proyecto', 'consultor', 'sponsor_cliente', 'usuario_cliente']
 
 const TIPO_MOD_LABEL: Record<string, string> = {
   hallazgo: 'Hallazgo', riesgo: 'Riesgo', brecha: 'Brecha', rol: 'Rol',
