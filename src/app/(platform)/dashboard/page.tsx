@@ -2,12 +2,22 @@ export const dynamic = 'force-dynamic'
 
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { FileText, FolderOpen, Brain, Layers, Sparkles, ArrowRight, AlertCircle, GitBranch, Clock } from 'lucide-react'
+import { FileText, FolderOpen, Brain, Layers, Sparkles, ArrowRight, AlertCircle, GitBranch, Clock, History } from 'lucide-react'
 import Link from 'next/link'
 import FaseWorkflow from '@/components/fases/FaseWorkflow'
 import { getFasesProyecto } from '@/lib/fases'
-import { getProcesosAceptadosIds, contarArtefactosDeProcesosAceptados, contarModificacionesDeProcesosAceptados, obtenerUltimaActividadDeProcesosAceptados } from '@/lib/domain/procesos'
+import { getProcesosAceptadosIds, contarArtefactosDeProcesosAceptados, contarModificacionesDeProcesosAceptados, obtenerUltimaActividadDeProcesosAceptados, obtenerHitosRecientesDeProcesosAceptados } from '@/lib/domain/procesos'
 import { formatFechaRelativa } from '@/lib/format'
+import { LABEL_ARTEFACTO } from '@/lib/artefactos-meta'
+
+const TIPO_DOCUMENTO_LABEL: Record<string, string> = {
+  hallazgo: 'Hallazgo', riesgo: 'Riesgo', brecha: 'Brecha', rol: 'Rol', proceso: 'Proceso', otro: 'Cambio',
+}
+
+function labelHito(origen: 'documento' | 'artefacto', tipo: string): string {
+  if (origen === 'artefacto') return LABEL_ARTEFACTO[tipo as keyof typeof LABEL_ARTEFACTO] ?? tipo
+  return TIPO_DOCUMENTO_LABEL[tipo?.toLowerCase()] ?? 'Cambio'
+}
 
 export default async function DashboardPage() {
   const supabase = createClient()
@@ -53,8 +63,9 @@ export default async function DashboardPage() {
   let stats = { documentos: 0, docsListos: 0, procesosTotal: 0, procesosAprobados: 0, artefactos: 0 }
   let modificaciones = { documentos: 0, artefactos: 0, total: 0 }
   let ultimaActividad: string | null = null
+  let hitosRecientes: Awaited<ReturnType<typeof obtenerHitosRecientesDeProcesosAceptados>> = []
   if (proyectoMeta) {
-    const [docsRes, docsListosRes, procesosRes, aceptados, totalArtefactos, modsRes, ultimaActividadRes] = await Promise.all([
+    const [docsRes, docsListosRes, procesosRes, aceptados, totalArtefactos, modsRes, ultimaActividadRes, hitosRes] = await Promise.all([
       admin.from('documento').select('id', { count: 'exact', head: true }).eq('proyecto_id', proyectoMeta.id),
       admin.from('documento').select('id', { count: 'exact', head: true }).eq('proyecto_id', proyectoMeta.id).eq('estado_procesamiento', 'listo'),
       admin.from('proceso').select('id', { count: 'exact', head: true }).eq('proyecto_id', proyectoMeta.id),
@@ -62,6 +73,7 @@ export default async function DashboardPage() {
       contarArtefactosDeProcesosAceptados(proyectoMeta.id),
       contarModificacionesDeProcesosAceptados(proyectoMeta.id),
       obtenerUltimaActividadDeProcesosAceptados(proyectoMeta.id),
+      obtenerHitosRecientesDeProcesosAceptados(proyectoMeta.id, 3),
     ])
     stats = {
       documentos: docsRes.count ?? 0,
@@ -72,6 +84,7 @@ export default async function DashboardPage() {
     }
     modificaciones = modsRes
     ultimaActividad = ultimaActividadRes
+    hitosRecientes = hitosRes
   }
 
   const faseActiva = fases?.find(f => f.status === 'activa')
@@ -304,6 +317,46 @@ export default async function DashboardPage() {
         )
         return null
       })()}
+
+      {/* Actividad reciente — feed compacto de los últimos hitos reales
+          (cambios de documento + ediciones de artefacto), misma fuente que
+          Control de Versiones pero recortado a los 3 más recientes para que
+          el Dashboard también se sienta un proyecto vivo, no solo un
+          tablero de progreso estático. */}
+      {hitosRecientes.length > 0 && (
+        <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <History className="w-4 h-4 text-slate-500" />
+              <h2 className="text-sm font-semibold text-white">Actividad reciente</h2>
+            </div>
+            <Link href="/versiones" className="flex items-center gap-1 text-xs text-indigo-400 hover:text-indigo-300">
+              Ver todo <ArrowRight className="w-3 h-3" />
+            </Link>
+          </div>
+          <div className="space-y-2.5">
+            {hitosRecientes.map((h, i) => (
+              <div key={i} className="flex items-start gap-3">
+                <div className={`w-6 h-6 rounded-lg flex items-center justify-center shrink-0 mt-0.5 ${
+                  h.origen === 'artefacto' ? 'bg-violet-500/15' : 'bg-sky-500/15'
+                }`}>
+                  <GitBranch className={`w-3 h-3 ${h.origen === 'artefacto' ? 'text-violet-400' : 'text-sky-400'}`} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-xs font-semibold text-white">{h.procesoCodigo}</span>
+                    <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${
+                      h.origen === 'artefacto' ? 'text-violet-300 bg-violet-500/10' : 'text-sky-300 bg-sky-500/10'
+                    }`}>{labelHito(h.origen, h.tipo)}</span>
+                    <span className="text-[10px] text-slate-500">{formatFechaRelativa(h.fecha)}</span>
+                  </div>
+                  <p className="text-xs text-slate-400 mt-0.5 truncate">{h.texto}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Workflow de fases */}
       {proyectoMeta && fases ? (

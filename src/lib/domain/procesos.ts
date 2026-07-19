@@ -102,3 +102,59 @@ export async function obtenerUltimaActividadDeProcesosAceptados(proyectoId: stri
 
   return candidatos.reduce((latest, d) => (new Date(d).getTime() > new Date(latest).getTime() ? d : latest))
 }
+
+export interface HitoReciente {
+  origen: 'documento' | 'artefacto'
+  tipo: string
+  texto: string
+  fecha: string
+  procesoCodigo: string
+}
+
+/**
+ * Últimos N hitos reales sobre procesos aceptados, combinando cambios de
+ * documento (detalle_correcciones) y ediciones de artefacto — misma fuente y
+ * misma unión que Control de Versiones, recortada a los más recientes para
+ * un feed compacto en el Dashboard en vez del timeline completo.
+ */
+export async function obtenerHitosRecientesDeProcesosAceptados(proyectoId: string, limite = 3): Promise<HitoReciente[]> {
+  const { ids } = await getProcesosAceptadosIds(proyectoId)
+  if (ids.length === 0) return []
+
+  const admin = createAdminClient()
+  const [procesosRes, historialRes] = await Promise.all([
+    admin.from('proceso').select('id, codigo, orden, metadata_ia').in('id', ids),
+    admin.from('artefacto_historial').select('tipo, motivo_cambio, created_at, proceso_id').in('proceso_id', ids).order('created_at', { ascending: false }).limit(limite),
+  ])
+
+  const codigoPorProceso: Record<string, string> = {}
+  const hitos: HitoReciente[] = []
+
+  for (const p of procesosRes.data ?? []) {
+    const meta = p.metadata_ia as Record<string, unknown> | null
+    const codigo = p.codigo ?? `SC${String((p.orden ?? 0) + 1).padStart(2, '0')}`
+    codigoPorProceso[p.id] = codigo
+
+    const versiones = (meta?.versiones ?? []) as Array<{ detalle_correcciones?: Array<{ tipo?: string; observacion?: string; fecha?: string }> }>
+    for (const v of versiones) {
+      for (const c of v.detalle_correcciones ?? []) {
+        if (!c.fecha) continue
+        hitos.push({ origen: 'documento', tipo: c.tipo ?? 'proceso', texto: c.observacion?.trim() || 'Cambio incorporado al documento', fecha: c.fecha, procesoCodigo: codigo })
+      }
+    }
+  }
+
+  for (const h of historialRes.data ?? []) {
+    hitos.push({
+      origen: 'artefacto',
+      tipo: h.tipo,
+      texto: h.motivo_cambio?.trim() || 'Edición sin motivo registrado',
+      fecha: h.created_at,
+      procesoCodigo: codigoPorProceso[h.proceso_id] ?? '',
+    })
+  }
+
+  return hitos
+    .sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime())
+    .slice(0, limite)
+}
