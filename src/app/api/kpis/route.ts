@@ -3,7 +3,7 @@ import { jsonError } from '@/lib/http/errors'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { registrarAudit } from '@/lib/audit'
-import { requireRole } from '@/lib/auth/tenant'
+import { requireRole, assertProyectoAccess } from '@/lib/auth/tenant'
 
 export async function GET(req: NextRequest) {
   const supabase = createClient()
@@ -30,6 +30,9 @@ export async function POST(req: NextRequest) {
   const body = await req.json()
   if (!body.proyecto_id || !body.nombre) {
     return NextResponse.json({ error: 'proyecto_id y nombre requeridos' }, { status: 400 })
+  }
+  if (!(await assertProyectoAccess(user.id, body.proyecto_id))) {
+    return NextResponse.json({ error: 'Sin acceso a este proyecto' }, { status: 403 })
   }
 
   const admin = createAdminClient()

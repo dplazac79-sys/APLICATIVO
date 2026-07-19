@@ -3,7 +3,7 @@ import { jsonError } from '@/lib/http/errors'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { registrarAudit } from '@/lib/audit'
-import { requireRole } from '@/lib/auth/tenant'
+import { requireRole, assertProyectoAccess } from '@/lib/auth/tenant'
 import { verificarLimiteIA, registrarUsoIA } from '@/lib/ai/rate-limit'
 import {
   generarArtefacto,
@@ -55,6 +55,10 @@ export async function POST(
 
   // Cargar proyecto_id para el job
   const { data: proceso } = await admin.from('proceso').select('proyecto_id').eq('id', params.id).single()
+
+  if (!proceso?.proyecto_id || !(await assertProyectoAccess(user.id, proceso.proyecto_id))) {
+    return NextResponse.json({ error: 'Sin acceso a este proceso' }, { status: 403 })
+  }
 
   if (proceso?.proyecto_id) {
     const limite = await verificarLimiteIA(proceso.proyecto_id, 'generacion')

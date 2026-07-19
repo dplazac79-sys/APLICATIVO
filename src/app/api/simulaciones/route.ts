@@ -6,7 +6,7 @@ import { registrarAudit } from '@/lib/audit'
 import { simularOperacional } from '@/lib/simulacion/operacional'
 import { simularFinanciera } from '@/lib/simulacion/financiera'
 import { simularOrganizacional } from '@/lib/simulacion/organizacional'
-import { requireRole } from '@/lib/auth/tenant'
+import { requireRole, assertProyectoAccess } from '@/lib/auth/tenant'
 import type {
   ParametrosOperacional,
   ParametrosFinanciera,
@@ -48,6 +48,9 @@ export async function POST(req: NextRequest) {
 
   if (!proyecto_id || !nombre || !tipo || !escenario || !parametros) {
     return NextResponse.json({ error: 'proyecto_id, nombre, tipo, escenario y parametros son requeridos' }, { status: 400 })
+  }
+  if (!(await assertProyectoAccess(user.id, proyecto_id))) {
+    return NextResponse.json({ error: 'Sin acceso a este proyecto' }, { status: 403 })
   }
 
   const tiposValidos: TipoSimulacion[] = ['operacional', 'financiera', 'organizacional']
