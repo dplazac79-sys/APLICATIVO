@@ -7,7 +7,9 @@ import type { Artefacto } from '@/types/database'
 import ArtefactoCardEditor from '@/components/artefactos/ArtefactoCardEditor'
 import ImportadorArtefactos from '@/components/artefactos/ImportadorArtefactos'
 import BotonReextraer from '@/components/artefactos/BotonReextraer'
+import ValidarTodosButton from '@/components/artefactos/ValidarTodosButton'
 import { ORDEN_GENERACION, LABEL_ARTEFACTO } from '@/lib/artefactos-meta'
+import { ROLES_EDITAN_ARTEFACTO } from '@/lib/artefactos-estado'
 import { getFasesProyecto } from '@/lib/fases'
 
 export const dynamic = 'force-dynamic'
@@ -148,6 +150,11 @@ export default async function ProcesoArtefactosPage({ params }: Props) {
               {totalGenerados}/{ORDEN_GENERACION.length} artefactos
             </span>
           </div>
+          {totalPendientes > 1 && ROLES_EDITAN_ARTEFACTO.includes(rolUsuario) && (
+            <div className="flex justify-end mb-2">
+              <ValidarTodosButton procesoId={params.procesoId} totalPendientes={totalPendientes} />
+            </div>
+          )}
           <div className="h-2 bg-slate-800 rounded-full overflow-hidden flex gap-px">
             <div
               className="bg-blue-500 h-full rounded-l-full transition-all"
