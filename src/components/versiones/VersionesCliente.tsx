@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { formatFecha } from '@/lib/format'
+import { formatFecha, formatFechaRelativa } from '@/lib/format'
 import { LABEL_ARTEFACTO } from '@/lib/artefactos-meta'
 import {
   FileText, Download, ChevronDown, Clock,
@@ -770,6 +770,7 @@ export default function VersionesCliente({
   const ultimaActividadStr = ultimaActividad
     ? new Date(ultimaActividad).toLocaleDateString('es-CL', { day: '2-digit', month: 'short', year: 'numeric' })
     : '—'
+  const ultimaActividadRelativa = ultimaActividad ? formatFechaRelativa(ultimaActividad) : null
 
   const [busqueda, setBusqueda] = useState('')
   const q = busqueda.trim().toLowerCase()
@@ -849,8 +850,8 @@ export default function VersionesCliente({
                   </div>
                   <span className="text-[11px] text-slate-400 font-medium uppercase tracking-wide">Última actividad</span>
                 </div>
-                <div className="text-lg font-bold text-white leading-tight">{ultimaActividadStr}</div>
-                <div className="text-[11px] text-slate-400 mt-0.5">última modificación registrada</div>
+                <div className="text-lg font-bold text-white leading-tight">{ultimaActividadRelativa ?? '—'}</div>
+                <div className="text-[11px] text-slate-400 mt-0.5">{ultimaActividadStr !== '—' ? `${ultimaActividadStr} · última modificación` : 'sin actividad registrada'}</div>
               </div>
             </div>
 
