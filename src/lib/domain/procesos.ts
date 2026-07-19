@@ -48,6 +48,33 @@ export async function contarArtefactosDeProcesosAceptados(proyectoId: string): P
   return count ?? 0
 }
 
+export interface ArtefactosAprobadosCount {
+  aprobados: number
+  total: number
+}
+
+/**
+ * Cuenta cuántos artefactos de procesos aceptados están aprobados
+ * (estado_validacion 'validado' o 'publicado') vs el total — mismo criterio
+ * de "aprobado" que usa la pantalla de Artefactos, para que el ring de
+ * salud del Dashboard no invente su propia definición.
+ */
+export async function contarArtefactosAprobadosDeProcesosAceptados(proyectoId: string): Promise<ArtefactosAprobadosCount> {
+  const { ids } = await getProcesosAceptadosIds(proyectoId)
+  if (ids.length === 0) return { aprobados: 0, total: 0 }
+
+  const admin = createAdminClient()
+  const { data } = await admin
+    .from('artefacto')
+    .select('estado_validacion')
+    .in('proceso_id', ids)
+
+  const total = data?.length ?? 0
+  const aprobados = (data ?? []).filter(a => a.estado_validacion === 'validado' || a.estado_validacion === 'publicado').length
+
+  return { aprobados, total }
+}
+
 export interface ModificacionesCount {
   documentos: number
   artefactos: number

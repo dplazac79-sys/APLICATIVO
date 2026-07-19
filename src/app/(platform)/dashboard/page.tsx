@@ -6,7 +6,7 @@ import { FileText, FolderOpen, Brain, Layers, Sparkles, ArrowRight, AlertCircle,
 import Link from 'next/link'
 import FaseWorkflow from '@/components/fases/FaseWorkflow'
 import { getFasesProyecto } from '@/lib/fases'
-import { getProcesosAceptadosIds, contarArtefactosDeProcesosAceptados, contarModificacionesDeProcesosAceptados, obtenerUltimaActividadDeProcesosAceptados, obtenerHitosRecientesDeProcesosAceptados, obtenerUltimaSimulacionDeProcesosAceptados } from '@/lib/domain/procesos'
+import { getProcesosAceptadosIds, contarArtefactosDeProcesosAceptados, contarArtefactosAprobadosDeProcesosAceptados, contarModificacionesDeProcesosAceptados, obtenerUltimaActividadDeProcesosAceptados, obtenerHitosRecientesDeProcesosAceptados, obtenerUltimaSimulacionDeProcesosAceptados } from '@/lib/domain/procesos'
 import { formatFechaRelativa } from '@/lib/format'
 import { LABEL_ARTEFACTO } from '@/lib/artefactos-meta'
 
@@ -65,8 +65,9 @@ export default async function DashboardPage() {
   let ultimaActividad: string | null = null
   let hitosRecientes: Awaited<ReturnType<typeof obtenerHitosRecientesDeProcesosAceptados>> = []
   let ultimaSimulacion: Awaited<ReturnType<typeof obtenerUltimaSimulacionDeProcesosAceptados>> = null
+  let artefactosAprobados = { aprobados: 0, total: 0 }
   if (proyectoMeta) {
-    const [docsRes, docsListosRes, procesosRes, aceptados, totalArtefactos, modsRes, ultimaActividadRes, hitosRes, simulacionRes] = await Promise.all([
+    const [docsRes, docsListosRes, procesosRes, aceptados, totalArtefactos, modsRes, ultimaActividadRes, hitosRes, simulacionRes, artAprobadosRes] = await Promise.all([
       admin.from('documento').select('id', { count: 'exact', head: true }).eq('proyecto_id', proyectoMeta.id),
       admin.from('documento').select('id', { count: 'exact', head: true }).eq('proyecto_id', proyectoMeta.id).eq('estado_procesamiento', 'listo'),
       admin.from('proceso').select('id', { count: 'exact', head: true }).eq('proyecto_id', proyectoMeta.id),
@@ -76,6 +77,7 @@ export default async function DashboardPage() {
       obtenerUltimaActividadDeProcesosAceptados(proyectoMeta.id),
       obtenerHitosRecientesDeProcesosAceptados(proyectoMeta.id, 3),
       obtenerUltimaSimulacionDeProcesosAceptados(proyectoMeta.id),
+      contarArtefactosAprobadosDeProcesosAceptados(proyectoMeta.id),
     ])
     stats = {
       documentos: docsRes.count ?? 0,
@@ -88,6 +90,7 @@ export default async function DashboardPage() {
     ultimaActividad = ultimaActividadRes
     hitosRecientes = hitosRes
     ultimaSimulacion = simulacionRes
+    artefactosAprobados = artAprobadosRes
   }
 
   const faseActiva = fases?.find(f => f.status === 'activa')
@@ -95,6 +98,31 @@ export default async function DashboardPage() {
   const totalFases = fases?.length ?? 6
   const pctGlobal = Math.round((fasesCompletadas / totalFases) * 100)
   const pctProcesos = stats.procesosTotal > 0 ? Math.round((stats.procesosAprobados / stats.procesosTotal) * 100) : 0
+
+  // Salud del proyecto — semáforo que combina aprobación de procesos y de
+  // artefactos en un solo número, en vez de obligar al cliente a mentalmente
+  // cruzar el 80% de "Avance del proyecto" (que solo cuenta fases) con el
+  // detalle de "Artefactos generados". Se promedian solo las dimensiones
+  // que ya tienen datos — si aún no hay artefactos, no se castiga el score
+  // por algo que todavía no corresponde medir.
+  const pctArtefactosAprobados = artefactosAprobados.total > 0
+    ? Math.round((artefactosAprobados.aprobados / artefactosAprobados.total) * 100)
+    : null
+  const dimensionesSalud = [
+    stats.procesosTotal > 0 ? pctProcesos : null,
+    pctArtefactosAprobados,
+  ].filter((v): v is number => v !== null)
+  const saludScore = dimensionesSalud.length > 0
+    ? Math.round(dimensionesSalud.reduce((a, b) => a + b, 0) / dimensionesSalud.length)
+    : null
+  const salud = saludScore === null ? null : saludScore >= 80
+    ? { label: 'Saludable', color: '#34d399', textColor: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20' }
+    : saludScore >= 50
+      ? { label: 'En progreso', color: '#fbbf24', textColor: 'text-amber-400', bg: 'bg-amber-500/10', border: 'border-amber-500/20' }
+      : { label: 'Atención requerida', color: '#f87171', textColor: 'text-red-400', bg: 'bg-red-500/10', border: 'border-red-500/20' }
+  const RING_R = 26
+  const RING_CIRC = 2 * Math.PI * RING_R
+  const ringOffset = saludScore === null ? RING_CIRC : RING_CIRC * (1 - saludScore / 100)
 
   const kpis = [
     {
@@ -179,6 +207,36 @@ export default async function DashboardPage() {
           </Link>
         </div>
       </div>
+
+      {/* Salud del proyecto — semáforo visual que cruza aprobación de
+          procesos y de artefactos en un solo vistazo, para que el cliente
+          no tenga que ir a comparar dos pantallas distintas mentalmente. */}
+      {salud && saludScore !== null && (
+        <div className={`flex items-center gap-4 rounded-xl border px-5 py-4 ${salud.bg} ${salud.border}`}>
+          <div className="relative w-16 h-16 shrink-0">
+            <svg viewBox="0 0 64 64" className="w-16 h-16 -rotate-90">
+              <circle cx="32" cy="32" r={RING_R} fill="none" stroke="currentColor" strokeWidth="6" className="text-white/[0.06]" />
+              <circle
+                cx="32" cy="32" r={RING_R} fill="none" stroke={salud.color} strokeWidth="6" strokeLinecap="round"
+                strokeDasharray={RING_CIRC} strokeDashoffset={ringOffset}
+              />
+            </svg>
+            <span className="absolute inset-0 flex items-center justify-center text-sm font-bold text-white">{saludScore}</span>
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-xs text-slate-400 uppercase tracking-wide">Salud del proyecto</p>
+            <p className={`text-base font-semibold ${salud.textColor}`}>{salud.label}</p>
+            <div className="flex items-center gap-3 mt-1 flex-wrap">
+              {stats.procesosTotal > 0 && (
+                <span className="text-[11px] text-slate-400">{stats.procesosAprobados}/{stats.procesosTotal} procesos aprobados</span>
+              )}
+              {pctArtefactosAprobados !== null && (
+                <span className="text-[11px] text-slate-400">{artefactosAprobados.aprobados}/{artefactosAprobados.total} artefactos aprobados</span>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Alerta si no hay documentos */}
       {proyectoMeta && stats.documentos === 0 && (
