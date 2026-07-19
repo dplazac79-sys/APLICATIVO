@@ -101,7 +101,7 @@ export default function FaseWorkflow({ fases, compact, hideProgressHeader }: { f
       </div>
 
       {/* Fases — grid 3 columnas cuando hay 6 fases y no es compacto */}
-      <div className={compact ? 'space-y-3' : 'grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3'}>
+      <div className={compact ? 'space-y-3' : 'grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 items-start'}>
       {fases.map((fase, idx) => {
         const c = COLOR_MAP[fase.color]
         const isOpen = expanded === fase.id
