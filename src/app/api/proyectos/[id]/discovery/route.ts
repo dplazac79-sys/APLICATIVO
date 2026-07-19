@@ -3,12 +3,26 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { inngest } from '@/lib/inngest/client'
 import { registrarAudit } from '@/lib/audit'
+import { assertProyectoAccess } from '@/lib/auth/tenant'
+import { verificarLimiteIA } from '@/lib/ai/rate-limit'
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   const proyecto_id = params.id
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+
+  // Sin este chequeo, cualquier usuario autenticado podía disparar el
+  // pipeline de Discovery IA (la operación más cara de toda la app) sobre
+  // el proyecto de OTRO cliente — hallazgo de auditoría de seguridad.
+  if (!(await assertProyectoAccess(user.id, proyecto_id))) {
+    return NextResponse.json({ error: 'Sin acceso a este proyecto' }, { status: 403 })
+  }
+
+  const limite = await verificarLimiteIA(proyecto_id, 'discovery')
+  if (!limite.permitido) {
+    return NextResponse.json({ error: limite.mensaje }, { status: 429 })
+  }
 
   const admin = createAdminClient()
 

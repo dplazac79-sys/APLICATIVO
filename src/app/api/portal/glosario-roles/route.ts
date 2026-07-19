@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { inngest } from '@/lib/inngest/client'
 import { obtenerRolesDesdeDocumentos } from '@/lib/domain/roles'
+import { verificarLimiteIA } from '@/lib/ai/rate-limit'
 
 // GET — obtener último análisis
 export async function GET(req: NextRequest) {
@@ -77,6 +78,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       error: 'No se encontraron roles en los documentos del proyecto. Procesa los documentos primero.'
     }, { status: 400 })
+  }
+
+  const limite = await verificarLimiteIA(body.proyecto_id, 'generacion')
+  if (!limite.permitido) {
+    return NextResponse.json({ error: limite.mensaje }, { status: 429 })
   }
 
   // Crear registro de análisis

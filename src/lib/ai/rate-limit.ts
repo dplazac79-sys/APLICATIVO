@@ -38,12 +38,18 @@ export async function verificarLimiteIA(
 ): Promise<{ permitido: boolean; mensaje?: string }> {
   const admin = createAdminClient()
 
-  const { data } = await admin
+  const { data, error } = await admin
     .from('uso_ia_mes_actual')
     .select('*')
     .eq('proyecto_id', proyecto_id)
-    .single()
+    .maybeSingle()
 
+  // maybeSingle() distingue "sin filas" (proyecto sin uso este mes — 0 <
+  // límite, permitir) de un error real de consulta (antes ambos casos
+  // caían en el mismo "if (!data)" y fallaban abierto — un error transitorio
+  // de BD deshabilitaba el límite en silencio en vez de bloquear por
+  // defecto, hallazgo de auditoría de seguridad).
+  if (error) return { permitido: false, mensaje: 'No se pudo verificar el límite de uso de IA. Intenta de nuevo en unos minutos.' }
   if (!data) return { permitido: true }
 
   const limiteKey = tipo === 'clasificar' ? 'clasificaciones'
