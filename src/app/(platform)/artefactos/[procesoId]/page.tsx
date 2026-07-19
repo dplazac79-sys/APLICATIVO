@@ -7,7 +7,7 @@ import type { Artefacto } from '@/types/database'
 import ArtefactoCardEditor from '@/components/artefactos/ArtefactoCardEditor'
 import ImportadorArtefactos from '@/components/artefactos/ImportadorArtefactos'
 import BotonReextraer from '@/components/artefactos/BotonReextraer'
-import { ORDEN_GENERACION } from '@/lib/artefactos-meta'
+import { ORDEN_GENERACION, LABEL_ARTEFACTO } from '@/lib/artefactos-meta'
 import { getFasesProyecto } from '@/lib/fases'
 
 export const dynamic = 'force-dynamic'
@@ -109,6 +109,33 @@ export default async function ProcesoArtefactosPage({ params }: Props) {
         )}
       </div>
 
+      {/* ── Resumen de los 8 en un vistazo — evita tener que scrollear toda
+          la página para saber qué falta; cada pill salta directo a su card. ── */}
+      {!sinArtefactos && (
+        <div className="flex flex-wrap gap-1.5">
+          {ORDEN_GENERACION.map(tipo => {
+            const art = artefactosPorTipo[tipo]
+            const estado = art?.estado_validacion as 'pendiente' | 'validado' | 'publicado' | undefined
+            const style = !art
+              ? 'bg-slate-900 border-slate-800 text-slate-400'
+              : estado === 'publicado'
+                ? 'bg-blue-950/40 border-blue-800/40 text-blue-400'
+                : estado === 'validado'
+                  ? 'bg-emerald-950/40 border-emerald-800/40 text-emerald-400'
+                  : 'bg-amber-950/40 border-amber-800/40 text-amber-400'
+            return (
+              <a
+                key={tipo}
+                href={art ? `#artefacto-${tipo}` : undefined}
+                className={`text-xs px-2.5 py-1 rounded-full border transition-colors ${style} ${art ? 'hover:opacity-80' : 'cursor-default opacity-60'}`}
+              >
+                {LABEL_ARTEFACTO[tipo]}
+              </a>
+            )
+          })}
+        </div>
+      )}
+
       {/* ── Progress bar ── */}
       {!sinArtefactos && (
         <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4">
@@ -166,7 +193,9 @@ export default async function ProcesoArtefactosPage({ params }: Props) {
         const art = artefactosPorTipo[tipo]
         if (!art) return null
         return (
-          <ArtefactoCardEditor key={tipo} artefacto={art} procesoId={params.procesoId} numero={idx + 1} rol={rolUsuario} />
+          <div key={tipo} id={`artefacto-${tipo}`} className="scroll-mt-4">
+            <ArtefactoCardEditor artefacto={art} procesoId={params.procesoId} numero={idx + 1} rol={rolUsuario} />
+          </div>
         )
       })}
 
