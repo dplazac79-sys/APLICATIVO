@@ -2,11 +2,11 @@ export const dynamic = 'force-dynamic'
 
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { FileText, FolderOpen, Brain, Layers, Sparkles, ArrowRight, AlertCircle } from 'lucide-react'
+import { FileText, FolderOpen, Brain, Layers, Sparkles, ArrowRight, AlertCircle, GitBranch } from 'lucide-react'
 import Link from 'next/link'
 import FaseWorkflow from '@/components/fases/FaseWorkflow'
 import { getFasesProyecto } from '@/lib/fases'
-import { getProcesosAceptadosIds, contarArtefactosDeProcesosAceptados } from '@/lib/domain/procesos'
+import { getProcesosAceptadosIds, contarArtefactosDeProcesosAceptados, contarModificacionesDeProcesosAceptados } from '@/lib/domain/procesos'
 
 export default async function DashboardPage() {
   const supabase = createClient()
@@ -50,13 +50,15 @@ export default async function DashboardPage() {
 
   // Stats del proyecto activo
   let stats = { documentos: 0, docsListos: 0, procesosTotal: 0, procesosAprobados: 0, artefactos: 0 }
+  let modificaciones = { documentos: 0, artefactos: 0, total: 0 }
   if (proyectoMeta) {
-    const [docsRes, docsListosRes, procesosRes, aceptados, totalArtefactos] = await Promise.all([
+    const [docsRes, docsListosRes, procesosRes, aceptados, totalArtefactos, modsRes] = await Promise.all([
       admin.from('documento').select('id', { count: 'exact', head: true }).eq('proyecto_id', proyectoMeta.id),
       admin.from('documento').select('id', { count: 'exact', head: true }).eq('proyecto_id', proyectoMeta.id).eq('estado_procesamiento', 'listo'),
       admin.from('proceso').select('id', { count: 'exact', head: true }).eq('proyecto_id', proyectoMeta.id),
       getProcesosAceptadosIds(proyectoMeta.id),
       contarArtefactosDeProcesosAceptados(proyectoMeta.id),
+      contarModificacionesDeProcesosAceptados(proyectoMeta.id),
     ])
     stats = {
       documentos: docsRes.count ?? 0,
@@ -65,6 +67,7 @@ export default async function DashboardPage() {
       procesosAprobados: aceptados.total,
       artefactos: totalArtefactos,
     }
+    modificaciones = modsRes
   }
 
   const faseActiva = fases?.find(f => f.status === 'activa')
@@ -114,6 +117,18 @@ export default async function DashboardPage() {
       sub: `${fasesCompletadas} de ${totalFases} fases completadas`,
       subColor: 'text-slate-400',
     },
+    {
+      label: 'Modificaciones incorporadas',
+      value: modificaciones.total,
+      icon: GitBranch,
+      color: 'text-amber-400',
+      bg: 'bg-amber-950/40 border-amber-900/40',
+      href: '/versiones',
+      sub: modificaciones.total === 0
+        ? 'Sin cambios registrados aún'
+        : `${modificaciones.documentos} en documentos · ${modificaciones.artefactos} en artefactos`,
+      subColor: 'text-slate-400',
+    },
   ]
 
   return (
@@ -152,7 +167,7 @@ export default async function DashboardPage() {
       )}
 
       {/* KPI cards del proyecto */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
         {kpis.map(kpi => {
           const Icon = kpi.icon
           const inner = (

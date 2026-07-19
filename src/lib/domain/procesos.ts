@@ -47,3 +47,36 @@ export async function contarArtefactosDeProcesosAceptados(proyectoId: string): P
 
   return count ?? 0
 }
+
+export interface ModificacionesCount {
+  documentos: number
+  artefactos: number
+  total: number
+}
+
+/**
+ * Cuenta todas las modificaciones reales incorporadas a procesos aceptados:
+ * cambios de documento (metadata_ia.versiones[].detalle_correcciones, la
+ * misma fuente que usa Control de Versiones) + ediciones de artefacto
+ * (artefacto_historial). Es el mismo dato que se muestra en detalle en
+ * Control de Versiones, agregado acá como un solo número para el Dashboard.
+ */
+export async function contarModificacionesDeProcesosAceptados(proyectoId: string): Promise<ModificacionesCount> {
+  const { ids } = await getProcesosAceptadosIds(proyectoId)
+  if (ids.length === 0) return { documentos: 0, artefactos: 0, total: 0 }
+
+  const admin = createAdminClient()
+  const [procesosRes, historialRes] = await Promise.all([
+    admin.from('proceso').select('metadata_ia').in('id', ids),
+    admin.from('artefacto_historial').select('id', { count: 'exact', head: true }).in('proceso_id', ids),
+  ])
+
+  const documentos = (procesosRes.data ?? []).reduce((sum, p) => {
+    const versiones = ((p.metadata_ia as Record<string, unknown> | null)?.versiones ?? []) as Array<{ detalle_correcciones?: unknown[] }>
+    return sum + versiones.reduce((s, v) => s + (v.detalle_correcciones?.length ?? 0), 0)
+  }, 0)
+
+  const artefactos = historialRes.count ?? 0
+
+  return { documentos, artefactos, total: documentos + artefactos }
+}
