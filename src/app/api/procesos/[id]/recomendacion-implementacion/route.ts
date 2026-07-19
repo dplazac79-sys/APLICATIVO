@@ -4,6 +4,8 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { chatCompletion, MODELOS } from '@/lib/ai/client'
 import { verificarLimiteIA, registrarUsoIA } from '@/lib/ai/rate-limit'
 import type { PlanImplementacion } from '@/components/discovery/ProcesoTabContent'
+import { assertProyectoAccess } from '@/lib/auth/tenant'
+import { errorResponse } from '@/lib/api/error-response'
 
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
   const supabase = createClient()
@@ -11,8 +13,11 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
   const admin = createAdminClient()
-  const { data: proceso } = await admin.from('proceso').select('metadata_ia').eq('id', params.id).single()
+  const { data: proceso } = await admin.from('proceso').select('metadata_ia, proyecto_id').eq('id', params.id).single()
   if (!proceso) return NextResponse.json({ plan: null })
+  if (!(await assertProyectoAccess(user.id, proceso.proyecto_id))) {
+    return NextResponse.json({ error: 'Sin acceso a este proceso' }, { status: 403 })
+  }
   const plan = (proceso.metadata_ia as { plan_implementacion?: PlanImplementacion } | null)?.plan_implementacion ?? null
   return NextResponse.json({ plan })
 }
@@ -30,6 +35,10 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
     .eq('id', params.id)
     .single()
   if (!proceso) return NextResponse.json({ error: 'no_encontrado' }, { status: 404 })
+
+  if (!(await assertProyectoAccess(user2.id, proceso.proyecto_id))) {
+    return NextResponse.json({ error: 'Sin acceso a este proceso' }, { status: 403 })
+  }
 
   const limite = await verificarLimiteIA(proceso.proyecto_id, 'generacion')
   if (!limite.permitido) {
@@ -167,7 +176,6 @@ Responde SOLO con el JSON. Sé directo, específico, y explícito sobre qué vie
 
     return NextResponse.json({ plan })
   } catch (e: unknown) {
-    const msg = e instanceof Error ? e.message : String(e)
-    return NextResponse.json({ error: msg }, { status: 500 })
+    return errorResponse(e, 500, 'No se pudo generar el plan de implementación.')
   }
 }

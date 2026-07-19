@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { assertProyectoAccess } from '@/lib/auth/tenant'
 
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
   const supabase = createClient()
@@ -11,9 +12,13 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
 
   const { data: proceso } = await admin
     .from('proceso')
-    .select('id, nombre, documento_origen_id, metadata_ia')
+    .select('id, nombre, documento_origen_id, metadata_ia, proyecto_id')
     .eq('id', params.id)
     .single()
+
+  if (!proceso?.proyecto_id || !(await assertProyectoAccess(user.id, proceso.proyecto_id))) {
+    return NextResponse.json({ error: 'Sin acceso a este proceso' }, { status: 403 })
+  }
 
   if (!proceso?.documento_origen_id) {
     return NextResponse.json({ error: 'sin_documento' }, { status: 404 })

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { jsonError } from '@/lib/http/errors'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { assertProyectoAccess } from '@/lib/auth/tenant'
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   const supabase = createClient()
@@ -13,11 +14,14 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
   const { data: proceso } = await admin
     .from('proceso')
-    .select('metadata_ia')
+    .select('metadata_ia, proyecto_id')
     .eq('id', params.id)
     .single()
 
   if (!proceso) return NextResponse.json({ error: 'no_encontrado' }, { status: 404 })
+  if (!(await assertProyectoAccess(user.id, proceso.proyecto_id))) {
+    return NextResponse.json({ error: 'Sin acceso a este proceso' }, { status: 403 })
+  }
 
   const metaActual = (proceso.metadata_ia ?? {}) as Record<string, unknown>
   const patch: Record<string, unknown> = {

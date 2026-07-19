@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { jsonError } from '@/lib/http/errors'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { assertProyectoAccess } from '@/lib/auth/tenant'
 
 export async function POST(req: NextRequest) {
   const supabase = createClient()
@@ -44,6 +45,9 @@ export async function GET(req: NextRequest) {
 
   const proyectoId = req.nextUrl.searchParams.get('proyecto_id')
   if (!proyectoId) return NextResponse.json({ error: 'Falta proyecto_id' }, { status: 400 })
+  if (!(await assertProyectoAccess(user.id, proyectoId))) {
+    return NextResponse.json({ error: 'Sin acceso a este proyecto' }, { status: 403 })
+  }
 
   const admin = createAdminClient()
   const { data } = await admin.from('cv_persona_org')
@@ -63,6 +67,12 @@ export async function DELETE(req: NextRequest) {
   if (!id) return NextResponse.json({ error: 'Falta id' }, { status: 400 })
 
   const admin = createAdminClient()
+  const { data: persona } = await admin.from('cv_persona_org').select('proyecto_id').eq('id', id).maybeSingle()
+  if (!persona) return NextResponse.json({ error: 'no_encontrado' }, { status: 404 })
+  if (!(await assertProyectoAccess(user.id, persona.proyecto_id))) {
+    return NextResponse.json({ error: 'Sin acceso a este proyecto' }, { status: 403 })
+  }
+
   await admin.from('cv_persona_org').delete().eq('id', id)
   return NextResponse.json({ ok: true })
 }

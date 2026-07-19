@@ -4,6 +4,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { chatCompletion, MODELOS } from '@/lib/ai/client'
 import { verificarLimiteIA, registrarUsoIA } from '@/lib/ai/rate-limit'
 import { errorResponse } from '@/lib/api/error-response'
+import { assertProyectoAccess } from '@/lib/auth/tenant'
 
 export async function POST(req: NextRequest) {
   const supabase = createClient()
@@ -27,6 +28,10 @@ export async function POST(req: NextRequest) {
   const proyectoId = proceso.proyecto_id
   const proyecto = proceso.proyecto as Record<string, unknown>
   const cliente = proyecto?.cliente as Record<string, unknown> | null
+
+  if (!(await assertProyectoAccess(user.id, proyectoId))) {
+    return NextResponse.json({ error: 'Sin acceso a este proyecto' }, { status: 403 })
+  }
 
   const limite = await verificarLimiteIA(proyectoId, 'generacion')
   if (!limite.permitido) {

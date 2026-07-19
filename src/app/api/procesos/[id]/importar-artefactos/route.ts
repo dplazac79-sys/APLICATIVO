@@ -6,6 +6,7 @@ import { verificarLimiteIA, registrarUsoIA } from '@/lib/ai/rate-limit'
 import { ORDEN_GENERACION } from '@/lib/artefactos-meta'
 import { TEMPLATES_GARANTIZADOS } from '@/lib/artefactos-templates'
 import type { TipoArtefacto } from '@/types/database'
+import { assertProyectoAccess } from '@/lib/auth/tenant'
 
 async function llamarIA(
   modelos: string[],
@@ -54,6 +55,10 @@ export async function POST(
     .single()
 
   if (!proceso) return NextResponse.json({ error: 'Proceso no encontrado' }, { status: 404 })
+
+  if (!(await assertProyectoAccess(user.id, proceso.proyecto_id))) {
+    return NextResponse.json({ error: 'Sin acceso a este proyecto' }, { status: 403 })
+  }
 
   const limite = await verificarLimiteIA(proceso.proyecto_id, 'generacion')
   if (!limite.permitido) {

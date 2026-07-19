@@ -5,6 +5,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { registrarAudit } from '@/lib/audit'
 import { enviarEmail, templateCambioEstado } from '@/lib/email'
 import { TRANSICIONES_VALIDAS, type WorkflowEstadoTipo } from '@/types/database'
+import { assertProyectoAccess } from '@/lib/auth/tenant'
 
 // GET: obtener workflow del proceso
 export async function GET(
@@ -38,6 +39,10 @@ export async function POST(
 
   const { data: proceso } = await admin.from('proceso').select('proyecto_id').eq('id', params.id).single()
   if (!proceso) return NextResponse.json({ error: 'Proceso no encontrado' }, { status: 404 })
+
+  if (!(await assertProyectoAccess(user.id, proceso.proyecto_id))) {
+    return NextResponse.json({ error: 'Sin acceso a este proyecto' }, { status: 403 })
+  }
 
   const { data, error } = await admin.from('workflow_estado').insert({
     proceso_id: params.id,
@@ -75,6 +80,10 @@ export async function PATCH(
 
   const { data: actual } = await admin.from('workflow_estado').select('*').eq('proceso_id', params.id).single()
   if (!actual) return NextResponse.json({ error: 'Workflow no inicializado para este proceso' }, { status: 404 })
+
+  if (!(await assertProyectoAccess(user.id, actual.proyecto_id))) {
+    return NextResponse.json({ error: 'Sin acceso a este proyecto' }, { status: 403 })
+  }
 
   const estadoActual = actual.estado as WorkflowEstadoTipo
   const transicionesPermitidas = TRANSICIONES_VALIDAS[estadoActual] ?? []
