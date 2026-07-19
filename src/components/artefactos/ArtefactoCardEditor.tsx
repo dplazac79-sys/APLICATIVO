@@ -14,6 +14,7 @@ import { LABEL_ARTEFACTO } from '@/lib/artefactos-meta'
 import { useEscapeToClose } from '@/hooks/useEscapeToClose'
 import { useFocusTrap } from '@/hooks/useFocusTrap'
 import { ROLES_STAFF_ARTEFACTO, transicionPermitida } from '@/lib/artefactos-estado'
+import { formatFechaRelativa } from '@/lib/format'
 
 const VistaArtefacto = dynamic(() => import('./VistaArtefacto'), { ssr: false })
 
@@ -889,6 +890,9 @@ export default function ArtefactoCardEditor({ artefacto: artefactoInicial, proce
                     <Sparkles className="w-2.5 h-2.5" /> IA
                   </span>
                 )}
+                <span className="text-slate-400 text-xs hidden sm:inline">
+                  · Editado {formatFechaRelativa(artefacto.updated_at)}
+                </span>
               </div>
             </div>
             <span className={`text-xs px-2.5 py-0.5 rounded-full border shrink-0 ${BADGE[estado]}`}>
