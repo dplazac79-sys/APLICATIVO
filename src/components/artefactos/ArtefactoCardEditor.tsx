@@ -1070,20 +1070,54 @@ export default function ArtefactoCardEditor({ artefacto: artefactoInicial, proce
                     c={contenidoEditado}
                     onChange={setContenidoEditado}
                   />
-                ) : (
-                  <div className="space-y-4">
-                    {Object.entries(contenidoEditado)
-                      .filter(([k]) => !CAMPOS_OCULTOS.has(k))
-                      .map(([k, v]) => (
-                        <CampoEditor
-                          key={k}
-                          campoKey={k}
-                          value={v}
-                          onChange={nv => setContenidoEditado(prev => ({ ...prev, [k]: nv }))}
-                        />
-                      ))}
-                  </div>
-                )}
+                ) : (() => {
+                  // Agrupa por peso visual — campos simples (texto/número/booleano)
+                  // van juntos en una tarjeta compacta tipo resumen, campos
+                  // complejos (listas/objetos, que ya traen su propia tarjeta con
+                  // borde) quedan aparte. Antes todo caía en un mismo stack plano
+                  // sin ninguna jerarquía, muy distinto al layout curado de la
+                  // vista de lectura (grillas, secciones, pills) — este es el
+                  // punto medio: no reimplementa un editor a medida por tipo,
+                  // pero deja de sentirse un formulario genérico desconectado.
+                  const entradas = Object.entries(contenidoEditado).filter(([k]) => !CAMPOS_OCULTOS.has(k))
+                  const esSimple = (v: unknown) => typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean'
+                  const simples = entradas.filter(([, v]) => esSimple(v))
+                  const complejos = entradas.filter(([, v]) => !esSimple(v))
+                  return (
+                    <div className="space-y-5">
+                      {simples.length > 0 && (
+                        <div className="rounded-xl border border-slate-700/40 bg-slate-800/30 p-4 space-y-4">
+                          <p className="text-slate-400 text-[11px] uppercase tracking-widest font-semibold">Resumen</p>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            {simples.map(([k, v]) => (
+                              <CampoEditor
+                                key={k}
+                                campoKey={k}
+                                value={v}
+                                onChange={nv => setContenidoEditado(prev => ({ ...prev, [k]: nv }))}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {complejos.length > 0 && (
+                        <div className="space-y-4">
+                          {simples.length > 0 && (
+                            <p className="text-slate-400 text-[11px] uppercase tracking-widest font-semibold">Detalle</p>
+                          )}
+                          {complejos.map(([k, v]) => (
+                            <CampoEditor
+                              key={k}
+                              campoKey={k}
+                              value={v}
+                              onChange={nv => setContenidoEditado(prev => ({ ...prev, [k]: nv }))}
+                            />
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })()}
 
                 {errorGuardar && (
                   <div className="bg-red-950/30 border border-red-800/40 rounded-lg px-3 py-2 flex gap-2">
