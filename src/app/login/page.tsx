@@ -564,13 +564,13 @@ export default function LoginPage() {
 
               <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
                 <div>
-                  <label style={{ display: 'block', color: '#94a3b8', fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 7 }}>Correo corporativo</label>
+                  <label htmlFor="login-email" style={{ display: 'block', color: '#94a3b8', fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 7 }}>Correo corporativo</label>
                   <div style={{ position: 'relative' }}>
                     <svg width="13" height="13" viewBox="0 0 16 16" fill="none" style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', color: '#475569' }}>
                       <rect x="1" y="3" width="14" height="10" rx="2" stroke="currentColor" strokeWidth="1.4"/>
                       <path d="M1 6l7 4.5L15 6" stroke="currentColor" strokeWidth="1.4"/>
                     </svg>
-                    <input type="email" required value={email} onChange={e => setEmail(e.target.value)}
+                    <input id="login-email" type="email" required value={email} onChange={e => setEmail(e.target.value)}
                       placeholder="nombre@empresa.com"
                       className="login-input"
                       style={{ width: '100%', boxSizing: 'border-box', paddingLeft: 40, paddingRight: 12, paddingTop: isMobile ? 16 : 11, paddingBottom: isMobile ? 16 : 11, borderRadius: isMobile ? 14 : 10, fontSize: isMobile ? 16 : 13.5, color: '#f8fafc', background: 'rgba(3,7,18,0.6)', border: '1px solid rgba(255,255,255,0.07)', outline: 'none', transition: 'border-color 0.15s' }}
@@ -582,7 +582,7 @@ export default function LoginPage() {
 
                 <div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 7 }}>
-                    <label style={{ color: '#94a3b8', fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase' }}>Contraseña</label>
+                    <label htmlFor="login-password" style={{ color: '#94a3b8', fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase' }}>Contraseña</label>
                     <Link href="/olvide-password" style={{ color: '#475569', fontSize: 11, textDecoration: 'none' }}
                       onMouseEnter={e => ((e.target as HTMLElement).style.color = '#94a3b8')}
                       onMouseLeave={e => ((e.target as HTMLElement).style.color = '#475569')}
@@ -593,7 +593,7 @@ export default function LoginPage() {
                       <rect x="3" y="7" width="10" height="8" rx="1.5" stroke="currentColor" strokeWidth="1.4"/>
                       <path d="M5 7V5a3 3 0 0 1 6 0v2" stroke="currentColor" strokeWidth="1.4"/>
                     </svg>
-                    <input type={showPassword ? 'text' : 'password'} required value={password} onChange={e => setPassword(e.target.value)}
+                    <input id="login-password" type={showPassword ? 'text' : 'password'} required value={password} onChange={e => setPassword(e.target.value)}
                       placeholder="••••••••••••"
                       className="login-input"
                       style={{ width: '100%', boxSizing: 'border-box', paddingLeft: 40, paddingRight: 44, paddingTop: isMobile ? 16 : 11, paddingBottom: isMobile ? 16 : 11, borderRadius: isMobile ? 14 : 10, fontSize: isMobile ? 16 : 13.5, color: '#f8fafc', background: 'rgba(3,7,18,0.6)', border: '1px solid rgba(255,255,255,0.07)', outline: 'none', transition: 'border-color 0.15s' }}

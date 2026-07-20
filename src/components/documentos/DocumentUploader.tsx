@@ -217,7 +217,7 @@ export default function DocumentUploader({ proyectos, proyectoPreseleccionado, d
                   <span className="text-xs text-slate-400 shrink-0">Nuevo</span>
                 )}
                 <button onClick={() => setEntries(prev => prev.filter((_, j) => j !== i))}
-                  className="text-slate-400 hover:text-red-400 shrink-0 transition-colors">
+                  className="text-slate-400 hover:text-red-400 shrink-0 transition-colors" aria-label="Eliminar archivo">
                   <X className="w-4 h-4" />
                 </button>
               </div>

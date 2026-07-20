@@ -66,8 +66,9 @@ export default function FirmaForm({ token, firmaId, firmante_nombre, firmante_ca
   return (
     <div className="space-y-4">
       <div className="space-y-2">
-        <label className="text-slate-400 text-xs">Nombre completo del firmante *</label>
+        <label htmlFor="firma-nombre" className="text-slate-400 text-xs">Nombre completo del firmante *</label>
         <input
+          id="firma-nombre"
           value={nombre}
           onChange={(e) => setNombre(e.target.value)}
           placeholder="Ingresa tu nombre completo"
@@ -75,8 +76,9 @@ export default function FirmaForm({ token, firmaId, firmante_nombre, firmante_ca
         />
       </div>
       <div className="space-y-2">
-        <label className="text-slate-400 text-xs">Cargo / Rol</label>
+        <label htmlFor="firma-cargo" className="text-slate-400 text-xs">Cargo / Rol</label>
         <input
+          id="firma-cargo"
           value={cargo}
           onChange={(e) => setCargo(e.target.value)}
           placeholder="Tu cargo en la organización"

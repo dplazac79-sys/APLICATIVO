@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useCallback } from 'react'
+import React, { useState, useCallback, useId } from 'react'
 import { useRouter } from 'next/navigation'
 import dynamic from 'next/dynamic'
 import {
@@ -236,6 +236,7 @@ function CampoEditor({
 }) {
   const [expandido, setExpandido] = useState(true)
   const label = NOMBRE_CAMPO[campoKey] ?? campoKey.replace(/_/g, ' ')
+  const campoInputId = useId()
 
   if (value === null || value === undefined) return null
   // Ocultar campo vacío con nombre vacío (id oculto, etc.)
@@ -246,9 +247,10 @@ function CampoEditor({
     const esLargo = value.length > 80
     return (
       <div className="space-y-1">
-        <label className="text-slate-400 text-xs uppercase tracking-wider font-medium">{label}</label>
+        <label htmlFor={campoInputId} className="text-slate-400 text-xs uppercase tracking-wider font-medium">{label}</label>
         {esLargo ? (
           <textarea
+            id={campoInputId}
             value={value}
             onChange={e => onChange(e.target.value)}
             rows={Math.min(8, Math.max(3, Math.ceil(value.length / 80)))}
@@ -256,6 +258,7 @@ function CampoEditor({
           />
         ) : (
           <input
+            id={campoInputId}
             type="text"
             value={value}
             onChange={e => onChange(e.target.value)}
@@ -270,8 +273,9 @@ function CampoEditor({
   if (typeof value === 'number') {
     return (
       <div className="space-y-1">
-        <label className="text-slate-400 text-xs uppercase tracking-wider font-medium">{label}</label>
+        <label htmlFor={campoInputId} className="text-slate-400 text-xs uppercase tracking-wider font-medium">{label}</label>
         <input
+          id={campoInputId}
           type="number"
           value={value}
           onChange={e => onChange(Number(e.target.value))}
@@ -312,6 +316,7 @@ function CampoEditor({
                 onChange={e => {
                   const next = [...arr]; next[i] = e.target.value; onChange(next)
                 }}
+                aria-label={`${label} ${i + 1}`}
                 className="flex-1 bg-slate-800 border border-slate-600 rounded-lg px-3 py-1.5 text-slate-200 text-sm focus:outline-none focus:border-purple-500 transition-colors"
               />
               <button
@@ -1059,6 +1064,7 @@ export default function ArtefactoCardEditor({ artefacto: artefactoInicial, proce
                     placeholder="Motivo del cambio (obligatorio) — ej: Corrección de roles, Actualización de métricas..."
                     value={motivoCambio}
                     onChange={e => setMotivoCambio(e.target.value)}
+                    aria-label="Motivo del cambio"
                     className="flex-1 bg-transparent text-slate-300 text-sm placeholder:text-slate-600 focus:outline-none"
                   />
                   <span className="text-amber-500 text-xs shrink-0">*obligatorio</span>

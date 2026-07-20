@@ -142,11 +142,12 @@ function CambiarPasswordForm() {
 
           {/* Nueva contraseña */}
           <div>
-            <label style={{ display: 'block', color: '#94a3b8', fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 7 }}>
+            <label htmlFor="cambiar-password-nueva" style={{ display: 'block', color: '#94a3b8', fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 7 }}>
               Nueva contraseña
             </label>
             <div style={{ position: 'relative' }}>
               <input
+                id="cambiar-password-nueva"
                 type={showNueva ? 'text' : 'password'}
                 required
                 value={nueva}
@@ -185,11 +186,12 @@ function CambiarPasswordForm() {
 
           {/* Confirmar contraseña */}
           <div>
-            <label style={{ display: 'block', color: '#94a3b8', fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 7 }}>
+            <label htmlFor="cambiar-password-confirmar" style={{ display: 'block', color: '#94a3b8', fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 7 }}>
               Confirmar contraseña
             </label>
             <div style={{ position: 'relative' }}>
               <input
+                id="cambiar-password-confirmar"
                 type={showConfirmar ? 'text' : 'password'}
                 required
                 value={confirmar}

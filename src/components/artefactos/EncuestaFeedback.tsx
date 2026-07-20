@@ -98,6 +98,7 @@ export default function EncuestaFeedbackComponent({
         value={comentario}
         onChange={(e) => setComentario(e.target.value)}
         placeholder="Comentario opcional..."
+        aria-label="Comentario opcional"
         rows={2}
         className="w-full bg-slate-900 border border-slate-700 rounded text-sm text-slate-200 placeholder-slate-600 p-2 resize-none focus:outline-none focus:border-slate-500"
       />

@@ -144,7 +144,7 @@ export function PollingScreen({
           )}
         </div>
 
-        <div className="text-center">
+        <div className="text-center" role="status" aria-live="polite">
           {todosListos ? (
             <>
               <p className="text-white font-bold text-xl">¡Documentos procesados!</p>

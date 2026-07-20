@@ -237,6 +237,7 @@ export default function ImpactoPage() {
           <select
             value={proyectoId}
             onChange={e => setProyectoId(e.target.value)}
+            aria-label="Seleccionar proyecto"
             className="w-full bg-slate-800 border border-slate-700 text-slate-300 text-xs rounded px-2 py-1.5"
           >
             {proyectos.map(p => <option key={p.id} value={p.id}>{p.nombre}</option>)}
@@ -339,8 +340,9 @@ function FormularioSimulacion({
       <div className="space-y-4 bg-slate-900 rounded-xl border border-slate-800 p-5">
 
         <div>
-          <label className="text-xs text-slate-400 mb-1 block">Nombre</label>
+          <label htmlFor="impacto-form-nombre" className="text-xs text-slate-400 mb-1 block">Nombre</label>
           <input
+            id="impacto-form-nombre"
             value={formNombre}
             onChange={e => setFormNombre(e.target.value)}
             placeholder="Ej. Optimización Proceso de Compras"

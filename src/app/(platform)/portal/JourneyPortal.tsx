@@ -103,7 +103,7 @@ function UploadZona({ proyectoId, onSubido }: { proyectoId: string; onSubido: ()
         ${subiendo ? 'pointer-events-none opacity-70' : ''}
       `}
     >
-      <input ref={inputRef} type="file" accept=".pdf,.docx,.doc" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) subirArchivo(f) }} />
+      <input ref={inputRef} type="file" accept=".pdf,.docx,.doc" aria-label="Subir archivo" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) subirArchivo(f) }} />
 
       {subiendo ? (
         <div className="flex flex-col items-center gap-3">

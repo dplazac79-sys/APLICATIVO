@@ -30,9 +30,16 @@ const RELACION_LABEL: Record<string, string> = {
 function GrafoRelaciones({ industria }: { industria: string }) {
   const [nodos, setNodos] = useState<KgNodo[] | null>(null)
   const [relaciones, setRelaciones] = useState<KgRelacionExpandida[]>([])
+  // Antes un fetch fallido (error de red, 403, 500) hacía setNodos([]) igual
+  // que "esta industria no tiene datos todavía" — el widget completo
+  // desaparecía sin ningún rastro de que algo salió mal. Se distingue el
+  // caso de error para mostrar un mensaje en vez de desvanecerse en
+  // silencio (hallazgo de auditoría UX/UI).
+  const [errorCarga, setErrorCarga] = useState(false)
 
   useEffect(() => {
     let cancelado = false
+    setErrorCarga(false)
     fetch(`/api/kg/grafo?industria=${encodeURIComponent(industria)}`)
       .then(r => r.json())
       .then(d => {
@@ -42,14 +49,18 @@ function GrafoRelaciones({ industria }: { industria: string }) {
           setRelaciones(d.relaciones ?? [])
         } else {
           setNodos([])
+          setErrorCarga(true)
         }
       })
-      .catch(() => { if (!cancelado) setNodos([]) })
+      .catch(() => { if (!cancelado) { setNodos([]); setErrorCarga(true) } })
     return () => { cancelado = true }
   }, [industria])
 
   if (nodos === null) {
     return <p className="text-xs text-slate-400 mt-4">Cargando grafo...</p>
+  }
+  if (errorCarga) {
+    return <p className="text-xs text-red-400 mt-4">No se pudo cargar el grafo de conocimiento. Intenta recargar la página.</p>
   }
   if (nodos.length === 0) return null
 

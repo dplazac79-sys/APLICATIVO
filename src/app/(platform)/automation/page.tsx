@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import { Zap, Sparkles, ClipboardList, Bot, Download, CheckCircle2 } from 'lucide-react'
+import { toast } from 'sonner'
 
 // ── Tipos locales ─────────────────────────────────────────────────────────────
 
@@ -85,18 +86,27 @@ export default function AutomationStudioPage() {
     }).catch(() => {})
   }, [])
 
-  // Al seleccionar proyecto: cargar procesos, simulaciones, recomendaciones y roadmaps
+  // Al seleccionar proyecto: cargar procesos, simulaciones, recomendaciones y roadmaps.
+  // Antes los 4 fetches tragaban el error en silencio (.catch(() => {})) — un
+  // fallo de red/servidor se veía IDÉNTICO a "este proyecto no tiene datos
+  // todavía", sin forma de distinguirlos. Ahora un fetch fallido avisa con
+  // un toast en vez de fingir que la lista está simplemente vacía
+  // (hallazgo de auditoría UX/UI).
   useEffect(() => {
     if (!proyectoId) return
     let cancelado = false
     fetch(`/api/simulaciones/contexto?proyecto_id=${proyectoId}`)
-      .then(r => r.json()).then(d => { if (!cancelado) setProcesos(d.procesos ?? []) }).catch(() => {})
+      .then(r => r.json()).then(d => { if (!cancelado) setProcesos(d.procesos ?? []) })
+      .catch(() => { if (!cancelado) toast.error('No se pudieron cargar los procesos.') })
     fetch(`/api/simulaciones?proyecto_id=${proyectoId}`)
-      .then(r => r.json()).then(d => { if (!cancelado) setSimulaciones(d.simulaciones ?? []) }).catch(() => {})
+      .then(r => r.json()).then(d => { if (!cancelado) setSimulaciones(d.simulaciones ?? []) })
+      .catch(() => { if (!cancelado) toast.error('No se pudieron cargar las simulaciones.') })
     fetch(`/api/automation/recomendar?proyecto_id=${proyectoId}`)
-      .then(r => r.json()).then(d => { if (!cancelado) setRecomendaciones(d.recomendaciones ?? []) }).catch(() => {})
+      .then(r => r.json()).then(d => { if (!cancelado) setRecomendaciones(d.recomendaciones ?? []) })
+      .catch(() => { if (!cancelado) toast.error('No se pudieron cargar las recomendaciones.') })
     fetch(`/api/automation/roadmap?proyecto_id=${proyectoId}`)
-      .then(r => r.json()).then(d => { if (!cancelado) setRoadmaps(d.roadmaps ?? []) }).catch(() => {})
+      .then(r => r.json()).then(d => { if (!cancelado) setRoadmaps(d.roadmaps ?? []) })
+      .catch(() => { if (!cancelado) toast.error('No se pudieron cargar los roadmaps.') })
     return () => { cancelado = true }
   }, [proyectoId])
 

@@ -199,6 +199,7 @@ export default function ResumenProyecto({ proyecto, cliente, equipo, rol, stats,
                 <p className="text-slate-400 text-xs uppercase tracking-wide mb-1.5">Fecha de inicio</p>
                 <input
                   type="date"
+                  aria-label="Fecha de inicio"
                   className="bg-slate-800 border border-slate-700 text-white rounded-lg px-3 py-2 text-sm w-full focus:outline-none focus:border-indigo-500"
                   value={form.fecha_inicio}
                   onChange={e => setForm(v => ({ ...v, fecha_inicio: e.target.value }))}
@@ -208,6 +209,7 @@ export default function ResumenProyecto({ proyecto, cliente, equipo, rol, stats,
                 <p className="text-slate-400 text-xs uppercase tracking-wide mb-1.5">Fecha estimada de cierre</p>
                 <input
                   type="date"
+                  aria-label="Fecha estimada de cierre"
                   className="bg-slate-800 border border-slate-700 text-white rounded-lg px-3 py-2 text-sm w-full focus:outline-none focus:border-indigo-500"
                   value={form.fecha_estimada_cierre}
                   onChange={e => setForm(v => ({ ...v, fecha_estimada_cierre: e.target.value }))}
@@ -298,6 +300,7 @@ export default function ResumenProyecto({ proyecto, cliente, equipo, rol, stats,
               <p className="text-slate-400 text-xs uppercase tracking-wide mb-2">Contexto del proyecto</p>
               {editando ? (
                 <textarea
+                  aria-label="Contexto del proyecto"
                   className="w-full bg-slate-800 border border-slate-700 text-white rounded-lg px-3 py-2 text-sm resize-none focus:outline-none focus:border-indigo-500"
                   rows={3}
                   placeholder="Describe el contexto, problemática y motivación del proyecto..."
@@ -316,6 +319,7 @@ export default function ResumenProyecto({ proyecto, cliente, equipo, rol, stats,
               <p className="text-slate-400 text-xs uppercase tracking-wide mb-2">Objetivos del proyecto</p>
               {editando ? (
                 <textarea
+                  aria-label="Objetivos del proyecto"
                   className="w-full bg-slate-800 border border-slate-700 text-white rounded-lg px-3 py-2 text-sm resize-none focus:outline-none focus:border-indigo-500"
                   rows={3}
                   placeholder="Lista los objetivos principales, uno por línea..."
@@ -345,6 +349,7 @@ export default function ResumenProyecto({ proyecto, cliente, equipo, rol, stats,
                 </div>
                 {editando ? (
                   <textarea
+                    aria-label="Incluye"
                     className="w-full bg-slate-800 border border-slate-700 text-white rounded-lg px-3 py-2 text-sm resize-none focus:outline-none focus:border-indigo-500"
                     rows={3}
                     placeholder="Qué está dentro del alcance..."
@@ -370,6 +375,7 @@ export default function ResumenProyecto({ proyecto, cliente, equipo, rol, stats,
                 </div>
                 {editando ? (
                   <textarea
+                    aria-label="Excluye"
                     className="w-full bg-slate-800 border border-slate-700 text-white rounded-lg px-3 py-2 text-sm resize-none focus:outline-none focus:border-indigo-500"
                     rows={3}
                     placeholder="Qué está fuera del alcance..."
@@ -396,6 +402,7 @@ export default function ResumenProyecto({ proyecto, cliente, equipo, rol, stats,
                 <p className="text-slate-400 text-xs uppercase tracking-wide mb-1.5">Nº procesos estimados</p>
                 <input
                   type="number"
+                  aria-label="Nº procesos estimados"
                   className="bg-slate-800 border border-slate-700 text-white rounded-lg px-3 py-2 text-sm w-32 focus:outline-none focus:border-indigo-500"
                   placeholder="Ej: 12"
                   value={form.n_procesos_estimados}
@@ -425,6 +432,7 @@ export default function ResumenProyecto({ proyecto, cliente, equipo, rol, stats,
                   <p className="text-xs text-slate-400">Correo de la persona — si ya tiene cuenta en la plataforma, solo se vincula a este proyecto.</p>
                   <input
                     type="email"
+                    aria-label="Correo del nuevo miembro"
                     placeholder="correo@empresa.cl"
                     value={nuevoMiembro.email}
                     onChange={e => setNuevoMiembro(v => ({ ...v, email: e.target.value }))}
@@ -433,12 +441,14 @@ export default function ResumenProyecto({ proyecto, cliente, equipo, rol, stats,
                   <div className="grid grid-cols-2 gap-2">
                     <input
                       type="text"
+                      aria-label="Nombre (solo si es cuenta nueva)"
                       placeholder="Nombre (solo si es cuenta nueva)"
                       value={nuevoMiembro.nombre}
                       onChange={e => setNuevoMiembro(v => ({ ...v, nombre: e.target.value }))}
                       className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-sm text-white placeholder-slate-500"
                     />
                     <select
+                      aria-label="Rol del nuevo miembro"
                       value={nuevoMiembro.rol}
                       onChange={e => setNuevoMiembro(v => ({ ...v, rol: e.target.value }))}
                       className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-sm text-white"
@@ -451,6 +461,7 @@ export default function ResumenProyecto({ proyecto, cliente, equipo, rol, stats,
                   </div>
                   <input
                     type="text"
+                    aria-label="Contraseña temporal (solo si es cuenta nueva)"
                     placeholder="Contraseña temporal (solo si es cuenta nueva)"
                     value={nuevoMiembro.password}
                     onChange={e => setNuevoMiembro(v => ({ ...v, password: e.target.value }))}

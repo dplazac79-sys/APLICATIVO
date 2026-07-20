@@ -40,6 +40,7 @@ export default function DeleteUserButton({ usuarioId, nombre }: { usuarioId: str
           onClick={() => { setConfirmando(false); setError('') }}
           disabled={loading}
           className="text-slate-400 hover:text-slate-300 transition-colors"
+          aria-label="Cancelar"
         >
           <X className="w-3.5 h-3.5" />
         </button>

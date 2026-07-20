@@ -182,6 +182,7 @@ export default function ArbolProcesosArtefactos({ procesos, artefactosPorProceso
             value={query}
             onChange={e => setQuery(e.target.value)}
             placeholder="Buscar proceso por nombre o código…"
+            aria-label="Buscar proceso por nombre o código"
             className="w-full pl-9 pr-8 py-2 rounded-xl border border-slate-800 bg-slate-900/60 text-sm text-white placeholder:text-slate-400 focus:outline-none focus:border-violet-600/50 transition-colors"
           />
           {query && (

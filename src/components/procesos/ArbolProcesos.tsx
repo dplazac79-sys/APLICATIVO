@@ -159,6 +159,7 @@ export default function ArbolProcesos({ procesos, onSelect, selectedId, titulo }
         value={busqueda}
         onChange={e => setBusqueda(e.target.value)}
         placeholder="Buscar proceso..."
+        aria-label="Buscar proceso"
         className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
       />
 

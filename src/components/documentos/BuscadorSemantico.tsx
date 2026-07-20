@@ -89,6 +89,7 @@ export default function BuscadorSemantico({ onFiltrar, proyectoId }: Props) {
                 type="button"
                 onClick={limpiar}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-300"
+                aria-label="Limpiar búsqueda"
               >
                 <X className="w-3.5 h-3.5" />
               </button>

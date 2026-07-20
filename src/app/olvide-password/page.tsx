@@ -97,10 +97,11 @@ export default function OlvidePasswordPage() {
 
             <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
               <div>
-                <label style={{ display: 'block', color: '#94a3b8', fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 7 }}>
+                <label htmlFor="olvide-password-email" style={{ display: 'block', color: '#94a3b8', fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 7 }}>
                   Correo corporativo
                 </label>
                 <input
+                  id="olvide-password-email"
                   type="email" required value={email} onChange={e => setEmail(e.target.value)}
                   placeholder="nombre@empresa.com" autoComplete="email"
                   style={inputStyle}

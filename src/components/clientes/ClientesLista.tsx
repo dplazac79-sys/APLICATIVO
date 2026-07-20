@@ -80,6 +80,7 @@ export default function ClientesLista({ clientes }: { clientes: ClienteRow[] }) 
             value={query}
             onChange={e => setQuery(e.target.value)}
             placeholder="Buscar por nombre o industria..."
+            aria-label="Buscar por nombre o industria"
             className="w-full bg-slate-900 border border-slate-800 rounded-xl pl-10 pr-4 py-2.5 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-indigo-500/50 transition-colors"
           />
         </div>

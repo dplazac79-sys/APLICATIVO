@@ -192,6 +192,7 @@ export default function DiagramaEditor({ artefactoId, initialNodes, initialEdges
               onKeyDown={e => { if (e.key === 'Enter') confirmarEdicion(); if (e.key === 'Escape') setEditando(null) }}
               className="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-slate-200 text-sm focus:outline-none focus:border-purple-500"
               placeholder="Nombre del paso..."
+              aria-label="Nombre del paso"
             />
             <div className="flex gap-2">
               <button onClick={() => setEditando(null)} className="flex-1 text-slate-400 border border-slate-700 rounded-lg py-1.5 text-sm hover:text-white transition-colors">

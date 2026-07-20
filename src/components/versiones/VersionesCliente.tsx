@@ -884,6 +884,7 @@ export default function VersionesCliente({
             value={busqueda}
             onChange={e => setBusqueda(e.target.value)}
             placeholder="Buscar en el historial — motivo, observación, proceso…"
+            aria-label="Buscar en el historial"
             className="w-full pl-11 pr-10 py-3 rounded-2xl border border-white/8 bg-white/[0.02] text-sm text-white placeholder:text-slate-400 focus:outline-none focus:border-indigo-500/40 transition-colors"
           />
           {busqueda && (

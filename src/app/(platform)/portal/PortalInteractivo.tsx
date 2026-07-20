@@ -246,10 +246,11 @@ function DocumentoRow({
           </div>
 
           <div>
-            <label className="text-xs text-slate-400 mb-1 flex items-center gap-1.5">
+            <label htmlFor="portal-interactivo-comentario" className="text-xs text-slate-400 mb-1 flex items-center gap-1.5">
               <MessageSquare className="w-3 h-3" /> Dejar un comentario al equipo
             </label>
             <textarea
+              id="portal-interactivo-comentario"
               value={comentario}
               onChange={(e) => setComentario(e.target.value)}
               rows={2}

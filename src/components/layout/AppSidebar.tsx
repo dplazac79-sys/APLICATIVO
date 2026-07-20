@@ -110,7 +110,7 @@ export default function AppSidebar({ rol, open = false, onClose }: Props) {
         </div>
         {/* Botón cerrar — solo móvil */}
         {onClose && (
-          <button onClick={onClose} className="md:hidden text-slate-400 hover:text-white p-1">
+          <button onClick={onClose} className="md:hidden text-slate-400 hover:text-white p-1" aria-label="Cerrar menú">
             <X className="w-5 h-5" />
           </button>
         )}

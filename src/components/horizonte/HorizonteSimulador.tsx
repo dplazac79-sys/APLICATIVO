@@ -698,7 +698,7 @@ export default function HorizonteSimulador({ procesos, artefactosPorProceso, mod
           <Card className="p-6 space-y-5">
             {/* Selector de proceso */}
             <div>
-              <p className="text-[10px] uppercase tracking-widest text-slate-400 mb-2">Proceso a proyectar</p>
+              <label htmlFor="horizonte-proceso-select" className="text-[10px] uppercase tracking-widest text-slate-400 mb-2 block">Proceso a proyectar</label>
               <div className="relative">
                 {procesoActual && (
                   <span className="absolute left-4 top-1/2 -translate-y-1/2 z-10 text-xs font-mono font-bold text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 px-2 py-0.5 rounded-lg pointer-events-none">
@@ -706,6 +706,7 @@ export default function HorizonteSimulador({ procesos, artefactosPorProceso, mod
                   </span>
                 )}
                 <select
+                  id="horizonte-proceso-select"
                   value={procesoId}
                   onChange={e => setProcesoId(e.target.value)}
                   className={`w-full appearance-none ${procesoActual ? 'pl-16' : 'pl-5'} pr-10 py-4 rounded-2xl border border-white/10 bg-[#0f0f1a] text-sm cursor-pointer hover:border-indigo-500/30 focus:outline-none focus:border-indigo-500/50 transition-all ${procesoId ? 'text-white' : 'text-slate-400'}`}

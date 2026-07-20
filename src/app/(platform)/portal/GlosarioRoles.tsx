@@ -342,6 +342,7 @@ export function GlosarioRoles({ proyectoId, nombreProyecto: _nombreProyecto, rol
           >
             <input
               ref={fileRef} type="file" hidden
+              aria-label="Subir organigrama"
               accept=".pdf,.png,.jpg,.jpeg,.doc,.docx"
               onChange={async e => { const f = e.target.files?.[0]; if (f) await subirOrganigrama(f) }}
             />
@@ -414,12 +415,14 @@ export function GlosarioRoles({ proyectoId, nombreProyecto: _nombreProyecto, rol
             <div style={{ padding: '14px 16px', borderRadius: 12, border: '1px solid rgba(99,102,241,0.2)', background: 'rgba(99,102,241,0.04)', marginTop: 10 }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
                 <input
+                  aria-label="Nombre completo"
                   placeholder="Nombre completo *"
                   value={nuevaPersona.nombre}
                   onChange={e => setNuevaPersona(p => ({ ...p, nombre: e.target.value }))}
                   style={{ padding: '9px 12px', borderRadius: 8, background: 'rgba(3,7,18,0.6)', border: '1px solid rgba(255,255,255,0.07)', color: '#f8fafc', fontSize: 13, outline: 'none' }}
                 />
                 <input
+                  aria-label="Cargo actual"
                   placeholder="Cargo actual *"
                   value={nuevaPersona.cargo}
                   onChange={e => setNuevaPersona(p => ({ ...p, cargo: e.target.value }))}
@@ -427,6 +430,7 @@ export function GlosarioRoles({ proyectoId, nombreProyecto: _nombreProyecto, rol
                 />
               </div>
               <textarea
+                aria-label="Skills, experiencia y formación"
                 placeholder="Skills, experiencia y formación (opcional pero muy útil para el análisis)"
                 value={nuevaPersona.cv}
                 onChange={e => setNuevaPersona(p => ({ ...p, cv: e.target.value }))}
