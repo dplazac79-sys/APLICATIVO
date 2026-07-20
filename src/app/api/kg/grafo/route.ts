@@ -21,6 +21,7 @@ export async function GET(req: NextRequest) {
     .select('id, industria, tipo, nombre, metadata, frecuencia')
     .eq('industria', industria)
     .order('frecuencia', { ascending: false })
+    .limit(500)
 
   if (nodosErr) {
     return errorResponse(nodosErr, 500, 'No se pudo cargar el grafo de conocimiento.')

@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { inngest } from '@/lib/inngest/client'
 import { errorResponse } from '@/lib/api/error-response'
+import { assertProyectoAccess } from '@/lib/auth/tenant'
 
 export async function POST(req: NextRequest) {
   const supabase = createClient()
@@ -131,6 +132,9 @@ export async function GET(req: NextRequest) {
 
   const proyectoId = req.nextUrl.searchParams.get('proyecto_id')
   if (!proyectoId) return NextResponse.json({ error: 'Falta proyecto_id' }, { status: 400 })
+  if (!(await assertProyectoAccess(user.id, proyectoId))) {
+    return NextResponse.json({ error: 'Sin acceso a este proyecto' }, { status: 403 })
+  }
 
   const admin = createAdminClient()
   const { data } = await admin.from('organigrama_cliente')

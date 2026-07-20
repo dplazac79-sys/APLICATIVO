@@ -4,6 +4,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { generarEmbedding } from '@/lib/ai/embeddings'
 import { assertProyectoAccess } from '@/lib/auth/tenant'
 import { errorResponse } from '@/lib/api/error-response'
+import { verificarLimiteIA, registrarUsoIA } from '@/lib/ai/rate-limit'
 
 export async function POST(req: NextRequest) {
   const supabase = createClient()
@@ -46,18 +47,26 @@ export async function POST(req: NextRequest) {
       similitud: number
     }
     let resultadosSemanticos: ResultadoSemantico[] = []
-    try {
-      const queryEmbedding = await generarEmbedding(query, 'query')
-      const { data } = await admin.rpc('buscar_documentos_semantico', {
-        query_embedding: queryEmbedding,
-        filtro_proyecto_id: proyecto_id ?? null,
-        limite: 10,
-      })
-      resultadosSemanticos = data ?? []
-    } catch (err) {
-      // No bloquear la búsqueda por nombre si la semántica falla — pero visible en logs,
-      // nunca en silencio (así se pierde de vista un fallo sistémico de embeddings).
-      console.error('[buscar-semantico] Falló la búsqueda semántica, usando solo nombre:', err instanceof Error ? err.message : err)
+    // La búsqueda semántica llama a un proveedor de embeddings externo (costo
+    // por llamada) y no tenía ningún límite — un loop de búsquedas podía
+    // generar gasto/llamadas ilimitadas. Si se agota el límite mensual, se
+    // degrada a solo-nombre en vez de bloquear la búsqueda completa.
+    const limite = await verificarLimiteIA(proyecto_id, 'embedding')
+    if (limite.permitido) {
+      try {
+        const queryEmbedding = await generarEmbedding(query, 'query')
+        const { data } = await admin.rpc('buscar_documentos_semantico', {
+          query_embedding: queryEmbedding,
+          filtro_proyecto_id: proyecto_id ?? null,
+          limite: 10,
+        })
+        resultadosSemanticos = data ?? []
+        await registrarUsoIA({ proyecto_id, usuario_id: user.id, tipo: 'embedding' }).catch(() => {})
+      } catch (err) {
+        // No bloquear la búsqueda por nombre si la semántica falla — pero visible en logs,
+        // nunca en silencio (así se pierde de vista un fallo sistémico de embeddings).
+        console.error('[buscar-semantico] Falló la búsqueda semántica, usando solo nombre:', err instanceof Error ? err.message : err)
+      }
     }
 
     // Combinar: nombre primero, luego semánticos que no estén ya incluidos

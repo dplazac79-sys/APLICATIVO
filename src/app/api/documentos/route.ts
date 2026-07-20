@@ -29,6 +29,17 @@ export async function POST(req: NextRequest) {
 
     // Verificar que el usuario pertenece al proyecto antes de cualquier operación
     const admin = createAdminClient()
+
+    // El path pasa la validación de prefijo aunque el archivo nunca se haya
+    // subido realmente — sin esto, se pueden crear filas 'documento' con
+    // url_storage inventado, cada una disparando un job de Inngest que va a
+    // fallar en el paso de descarga/extracción (gasto de cola sin límite).
+    const carpeta = url_storage.slice(0, url_storage.lastIndexOf('/'))
+    const nombreArchivoStorage = url_storage.slice(url_storage.lastIndexOf('/') + 1)
+    const { data: listado } = await admin.storage.from('documentos').list(carpeta, { search: nombreArchivoStorage })
+    if (!listado?.some(f => f.name === nombreArchivoStorage)) {
+      return NextResponse.json({ error: 'El archivo no existe en el storage — vuelve a subirlo.' }, { status: 400 })
+    }
     const { data: usuarioInfo } = await admin
       .from('usuario')
       .select('rol')
@@ -45,6 +56,20 @@ export async function POST(req: NextRequest) {
       if (!membership) {
         return NextResponse.json({ error: 'Sin acceso al proyecto' }, { status: 403 })
       }
+    }
+
+    // Sin este límite, cualquier usuario con acceso a un proyecto puede
+    // insertar filas 'documento' en loop (con url_storage inventado, ya que
+    // no se verifica que el objeto exista realmente en Storage) — cada una
+    // dispara un job de Inngest, inflando la BD y saturando la cola de
+    // procesamiento sin límite. 500 es generoso para uso legítimo real.
+    const MAX_DOCUMENTOS_POR_PROYECTO = 500
+    const { count: totalDocs } = await admin
+      .from('documento')
+      .select('id', { count: 'exact', head: true })
+      .eq('proyecto_id', proyecto_id)
+    if ((totalDocs ?? 0) >= MAX_DOCUMENTOS_POR_PROYECTO) {
+      return NextResponse.json({ error: `Límite de ${MAX_DOCUMENTOS_POR_PROYECTO} documentos por proyecto alcanzado.` }, { status: 429 })
     }
 
     // Calcular versión si es una actualización de documento existente

@@ -5,6 +5,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { inngest } from '@/lib/inngest/client'
 import { obtenerRolesDesdeDocumentos } from '@/lib/domain/roles'
 import { verificarLimiteIA } from '@/lib/ai/rate-limit'
+import { assertProyectoAccess } from '@/lib/auth/tenant'
 
 // GET — obtener último análisis
 export async function GET(req: NextRequest) {
@@ -14,6 +15,9 @@ export async function GET(req: NextRequest) {
 
   const proyectoId = req.nextUrl.searchParams.get('proyecto_id')
   if (!proyectoId) return NextResponse.json({ error: 'Falta proyecto_id' }, { status: 400 })
+  if (!(await assertProyectoAccess(user.id, proyectoId))) {
+    return NextResponse.json({ error: 'Sin acceso a este proyecto' }, { status: 403 })
+  }
 
   const admin = createAdminClient()
   const { data } = await admin.from('glosario_roles_analisis')

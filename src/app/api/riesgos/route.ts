@@ -63,7 +63,20 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true, riesgo: posibleDuplicado })
   }
 
-  const { data, error } = await admin.from('riesgo').insert({ ...body, nivel_riesgo }).select().single()
+  // Allowlist explícito en vez de spread del body completo — evita que el
+  // cliente fije campos fuera de su control (estado, created_at, id, etc.)
+  const payload = {
+    proyecto_id: body.proyecto_id,
+    proceso_id: body.proceso_id ?? null,
+    descripcion: body.descripcion,
+    categoria: body.categoria ?? 'operacional',
+    probabilidad: body.probabilidad ?? 'media',
+    impacto: body.impacto ?? 'medio',
+    control: body.control ?? null,
+    responsable: body.responsable ?? null,
+    nivel_riesgo,
+  }
+  const { data, error } = await admin.from('riesgo').insert(payload).select().single()
   if (error) return jsonError(error)
   await registrarAudit({ accion: 'CREATE', entidad: 'riesgo', entidad_id: data.id, detalle: { descripcion: body.descripcion, nivel_riesgo } })
   return NextResponse.json({ ok: true, riesgo: data })
