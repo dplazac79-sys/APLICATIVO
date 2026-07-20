@@ -179,28 +179,28 @@ export default function OnboardingPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <Label className="text-slate-300">Razón social *</Label>
-              <Input className="bg-slate-800 border-slate-700 text-white mt-1" placeholder="Empresa S.A." value={empresa.razon_social} onChange={e => setEmpresa(v => ({ ...v, razon_social: e.target.value }))} />
+              <Label htmlFor="onboarding-razon-social" className="text-slate-300">Razón social *</Label>
+              <Input id="onboarding-razon-social" className="bg-slate-800 border-slate-700 text-white mt-1" placeholder="Empresa S.A." value={empresa.razon_social} onChange={e => setEmpresa(v => ({ ...v, razon_social: e.target.value }))} />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <Label className="text-slate-300">Industria *</Label>
-                <select className="w-full mt-1 bg-slate-800 border border-slate-700 text-white rounded-md px-3 py-2 text-sm" value={empresa.industria} onChange={e => setEmpresa(v => ({ ...v, industria: e.target.value }))}>
+                <Label htmlFor="onboarding-industria" className="text-slate-300">Industria *</Label>
+                <select id="onboarding-industria" className="w-full mt-1 bg-slate-800 border border-slate-700 text-white rounded-md px-3 py-2 text-sm" value={empresa.industria} onChange={e => setEmpresa(v => ({ ...v, industria: e.target.value }))}>
                   <option value="">Seleccionar...</option>
                   {INDUSTRIAS.map(i => <option key={i} value={i}>{i}</option>)}
                 </select>
               </div>
               <div>
-                <Label className="text-slate-300">Tamaño *</Label>
-                <select className="w-full mt-1 bg-slate-800 border border-slate-700 text-white rounded-md px-3 py-2 text-sm" value={empresa.tamano} onChange={e => setEmpresa(v => ({ ...v, tamano: e.target.value }))}>
+                <Label htmlFor="onboarding-tamano" className="text-slate-300">Tamaño *</Label>
+                <select id="onboarding-tamano" className="w-full mt-1 bg-slate-800 border border-slate-700 text-white rounded-md px-3 py-2 text-sm" value={empresa.tamano} onChange={e => setEmpresa(v => ({ ...v, tamano: e.target.value }))}>
                   <option value="">Seleccionar...</option>
                   {TAMANOS.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
                 </select>
               </div>
             </div>
             <div>
-              <Label className="text-slate-300">Objetivos estratégicos</Label>
-              <textarea className="w-full mt-1 bg-slate-800 border border-slate-700 text-white rounded-md px-3 py-2 text-sm resize-none" rows={3} placeholder="Describe los objetivos principales del cliente..." value={empresa.objetivos_estrategicos} onChange={e => setEmpresa(v => ({ ...v, objetivos_estrategicos: e.target.value }))} />
+              <Label htmlFor="onboarding-objetivos-estrategicos" className="text-slate-300">Objetivos estratégicos</Label>
+              <textarea id="onboarding-objetivos-estrategicos" className="w-full mt-1 bg-slate-800 border border-slate-700 text-white rounded-md px-3 py-2 text-sm resize-none" rows={3} placeholder="Describe los objetivos principales del cliente..." value={empresa.objetivos_estrategicos} onChange={e => setEmpresa(v => ({ ...v, objetivos_estrategicos: e.target.value }))} />
             </div>
           </CardContent>
         </Card>
@@ -215,17 +215,17 @@ export default function OnboardingPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <Label className="text-slate-300">Nombre del proyecto *</Label>
-              <Input className="bg-slate-800 border-slate-700 text-white mt-1" placeholder="Optimización de procesos 2026" value={proyecto.nombre} onChange={e => setProyecto(v => ({ ...v, nombre: e.target.value }))} />
+              <Label htmlFor="onboarding-proyecto-nombre" className="text-slate-300">Nombre del proyecto *</Label>
+              <Input id="onboarding-proyecto-nombre" className="bg-slate-800 border-slate-700 text-white mt-1" placeholder="Optimización de procesos 2026" value={proyecto.nombre} onChange={e => setProyecto(v => ({ ...v, nombre: e.target.value }))} />
             </div>
             <div>
-              <Label className="text-slate-300">Descripción breve</Label>
-              <textarea className="w-full mt-1 bg-slate-800 border border-slate-700 text-white rounded-md px-3 py-2 text-sm resize-none" rows={2} placeholder="Resumen ejecutivo del proyecto..." value={proyecto.descripcion} onChange={e => setProyecto(v => ({ ...v, descripcion: e.target.value }))} />
+              <Label htmlFor="onboarding-proyecto-descripcion" className="text-slate-300">Descripción breve</Label>
+              <textarea id="onboarding-proyecto-descripcion" className="w-full mt-1 bg-slate-800 border border-slate-700 text-white rounded-md px-3 py-2 text-sm resize-none" rows={2} placeholder="Resumen ejecutivo del proyecto..." value={proyecto.descripcion} onChange={e => setProyecto(v => ({ ...v, descripcion: e.target.value }))} />
             </div>
             <div>
-              <Label className="text-slate-300">Contexto del proyecto</Label>
+              <Label htmlFor="onboarding-proyecto-contexto" className="text-slate-300">Contexto del proyecto</Label>
               <p className="text-slate-400 text-xs mt-0.5 mb-1">¿Cuál es la problemática o motivación que origina este proyecto?</p>
-              <textarea className="w-full mt-1 bg-slate-800 border border-slate-700 text-white rounded-md px-3 py-2 text-sm resize-none" rows={3} placeholder="Ej: La empresa enfrenta ineficiencias en su cadena de suministro que generan pérdidas operacionales..." value={proyecto.contexto} onChange={e => setProyecto(v => ({ ...v, contexto: e.target.value }))} />
+              <textarea id="onboarding-proyecto-contexto" className="w-full mt-1 bg-slate-800 border border-slate-700 text-white rounded-md px-3 py-2 text-sm resize-none" rows={3} placeholder="Ej: La empresa enfrenta ineficiencias en su cadena de suministro que generan pérdidas operacionales..." value={proyecto.contexto} onChange={e => setProyecto(v => ({ ...v, contexto: e.target.value }))} />
             </div>
             <div>
               <Label className="text-slate-300">Objetivos del proyecto</Label>

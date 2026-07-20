@@ -670,8 +670,9 @@ export function ProcesoCard({ proceso, esHijo = false, proyectoId, esInterno = f
                                   {/* Formulario de corrección — FUERA del card para no ser cortado */}
                                   {abierto && !atendido && (
                                     <div className="mt-2 ml-3 p-4 rounded-2xl border border-emerald-700/30 bg-emerald-950/10 space-y-3">
-                                      <p className="text-xs text-emerald-400 font-semibold">¿Cómo está siendo gestionado este riesgo en tu organización?</p>
+                                      <label htmlFor={`proceso-card-corr-riesgo-${key}`} className="text-xs text-emerald-400 font-semibold">¿Cómo está siendo gestionado este riesgo en tu organización?</label>
                                       <textarea
+                                        id={`proceso-card-corr-riesgo-${key}`}
                                         value={textoCorr[key] ?? ''}
                                         onChange={e => setTextoCorr(p => ({ ...p, [key]: e.target.value }))}
                                         placeholder="Ej: ya implementamos un control dual desde enero 2025, la segregación de funciones está documentada en el procedimiento P-042..."
@@ -761,8 +762,9 @@ export function ProcesoCard({ proceso, esHijo = false, proyectoId, esInterno = f
                                     {/* Formulario FUERA del flex-row para no ser cortado */}
                                     {abierto && !atendido && (
                                       <div className="mt-2 ml-14 p-4 rounded-2xl border border-emerald-700/30 bg-emerald-950/10 space-y-3">
-                                        <p className="text-xs text-emerald-400 font-semibold">¿Cómo está siendo gestionado o resuelto en tu organización?</p>
+                                        <label htmlFor={`proceso-card-corr-hallazgo-${key}`} className="text-xs text-emerald-400 font-semibold">¿Cómo está siendo gestionado o resuelto en tu organización?</label>
                                         <textarea
+                                          id={`proceso-card-corr-hallazgo-${key}`}
                                           value={textoCorr[key] ?? ''}
                                           onChange={e => setTextoCorr(p => ({ ...p, [key]: e.target.value }))}
                                           placeholder="Ej: ya incorporado en nuestro proceso desde Q1, tenemos procedimiento P-021 vigente..."
@@ -840,8 +842,9 @@ export function ProcesoCard({ proceso, esHijo = false, proyectoId, esInterno = f
                                   {/* Formulario FUERA del card */}
                                   {abierto && !atendido && (
                                     <div className="mt-2 ml-5 p-4 rounded-2xl border border-emerald-700/30 bg-emerald-950/10 space-y-3">
-                                      <p className="text-xs text-emerald-400 font-semibold">¿Está esto ya documentado internamente?</p>
+                                      <label htmlFor={`proceso-card-corr-brecha-${key}`} className="text-xs text-emerald-400 font-semibold">¿Está esto ya documentado internamente?</label>
                                       <textarea
+                                        id={`proceso-card-corr-brecha-${key}`}
                                         value={textoCorr[key] ?? ''}
                                         onChange={e => setTextoCorr(p => ({ ...p, [key]: e.target.value }))}
                                         placeholder="Ej: tenemos procedimiento escrito P-014 vigente desde 2024, disponible en SharePoint..."
@@ -1562,6 +1565,7 @@ export function ProcesoCard({ proceso, esHijo = false, proyectoId, esInterno = f
                                         onChange={e => setTextoCorr(p => ({ ...p, [key]: e.target.value }))}
                                         placeholder="Ej: el rol de Coordinador de Inventario cubre esta función..."
                                         rows={2}
+                                        aria-label="Comentario sobre cobertura del rol"
                                         className="w-full text-xs text-slate-200 bg-slate-800/60 border border-slate-600/50 rounded-lg px-3 py-2 resize-none focus:outline-none focus:border-emerald-500/50 placeholder:text-slate-600"
                                       />
                                       <div className="flex items-center gap-2">
@@ -2228,16 +2232,18 @@ export function ProcesoCard({ proceso, esHijo = false, proyectoId, esInterno = f
                 </div>
                 <div className="space-y-2">
                   <div>
-                    <label className="text-xs text-slate-400 mb-1 block">Nombre</label>
+                    <label htmlFor="proceso-card-edit-nombre" className="text-xs text-slate-400 mb-1 block">Nombre</label>
                     <input
+                      id="proceso-card-edit-nombre"
                       value={editNombre}
                       onChange={e => setEditNombre(e.target.value)}
                       className="w-full bg-slate-900/80 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-violet-600 transition-colors"
                     />
                   </div>
                   <div>
-                    <label className="text-xs text-slate-400 mb-1 block">Descripción</label>
+                    <label htmlFor="proceso-card-edit-desc" className="text-xs text-slate-400 mb-1 block">Descripción</label>
                     <textarea
+                      id="proceso-card-edit-desc"
                       value={editDesc}
                       onChange={e => setEditDesc(e.target.value)}
                       rows={3}

@@ -352,10 +352,11 @@ function FormularioSimulacion({
 
         {/* Trazabilidad: proceso de referencia */}
         <div>
-          <label className="text-xs text-slate-400 mb-1 flex items-center gap-1.5 block">
+          <label htmlFor="impacto-form-proceso-referencia" className="text-xs text-slate-400 mb-1 flex items-center gap-1.5 block">
             <Link2 className="w-3 h-3" /> Proceso de referencia (AS-IS/TO-BE)
           </label>
           <select
+            id="impacto-form-proceso-referencia"
             value={formProcesoId}
             onChange={e => setFormProcesoId(e.target.value)}
             className="w-full bg-slate-800 border border-slate-700 text-slate-300 text-sm rounded px-2 py-2"
@@ -383,8 +384,9 @@ function FormularioSimulacion({
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="text-xs text-slate-400 mb-1 block">Tipo de motor</label>
+            <label htmlFor="impacto-form-tipo" className="text-xs text-slate-400 mb-1 block">Tipo de motor</label>
             <select
+              id="impacto-form-tipo"
               value={formTipo}
               onChange={e => setFormTipo(e.target.value as TipoSimulacion)}
               className="w-full bg-slate-800 border border-slate-700 text-slate-300 text-sm rounded px-2 py-2"
@@ -395,8 +397,9 @@ function FormularioSimulacion({
             </select>
           </div>
           <div>
-            <label className="text-xs text-slate-400 mb-1 block">Escenario principal</label>
+            <label htmlFor="impacto-form-escenario" className="text-xs text-slate-400 mb-1 block">Escenario principal</label>
             <select
+              id="impacto-form-escenario"
               value={formEscenario}
               onChange={e => setFormEscenario(e.target.value as Escenario)}
               className="w-full bg-slate-800 border border-slate-700 text-slate-300 text-sm rounded px-2 py-2"
@@ -459,16 +462,18 @@ function ParamEditor({ tipo, params, onChange }: { tipo: TipoSimulacion; params:
       <Field label="Headcount actual" value={num('headcount_actual')} onChange={v => set('headcount_actual', v)} />
       <Field label="FTEs a liberar (escenario base)" value={num('ftes_a_liberar_base')} onChange={v => set('ftes_a_liberar_base', v)} step={0.5} />
       <div className="col-span-2">
-        <label className="text-xs text-slate-400 mb-1 block">Roles involucrados (separados por coma)</label>
+        <label htmlFor="impacto-roles-involucrados" className="text-xs text-slate-400 mb-1 block">Roles involucrados (separados por coma)</label>
         <input
+          id="impacto-roles-involucrados"
           value={(po.roles_involucrados as string[] ?? []).join(', ')}
           onChange={e => set('roles_involucrados', e.target.value.split(',').map(s => s.trim()).filter(Boolean))}
           className="w-full bg-slate-800 border border-slate-700 text-slate-200 text-sm rounded px-3 py-2"
         />
       </div>
       <div className="col-span-2">
-        <label className="text-xs text-slate-400 mb-1 block">Roles nuevos estimados (separados por coma)</label>
+        <label htmlFor="impacto-roles-nuevos-estimados" className="text-xs text-slate-400 mb-1 block">Roles nuevos estimados (separados por coma)</label>
         <input
+          id="impacto-roles-nuevos-estimados"
           value={(po.roles_nuevos_estimados as string[] ?? []).join(', ')}
           onChange={e => set('roles_nuevos_estimados', e.target.value.split(',').map(s => s.trim()).filter(Boolean))}
           className="w-full bg-slate-800 border border-slate-700 text-slate-200 text-sm rounded px-3 py-2"
@@ -487,6 +492,7 @@ function Field({ label, value, onChange, step = 1, realPlaceholder = false }: { 
       <label className="text-xs text-slate-400 mb-1 block">{label}</label>
       <input
         type="number"
+        aria-label={label}
         value={showEmpty ? '' : value}
         step={step}
         placeholder={realPlaceholder ? 'Ingrese valor real' : undefined}
