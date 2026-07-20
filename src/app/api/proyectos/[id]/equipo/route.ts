@@ -95,10 +95,16 @@ export async function POST(
 
   if (errLink) return errorResponse(errLink, 500, 'No se pudo vincular al usuario al proyecto.')
 
+  // entidad_id es uuid en audit_log — usuario_proyecto tiene llave compuesta
+  // (usuario_id+proyecto_id), sin un id propio. Pasar el string compuesto
+  // "proyecto:usuario" acá causaba `invalid input syntax for type uuid` en
+  // cada llamada real (bug encontrado en auditoría analítica de BD). Se usa
+  // usuarioId (el actor sobre el que se actuó) como entidad_id; el contexto
+  // completo ya queda en detalle.
   await registrarAudit({
     accion: 'CREATE',
     entidad: 'usuario_proyecto',
-    entidad_id: `${params.id}:${usuarioId}`,
+    entidad_id: usuarioId,
     detalle: { proyecto_id: params.id, usuario_id: usuarioId, cuenta_nueva: !existente },
   })
 
@@ -142,10 +148,12 @@ export async function DELETE(
 
   if (error) return errorResponse(error, 500, 'No se pudo quitar al usuario del proyecto.')
 
+  // Mismo bug que el CREATE de arriba (entidad_id es uuid, no admite el
+  // string compuesto "proyecto:usuario") — auditoría analítica de BD.
   await registrarAudit({
     accion: 'DELETE',
     entidad: 'usuario_proyecto',
-    entidad_id: `${params.id}:${usuario_id}`,
+    entidad_id: usuario_id,
     detalle: { proyecto_id: params.id, usuario_id },
   })
 
