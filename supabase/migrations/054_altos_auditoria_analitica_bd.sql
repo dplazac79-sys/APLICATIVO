@@ -63,10 +63,13 @@ create extension if not exists pg_trgm;
 -- seguro). Se actualiza también la función de búsqueda para usar el mismo
 -- wrapper: si la expresión del índice y la del query no coinciden
 -- exactamente, el planner nunca usa el índice.
+-- set search_path incluye "extensions" — Supabase instala unaccent ahí por
+-- defecto, no en public, y sin esto la función no encuentra unaccent() al
+-- ejecutarse fuera del search_path interactivo del SQL Editor.
 create or replace function inmutable_unaccent(text)
 returns text as $$
   select unaccent($1)
-$$ language sql immutable strict;
+$$ language sql immutable strict set search_path = public, extensions;
 
 create index if not exists idx_documento_nombre_trgm
   on documento using gin (inmutable_unaccent(lower(nombre_archivo)) gin_trgm_ops);
