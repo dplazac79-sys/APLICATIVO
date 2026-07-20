@@ -56,13 +56,18 @@ const TIPO_CONFIG = {
 }
 
 function ConfianzaBar({ value }: { value: number }) {
-  const color = value >= 80 ? '#22c55e' : value >= 55 ? '#f59e0b' : '#f87171'
+  // Sin clamp, un valor fuera de 0-100 (ej. la IA devuelve algo inesperado)
+  // rompía visualmente la barra — ya se hacía bien en ConfianzaMeter
+  // (src/components/discovery/ProcesoCard.tsx), acá faltaba. Hallazgo de
+  // auditoría de correctitud de negocio.
+  const clamped = Math.max(0, Math.min(100, value))
+  const color = clamped >= 80 ? '#22c55e' : clamped >= 55 ? '#f59e0b' : '#f87171'
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
       <div style={{ flex: 1, height: 4, background: 'rgba(255,255,255,0.06)', borderRadius: 2, overflow: 'hidden' }}>
-        <div style={{ width: `${value}%`, height: '100%', background: color, borderRadius: 2, transition: 'width 0.6s ease' }} />
+        <div style={{ width: `${clamped}%`, height: '100%', background: color, borderRadius: 2, transition: 'width 0.6s ease' }} />
       </div>
-      <span style={{ color, fontSize: 11, fontWeight: 700, minWidth: 32 }}>{value}%</span>
+      <span style={{ color, fontSize: 11, fontWeight: 700, minWidth: 32 }}>{clamped}%</span>
     </div>
   )
 }

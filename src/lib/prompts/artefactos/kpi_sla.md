@@ -11,6 +11,8 @@ Eres un consultor de performance management con experiencia en diseño de tabler
 ## Instrucciones
 Define entre 4 y 8 indicadores. Incluye tanto KPIs de resultado (lagging) como de proceso (leading). Las metas deben ser alcanzables en 12 meses desde el estado actual. Los SLAs deben ser compromisos de servicio verificables.
 
+`linea_base` y `meta` son estimaciones del consultor cuando el documento no da una cifra exacta — igual que los campos del bloque `financiero` más abajo. Si el documento SÍ menciona un valor o tendencia concreta, básate en eso. Si no, indícalo igual como una meta razonable pero marca la cifra con "(estimado)" al final del texto — nunca presentes un porcentaje o valor específico como si viniera del documento cuando en realidad es tu criterio experto.
+
 ## Formato de salida (JSON estricto)
 ```json
 {

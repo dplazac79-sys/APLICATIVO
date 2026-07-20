@@ -22,18 +22,20 @@ interface Props { params: { procesoId: string } }
 
 export default async function ProcesoArtefactosPage({ params }: Props) {
   const admin = createAdminClient()
+  const supabase = createClient()
 
-  const { data: proceso } = await admin
-    .from('proceso')
-    .select('*, proyecto(nombre, cliente(razon_social)), documento_origen:documento_origen_id(nombre_archivo)')
-    .eq('id', params.procesoId)
-    .single()
+  // proceso y el usuario autenticado no dependen entre sí — antes se
+  // esperaban en serie. Hallazgo de auditoría de performance.
+  const [{ data: proceso }, { data: { user } }] = await Promise.all([
+    admin
+      .from('proceso')
+      .select('*, proyecto(nombre, cliente(razon_social)), documento_origen:documento_origen_id(nombre_archivo)')
+      .eq('id', params.procesoId)
+      .single(),
+    supabase.auth.getUser(),
+  ])
 
   if (!proceso) notFound()
-
-  // Obtener rol del usuario actual (necesario para restricciones y para pasar al componente)
-  const supabase = createClient()
-  const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
   // Sin este chequeo, cualquier usuario autenticado (de cualquier cliente)
   // podía ver los artefactos de cualquier proceso navegando
@@ -41,18 +43,18 @@ export default async function ProcesoArtefactosPage({ params }: Props) {
   // para no-super_admin, nunca la pertenencia al proyecto. Hallazgo de
   // auditoría profunda de frontend.
   if (!(await assertProyectoAccess(user.id, proceso.proyecto_id))) notFound()
-  const { data: usuarioData } = await admin.from('usuario').select('rol').eq('id', user.id).single()
+
+  // Rol del usuario y artefactos del proceso tampoco dependen entre sí una
+  // vez confirmado el acceso.
+  const [{ data: usuarioData }, { data: artefactosRaw }] = await Promise.all([
+    admin.from('usuario').select('rol').eq('id', user.id).single(),
+    admin.from('artefacto').select('*').eq('proceso_id', params.procesoId).order('tipo'),
+  ])
   const rolUsuario = usuarioData?.rol ?? 'usuario_cliente'
 
   // Bloquear acceso a macroprocesos para roles que no sean super_admin
   const esMacroproceso = proceso.tipo === 'macroproceso' || proceso.nivel === 0
   if (esMacroproceso && rolUsuario !== 'super_admin') redirect('/artefactos')
-
-  const { data: artefactosRaw } = await admin
-    .from('artefacto')
-    .select('*')
-    .eq('proceso_id', params.procesoId)
-    .order('tipo')
 
   const artefactos = (artefactosRaw ?? []) as Artefacto[]
   const artefactosPorTipo = artefactos.reduce((acc, a) => {

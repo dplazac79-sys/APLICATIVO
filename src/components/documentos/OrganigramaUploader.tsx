@@ -470,9 +470,10 @@ export default function OrganigramaUploader({ proyectos, proyectoPreseleccionado
                                   )}
                                   <div className="flex items-center gap-2">
                                     <div className="flex-1 h-1 rounded-full bg-slate-700 overflow-hidden">
-                                      <div className={`h-full rounded-full ${bar}`} style={{ width: `${m.confianza}%` }} />
+                                      {/* Sin clamp acá antes — mismo hallazgo que ConfianzaBar en GlosarioRoles.tsx */}
+                                      <div className={`h-full rounded-full ${bar}`} style={{ width: `${Math.max(0, Math.min(100, m.confianza))}%` }} />
                                     </div>
-                                    <span className="text-[10px] text-slate-400 tabular-nums">{m.confianza}%</span>
+                                    <span className="text-[10px] text-slate-400 tabular-nums">{Math.max(0, Math.min(100, m.confianza))}%</span>
                                   </div>
                                   <p className="text-[11px] text-slate-400 leading-relaxed">{m.justificacion}</p>
                                   {m.gap_detectado && (

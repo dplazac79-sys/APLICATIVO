@@ -55,3 +55,37 @@ jobs:
           cache: 'npm'
       - run: npm ci
       - run: npm run build
+
+  e2e:
+    name: E2E (Playwright)
+    runs-on: ubuntu-latest
+    needs: lint-and-typecheck
+    # 37 escenarios reales (login, aislamiento de roles, upload de
+    # documentos, CRUD de clientes/proyectos) que hasta ahora solo se
+    # corrían manualmente — nunca protegían un push/PR. Hallazgo de
+    # auditoría de testing. Requiere que estos secrets ya existan en el
+    # repo apuntando a cuentas de prueba reales (E2E_USER_EMAIL, etc.) —
+    # si no existen, este job falla en vez de correr contra datos reales
+    # sin credenciales válidas.
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      E2E_USER_EMAIL: ${{ secrets.E2E_USER_EMAIL }}
+      E2E_USER_PASSWORD: ${{ secrets.E2E_USER_PASSWORD }}
+      E2E_CLIENTE_EMAIL: ${{ secrets.E2E_CLIENTE_EMAIL }}
+      E2E_CLIENTE_PASSWORD: ${{ secrets.E2E_CLIENTE_PASSWORD }}
+      E2E_ADMIN_EMAIL: ${{ secrets.E2E_ADMIN_EMAIL }}
+      E2E_ADMIN_PASSWORD: ${{ secrets.E2E_ADMIN_PASSWORD }}
+      CI: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run build
+      - run: npm run test:e2e

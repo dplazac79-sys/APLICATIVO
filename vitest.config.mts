@@ -24,6 +24,13 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
+      // 'server-only' throws when imported outside Next's own server
+      // rendering pipeline — vitest runs plain Node, so any module guarded
+      // with `import 'server-only'` (added in the frontend security audit,
+      // e.g. src/lib/fases.ts) crashed at import time here, with zero
+      // tests actually running. Alias it to a no-op for tests, same
+      // approach Next.js's own testing docs recommend.
+      'server-only': path.resolve(__dirname, './tests/mocks/server-only.ts'),
     },
   },
 })

@@ -83,7 +83,7 @@ Cada nodo DEBE tener `"lane"` con el nombre exacto del actor (igual que en el ar
 Cada nodo task/userTask/serviceTask/etc. debe incluir TODOS estos campos:
 - `"actor"`: nombre exacto del rol (igual al lane)
 - `"sistema"`: herramienta o sistema utilizado. Si es manual, escribir "Manual"
-- `"tiempo"`: estimación de duración (ej: "15 min", "2 h", "1 día")
+- `"tiempo"`: duración SOLO si el documento la menciona explícita o implícitamente (ej: "15 min", "2 h", "1 día"). Si el documento no da ninguna base para estimarla, usar `"[INFERIDO]"` en vez de inventar un número concreto — un tiempo específico sin respaldo documental es exactamente el tipo de dato que el ANCLAJE DOCUMENTAL prohíbe fabricar.
 - `"lane"`: nombre del lane al que pertenece (igual al array `lanes`)
 
 ### 6. Tipos de edges (flujos de secuencia)
@@ -96,10 +96,9 @@ Cada nodo task/userTask/serviceTask/etc. debe incluir TODOS estos campos:
 
 ### 7. Completitud del diagrama
 
-- **Mínimo 18 nodos** para un proceso simple
-- **Entre 22-32 nodos** para procesos de mediana complejidad
-- **Máximo 36 nodos** — cubre TODOS los pasos documentados
-- No simplificar: incluye todos los pasos, decisiones y excepciones del documento fuente
+- Para procesos de mediana complejidad, lo típico son 22-32 nodos; **36 es un techo, no una meta**
+- Estos números son una GUÍA de nivel de detalle esperado, no un mínimo obligatorio: si el documento fuente describe genuinamente pocos pasos, un diagrama de menos de 18 nodos que refleje fielmente el documento es preferible a uno inflado con pasos/decisiones inventados para llegar al número. Nunca agregues un nodo solo para cumplir un conteo — cada nodo debe corresponder a algo real del documento o a una inferencia razonable marcada como tal.
+- No simplificar de más: incluye todos los pasos, decisiones y excepciones que el documento fuente sí describe
 - Cada gateway XOR debe tener MÍNIMO 2 edges salientes con condición explícita
 - Debe haber exactamente UN startEvent y al menos UN endEvent
 - Los gateways de bifurcación (split) deben tener un gateway de cierre (join) correspondiente cuando las ramas convergen

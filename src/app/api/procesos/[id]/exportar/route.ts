@@ -106,7 +106,7 @@ ${ia.diagnostico_operacional ? `<h2>Diagnóstico Operacional</h2><p>${esc(ia.dia
 ${(ia.nivel_madurez_amo != null) ? `
 <h2>Nivel de Madurez</h2>
 <p><strong>${esc(ia.nivel_madurez_amo)}/5</strong> — ${esc(ia.nivel_madurez_nombre ?? '')}</p>
-<div class="madurez-bar"><div class="madurez-fill" style="width:${((ia.nivel_madurez_amo as number)/5)*100}%"></div></div>
+<div class="madurez-bar"><div class="madurez-fill" style="width:${Math.max(0, Math.min(100, ((ia.nivel_madurez_amo as number)/5)*100))}%"></div></div>
 ${ia.nivel_madurez_evidencia ? `<p style="font-size:12px;color:#64748b;margin-top:4px">${esc(ia.nivel_madurez_evidencia)}</p>` : ''}
 ` : ''}
 

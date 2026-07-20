@@ -1,6 +1,19 @@
 import { Resend } from 'resend'
+import * as Sentry from '@sentry/nextjs'
 
-const resend = new Resend(process.env.RESEND_API_KEY)
+// El constructor de Resend valida la key al instanciarse — crearlo a nivel
+// de módulo (import time) hacía que CUALQUIER archivo que importe este
+// módulo, incluida la recolección de datos de build de Next.js para rutas
+// que ni siquiera envían email, rompiera el build entero si
+// RESEND_API_KEY no está presente en el entorno donde se ejecuta `next
+// build` (aunque sí esté configurada en Railway en runtime). Se
+// instancia perezosamente, solo cuando realmente se envía un email.
+let resend: Resend | null = null
+function getResend(): Resend | null {
+  if (!process.env.RESEND_API_KEY) return null
+  if (!resend) resend = new Resend(process.env.RESEND_API_KEY)
+  return resend
+}
 const FROM = process.env.EMAIL_FROM ?? 'ProcessOS <notificaciones@aicounts.cl>'
 
 export interface EmailParams {
@@ -10,13 +23,18 @@ export interface EmailParams {
 }
 
 export async function enviarEmail({ to, subject, html }: EmailParams): Promise<void> {
-  if (!process.env.RESEND_API_KEY) return  // silencioso si no configurado
+  const client = getResend()
+  if (!client) return  // silencioso si no configurado
 
   const recipients = Array.isArray(to) ? to : [to]
   try {
-    await resend.emails.send({ from: FROM, to: recipients, subject, html })
-  } catch {
-    // Email no debe bloquear el flujo principal
+    await client.emails.send({ from: FROM, to: recipients, subject, html })
+  } catch (err) {
+    // Email no debe bloquear el flujo principal, pero un fallo de envío
+    // silencioso (sin nada acá antes) es exactamente el tipo de cosa que
+    // Sentry debería capturar — hallazgo de auditoría de observabilidad.
+    console.error('[email] Falló envío:', err instanceof Error ? err.message : err)
+    Sentry.captureException(err, { tags: { area: 'email' }, extra: { subject, to: recipients } })
   }
 }
 
