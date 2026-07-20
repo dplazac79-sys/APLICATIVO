@@ -4,6 +4,8 @@ import { registrarAudit } from '@/lib/audit'
 import { enviarEmail, templateEscalacion } from '@/lib/email'
 import type { NivelEscalacion } from '@/types/database'
 import { timingSafeEqual } from 'crypto'
+import * as Sentry from '@sentry/nextjs'
+import { errorResponse } from '@/lib/api/error-response'
 
 // POST: evaluar y ejecutar escalaciones pendientes
 // Llamado por GitHub Actions cron cada hora. Protegido con secret.
@@ -16,15 +18,29 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   }
 
+  // Sin este try/catch, cualquier excepción no manejada acá (esta app no
+  // envuelve sus API routes con withSentryConfig) nunca llegaba a Sentry —
+  // el cron de GitHub Actions tampoco lo detectaba porque el curl no usaba
+  // --fail (ver escalacion.yml). El endpoint más silencioso de toda la app
+  // para fallar. Hallazgo de auditoría de observabilidad.
+  try {
+    return await evaluarEscalaciones()
+  } catch (err) {
+    return errorResponse(err, 500, 'Error evaluando escalaciones.')
+  }
+}
+
+async function evaluarEscalaciones() {
   const admin = createAdminClient()
   const ahora = new Date()
   let escalados = 0
 
   // Obtener todos los workflows en estados no terminales
-  const { data: workflows } = await admin
+  const { data: workflows, error: errWorkflows } = await admin
     .from('workflow_estado')
     .select('*, proceso:proceso_id(nombre, proyecto_id), proyecto:proyecto_id(nombre)')
     .not('estado', 'in', '("Closed","Approved","Implemented")')
+  if (errWorkflows) throw errWorkflows
 
   // Determinar qué workflows necesitan escalar
   type WfItem = NonNullable<typeof workflows>[number]
@@ -97,6 +113,12 @@ export async function POST(req: NextRequest) {
             to: emailMap[wf.responsable_id!],
             subject: `[APIP] Escalación ${nuevoNivel} — ${String(proyecto?.nombre ?? 'Proyecto')}`,
             html: templateEscalacion({ proyecto: String(proyecto?.nombre ?? 'Proyecto'), nivel: String(nuevoNivel), descripcion }),
+          }).catch(err => {
+            // Este bloque es fire-and-forget (void Promise.all) a propósito
+            // — no bloquear la respuesta por un email lento — pero eso
+            // significa que un fallo acá era invisible incluso en logs.
+            console.error(`[escalacion] Falló envío de email a responsable_id=${wf.responsable_id}:`, err instanceof Error ? err.message : err)
+            Sentry.captureException(err, { tags: { job: 'escalacion-email' }, extra: { responsable_id: wf.responsable_id } })
           })
         })
     )

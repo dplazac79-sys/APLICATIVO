@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import * as Sentry from '@sentry/nextjs'
 
 // Los mensajes de error de Postgres/Supabase (error.message) y de excepciones
 // JS (err.message, String(err)) pueden filtrar detalles internos al cliente:
@@ -13,5 +14,14 @@ export function errorResponse(
 ) {
   const detalle = err instanceof Error ? err.message : String(err)
   console.error(`[api] Error ${status}:`, detalle)
+  // Antes esta función solo logueaba a stdout — Sentry (instalado y
+  // configurado) nunca se enteraba de ningún error de la API, así que el
+  // equipo solo se enteraba de una falla real si el cliente se quejaba.
+  // Solo se reportan errores 5xx (falla real del servidor) — los 4xx son
+  // en su mayoría validación/permisos esperados, reportarlos todos sería
+  // puro ruido. Hallazgo de auditoría de observabilidad.
+  if (status >= 500) {
+    Sentry.captureException(err instanceof Error ? err : new Error(detalle))
+  }
   return NextResponse.json({ error: publicMessage }, { status })
 }

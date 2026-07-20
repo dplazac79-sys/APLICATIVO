@@ -2,6 +2,7 @@ import fs from 'fs'
 import path from 'path'
 import { chatCompletion, MODELOS } from '@/lib/ai/client'
 import type { TipoArtefacto } from '@/types/database'
+import { calcularNivelRiesgo, type Probabilidad, type Impacto } from '@/lib/riesgos'
 // Re-exportar desde fuente única para evitar duplicación (M2)
 export { ORDEN_GENERACION, LABEL_ARTEFACTO } from '@/lib/artefactos-meta'
 
@@ -139,5 +140,37 @@ export async function generarArtefacto(
     userPrompt += '\n\n## Dashboard brechas\n' + JSON.stringify(existentes.dashboard_brechas ?? {}, null, 2)
   }
 
-  return generarConIA(plantilla, userPrompt)
+  const resultado = await generarConIA(plantilla, userPrompt)
+
+  if (tipo === 'riesgo_control') {
+    // El prompt le da al modelo su propia versión simplificada de la regla
+    // ("alto: una de las dos dimensiones alta"), que no coincide con
+    // calcularNivelRiesgo() — la función canónica que sí se usa cuando un
+    // consultor edita un riesgo a mano (src/app/api/riesgos/route.ts). Sin
+    // esto, una matriz podía mostrar el mismo par probabilidad/impacto con
+    // dos niveles de riesgo distintos según si la fila la generó la IA o la
+    // editó un humano. Se recalcula server-side con la regla real en vez de
+    // confiar en el criterio del modelo — hallazgo de auditoría de
+    // correctitud de negocio/IA.
+    recalcularNivelesDeRiesgo(resultado)
+  }
+
+  return resultado
+}
+
+function recalcularNivelesDeRiesgo(resultado: Record<string, unknown>): void {
+  const riesgos = resultado.riesgos
+  if (!Array.isArray(riesgos)) return
+  for (const r of riesgos) {
+    if (!r || typeof r !== 'object') continue
+    const item = r as Record<string, unknown>
+    const probabilidad = item.probabilidad as Probabilidad
+    const impacto = item.impacto as Impacto
+    if (
+      ['alta', 'media', 'baja'].includes(probabilidad) &&
+      ['alto', 'medio', 'bajo'].includes(impacto)
+    ) {
+      item.nivel_riesgo = calcularNivelRiesgo(probabilidad, impacto)
+    }
+  }
 }

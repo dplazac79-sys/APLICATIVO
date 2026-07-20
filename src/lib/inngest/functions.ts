@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/nextjs'
 import { inngest } from './client'
 import { createAdminClient } from '@/lib/supabase/admin'
 
@@ -33,6 +34,7 @@ export const procesarDocumento = inngest.createFunction(
       // el documento no debe quedar "procesando" para siempre — sin esto, la UI nunca
       // muestra el fallo y el usuario no tiene forma de saber que debe reintentar.
       console.error(`[procesar-documento] Falló job para documento_id=${documento_id}:`, err instanceof Error ? err.message : err)
+      Sentry.captureException(err, { tags: { job: 'procesar-documento' }, extra: { documento_id } })
       await admin.from('documento').update({ estado_procesamiento: 'error' }).eq('id', documento_id)
       throw err
     }
@@ -169,6 +171,7 @@ export const discoveryAI = inngest.createFunction(
       // para siempre, sin señal visible para el usuario.
       const msg = err instanceof Error ? err.message : 'Error desconocido'
       console.error(`[discovery-procesos] Falló job para proyecto_id=${proyecto_id}:`, msg)
+      Sentry.captureException(err, { tags: { job: 'discovery-procesos' }, extra: { proyecto_id, job_id } })
       await marcarError(msg)
       throw err
     }
@@ -388,6 +391,7 @@ export const enriquecerDocumentoCliente = inngest.createFunction(
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Error desconocido'
       console.error(`[enriquecer-documento-cliente] Falló job para documento_cliente_id=${documento_cliente_id}:`, msg)
+      Sentry.captureException(err, { tags: { job: 'enriquecer-documento-cliente' }, extra: { documento_cliente_id, proyecto_id } })
       await admin.from('documento_cliente').update({ estado: 'error', error_mensaje: msg }).eq('id', documento_cliente_id)
       throw err
     }
@@ -536,6 +540,7 @@ export const analizarGlosarioRolesJob = inngest.createFunction(
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Error desconocido'
       console.error(`[analizar-glosario-roles] Falló job para analisis_id=${analisis_id}:`, msg)
+      Sentry.captureException(err, { tags: { job: 'analizar-glosario-roles' }, extra: { analisis_id, proyecto_id } })
       await admin.from('glosario_roles_analisis').update({ estado: 'error', error_msg: msg }).eq('id', analisis_id)
       throw err
     }

@@ -54,11 +54,16 @@ describe('checkLoginRateLimit', () => {
 })
 
 describe('getClientIp', () => {
-  it('usa x-forwarded-for cuando está presente, tomando solo la primera IP', () => {
+  it('usa x-forwarded-for cuando está presente, tomando la ÚLTIMA IP (la que agrega el proxy de la plataforma, no el cliente)', () => {
+    // El primer valor es el que el cliente puede falsificar libremente para
+    // evadir el rate-limit por IP — ver el fix de seguridad en
+    // src/lib/auth/rate-limit-login.ts. Este test antes afirmaba el
+    // comportamiento viejo y vulnerable (tomar la primera IP), lo que
+    // significaba que revertir el fix por error habría pasado los tests.
     const req = new Request('https://x.test', {
       headers: { 'x-forwarded-for': '9.9.9.9, 10.0.0.1, 172.16.0.1' },
     })
-    expect(getClientIp(req)).toBe('9.9.9.9')
+    expect(getClientIp(req)).toBe('172.16.0.1')
   })
 
   it('recurre a x-real-ip cuando no hay x-forwarded-for', () => {

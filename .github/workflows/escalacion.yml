@@ -11,8 +11,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Llamar endpoint de escalación
+        # --fail hace que curl (y por lo tanto este step y el workflow)
+        # falle con un código de salida distinto de cero si el endpoint
+        # responde 4xx/5xx — antes un 500 real "pasaba" el chequeo de CI en
+        # silencio porque el curl en sí mismo no fallaba nunca, así que un
+        # cron roto no generaba ninguna señal (ni el email default de
+        # GitHub Actions por fallo de workflow). Hallazgo de auditoría de
+        # observabilidad.
         run: |
-          curl -s -X POST \
+          curl -sS --fail -X POST \
             -H "x-escalacion-secret: ${{ secrets.ESCALACION_SECRET }}" \
             "${{ secrets.APP_URL }}/api/escalacion" \
             -w "\nHTTP %{http_code}\n"
