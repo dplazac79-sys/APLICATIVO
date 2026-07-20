@@ -9,10 +9,11 @@ interface Props {
   estado: 'pendiente' | 'procesando' | 'listo' | 'error'
   puedeEliminar?: boolean
   puedeAnalizar?: boolean
+  onEliminado?: () => void
 }
 
 
-export default function DocumentoAcciones({ documentoId, estado: estadoInicial, puedeEliminar = true, puedeAnalizar = false }: Props) {
+export default function DocumentoAcciones({ documentoId, estado: estadoInicial, puedeEliminar = true, puedeAnalizar = false, onEliminado }: Props) {
   const [eliminando, setEliminando] = useState(false)
   const [confirmandoEliminar, setConfirmandoEliminar] = useState(false)
   const [procesosVinculados, setProcesosVinculados] = useState<number | null>(null)
@@ -77,7 +78,10 @@ export default function DocumentoAcciones({ documentoId, estado: estadoInicial, 
     try {
       const res = await fetch(`/api/documentos/${documentoId}`, { method: 'DELETE' })
       if (!res.ok) throw new Error('Error al eliminar')
-      window.location.reload()
+      // Antes recargaba la página entera para reflejar el borrado — ahora
+      // el padre quita la fila localmente (misma lista, sin perder scroll
+      // ni estado de filtros/búsqueda). Hallazgo de auditoría UX/UI.
+      onEliminado?.()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al eliminar')
       setEliminando(false)

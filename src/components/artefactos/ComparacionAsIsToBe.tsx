@@ -51,7 +51,7 @@ export default function ComparacionAsIsToBe({ contenidoAsIs, contenidoToBe }: Pr
       {abierto && (
         <div className="px-4 pb-5 space-y-5 border-t border-slate-800">
           {/* Actores + sistemas lado a lado */}
-          <div className="grid grid-cols-2 gap-4 pt-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4">
             <div className="space-y-3">
               <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-widest">Hoy (AS-IS)</p>
               <div className="flex flex-wrap gap-1">{actoresAsIs.map((a, i) => <Pill key={i} text={a} color="blue" />)}</div>

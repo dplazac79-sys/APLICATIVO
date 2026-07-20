@@ -228,34 +228,34 @@ export default function OnboardingPage() {
               <textarea id="onboarding-proyecto-contexto" className="w-full mt-1 bg-slate-800 border border-slate-700 text-white rounded-md px-3 py-2 text-sm resize-none" rows={3} placeholder="Ej: La empresa enfrenta ineficiencias en su cadena de suministro que generan pérdidas operacionales..." value={proyecto.contexto} onChange={e => setProyecto(v => ({ ...v, contexto: e.target.value }))} />
             </div>
             <div>
-              <Label className="text-slate-300">Objetivos del proyecto</Label>
+              <Label htmlFor="onboarding-proyecto-objetivos" className="text-slate-300">Objetivos del proyecto</Label>
               <p className="text-slate-400 text-xs mt-0.5 mb-1">Un objetivo por línea</p>
-              <textarea className="w-full mt-1 bg-slate-800 border border-slate-700 text-white rounded-md px-3 py-2 text-sm resize-none" rows={4} placeholder={"Mapear todos los procesos del área de operaciones\nIdentificar los 3 principales cuellos de botella\nDefinir KPIs base para monitoreo continuo"} value={proyecto.objetivos} onChange={e => setProyecto(v => ({ ...v, objetivos: e.target.value }))} />
+              <textarea id="onboarding-proyecto-objetivos" className="w-full mt-1 bg-slate-800 border border-slate-700 text-white rounded-md px-3 py-2 text-sm resize-none" rows={4} placeholder={"Mapear todos los procesos del área de operaciones\nIdentificar los 3 principales cuellos de botella\nDefinir KPIs base para monitoreo continuo"} value={proyecto.objetivos} onChange={e => setProyecto(v => ({ ...v, objetivos: e.target.value }))} />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <Label className="text-slate-300">Alcance — qué incluye</Label>
+                <Label htmlFor="onboarding-proyecto-alcance-incluye" className="text-slate-300">Alcance — qué incluye</Label>
                 <p className="text-slate-400 text-xs mt-0.5 mb-1">Un ítem por línea</p>
-                <textarea className="w-full mt-1 bg-slate-800 border border-slate-700 text-white rounded-md px-3 py-2 text-sm resize-none" rows={4} placeholder={"Procesos de compras y bodega\nGestión de inventario\nLogística de última milla"} value={proyecto.alcance_incluye} onChange={e => setProyecto(v => ({ ...v, alcance_incluye: e.target.value }))} />
+                <textarea id="onboarding-proyecto-alcance-incluye" className="w-full mt-1 bg-slate-800 border border-slate-700 text-white rounded-md px-3 py-2 text-sm resize-none" rows={4} placeholder={"Procesos de compras y bodega\nGestión de inventario\nLogística de última milla"} value={proyecto.alcance_incluye} onChange={e => setProyecto(v => ({ ...v, alcance_incluye: e.target.value }))} />
               </div>
               <div>
-                <Label className="text-slate-300">Alcance — qué excluye</Label>
+                <Label htmlFor="onboarding-proyecto-alcance-excluye" className="text-slate-300">Alcance — qué excluye</Label>
                 <p className="text-slate-400 text-xs mt-0.5 mb-1">Un ítem por línea</p>
-                <textarea className="w-full mt-1 bg-slate-800 border border-slate-700 text-white rounded-md px-3 py-2 text-sm resize-none" rows={4} placeholder={"Implementación de nuevos sistemas\nProcesos de RRHH y nómina\nAuditoria financiera"} value={proyecto.alcance_excluye} onChange={e => setProyecto(v => ({ ...v, alcance_excluye: e.target.value }))} />
+                <textarea id="onboarding-proyecto-alcance-excluye" className="w-full mt-1 bg-slate-800 border border-slate-700 text-white rounded-md px-3 py-2 text-sm resize-none" rows={4} placeholder={"Implementación de nuevos sistemas\nProcesos de RRHH y nómina\nAuditoria financiera"} value={proyecto.alcance_excluye} onChange={e => setProyecto(v => ({ ...v, alcance_excluye: e.target.value }))} />
               </div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
-                <Label className="text-slate-300">Nº procesos estimados</Label>
-                <Input type="number" className="bg-slate-800 border-slate-700 text-white mt-1" placeholder="Ej: 15" value={proyecto.n_procesos_estimados} onChange={e => setProyecto(v => ({ ...v, n_procesos_estimados: e.target.value }))} />
+                <Label htmlFor="onboarding-proyecto-n-procesos" className="text-slate-300">Nº procesos estimados</Label>
+                <Input id="onboarding-proyecto-n-procesos" type="number" className="bg-slate-800 border-slate-700 text-white mt-1" placeholder="Ej: 15" value={proyecto.n_procesos_estimados} onChange={e => setProyecto(v => ({ ...v, n_procesos_estimados: e.target.value }))} />
               </div>
               <div>
-                <Label className="text-slate-300">Fecha de inicio</Label>
-                <Input type="date" className="bg-slate-800 border-slate-700 text-white mt-1" value={proyecto.fecha_inicio} onChange={e => setProyecto(v => ({ ...v, fecha_inicio: e.target.value }))} />
+                <Label htmlFor="onboarding-proyecto-fecha-inicio" className="text-slate-300">Fecha de inicio</Label>
+                <Input id="onboarding-proyecto-fecha-inicio" type="date" className="bg-slate-800 border-slate-700 text-white mt-1" value={proyecto.fecha_inicio} onChange={e => setProyecto(v => ({ ...v, fecha_inicio: e.target.value }))} />
               </div>
               <div>
-                <Label className="text-slate-300">Fecha estimada de cierre</Label>
-                <Input type="date" className="bg-slate-800 border-slate-700 text-white mt-1" value={proyecto.fecha_estimada_cierre} onChange={e => setProyecto(v => ({ ...v, fecha_estimada_cierre: e.target.value }))} />
+                <Label htmlFor="onboarding-proyecto-fecha-cierre" className="text-slate-300">Fecha estimada de cierre</Label>
+                <Input id="onboarding-proyecto-fecha-cierre" type="date" className="bg-slate-800 border-slate-700 text-white mt-1" value={proyecto.fecha_estimada_cierre} onChange={e => setProyecto(v => ({ ...v, fecha_estimada_cierre: e.target.value }))} />
               </div>
             </div>
           </CardContent>
@@ -282,17 +282,17 @@ export default function OnboardingPage() {
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <Label className="text-slate-400 text-xs">Email *</Label>
-                    <Input className="bg-slate-800 border-slate-700 text-white mt-1 text-sm" placeholder="usuario@empresa.com" value={m.email} onChange={e => updateMiembro(i, 'email', e.target.value)} />
+                    <Label htmlFor={`onboarding-miembro-${i}-email`} className="text-slate-400 text-xs">Email *</Label>
+                    <Input id={`onboarding-miembro-${i}-email`} className="bg-slate-800 border-slate-700 text-white mt-1 text-sm" placeholder="usuario@empresa.com" value={m.email} onChange={e => updateMiembro(i, 'email', e.target.value)} />
                   </div>
                   <div>
-                    <Label className="text-slate-400 text-xs">Nombre</Label>
-                    <Input className="bg-slate-800 border-slate-700 text-white mt-1 text-sm" placeholder="Nombre completo" value={m.nombre} onChange={e => updateMiembro(i, 'nombre', e.target.value)} />
+                    <Label htmlFor={`onboarding-miembro-${i}-nombre`} className="text-slate-400 text-xs">Nombre</Label>
+                    <Input id={`onboarding-miembro-${i}-nombre`} className="bg-slate-800 border-slate-700 text-white mt-1 text-sm" placeholder="Nombre completo" value={m.nombre} onChange={e => updateMiembro(i, 'nombre', e.target.value)} />
                   </div>
                 </div>
                 <div>
-                  <Label className="text-slate-400 text-xs">Rol *</Label>
-                  <select className="w-full mt-1 bg-slate-800 border border-slate-700 text-white rounded-md px-3 py-2 text-sm" value={m.rol} onChange={e => updateMiembro(i, 'rol', e.target.value)}>
+                  <Label htmlFor={`onboarding-miembro-${i}-rol`} className="text-slate-400 text-xs">Rol *</Label>
+                  <select id={`onboarding-miembro-${i}-rol`} className="w-full mt-1 bg-slate-800 border border-slate-700 text-white rounded-md px-3 py-2 text-sm" value={m.rol} onChange={e => updateMiembro(i, 'rol', e.target.value)}>
                     {ROLES.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
                   </select>
                   {m.rol && (
@@ -302,8 +302,8 @@ export default function OnboardingPage() {
                   )}
                 </div>
                 <div>
-                  <Label className="text-slate-400 text-xs">Contraseña *</Label>
-                  <Input className="mt-1 bg-slate-800 border-slate-700 text-white" type="password" placeholder="Mín. 8 car., mayúscula, minúscula, número y símbolo" value={m.password} onChange={e => updateMiembro(i, 'password', e.target.value)} />
+                  <Label htmlFor={`onboarding-miembro-${i}-password`} className="text-slate-400 text-xs">Contraseña *</Label>
+                  <Input id={`onboarding-miembro-${i}-password`} className="mt-1 bg-slate-800 border-slate-700 text-white" type="password" placeholder="Mín. 8 car., mayúscula, minúscula, número y símbolo" value={m.password} onChange={e => updateMiembro(i, 'password', e.target.value)} />
                 </div>
               </div>
             ))}

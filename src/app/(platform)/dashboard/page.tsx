@@ -293,9 +293,9 @@ export default async function DashboardPage() {
               <p className="text-xs text-emerald-300 uppercase tracking-widest font-medium">
                 Impacto proyectado estimado · {ultimaSimulacion.procesoCodigo}
               </p>
-              <h3 className="text-white text-base font-semibold mt-0.5">
+              <h2 className="text-white text-base font-semibold mt-0.5">
                 {ultimaSimulacion.headline || 'Simulación de impacto disponible'}
-              </h3>
+              </h2>
               <p className="text-slate-400 text-xs mt-1">{formatFechaRelativa(ultimaSimulacion.fecha)}</p>
             </div>
           </div>

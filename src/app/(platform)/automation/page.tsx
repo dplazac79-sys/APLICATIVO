@@ -196,8 +196,9 @@ export default function AutomationStudioPage() {
         </div>
 
         <div>
-          <label className="text-xs text-slate-400 mb-1 block">Proyecto</label>
+          <label htmlFor="automation-proyecto" className="text-xs text-slate-400 mb-1 block">Proyecto</label>
           <select
+            id="automation-proyecto"
             className="w-full bg-slate-800 border border-slate-700 rounded px-2 py-1.5 text-sm"
             value={proyectoId}
             onChange={e => { setProyectoId(e.target.value); setProcesoId(''); setSimulacionId('') }}
@@ -210,8 +211,9 @@ export default function AutomationStudioPage() {
         {proyectoId && (
           <>
             <div>
-              <label className="text-xs text-slate-400 mb-1 block">Proceso a analizar</label>
+              <label htmlFor="automation-proceso" className="text-xs text-slate-400 mb-1 block">Proceso a analizar</label>
               <select
+                id="automation-proceso"
                 className="w-full bg-slate-800 border border-slate-700 rounded px-2 py-1.5 text-sm"
                 value={procesoId}
                 onChange={e => setProcesoId(e.target.value)}
@@ -222,8 +224,9 @@ export default function AutomationStudioPage() {
             </div>
 
             <div>
-              <label className="text-xs text-slate-400 mb-1 block">Simulación de referencia (opcional)</label>
+              <label htmlFor="automation-simulacion" className="text-xs text-slate-400 mb-1 block">Simulación de referencia (opcional)</label>
               <select
+                id="automation-simulacion"
                 className="w-full bg-slate-800 border border-slate-700 rounded px-2 py-1.5 text-sm"
                 value={simulacionId}
                 onChange={e => setSimulacionId(e.target.value)}
@@ -250,6 +253,7 @@ export default function AutomationStudioPage() {
                 <p className="text-xs text-slate-400">{selected.size} seleccionadas</p>
                 <input
                   type="text"
+                  aria-label="Nombre del roadmap"
                   placeholder="Nombre del roadmap..."
                   value={nombreRoadmap}
                   onChange={e => setNombreRoadmap(e.target.value)}

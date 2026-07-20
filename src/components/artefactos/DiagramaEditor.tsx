@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useState } from 'react'
+import { useFocusTrap } from '@/hooks/useFocusTrap'
 import ReactFlow, {
   Background,
   Controls,
@@ -64,6 +65,10 @@ export default function DiagramaEditor({ artefactoId, initialNodes, initialEdges
   const [guardado, setGuardado] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [editando, setEditando] = useState<{ id: string; label: string } | null>(null)
+  // Modal artesanal sin ui/dialog.tsx — sin esto, Tab escapaba hacia el
+  // canvas de detrás en vez de quedar atrapado dentro del modal (hallazgo
+  // de auditoría UX/UI).
+  const trapRef = useFocusTrap(!!editando)
 
   const onConnect = useCallback(
     (params: Connection) => setEdges(eds => addEdge({ ...params, animated: true }, eds)),
@@ -183,7 +188,7 @@ export default function DiagramaEditor({ artefactoId, initialNodes, initialEdges
       {/* Modal edición de label */}
       {editando && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => setEditando(null)}>
-          <div className="bg-slate-900 border border-slate-700 rounded-xl p-5 w-80 space-y-3" onClick={e => e.stopPropagation()}>
+          <div ref={trapRef} role="dialog" aria-modal="true" aria-label="Editar nodo" className="bg-slate-900 border border-slate-700 rounded-xl p-5 w-80 space-y-3" onClick={e => e.stopPropagation()}>
             <p className="text-white text-sm font-medium">Editar nodo</p>
             <input
               autoFocus

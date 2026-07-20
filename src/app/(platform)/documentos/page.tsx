@@ -174,7 +174,7 @@ export default async function DocumentosPage({ searchParams }: { searchParams: {
           <div className="relative flex items-center justify-between gap-6 flex-wrap">
             <div className="space-y-1">
               <p className="text-xs text-indigo-300 uppercase tracking-widest font-medium">Qué te toca hacer ahora</p>
-              <h3 className="text-white text-lg font-semibold">{faseActual.nombre}</h3>
+              <h2 className="text-white text-lg font-semibold">{faseActual.nombre}</h2>
               <p className="text-slate-400 text-sm max-w-md">{faseActual.descripcion}</p>
             </div>
             <Link

@@ -55,10 +55,12 @@ function DocFila({
   doc,
   esInterno,
   isVersion = false,
+  onEliminado,
 }: {
   doc: DocRow
   esInterno: boolean
   isVersion?: boolean
+  onEliminado: (id: string) => void
 }) {
   const estadoKey = (doc.estado_procesamiento ?? 'pendiente') as keyof typeof ESTADO_CONFIG
   const estadoCfg = ESTADO_CONFIG[estadoKey] ?? ESTADO_CONFIG.listo
@@ -128,7 +130,7 @@ function DocFila({
             <Download className="w-4 h-4" />
           </div>
         )}
-        <DocumentoAcciones documentoId={doc.id} estado={estadoKey} puedeEliminar={puedeEliminar} puedeAnalizar={esInterno} />
+        <DocumentoAcciones documentoId={doc.id} estado={estadoKey} puedeEliminar={puedeEliminar} puedeAnalizar={esInterno} onEliminado={() => onEliminado(doc.id)} />
         {!puedeEliminar && (
           <div className="w-8 h-8 flex items-center justify-center text-slate-400" title="Solo lectura">
             <Lock className="w-3.5 h-3.5" />
@@ -139,10 +141,17 @@ function DocFila({
   )
 }
 
-export default function DocumentosFiltroWrapper({ documentos, esInterno, rolActual: _rolActual, proyectoId }: Props) {
+export default function DocumentosFiltroWrapper({ documentos: documentosIniciales, esInterno, rolActual: _rolActual, proyectoId }: Props) {
+  // Estado local en vez de usar la prop directo — permite quitar una fila al
+  // eliminar sin recargar toda la página (ver DocumentoAcciones.onEliminado).
+  const [documentos, setDocumentos] = useState(documentosIniciales)
   const [filtroIds, setFiltroIds] = useState<string[] | null>(null)
   const [busqueda, setBusqueda] = useState('')
   const [expandidos, setExpandidos] = useState<Set<string>>(new Set())
+
+  function eliminarDeLaLista(id: string) {
+    setDocumentos(prev => prev.filter(d => d.id !== id))
+  }
 
   // Agrupar: padre → [versiones]
   const padresMap = new Map<string, DocRow[]>()
@@ -242,7 +251,7 @@ export default function DocumentosFiltroWrapper({ documentos, esInterno, rolActu
               <div key={doc.id} className="space-y-1">
                 {/* Fila principal */}
                 <div className="relative">
-                  <DocFila doc={doc} esInterno={esInterno} />
+                  <DocFila doc={doc} esInterno={esInterno} onEliminado={eliminarDeLaLista} />
                   {tieneVersiones && (
                     <button
                       onClick={() => toggleExpandido(doc.id)}
@@ -262,7 +271,7 @@ export default function DocumentosFiltroWrapper({ documentos, esInterno, rolActu
                     {[...hijos].sort((a, b) =>
                       ((b.clasificacion?.version_numero as number) ?? 0) - ((a.clasificacion?.version_numero as number) ?? 0)
                     ).map(v => (
-                      <DocFila key={v.id} doc={v} esInterno={esInterno} isVersion />
+                      <DocFila key={v.id} doc={v} esInterno={esInterno} isVersion onEliminado={eliminarDeLaLista} />
                     ))}
                   </div>
                 )}
