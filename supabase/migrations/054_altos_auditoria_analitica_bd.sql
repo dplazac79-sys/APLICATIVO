@@ -52,15 +52,20 @@ create extension if not exists pg_trgm;
 
 -- unaccent() está marcada STABLE (no IMMUTABLE) porque en teoría depende de
 -- config de diccionario en runtime — Postgres rechaza funciones no-IMMUTABLE
--- en expresiones de índice (error 42P17). Wrapper estándar: unaccent con el
--- diccionario 'unaccent' fijado explícitamente SÍ es determinístico para
--- este uso, así que se envuelve como IMMUTABLE (patrón documentado de la
--- propia extensión unaccent). Se actualiza también la función de búsqueda
--- para usar el mismo wrapper — si la expresión del índice y la del query no
--- coinciden exactamente, el planner nunca usa el índice.
+-- en expresiones de índice (error 42P17). La forma con diccionario explícito
+-- (unaccent('unaccent', texto)) falló acá porque el objeto TEXT SEARCH
+-- DICTIONARY vive en el schema "extensions" de este proyecto, no resoluble
+-- por nombre corto. Se usa en cambio el unaccent(text) de un solo argumento
+-- — la misma llamada que ya usa sin problemas buscar_documentos_por_nombre
+-- desde la migración 023 — envuelta en una función marcada IMMUTABLE
+-- (Postgres no valida la marca en funciones SQL, confía en la declaración;
+-- para este uso — mismo texto siempre produce el mismo resultado — es
+-- seguro). Se actualiza también la función de búsqueda para usar el mismo
+-- wrapper: si la expresión del índice y la del query no coinciden
+-- exactamente, el planner nunca usa el índice.
 create or replace function inmutable_unaccent(text)
 returns text as $$
-  select unaccent('unaccent'::regdictionary, $1)
+  select unaccent($1)
 $$ language sql immutable strict;
 
 create index if not exists idx_documento_nombre_trgm
