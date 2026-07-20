@@ -38,5 +38,14 @@ export async function POST(req: NextRequest) {
 
   if (error) return errorResponse(error, 400, 'No se pudo cambiar la contraseña.')
 
-  return NextResponse.json({ ok: true })
+  // La tabla usuario tiene RLS habilitado sin ninguna política — por diseño
+  // (solo service_role puede leerla), así que el cliente NUNCA puede
+  // resolver su propio rol vía supabase.from('usuario').select() desde el
+  // browser. cambiar-password/page.tsx dependía de eso para decidir a dónde
+  // redirigir tras el cambio, y siempre caía en la rama "no es cliente"
+  // (bug funcional, no de seguridad — se detectó durante la auditoría
+  // profunda de frontend). Se devuelve el rol acá, resuelto server-side.
+  const { data: usuarioRow } = await admin.from('usuario').select('rol').eq('id', user.id).single()
+
+  return NextResponse.json({ ok: true, rol: usuarioRow?.rol ?? null })
 }

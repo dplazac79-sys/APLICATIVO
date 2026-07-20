@@ -61,8 +61,17 @@ export default async function DocumentosPage({ searchParams }: { searchParams: {
   // pantalla sin ningún proyecto seleccionado — antes eso dejaba el
   // buscador de IA permanentemente deshabilitado para cualquiera que
   // entrara por el menú lateral en vez de un link con el query param.
+  // El ?proyecto_id= de la URL se usaba directo sin validar membresía —
+  // un sponsor_cliente/usuario_cliente podía pegar el id de OTRO proyecto
+  // en la URL y ver la lista de documentos de ese proyecto ajeno (la
+  // consulta usa el cliente admin, que bypasea RLS). Hallazgo de auditoría
+  // profunda de frontend: se intersecta contra idsProyectosPermitidos antes
+  // de usarlo, igual que ya se hacía para el resto de esta misma función.
   const proyectoFiltroParam = searchParams.proyecto_id ?? null
-  const proyectoFiltro = proyectoFiltroParam
+  const proyectoFiltroValido = proyectoFiltroParam && idsProyectosPermitidos
+    ? (idsProyectosPermitidos.includes(proyectoFiltroParam) ? proyectoFiltroParam : null)
+    : proyectoFiltroParam
+  const proyectoFiltro = proyectoFiltroValido
     ?? (idsProyectosPermitidos?.length === 1 ? idsProyectosPermitidos[0] : null)
 
   const proyectoActivo = proyectoFiltro ? proyectos.find(p => p.id === proyectoFiltro) : null

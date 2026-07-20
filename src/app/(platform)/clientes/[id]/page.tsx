@@ -1,5 +1,6 @@
-import { notFound } from 'next/navigation'
+import { notFound, redirect } from 'next/navigation'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { createClient } from '@/lib/supabase/server'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Building2, FolderOpen, Pencil, ChevronRight,
@@ -24,7 +25,20 @@ const NIVEL_RIESGO_STYLE: Record<string, string> = {
   bajo:    'bg-slate-800 text-slate-400 border-slate-700',
 }
 
+const ROLES_INTERNOS = ['super_admin', 'director_proyecto', 'consultor']
+
 export default async function ClienteDetallePage({ params }: { params: { id: string } }) {
+  // Esta página nunca chequeaba sesión ni rol — cualquier usuario autenticado
+  // (incluyendo usuario_cliente de OTRO cliente) podía ver la ficha 360° de
+  // cualquier cliente por id (razón social, RUT, facturación, KPIs, riesgos)
+  // simplemente navegando /clientes/<id>. Mismo patrón de protección que
+  // clientes/page.tsx (la lista) — hallazgo de auditoría profunda de frontend.
+  const supabase = createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect('/login')
+  const { data: usuarioAuth } = await supabase.from('usuario').select('rol').eq('id', user.id).single()
+  if (!usuarioAuth || !ROLES_INTERNOS.includes(usuarioAuth.rol)) redirect('/portal')
+
   const admin = createAdminClient()
 
   const { data: cliente } = await admin

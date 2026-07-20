@@ -2,13 +2,20 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import type { KgNodo, KgRelacionExpandida } from '@/lib/automation/tipos'
 import { errorResponse } from '@/lib/api/error-response'
+import { requireRole } from '@/lib/auth/tenant'
 
 // GET /api/kg/grafo?industria=X
 // Devuelve el grafo relacional (nodos + relaciones con nombres de extremos) de una industria.
+// Vista ejecutiva de super_admin — solo chequeaba sesión, no rol. Hallazgo
+// de auditoría profunda de frontend (defensa en profundidad junto con
+// analytics/layout.tsx, que ahora también bloquea la página).
 export async function GET(req: NextRequest) {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+  if (!(await requireRole(user.id, ['super_admin']))) {
+    return NextResponse.json({ error: 'Sin permisos' }, { status: 403 })
+  }
 
   const industria = new URL(req.url).searchParams.get('industria')
   if (!industria) {

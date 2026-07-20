@@ -1,5 +1,7 @@
 import { createAdminClient } from '@/lib/supabase/admin'
-import { notFound } from 'next/navigation'
+import { createClient } from '@/lib/supabase/server'
+import { assertProyectoAccess } from '@/lib/auth/tenant'
+import { notFound, redirect } from 'next/navigation'
 import Link from 'next/link'
 import {
   ArrowLeft, FileText, AlertTriangle, TrendingUp, Zap, Target,
@@ -29,6 +31,14 @@ const COMPLEJIDAD_CONFIG: Record<string, string> = {
 }
 
 export default async function DocumentoAnalisisPage({ params }: { params: { id: string } }) {
+  // Sin ningún chequeo de sesión ni de proyecto — cualquier usuario
+  // autenticado podía ver el análisis IA completo de cualquier documento de
+  // cualquier cliente navegando /documentos/<id>. Hallazgo de auditoría
+  // profunda de frontend (la ruta API equivalente sí tenía este chequeo).
+  const supabase = createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect('/login')
+
   const admin = createAdminClient()
 
   const { data: doc } = await admin
@@ -38,6 +48,7 @@ export default async function DocumentoAnalisisPage({ params }: { params: { id: 
     .single()
 
   if (!doc) notFound()
+  if (!(await assertProyectoAccess(user.id, doc.proyecto_id))) notFound()
 
   const clasificacion = doc.clasificacion as Record<string, unknown> | null
   const analisis = (doc as Record<string, unknown>).analisis_ia as Record<string, unknown> | null

@@ -78,14 +78,12 @@ function CambiarPasswordForm() {
     // recién hecho por el servidor (con el service role) en el próximo request.
     await supabase.auth.refreshSession()
 
-    const { data: { user } } = await supabase.auth.getUser()
-    const { data: usuario } = await supabase
-      .from('usuario')
-      .select('rol')
-      .eq('id', user!.id)
-      .single()
-
-    router.push(usuario?.rol === 'usuario_cliente' ? '/portal' : '/bienvenida')
+    // La tabla usuario no tiene ninguna política RLS (solo service_role
+    // puede leerla) — una consulta desde el browser acá siempre devolvía
+    // null, y con `?? '/bienvenida'` como fallback todo usuario_cliente
+    // terminaba redirigido al panel de staff en vez de /portal. El rol
+    // ahora viene resuelto server-side en la misma respuesta del POST.
+    router.push(data.rol === 'usuario_cliente' ? '/portal' : '/bienvenida')
   }
 
   const inputStyle = {

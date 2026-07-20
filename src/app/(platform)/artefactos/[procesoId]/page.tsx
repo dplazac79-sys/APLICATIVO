@@ -12,6 +12,7 @@ import ValidarTodosButton from '@/components/artefactos/ValidarTodosButton'
 import { ORDEN_GENERACION, LABEL_ARTEFACTO } from '@/lib/artefactos-meta'
 import { ROLES_EDITAN_ARTEFACTO } from '@/lib/artefactos-estado'
 import { getFasesProyecto } from '@/lib/fases'
+import { assertProyectoAccess } from '@/lib/auth/tenant'
 
 export const dynamic = 'force-dynamic'
 
@@ -33,7 +34,14 @@ export default async function ProcesoArtefactosPage({ params }: Props) {
   // Obtener rol del usuario actual (necesario para restricciones y para pasar al componente)
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  const { data: usuarioData } = await admin.from('usuario').select('rol').eq('id', user?.id ?? '').single()
+  if (!user) redirect('/login')
+  // Sin este chequeo, cualquier usuario autenticado (de cualquier cliente)
+  // podía ver los artefactos de cualquier proceso navegando
+  // /artefactos/<procesoId> — solo se restringía el acceso a macroprocesos
+  // para no-super_admin, nunca la pertenencia al proyecto. Hallazgo de
+  // auditoría profunda de frontend.
+  if (!(await assertProyectoAccess(user.id, proceso.proyecto_id))) notFound()
+  const { data: usuarioData } = await admin.from('usuario').select('rol').eq('id', user.id).single()
   const rolUsuario = usuarioData?.rol ?? 'usuario_cliente'
 
   // Bloquear acceso a macroprocesos para roles que no sean super_admin
@@ -104,6 +112,7 @@ export default async function ProcesoArtefactosPage({ params }: Props) {
           <Link
             href={`/artefactos/${params.procesoId}/print`}
             target="_blank"
+            rel="noopener noreferrer"
             className="flex items-center gap-1.5 text-sm text-slate-400 hover:text-slate-200 border border-slate-700 hover:border-slate-500 rounded-lg px-3 py-1.5 transition-colors shrink-0"
           >
             <Printer className="w-3.5 h-3.5" />
