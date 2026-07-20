@@ -7,8 +7,6 @@ import DocumentosFiltroWrapper, { type DocRow } from '@/components/documentos/Do
 import OrganigramaUploader from '@/components/documentos/OrganigramaUploader'
 import { getFasesProyecto } from '@/lib/fases'
 
-export const dynamic = 'force-dynamic'
-
 const ROL_INTERNO = ['super_admin', 'director_proyecto', 'consultor']
 const PAGE_SIZE = 25
 

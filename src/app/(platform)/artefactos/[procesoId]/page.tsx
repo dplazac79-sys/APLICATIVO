@@ -14,8 +14,6 @@ import { ROLES_EDITAN_ARTEFACTO } from '@/lib/artefactos-estado'
 import { getFasesProyecto } from '@/lib/fases'
 import { assertProyectoAccess } from '@/lib/auth/tenant'
 
-export const dynamic = 'force-dynamic'
-
 const ROL_INTERNO = ['super_admin', 'director_proyecto', 'consultor']
 
 interface Props { params: { procesoId: string } }

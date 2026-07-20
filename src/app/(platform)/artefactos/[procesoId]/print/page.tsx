@@ -4,8 +4,6 @@ import { LABEL_ARTEFACTO, ORDEN_GENERACION } from '@/lib/artefactos-meta'
 import type { Artefacto, TipoArtefacto } from '@/types/database'
 import PrintButton from './PrintButton'
 
-export const dynamic = 'force-dynamic'
-
 interface Props { params: { procesoId: string } }
 
 export default async function PrintPage({ params }: Props) {

@@ -6,8 +6,6 @@ import { Button } from '@/components/ui/button'
 import { Plus } from 'lucide-react'
 import ClientesLista, { type ClienteRow } from '@/components/clientes/ClientesLista'
 
-export const dynamic = 'force-dynamic'
-
 const ROLES_INTERNOS = ['super_admin', 'director_proyecto', 'consultor']
 const PAGE_SIZE = 25
 

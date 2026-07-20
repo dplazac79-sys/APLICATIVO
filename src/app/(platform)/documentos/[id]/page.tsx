@@ -8,8 +8,6 @@ import {
   Shield, Users, ChevronRight, Award, BarChart3, Clock, Brain
 } from 'lucide-react'
 
-export const dynamic = 'force-dynamic'
-
 const NIVEL_CONFIG: Record<number, { color: string; bg: string; bar: string; label: string }> = {
   1: { color: 'text-red-400', bg: 'bg-red-950/40 border-red-800/50', bar: 'bg-red-500', label: 'Reactivo' },
   2: { color: 'text-orange-400', bg: 'bg-orange-950/40 border-orange-800/50', bar: 'bg-orange-500', label: 'Definido' },

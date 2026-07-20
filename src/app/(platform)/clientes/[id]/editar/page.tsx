@@ -5,8 +5,6 @@ import ClienteForm from '@/components/clientes/ClienteForm'
 import { ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 
-export const dynamic = 'force-dynamic'
-
 // Solo super_admin puede editar clientes (mismo permiso que crear, ver
 // clientes/route.ts POST) — página sin ningún chequeo antes, cualquier
 // usuario autenticado podía llegar al formulario de edición de cualquier

@@ -1,5 +1,3 @@
-export const dynamic = 'force-dynamic'
-
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { FileText, FolderOpen, Brain, Layers, Sparkles, ArrowRight, AlertCircle, GitBranch, Clock, History, TrendingUp } from 'lucide-react'

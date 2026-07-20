@@ -16,8 +16,6 @@ import KpiForm from '@/components/pcc/KpiForm'
 import ArbolProcesos from '@/components/procesos/ArbolProcesos'
 import type { NodoProceso } from '@/components/procesos/ArbolProcesos'
 
-export const dynamic = 'force-dynamic'
-
 const NIVEL_RIESGO_COLOR: Record<string, string> = {
   critico: 'text-red-400', alto: 'text-orange-400', medio: 'text-amber-400', bajo: 'text-slate-400',
 }

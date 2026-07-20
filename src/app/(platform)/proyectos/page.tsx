@@ -6,8 +6,6 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import type { WorkflowEstadoTipo } from '@/types/database'
 
-export const dynamic = 'force-dynamic'
-
 const PAGE_SIZE = 25
 
 const ESTADO_COLOR: Record<WorkflowEstadoTipo, string> = {

@@ -12,8 +12,6 @@ import NuevoProyectoForm from '@/components/proyectos/NuevoProyectoForm'
 import IntelIndustriaEditor from '@/components/clientes/IntelIndustriaEditor'
 import type { Proyecto } from '@/types/database'
 
-export const dynamic = 'force-dynamic'
-
 const TAMANO_LABELS: Record<string, string> = {
   micro: 'Micro', pequeña: 'Pequeña', mediana: 'Mediana', grande: 'Grande',
 }

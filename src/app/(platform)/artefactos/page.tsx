@@ -11,8 +11,6 @@ import { LABEL_ARTEFACTO, ORDEN_GENERACION } from '@/lib/artefactos-meta'
 import { getFasesProyecto } from '@/lib/fases'
 import ArbolProcesosArtefactos from '@/components/artefactos/ArbolProcesosArtefactos'
 
-export const dynamic = 'force-dynamic'
-
 const ARTEFACTO_ICON: Record<string, React.ReactNode> = {
   sipoc:          <GitBranch className="w-3 h-3" />,
   as_is:          <Clock className="w-3 h-3" />,

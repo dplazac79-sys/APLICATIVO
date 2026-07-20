@@ -22,13 +22,23 @@ function calcularEscenario(
   const headcount_tobe = Math.max(0, p.headcount_actual - ftes_liberados)
   const reduccion_pct = (ftes_liberados / p.headcount_actual) * 100
 
-  // Roles a reasignar: proporción de roles existentes según FTEs liberados
+  // Roles a reasignar: proporción de roles existentes según FTEs liberados.
+  // El CONTEO (n_reasignar) sí es correcto — se deriva de reduccion_pct — pero
+  // CUÁLES roles específicos se listan es arbitrario: slice(0, n) toma los
+  // primeros n en el orden en que vinieron en el array de entrada, no según
+  // ninguna señal real de qué rol es más prescindible o redundante (no existe
+  // ese dato en el modelo hoy). Hallazgo de auditoría de correctitud de
+  // negocio — dejar documentado en vez de simular una priorización que no
+  // se puede sustentar con los datos disponibles; si se agrega una señal
+  // real (ej. redundancia de funciones, antigüedad, carga actual) debería
+  // ordenarse por esa señal en vez de tomar los primeros n.
   const n_reasignar = Math.round(
     (p.roles_involucrados.length * (reduccion_pct / 100)) * mult,
   )
   const roles_a_reasignar = p.roles_involucrados.slice(0, n_reasignar)
 
-  // Roles nuevos: se crean proporcionalmente al escenario
+  // Roles nuevos: se crean proporcionalmente al escenario — mismo caveat
+  // que roles_a_reasignar sobre CUÁLES roles nuevos se listan primero.
   const n_nuevos = Math.round(p.roles_nuevos_estimados.length * mult)
   const roles_a_crear = p.roles_nuevos_estimados.slice(0, n_nuevos)
 
