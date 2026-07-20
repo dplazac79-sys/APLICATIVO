@@ -50,8 +50,54 @@ on conflict (id) do nothing;
 -- que el planner use el índice para patrones LIKE '%...%'.
 create extension if not exists pg_trgm;
 
+-- unaccent() está marcada STABLE (no IMMUTABLE) porque en teoría depende de
+-- config de diccionario en runtime — Postgres rechaza funciones no-IMMUTABLE
+-- en expresiones de índice (error 42P17). Wrapper estándar: unaccent con el
+-- diccionario 'unaccent' fijado explícitamente SÍ es determinístico para
+-- este uso, así que se envuelve como IMMUTABLE (patrón documentado de la
+-- propia extensión unaccent). Se actualiza también la función de búsqueda
+-- para usar el mismo wrapper — si la expresión del índice y la del query no
+-- coinciden exactamente, el planner nunca usa el índice.
+create or replace function inmutable_unaccent(text)
+returns text as $$
+  select unaccent('unaccent', $1)
+$$ language sql immutable strict;
+
 create index if not exists idx_documento_nombre_trgm
-  on documento using gin (unaccent(lower(nombre_archivo)) gin_trgm_ops);
+  on documento using gin (inmutable_unaccent(lower(nombre_archivo)) gin_trgm_ops);
+
+create or replace function buscar_documentos_por_nombre(
+  termino text,
+  filtro_proyecto_id uuid default null,
+  limite int default 20
+)
+returns table (
+  id uuid,
+  proyecto_id uuid,
+  nombre_archivo text,
+  resumen_ejecutivo text,
+  clasificacion jsonb,
+  estado_procesamiento text,
+  subido_por uuid
+)
+language sql
+stable
+as $$
+  select
+    d.id,
+    d.proyecto_id,
+    d.nombre_archivo,
+    d.resumen_ejecutivo,
+    d.clasificacion,
+    d.estado_procesamiento,
+    d.subido_por
+  from documento d
+  where
+    inmutable_unaccent(lower(d.nombre_archivo)) like '%' || inmutable_unaccent(lower(termino)) || '%'
+    and (filtro_proyecto_id is null or d.proyecto_id = filtro_proyecto_id)
+  order by d.created_at desc
+  limit limite;
+$$;
 
 -- ────────────────────────────────────────────────────────────────────────
 -- 4. Índices faltantes en columnas FK que se consultan constantemente
