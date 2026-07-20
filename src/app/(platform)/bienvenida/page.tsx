@@ -7,8 +7,7 @@ import Saludo from './Saludo'
 import ResumenProyecto, { type Proyecto as ProyectoResumen } from './ResumenProyecto'
 import { getFasesProyecto } from '@/lib/fases'
 import { getProcesosAceptadosIds, contarArtefactosDeProcesosAceptados } from '@/lib/domain/procesos'
-
-const USUARIO_OCULTO_PARA_CLIENTE = 'a535a5e9-226b-4323-8a11-96523f4fabde'
+import { debeOcultarUsuario } from '@/lib/domain/visibilidad'
 
 export default async function BienvenidaPage() {
   const supabase = createClient()
@@ -96,10 +95,7 @@ export default async function BienvenidaPage() {
       contarArtefactosDeProcesosAceptados(proyectoMeta.id),
     ])
     equipo = (miembrosRes.data ?? [])
-      // Miembro de confianza de AICOUNTS que participa del proyecto sin
-      // figurar ante el resto del equipo cliente — solo super_admin ve el
-      // roster completo.
-      .filter((m: { usuario_id: string }) => esSuperAdmin || user.id === USUARIO_OCULTO_PARA_CLIENTE || m.usuario_id !== USUARIO_OCULTO_PARA_CLIENTE)
+      .filter((m: { usuario_id: string }) => !debeOcultarUsuario(m.usuario_id, usuario?.rol, user.id))
       .map((m: { usuario_id: string; usuario: { nombre: string; rol: string } | { nombre: string; rol: string }[] | null }) => {
         const u = Array.isArray(m.usuario) ? m.usuario[0] : m.usuario
         return { usuario_id: m.usuario_id, nombre: u?.nombre ?? '', rol: u?.rol ?? '' }

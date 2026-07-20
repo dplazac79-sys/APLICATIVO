@@ -6,6 +6,7 @@ import { registrarAudit } from '@/lib/audit'
 import { enviarEmail, templateCambioEstado } from '@/lib/email'
 import { TRANSICIONES_VALIDAS, type WorkflowEstadoTipo } from '@/types/database'
 import { assertProyectoAccess } from '@/lib/auth/tenant'
+import { debeOcultarUsuario } from '@/lib/domain/visibilidad'
 
 // GET: obtener workflow del proceso
 export async function GET(
@@ -16,13 +17,26 @@ export async function GET(
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
+  const admin = createAdminClient()
+  const { data: proceso } = await admin.from('proceso').select('proyecto_id').eq('id', params.id).single()
+  if (!proceso?.proyecto_id || !(await assertProyectoAccess(user.id, proceso.proyecto_id))) {
+    return NextResponse.json({ error: 'Sin acceso a este proceso' }, { status: 403 })
+  }
+
+  const { data: usuario } = await admin.from('usuario').select('rol').eq('id', user.id).single()
+
   const { data } = await supabase
     .from('workflow_estado')
     .select('*, responsable:responsable_id(nombre, email)')
     .eq('proceso_id', params.id)
     .single()
 
-  return NextResponse.json({ workflow: data ?? null })
+  const workflow = data as (typeof data & { responsable_id: string | null }) | null
+  if (workflow && debeOcultarUsuario(workflow.responsable_id, usuario?.rol, user.id)) {
+    workflow.responsable = null
+  }
+
+  return NextResponse.json({ workflow: workflow ?? null })
 }
 
 // POST: crear workflow inicial para un proceso

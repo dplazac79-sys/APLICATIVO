@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
 import VersionesCliente from '@/components/versiones/VersionesCliente'
+import { debeOcultarUsuario } from '@/lib/domain/visibilidad'
 
 export default async function VersionesPage() {
   const supabase = createClient()
@@ -180,7 +181,9 @@ export default async function VersionesPage() {
       }>}
       historialArtefactos={historialArtefactosRaw.map(h => ({
         ...h,
-        autor: h.modificado_por ? (autoresMap[h.modificado_por] ?? null) : null,
+        autor: h.modificado_por && !debeOcultarUsuario(h.modificado_por, usuario.rol, user.id)
+          ? (autoresMap[h.modificado_por] ?? null)
+          : null,
       }))}
       historialProcesos={historialProcesosRaw}
       documentosMap={documentosMap}
