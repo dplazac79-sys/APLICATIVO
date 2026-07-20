@@ -140,14 +140,23 @@ async function procesarArtefactosEnBackground(
     const generados: Record<string, unknown> = {}
 
     for (const tipo of tipos) {
-      // Cargar artefactos previos para los tipos dependientes
+      // Cargar artefactos previos para los tipos dependientes. Antes solo
+      // to_be/dashboard_brechas/cierre_ejecutivo recibían contexto de
+      // artefactos anteriores — sipoc/bpmn/raci/riesgo_control/kpi_sla se
+      // generaban cada uno en total aislamiento del resto, sin ninguna
+      // reconciliación (ej. BPMN podía nombrar "Analista de Compras" y RACI
+      // "Analista Senior Compras" para el mismo rol, sin que nada lo
+      // detectara). Se extiende el contexto compartido al resto de tipos
+      // que generan datos por proceso — hallazgo de auditoría de
+      // correctitud de negocio/IA.
+      const TIPOS_CON_CONTEXTO = ['bpmn', 'raci', 'riesgo_control', 'kpi_sla', 'to_be', 'dashboard_brechas', 'cierre_ejecutivo']
       const existentes: Record<string, Record<string, unknown>> = {}
-      if (['to_be', 'dashboard_brechas', 'cierre_ejecutivo'].includes(tipo)) {
+      if (TIPOS_CON_CONTEXTO.includes(tipo)) {
         const { data: previos } = await admin
           .from('artefacto')
           .select('tipo, contenido')
           .eq('proceso_id', proceso_id)
-          .in('tipo', ['as_is', 'diagnostico', 'to_be', 'dashboard_brechas'])
+          .in('tipo', ['sipoc', 'as_is', 'bpmn', 'raci', 'riesgo_control', 'diagnostico', 'to_be', 'dashboard_brechas'])
 
         for (const p of previos ?? []) {
           existentes[p.tipo] = p.contenido as Record<string, unknown>

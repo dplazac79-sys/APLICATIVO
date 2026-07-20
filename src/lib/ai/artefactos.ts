@@ -49,7 +49,11 @@ export interface DocumentoResumen {
 }
 
 interface ArtefactosExistentes {
+  sipoc?: Record<string, unknown>
   as_is?: Record<string, unknown>
+  bpmn?: Record<string, unknown>
+  raci?: Record<string, unknown>
+  riesgo_control?: Record<string, unknown>
   diagnostico?: Record<string, unknown>
   to_be?: Record<string, unknown>
   dashboard_brechas?: Record<string, unknown>
@@ -127,6 +131,34 @@ export async function generarArtefacto(
     anclaDocumental,
   ].join('\n\n')
 
+  // Contexto cruzado — antes sipoc/bpmn/raci/riesgo_control/kpi_sla se
+  // generaban cada uno aislado del resto, sin ninguna reconciliación de
+  // nombres de roles/actores entre artefactos del mismo proceso (ej. BPMN
+  // podía nombrar un actor distinto al que usa RACI para el mismo rol).
+  // Se pasa el contenido ya generado que sea relevante para mantener
+  // consistencia de nomenclatura — hallazgo de auditoría de correctitud de
+  // negocio/IA. NOTA_CONSISTENCIA se repite en cada bloque para que el
+  // modelo sepa que debe REUTILIZAR los nombres, no solo "considerarlos".
+  const NOTA_CONSISTENCIA = 'Reutiliza los mismos nombres de actores/roles que aparecen en el contexto de abajo — no los renombres ni uses una variante distinta para la misma persona/rol.'
+  if (tipo === 'bpmn') {
+    userPrompt += '\n\n## SIPOC ya generado\n' + JSON.stringify(existentes.sipoc ?? {}, null, 2)
+    if (existentes.as_is) userPrompt += '\n\n## AS-IS ya generado\n' + JSON.stringify(existentes.as_is, null, 2)
+    userPrompt += '\n\n' + NOTA_CONSISTENCIA
+  }
+  if (tipo === 'raci') {
+    if (existentes.as_is) userPrompt += '\n\n## AS-IS ya generado\n' + JSON.stringify(existentes.as_is, null, 2)
+    if (existentes.bpmn) userPrompt += '\n\n## BPMN ya generado (actores/lanes)\n' + JSON.stringify(existentes.bpmn, null, 2)
+    userPrompt += '\n\n' + NOTA_CONSISTENCIA
+  }
+  if (tipo === 'riesgo_control') {
+    if (existentes.as_is) userPrompt += '\n\n## AS-IS ya generado\n' + JSON.stringify(existentes.as_is, null, 2)
+    if (existentes.raci) userPrompt += '\n\n## RACI ya generado (roles responsables)\n' + JSON.stringify(existentes.raci, null, 2)
+    userPrompt += '\n\n' + NOTA_CONSISTENCIA
+  }
+  if (tipo === 'kpi_sla') {
+    if (existentes.as_is) userPrompt += '\n\n## AS-IS ya generado\n' + JSON.stringify(existentes.as_is, null, 2)
+    if (existentes.riesgo_control) userPrompt += '\n\n## Riesgos ya identificados\n' + JSON.stringify(existentes.riesgo_control, null, 2)
+  }
   if (tipo === 'to_be') {
     userPrompt += '\n\n## AS-IS\n' + JSON.stringify(existentes.as_is ?? {}, null, 2)
     userPrompt += '\n\n## Diagnóstico\n' + JSON.stringify(existentes.diagnostico ?? {}, null, 2)
