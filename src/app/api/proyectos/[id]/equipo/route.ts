@@ -4,6 +4,14 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { registrarAudit } from '@/lib/audit'
 import { requireRole } from '@/lib/auth/tenant'
 import { errorResponse } from '@/lib/api/error-response'
+import type { RolTipo } from '@/types/database'
+
+// Mismo enum que la columna rol_tipo en BD — validado también acá (defensa
+// en profundidad) para devolver un error claro en vez de depender solo del
+// rechazo silencioso del check constraint de Postgres.
+const ROLES_VALIDOS: readonly RolTipo[] = [
+  'super_admin', 'director_proyecto', 'consultor', 'sponsor_cliente', 'usuario_cliente',
+]
 
 // Mismas 5 reglas del resto de la plataforma (cambiar-password, onboarding).
 function cumpleRequisitos(pwd: string): boolean {
@@ -55,6 +63,9 @@ export async function POST(
   } else {
     if (!nombre?.trim() || !rol?.trim()) {
       return NextResponse.json({ error: 'Falta nombre o rol para crear la cuenta nueva' }, { status: 400 })
+    }
+    if (!ROLES_VALIDOS.includes(rol as RolTipo)) {
+      return NextResponse.json({ error: `Rol inválido. Debe ser uno de: ${ROLES_VALIDOS.join(', ')}` }, { status: 400 })
     }
     if (!password || !cumpleRequisitos(password)) {
       return NextResponse.json({ error: 'La contraseña temporal no cumple los requisitos de seguridad (mínimo 8 caracteres, mayúscula, minúscula, número y carácter especial)' }, { status: 400 })

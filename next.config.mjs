@@ -18,6 +18,7 @@ const securityHeaders = [
 
 const nextConfig = {
   output: 'standalone',
+  poweredByHeader: false,
   eslint: { ignoreDuringBuilds: true },
   typescript: { ignoreBuildErrors: false },
   // Next.js 14.x todavía requiere este flag para cargar src/instrumentation.ts
