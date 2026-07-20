@@ -60,7 +60,7 @@ create extension if not exists pg_trgm;
 -- coinciden exactamente, el planner nunca usa el índice.
 create or replace function inmutable_unaccent(text)
 returns text as $$
-  select unaccent('unaccent', $1)
+  select unaccent('unaccent'::regdictionary, $1)
 $$ language sql immutable strict;
 
 create index if not exists idx_documento_nombre_trgm
