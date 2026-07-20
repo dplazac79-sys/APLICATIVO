@@ -42,7 +42,7 @@ export default function ClientesLista({ clientes }: { clientes: ClienteRow[] }) 
   return (
     <div className="space-y-5">
       {/* Estadísticas del portafolio */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <div className="bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 flex items-center gap-3">
           <div className="w-8 h-8 rounded-lg bg-indigo-950 flex items-center justify-center shrink-0">
             <Building2 className="w-4 h-4 text-indigo-400" />

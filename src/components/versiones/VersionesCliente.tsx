@@ -817,7 +817,7 @@ export default function VersionesCliente({
             </div>
 
             {/* Stats row */}
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               {/* Stat 1 */}
               <div className="rounded-2xl bg-white/[0.04] border border-white/[0.07] px-4 py-4">
                 <div className="flex items-center gap-2 mb-3">

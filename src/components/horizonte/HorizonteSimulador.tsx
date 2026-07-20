@@ -251,7 +251,7 @@ const Resultado = memo(function Resultado({ sim }: { sim: SimulacionResult }) {
         </div>
 
         {/* Métricas en barra inferior */}
-        <div className="grid grid-cols-4 divide-x divide-white/5 border-t border-white/5">
+        <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-white/5 border-t border-white/5">
           {[
             { label: 'Ahorro anual', value: formatCLP(ahorro), sub: 'si se implementa', color: 'text-emerald-300' },
             { label: 'Reducción tiempo', value: `${sim.reduccion_tiempo_porcentaje}%`, sub: 'menos tiempo operativo', color: 'text-violet-300' },
@@ -377,7 +377,7 @@ const Resultado = memo(function Resultado({ sim }: { sim: SimulacionResult }) {
         <div className="relative">
           {/* Línea conectora */}
           <div className="absolute top-[18px] left-4 right-4 h-px bg-gradient-to-r from-indigo-500/30 via-violet-500/30 to-transparent" />
-          <div className="grid grid-cols-4 gap-3 relative">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 relative">
             {sim.hitos.map((h, i) => (
               <div key={i} className="flex flex-col items-center text-center gap-2">
                 <div className="w-9 h-9 rounded-full border-2 border-indigo-500/40 bg-[#0a0a15] flex items-center justify-center z-10 shrink-0 shadow-[0_0_12px_rgba(99,102,241,0.15)]">

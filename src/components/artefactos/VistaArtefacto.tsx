@@ -109,7 +109,7 @@ function VistaSIPOC({ c }: { c: Record<string, unknown> }) {
   ]
   return (
     <div className="space-y-3">
-      <div className="grid grid-cols-5 gap-2">
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
         {cols.map(({ key, label, color }) => {
           const val = c[key]
           return (
@@ -301,7 +301,7 @@ function VistaKPIs({ c }: { c: Record<string, unknown> }) {
             </div>
             <Pill text={String(k.frecuencia ?? '')} color="blue" />
           </div>
-          <div className="grid grid-cols-4 gap-2 text-xs">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
             <div className="bg-slate-900 rounded p-2">
               <p className="text-slate-400">Línea base</p>
               <p className="text-slate-200 font-medium">{String(k.linea_base ?? '')}</p>
@@ -327,7 +327,7 @@ function VistaKPIs({ c }: { c: Record<string, unknown> }) {
         </div>
       ))}
       {fin && (Number(fin.costo_mensual_proceso_clp) > 0 || Number(fin.inversion_estimada_clp) > 0) && (
-        <div className="grid grid-cols-3 gap-3 mt-2">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-2">
           {[
             { label: 'Costo/hora FTE', value: fmt(fin.costo_hora_fte_clp), color: 'slate' },
             { label: 'Costo mensual proceso', value: fmt(fin.costo_mensual_proceso_clp), color: 'amber' },
@@ -507,7 +507,7 @@ function VistaCierre({ c }: { c: Record<string, unknown> }) {
           <p className="text-slate-300 text-sm leading-relaxed">{String(c.resumen_proyecto)}</p>
         </div>
       ) : null}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         {[
           { label: 'Procesos transformados', value: String(c.procesos_transformados ?? '') },
           { label: 'Reducción tiempo ciclo', value: String(c.reduccion_tiempo_ciclo_estimada ?? '') },
@@ -600,7 +600,7 @@ function VistaBacklog({ c }: { c: Record<string, unknown> }) {
   return (
     <div className="space-y-3">
       {resumen && (
-        <div className="grid grid-cols-3 gap-3 mb-2">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-2">
           {[
             { label: 'Quick Wins', value: resumen.total_quick_wins, color: 'emerald' },
             { label: 'Proyectos medianos', value: resumen.total_proyectos_medios, color: 'blue' },
@@ -898,7 +898,7 @@ function VistaRoadmap({ c }: { c: Record<string, unknown> }) {
               <span className={`text-xs ${textColors[i % textColors.length]}`}>Sem {String(f.semana_inicio ?? '')}–{String(f.semana_fin ?? '')} · {String(f.duracion_semanas ?? '')} semanas</span>
             </div>
             <p className="text-slate-400 text-sm">{String(f.objetivo ?? '')}</p>
-            <div className="grid grid-cols-3 gap-3 text-xs">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
               {actividades.length > 0 && (
                 <div>
                   <p className="text-slate-400 uppercase tracking-wider mb-1">Actividades</p>

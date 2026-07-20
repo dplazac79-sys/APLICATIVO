@@ -99,8 +99,9 @@ export default async function ProyectoDetallePage({ params }: Props) {
         </span>
       </div>
 
-      {/* KPIs ejecutivos */}
-      <div className="grid grid-cols-5 gap-3">
+      {/* KPIs ejecutivos — sin breakpoints antes, 5 columnas apretaba el
+          texto ilegible en mobile (hallazgo de verificación responsive) */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
         {[
           { label: 'Procesos', value: totalProcesos, icon: Target, color: 'text-white' },
           { label: 'Avance', value: `${avance}%`, icon: CheckCircle2, color: 'text-indigo-400' },
@@ -128,9 +129,11 @@ export default async function ProyectoDetallePage({ params }: Props) {
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-6">
+      {/* Sin breakpoint antes, esta grilla de 3 columnas con una columna
+          col-span-2 se rompía en mobile — hallazgo de verificación responsive */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Columna izquierda: Workflow + Gantt */}
-        <div className="col-span-2 space-y-6">
+        <div className="lg:col-span-2 space-y-6">
 
           {/* Árbol de procesos (arquitectura 0-4) */}
           <Card className="bg-slate-900 border-slate-800">
