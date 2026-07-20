@@ -61,7 +61,7 @@ export default function KpiForm({ proyectoId }: Props) {
           <div ref={trapRef} role="dialog" aria-modal="true" aria-labelledby="kpi-form-titulo" className="bg-slate-900 border border-slate-700 rounded-xl p-6 w-full max-w-md shadow-2xl" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
               <h2 id="kpi-form-titulo" className="text-white font-semibold text-base">Nuevo KPI</h2>
-              <button onClick={() => setOpen(false)} aria-label="Cerrar" className="text-slate-400 hover:text-slate-300">
+              <button onClick={() => setOpen(false)} aria-label="Cerrar" className="text-slate-400 hover:text-slate-300 p-2 -m-2">
                 <X className="w-4 h-4" />
               </button>
             </div>

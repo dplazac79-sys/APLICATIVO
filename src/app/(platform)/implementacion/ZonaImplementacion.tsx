@@ -120,6 +120,28 @@ export function ZonaImplementacion({ proyectos, procesosAprobados, nombreUsuario
 }) {
   const [proyectoFiltro, setProyectoFiltro] = useState<string>(proyectos[0]?.id ?? '')
 
+  // Antes, sin proyectos asignados, la pantalla quedaba en un estado
+  // ambiguo (selector de proyecto vacío, lista de procesos vacía, sin
+  // explicación) — a diferencia del resto de las páginas del portal, que sí
+  // muestran un mensaje claro cuando no hay proyecto. Hallazgo de auditoría
+  // UX/UI.
+  if (proyectos.length === 0) {
+    return (
+      <div className="space-y-8 max-w-3xl">
+        <div>
+          <h1 className="text-2xl font-bold text-white">Zona de Implementación</h1>
+          <p className="text-slate-400 text-sm mt-1">
+            Procesos aprobados listos para implementar en tu organización
+          </p>
+        </div>
+        <div className="rounded-2xl border border-slate-800 bg-slate-900/40 py-14 text-center">
+          <p className="text-slate-400 text-sm">Todavía no tienes un proyecto asignado.</p>
+          <p className="text-slate-500 text-xs mt-1">Cuando tu consultor active un proyecto, aparecerá acá.</p>
+        </div>
+      </div>
+    )
+  }
+
   const procesosFiltrados = proyectoFiltro
     ? procesosAprobados.filter(p => p.proyecto_id === proyectoFiltro)
     : procesosAprobados
